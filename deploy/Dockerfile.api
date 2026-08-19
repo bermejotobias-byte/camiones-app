@@ -1,0 +1,31 @@
+# API de TruckNavigator.
+#
+# Se copian solo los tres proyectos que la API necesita. TruckNavigator.Mobile
+# queda afuera a proposito: arrastra el workload de MAUI, que no hace falta en el
+# servidor y agregaria varios GB a la imagen.
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY src/TruckNavigator.Domain/ src/TruckNavigator.Domain/
+COPY src/TruckNavigator.Infrastructure/ src/TruckNavigator.Infrastructure/
+COPY src/TruckNavigator.Api/ src/TruckNavigator.Api/
+
+RUN dotnet publish src/TruckNavigator.Api/TruckNavigator.Api.csproj \
+    -c Release -o /app --no-self-contained
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+
+COPY --from=build /app .
+
+# La base va a un volumen: los camiones que cargue el usuario tienen que
+# sobrevivir a un redeploy. Los puntos de interes se resiembran solos desde los
+# datasets embebidos en cada arranque.
+RUN mkdir -p /data
+ENV ConnectionStrings__Default="Data Source=/data/trucknavigator.db"
+
+ENV Kestrel__Endpoints__Http__Url="http://0.0.0.0:5080"
+EXPOSE 5080
+
+ENTRYPOINT ["dotnet", "TruckNavigator.Api.dll"]

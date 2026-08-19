@@ -1,0 +1,17 @@
+# Caddy consigue y renueva el certificado de Let's Encrypt solo. No hay que
+# generar nada a mano ni configurar renovaciones.
+#
+# El dominio llega por la variable DOMAIN del compose.
+
+{$DOMAIN} {
+	reverse_proxy api:5080
+
+	# La app envia y recibe JSON; comprimir baja bastante la respuesta de
+	# /api/pois y la geometria de las rutas, que son las mas gordas.
+	encode gzip
+
+	log {
+		output stdout
+		format console
+	}
+}

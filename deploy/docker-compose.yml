@@ -1,0 +1,60 @@
+# Despliegue completo: motor de ruteo, API y TLS.
+#
+#   cd deploy && DOMAIN=micamion.duckdns.org docker compose up -d --build
+#
+# Solo Caddy publica puertos. GraphHopper y la API quedan en la red interna: la
+# app movil nunca habla con el motor de ruteo directamente, siempre a traves de
+# la API, asi que no hay razon para exponerlo.
+
+services:
+  graphhopper:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.graphhopper
+    restart: unless-stopped
+    expose:
+      - "8989"
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8989/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      graphhopper:
+        condition: service_healthy
+    environment:
+      # Doble guion bajo = seccion anidada de appsettings.json.
+      GraphHopper__BaseUrl: http://graphhopper:8989
+    volumes:
+      - api-data:/data
+    expose:
+      - "5080"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Caddy pide el certificado a Let's Encrypt para este dominio. El puerto 80
+      # tiene que estar abierto: por ahi pasa la validacion.
+      DOMAIN: ${DOMAIN:?Defini DOMAIN, por ejemplo micamion.duckdns.org}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  api-data:
+  caddy-data:
+  caddy-config:

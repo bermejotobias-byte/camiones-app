@@ -1,0 +1,25 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+## Base de datos local
+*.db
+*.db-shm
+*.db-wal
+
+## Motor de ruteo: artefactos pesados, se descargan con run-graphhopper.ps1
+routing/*.jar
+routing/*.osm.pbf
+routing/graph-cache/
+
+## Osmosis, que descarga crop-amba.ps1 para recortar el extract al AMBA
+routing/tools/
+
+## APKs: los genera build-apk.ps1, no se versionan
+*.apk
+
+## Claude Code: configuración local de cada máquina
+.claude/settings.local.json

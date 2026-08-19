@@ -1,0 +1,60 @@
+graphhopper:
+
+  ##### Datos de entrada #####
+  # Extract de Geofabrik (ODbL) recortado al AMBA por routing/crop-amba.ps1.
+  # Ver docs/data-sources.md para la descarga y la atribucion requerida.
+  #
+  # El recorte usa el mismo rectangulo con el que el geocoder acota sus
+  # resultados, asi que todo lo que el buscador encuentra se puede rutear. Para
+  # volver al pais entero: apuntar a argentina-latest.osm.pbf, borrar graph-cache
+  # y ampliar tambien el recorte del geocoder en appsettings.json.
+  datareader.file: amba-latest.osm.pbf
+
+  graph.location: graph-cache
+
+  # Solo perfiles motorizados: descartar la red peatonal y ciclista acelera el
+  # import y achica el grafo.
+  import.osm.ignored_highways: footway,cycleway,path,pedestrian,steps
+
+  ##### Encoded values #####
+  # Los valores dimensionales y de acceso de camion son los que hacen posible
+  # que la restriccion forme parte del calculo de ruta.
+  #   hgv         -> Red de Transito Pesado (hgv=designated) y prohibiciones (hgv=no)
+  #   max_weight  -> toneladas
+  #   max_height  -> metros
+  #   max_width   -> metros
+  #   max_length  -> metros
+  graph.encoded_values: road_access, road_class, car_access, car_average_speed,
+                        hgv, max_weight, max_weight_except, max_height,
+                        max_width, max_length, max_axle_load
+
+  ##### Perfiles #####
+  profiles:
+    - name: truck
+      turn_costs:
+        vehicle_types: [hgv, motorcar, motor_vehicle]
+      custom_model_files: [caba_truck.json]
+
+  custom_models.directory: custom_models
+
+  # Modo flexible puro: sin preparacion CH ni LM.
+  # Es requisito para poder mandar un custom model distinto por cada camion
+  # (ch.disable=true) y evita una preparacion larga en el arranque.
+  # Las rutas dentro de CABA son cortas, asi que el costo de query es aceptable.
+  profiles_ch: []
+  profiles_lm: []
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: 0.0.0.0
+  admin_connectors:
+    - type: http
+      port: 8990
+      bind_host: localhost
+
+logging:
+  appenders:
+    - type: console
+      threshold: INFO

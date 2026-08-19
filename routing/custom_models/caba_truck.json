@@ -1,0 +1,24 @@
+// Modelo base del perfil "truck" del servidor GraphHopper.
+//
+// Contiene SOLO las reglas que no dependen del camion concreto.
+// Las restricciones dimensionales (peso/alto/ancho/largo) y la regla de la
+// Red de Transito Pesado de CABA se envian por request, generadas por
+// TruckNavigator.Domain.Routing.GraphHopperCustomModelBuilder a partir del
+// TruckProfile seleccionado. GraphHopper fusiona ambos modelos.
+{
+  "distance_influence": 70,
+  "priority": [
+    // Prohibicion explicita de camiones en la via (OSM hgv=no).
+    { "if": "hgv == NO", "multiply_by": "0" },
+
+    // Vias sin acceso vehicular general, salvo que admitan reparto/destino.
+    { "if": "!car_access && road_access != PRIVATE && hgv != DELIVERY && hgv != DESTINATION", "multiply_by": "0" },
+
+    // Vias privadas: transitables pero fuertemente desalentadas.
+    { "if": "road_access == PRIVATE", "multiply_by": "0.1" }
+  ],
+  "speed": [
+    { "if": "true", "limit_to": "car_average_speed * 0.9" },
+    { "if": "true", "limit_to": "80" }
+  ]
+}

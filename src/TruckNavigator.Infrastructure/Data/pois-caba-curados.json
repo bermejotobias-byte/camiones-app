@@ -1,0 +1,84 @@
+{
+  "generatedOn": "2026-08-14",
+  "generatedBy": "relevamiento manual",
+  "sourceNote": "Puntos relevados a mano para las dos categorias que OpenStreetMap no cubre en CABA (playas de camiones y auxilio pesado). Cada entrada cita la URL consultada y la fecha. Se excluyeron deliberadamente los servicios que no publican ubicacion: PinkGruas (gruas24encaba.com.ar) y Remolques del Norte no declaran domicilio ni base, asi que no pueden dibujarse en un mapa. Ver docs/pois.md.",
+  "pois": [
+    {
+      "name": "CTC - Centro de Transferencia de Cargas",
+      "category": "TruckParking",
+      "address": "Av. Coronel Roca 3450",
+      "neighbourhood": "Villa Soldati",
+      "latitude": -34.667597,
+      "longitude": -58.440987,
+      "phone": "011 6089 8600",
+      "website": "https://www.ctcadministradora.com.ar/",
+      "openingHours": "Lu-Vi 07:00-18:00",
+      "description": "Primer centro de transferencia de cargas del pais: las unidades de gran porte descargan aca y la mercaderia sigue en vehiculos chicos, para que el camion no tenga que entrar a la Ciudad. NO es una playa de estacionamiento de uso publico: opera con las empresas de transporte radicadas en el predio.",
+      "services": [
+        "Transferencia de cargas",
+        "Crossdocking",
+        "Zonas de descarga",
+        "Expresos"
+      ],
+      "suitableForLightTruck": true,
+      "suitableForHeavyTruck": true,
+      "suitableForSemiTrailer": null,
+      "suitableForTrailer": null,
+      "source": "https://www.buenosaires.gob.ar/corporacionsur/obras/iniciativa-publico-privada/centro-de-transferencia-de-cargas-ctc y https://www.ctcadministradora.com.ar/contacto (consultados 2026-08-14)",
+      "sourceRetrievedOn": "2026-08-14",
+      "verificationLevel": "Confirmed",
+      "isSampleData": true
+    },
+    {
+      "name": "Auxilio Full Truck",
+      "category": "HeavyRoadsideAssistance",
+      "address": "Felix Ballester 2909, San Martin, Provincia de Buenos Aires",
+      "neighbourhood": null,
+      "latitude": -34.571965,
+      "longitude": -58.549543,
+      "phone": "011-3007-0302",
+      "website": "https://auxiliosfulltruck.com.ar/",
+      "openingHours": "24/7",
+      "description": "Remolque y asistencia vial para vehiculos pesados. Base fuera de CABA (San Martin, GBA); cobertura declarada por el prestador: Buenos Aires. El marcador esta en la base, no en la zona de cobertura.",
+      "services": [
+        "Remolque de pesados",
+        "Asistencia vial",
+        "Atencion 24 horas"
+      ],
+      "suitableForLightTruck": true,
+      "suitableForHeavyTruck": true,
+      "suitableForSemiTrailer": null,
+      "suitableForTrailer": null,
+      "source": "https://auxiliosfulltruck.com.ar/ (consultado 2026-08-14)",
+      "sourceRetrievedOn": "2026-08-14",
+      "verificationLevel": "Probable",
+      "isSampleData": true
+    },
+    {
+      "name": "Gruas El Enganche",
+      "category": "HeavyRoadsideAssistance",
+      "address": "Villa Lugano, CABA (sin domicilio publicado)",
+      "neighbourhood": "Villa Lugano",
+      "latitude": -34.676615,
+      "longitude": -58.477185,
+      "phone": "011 3940-8030",
+      "website": "https://gruaselenganche.com.ar/",
+      "openingHours": "24 horas",
+      "description": "Grua con sistema de tenedor para camiones, flotas y utilitarios pesados. Cobertura declarada: Capital Federal y Gran Buenos Aires. UBICACION APROXIMADA: la fuente declara base operativa en Villa Lugano pero no publica domicilio, asi que el marcador esta en el centro del barrio. Telefono alternativo: 011 7012-4325.",
+      "services": [
+        "Remolque de camiones",
+        "Sistema de tenedor",
+        "Asistencia vial",
+        "Atencion 24 horas"
+      ],
+      "suitableForLightTruck": true,
+      "suitableForHeavyTruck": true,
+      "suitableForSemiTrailer": null,
+      "suitableForTrailer": null,
+      "source": "https://gruaselenganche.com.ar/ (consultado 2026-08-14); coordenada del centro de Villa Lugano tomada de OpenStreetMap",
+      "sourceRetrievedOn": "2026-08-14",
+      "verificationLevel": "Probable",
+      "isSampleData": true
+    }
+  ]
+}

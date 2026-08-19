@@ -1,0 +1,42 @@
+# Motor de ruteo.
+#
+# El grafo se construye durante el build y no al arrancar. Asi el contenedor
+# levanta en segundos, la imagen es inmutable y no hace falta montar un volumen
+# para el grafo ni cargar el .pbf en produccion.
+#
+# Requiere routing/amba-latest.osm.pbf, que genera routing/crop-amba.ps1 a partir
+# del extract de Geofabrik. Son 44 MB contra los 408 MB del pais entero, y el
+# grafo resultante baja de 337 MB a 42 MB.
+
+FROM eclipse-temurin:21-jre AS import
+WORKDIR /gh
+
+COPY routing/graphhopper-web-11.0.jar ./
+COPY routing/config-truck.yml ./
+COPY routing/custom_models/ ./custom_models/
+COPY routing/amba-latest.osm.pbf ./
+
+RUN java -Xmx3g -jar graphhopper-web-11.0.jar import config-truck.yml
+
+FROM eclipse-temurin:21-jre
+WORKDIR /gh
+
+# curl es solo para el healthcheck del compose, que permite que la API espere a
+# que el motor este listo en vez de fallar los primeros pedidos.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY --from=import /gh/graphhopper-web-11.0.jar ./
+COPY --from=import /gh/config-truck.yml ./
+COPY --from=import /gh/custom_models/ ./custom_models/
+COPY --from=import /gh/graph-cache/ ./graph-cache/
+
+# El .pbf no se copia: con el grafo ya construido, GraphHopper lo carga de
+# graph-cache y no vuelve a leer el archivo de origen.
+
+EXPOSE 8989
+
+# Medido con el grafo del AMBA: 533 MB de memoria privada. 1 GB deja margen y
+# entra en la VM mas barata.
+ENTRYPOINT ["java", "-Xmx1g", "-jar", "graphhopper-web-11.0.jar", "server", "config-truck.yml"]

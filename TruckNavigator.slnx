@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TruckNavigator.Api/TruckNavigator.Api.csproj" />
+    <Project Path="src/TruckNavigator.Domain/TruckNavigator.Domain.csproj" />
+    <Project Path="src/TruckNavigator.Infrastructure/TruckNavigator.Infrastructure.csproj" />
+    <Project Path="src/TruckNavigator.Mobile/TruckNavigator.Mobile.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TruckNavigator.IntegrationTests/TruckNavigator.IntegrationTests.csproj" />
+    <Project Path="tests/TruckNavigator.UnitTests/TruckNavigator.UnitTests.csproj" />
+  </Folder>
+</Solution>

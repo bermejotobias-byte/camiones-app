@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="maplibre-gl.css" />
+  <script src="_framework/hybridwebview.js"></script>
+  <script src="maplibre-gl.js"></script>
+  <style>
+    html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; }
+    body { background: #e8e6e1; }
+    .pin {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font: bold 13px system-ui, sans-serif;
+    }
+    .pin-origin      { background: #1b7f3b; }
+    .pin-destination { background: #b3261e; }
+    .pin-gps         { background: #1a73e8; width: 18px; height: 18px; border-width: 3px; }
+    .maplibregl-ctrl-attrib { font-size: 10px; }
+
+    /* El elemento que recibe MapLibre NO puede declarar position: la hoja de
+       MapLibre le pone position:absolute y sobre eso aplica el translate que lo
+       mantiene pegado a su coordenada. Como este <style> va despues del <link>,
+       cualquier position que pongamos con la misma especificidad gana y saca al
+       marcador de ese sistema: el punto deja de seguir al mapa al hacer zoom.
+       Por eso el recuadro visible va adentro y este envoltorio no toca nada. */
+    .poi-anchor { line-height: 0; }
+
+    /* Los puntos de interes son cuadrados y mas chicos que los pines de
+       origen/destino/GPS, que son circulos de 26 px. La diferencia de forma evita
+       que se confundan de un vistazo, incluso con el mapa lleno. */
+    .poi {
+      position: relative;
+      width: 22px; height: 22px; border-radius: 7px;
+      border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; line-height: 1; cursor: pointer;
+    }
+    .poi-TruckParking            { background: #5b3fa8; }
+    .poi-FuelStation             { background: #0a7d6b; }
+    .poi-RepairShop              { background: #8a5a00; }
+    .poi-TyreShop                { background: #41474d; }
+    .poi-HeavyRoadsideAssistance { background: #c2410c; }
+
+    /* Se marca la aptitud CONFIRMADA, que es lo excepcional: hoy 75 de los 78
+       puntos no declaran nada, asi que senalar lo desconocido pintaba casi todo
+       el mapa y no informaba. Los demas quedan a color pleno; que la fuente no
+       diga nada no los vuelve sospechosos, y la ficha lo aclara con todas las
+       letras. */
+    .poi-suitable::after {
+      content: '✓';
+      position: absolute; right: -5px; top: -6px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #1b7f3b; color: #fff; border: 1px solid #fff;
+      font: bold 9px/12px system-ui, sans-serif; text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+// Tiles raster de OpenStreetMap. La atribucion es obligatoria (ODbL).
+var tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+var map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    sources: {
+      osm: {
+        type: 'raster',
+        tiles: [tileUrl],
+        tileSize: 256,
+        attribution: '© colaboradores de OpenStreetMap'
+      }
+    },
+    layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+  },
+  center: [-58.4370, -34.6083],
+  zoom: 11.5,
+  attributionControl: { compact: true }
+});
+
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+var originMarker = null;
+var destinationMarker = null;
+var gpsMarker = null;
+
+function makePin(cssClass, label) {
+  var el = document.createElement('div');
+  el.className = 'pin ' + cssClass;
+  el.textContent = label || '';
+  return el;
+}
+
+// --- Puente hacia C# ---------------------------------------------------
+// Canal oficial de HybridWebView. Reemplaza al truco de navegar a un esquema
+// propio, que los WebView modernos de Android no siempre entregan.
+function notify(payload) {
+  if (window.HybridWebView && window.HybridWebView.SendRawMessage) {
+    window.HybridWebView.SendRawMessage(JSON.stringify(payload));
+  }
+}
+
+// Un toque simple ya no fija puntos: solo cierra lo que haya abierto. Fijar
+// origen o destino pide mantener apretado, porque el mapa se navega con el dedo
+// y un toque suelto cambiaba el destino sin querer todo el tiempo.
+map.on('click', function () {
+  notify({ action: 'mapTapped' });
+});
+
+map.on('load', function () {
+  notify({ action: 'ready' });
+});
+
+// --- Mantener apretado para fijar un punto -----------------------------
+
+var LONG_PRESS_MS = 500;
+var LONG_PRESS_TOLERANCE = 12;   // px que puede correrse el dedo sin cancelar
+
+var pressTimer = null;
+var pressStart = null;
+var lastLongPress = 0;
+
+function cancelPress() {
+  if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+  pressStart = null;
+}
+
+/**
+ * Avisa a C#. El guard de tiempo evita marcar dos veces el mismo gesto cuando el
+ * WebView ademas emite su propio contextmenu al mantener apretado.
+ */
+function commitLongPress(lat, lng) {
+  var now = Date.now();
+  if (now - lastLongPress < 800) { return; }
+
+  lastLongPress = now;
+  notify({ action: 'mapLongPress', lat: lat, lng: lng });
+}
+
+function touchPoint(touch, container) {
+  var rect = container.getBoundingClientRect();
+  return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+}
+
+var pressSurface = map.getCanvasContainer();
+
+pressSurface.addEventListener('touchstart', function (ev) {
+  cancelPress();
+
+  // Con dos dedos se esta haciendo zoom, no marcando un punto.
+  if (ev.touches.length !== 1) { return; }
+
+  // Los marcadores viven dentro de este contenedor: mantener apretado sobre uno
+  // no debe fijar un punto debajo de el.
+  if (ev.target && ev.target.closest && ev.target.closest('.maplibregl-marker')) {
+    return;
+  }
+
+  pressStart = touchPoint(ev.touches[0], pressSurface);
+
+  pressTimer = setTimeout(function () {
+    pressTimer = null;
+    if (!pressStart) { return; }
+
+    var lngLat = map.unproject([pressStart.x, pressStart.y]);
+    pressStart = null;
+    commitLongPress(lngLat.lat, lngLat.lng);
+  }, LONG_PRESS_MS);
+}, { passive: true });
+
+// Si el dedo se corre, esta arrastrando el mapa, no marcando.
+pressSurface.addEventListener('touchmove', function (ev) {
+  if (!pressStart || ev.touches.length !== 1) { cancelPress(); return; }
+
+  var point = touchPoint(ev.touches[0], pressSurface);
+
+  if (Math.abs(point.x - pressStart.x) > LONG_PRESS_TOLERANCE ||
+      Math.abs(point.y - pressStart.y) > LONG_PRESS_TOLERANCE) {
+    cancelPress();
+  }
+}, { passive: true });
+
+pressSurface.addEventListener('touchend', cancelPress, { passive: true });
+pressSurface.addEventListener('touchcancel', cancelPress, { passive: true });
+
+// El menu contextual nativo del WebView aparece justo al mantener apretado y
+// tapa el mapa.
+pressSurface.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
+
+// En escritorio el equivalente natural del gesto es el clic derecho.
+map.on('contextmenu', function (e) {
+  commitLongPress(e.lngLat.lat, e.lngLat.lng);
+});
+
+// --- API que consume C# ------------------------------------------------
+
+function setOrigin(lat, lng) {
+  if (originMarker) { originMarker.remove(); }
+  originMarker = new maplibregl.Marker({ element: makePin('pin-origin', 'A') })
+    .setLngLat([lng, lat]).addTo(map);
+}
+
+function setDestination(lat, lng) {
+  if (destinationMarker) { destinationMarker.remove(); }
+  destinationMarker = new maplibregl.Marker({ element: makePin('pin-destination', 'B') })
+    .setLngLat([lng, lat]).addTo(map);
+}
+
+function setGpsPosition(lat, lng) {
+  if (!gpsMarker) {
+    gpsMarker = new maplibregl.Marker({ element: makePin('pin-gps', '') })
+      .setLngLat([lng, lat]).addTo(map);
+  } else {
+    gpsMarker.setLngLat([lng, lat]);
+  }
+}
+
+function centerOn(lat, lng, zoom) {
+  map.easeTo({ center: [lng, lat], zoom: zoom || 15 });
+}
+
+function clearRoute() {
+  ['route-access', 'route-main'].forEach(function (id) {
+    if (map.getLayer(id)) { map.removeLayer(id); }
+  });
+  ['route-main-src', 'route-access-src'].forEach(function (id) {
+    if (map.getSource(id)) { map.removeSource(id); }
+  });
+}
+
+/**
+ * Dibuja la ruta. accessLegs son los rangos de indices que circulan fuera de la
+ * Red de Transito Pesado; se pintan distinto porque circulan al amparo de la
+ * excepcion de acceso a origen/destino.
+ */
+function setRoute(coordinates, accessLegs) {
+  clearRoute();
+
+  map.addSource('route-main-src', {
+    type: 'geojson',
+    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coordinates } }
+  });
+
+  map.addLayer({
+    id: 'route-main',
+    type: 'line',
+    source: 'route-main-src',
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: { 'line-color': '#1a56db', 'line-width': 6, 'line-opacity': 0.85 }
+  });
+
+  var segments = (accessLegs || [])
+    .map(function (leg) { return coordinates.slice(leg.from, Math.min(leg.to + 1, coordinates.length)); })
+    .filter(function (c) { return c.length > 1; });
+
+  if (segments.length > 0) {
+    map.addSource('route-access-src', {
+      type: 'geojson',
+      data: { type: 'Feature', geometry: { type: 'MultiLineString', coordinates: segments } }
+    });
+
+    map.addLayer({
+      id: 'route-access',
+      type: 'line',
+      source: 'route-access-src',
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#e07a00', 'line-width': 6, 'line-dasharray': [1.5, 1] }
+    });
+  }
+
+  fitTo(coordinates);
+}
+
+function fitTo(coordinates) {
+  if (!coordinates || coordinates.length === 0) { return; }
+
+  var bounds = coordinates.reduce(function (b, c) {
+    return b.extend(c);
+  }, new maplibregl.LngLatBounds(coordinates[0], coordinates[0]));
+
+  map.fitBounds(bounds, { padding: 60, duration: 600 });
+}
+
+function setTileUrl(url) {
+  tileUrl = url;
+  var source = map.getSource('osm');
+  if (source && source.setTiles) { source.setTiles([url]); }
+}
+
+// --- Puntos de interes -------------------------------------------------
+// Se dibujan como marcadores, no como capa: asi calcular una ruta (que agrega y
+// quita capas en clearRoute/setRoute) no puede borrarlos por accidente.
+
+var poiMarkers = [];
+
+var POI_EMOJI = {
+  TruckParking: '🅿️',
+  FuelStation: '⛽',
+  RepairShop: '🔧',
+  TyreShop: '🛞',
+  HeavyRoadsideAssistance: '🚨'
+};
+
+function makePoiPin(poi) {
+  // El envoltorio es el que ubica MapLibre; no le tocamos el posicionamiento.
+  var anchor = document.createElement('div');
+  anchor.className = 'poi-anchor';
+  anchor.title = poi.name;
+
+  var el = document.createElement('div');
+  el.className = 'poi poi-' + poi.category +
+                 (poi.suitableForSelectedTruck === true ? ' poi-suitable' : '');
+  el.textContent = POI_EMOJI[poi.category] || '📍';
+  anchor.appendChild(el);
+
+  // stopPropagation es lo que impide que tocar un punto cuente ademas como un
+  // toque sobre el mapa y mueva el pin de destino.
+  anchor.addEventListener('click', function (ev) {
+    ev.stopPropagation();
+    notify({ action: 'poiTapped', id: poi.id });
+  });
+
+  return anchor;
+}
+
+function clearPois() {
+  poiMarkers.forEach(function (entry) { entry.marker.remove(); });
+  poiMarkers = [];
+}
+
+function setPois(pois) {
+  clearPois();
+
+  (pois || []).forEach(function (poi) {
+    var marker = new maplibregl.Marker({ element: makePoiPin(poi) })
+      .setLngLat([poi.longitude, poi.latitude])
+      .addTo(map);
+
+    poiMarkers.push({
+      marker: marker,
+      category: poi.category,
+      suitable: poi.suitableForSelectedTruck
+    });
+  });
+}
+
+/**
+ * Muestra u oculta los puntos ya cargados. El filtrado es local para que los
+ * interruptores respondan al instante, sin volver a pedir nada por la red.
+ *
+ * Con onlySuitable en true se oculta tanto lo no apto como lo desconocido: es la
+ * lectura estricta del filtro, y por eso la pantalla informa cuantos escondio.
+ */
+function setPoiVisibility(categories, onlySuitable) {
+  var visible = {};
+  (categories || []).forEach(function (c) { visible[c] = true; });
+
+  poiMarkers.forEach(function (entry) {
+    var show = visible[entry.category] === true &&
+               (!onlySuitable || entry.suitable === true);
+
+    entry.marker.getElement().style.display = show ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

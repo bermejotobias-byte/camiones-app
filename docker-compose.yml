@@ -1,0 +1,35 @@
+# Infraestructura para la siguiente iteración.
+#
+# El MVP corre sobre SQLite: la geometría vive en el grafo de GraphHopper, y la
+# base sólo guarda perfiles de camión y metadatos de trazabilidad, para lo que
+# PostGIS no aporta nada. Ver AD-06 en docs/decisions.md.
+#
+# Este compose queda listo para cuando haga falta persistir restricciones
+# propias con geometría (obras, cortes, restricciones temporales) o la capa
+# oficial del GCBA. Para activarlo:
+#
+#   docker compose up -d
+#   dotnet add src/TruckNavigator.Infrastructure package Npgsql.EntityFrameworkCore.PostgreSQL
+#
+# y cambiar UseSqlite por UseNpgsql en DependencyInjection.cs.
+
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: trucknavigator-postgis
+    environment:
+      POSTGRES_DB: trucknavigator
+      POSTGRES_USER: trucknavigator
+      POSTGRES_PASSWORD: trucknavigator
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgis-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trucknavigator -d trucknavigator"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgis-data:
