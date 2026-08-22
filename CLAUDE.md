@@ -19,10 +19,10 @@ OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
 |---|---|
 | `src/TruckNavigator.Domain` | Motor de restricciones, ruteo, POIs y perfiles. **Sin dependencias externas** — mantenerlo así |
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
-| `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080`. `/api/health`, `/api/auth`, `/api/perfil`, `/api/trucks`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
+| `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080`. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. WebView + MapLibre GL JS (`Resources/Raw/wwwroot/`), GPS nativo |
-| `tests/TruckNavigator.UnitTests` | 51 tests de dominio, sin infraestructura |
-| `tests/TruckNavigator.IntegrationTests` | 31 tests: 6 contra GraphHopper (se saltean solos si no está levantado) + 25 sobre datasets, perfiles, propiedad de camiones y SQLite |
+| `tests/TruckNavigator.UnitTests` | 65 tests de dominio, sin infraestructura |
+| `tests/TruckNavigator.IntegrationTests` | 38 tests: 6 contra GraphHopper (se saltean solos si no está levantado) + 32 sobre datasets, perfiles, camiones, viajes y SQLite |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -38,7 +38,7 @@ Solución: `TruckNavigator.slnx`.
 ```powershell
 cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª vez baja ~450 MB)
 dotnet run --project src/TruckNavigator.Api    # backend en :5080, migra y siembra al arrancar
-dotnet test                                    # 82 tests
+dotnet test                                    # 103 tests
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -61,6 +61,9 @@ dotnet test                                    # 82 tests
   que ese default está muerto salvo que se regenere con `demo-up.ps1`.
 - **HTTP plano desde el teléfono** está habilitado sólo para la IP de desarrollo, en
   `Platforms/Android/Resources/xml/network_security_config.xml`.
+- **SQLite no ordena por `DateTimeOffset`**: los instantes se guardan como ticks UTC con un
+  `ValueConverter` en `AppDbContext`. Sin eso, listar el historial tira `NotSupportedException`
+  y el endpoint devuelve 500. Al agregar una fecha nueva, aplicarle el conversor. Ver AD-20.
 - **Los camiones tienen dueño**: `OwnerId` nulo es una **plantilla del catálogo**, que ve
   todo el mundo y no edita nadie. Leer camiones es anónimo; crear, editar y borrar piden
   sesión, así que **la app Android da 401 al crear un camión** hasta que tenga login. El

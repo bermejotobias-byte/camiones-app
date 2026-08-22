@@ -11,6 +11,7 @@ using TruckNavigator.Domain.Places;
 using TruckNavigator.Domain.Pois;
 using TruckNavigator.Domain.Restrictions;
 using TruckNavigator.Domain.Routing;
+using TruckNavigator.Domain.Trips;
 using TruckNavigator.Domain.Trucks;
 using TruckNavigator.Domain.Users;
 using TruckNavigator.Infrastructure;
@@ -135,7 +136,7 @@ app.MapGroup("/api/auth")
 
 // ------------------------------------------------------------------ perfil
 
-var profiles = app.MapGroup("/api/perfil")
+var profiles = app.MapGroup("/api/profile")
                   .WithTags("Perfil")
                   .RequireAuthorization();
 
@@ -240,7 +241,7 @@ profiles.MapPut("/", async (
 })
 .WithSummary("Guarda nombre, apellido, alias y avatar. El alias es unico.");
 
-profiles.MapGet("/alias-disponible", async (
+profiles.MapGet("/alias-available", async (
     string alias,
     ClaimsPrincipal principal,
     AppDbContext db,
@@ -298,7 +299,7 @@ trucks.MapGet("/", async (
 })
 .WithSummary("Los camiones del usuario mas las plantillas del catalogo.");
 
-trucks.MapGet("/plantillas", async (AppDbContext db, CancellationToken ct) =>
+trucks.MapGet("/templates", async (AppDbContext db, CancellationToken ct) =>
 {
     var templates = await db.TruckProfiles
         .Where(t => t.OwnerId == null)
@@ -517,6 +518,218 @@ pois.MapGet("/", async (
 })
 .WithSummary("Playas, estaciones, talleres, gomerias y auxilio pesado para camiones.");
 
+// ------------------------------------------------------------------- viajes
+//
+// El viaje es la unidad del historial y la fuente de los kilometros. Todo lo que
+// se desbloquea manejando sale de esta tabla.
+//
+// Arrancar un viaje RUTEA en el servidor y guarda la distancia que devolvio el
+// motor. El cliente no informa kilometros en ningun momento: si pudiera, el
+// total del camionero seria un numero que cualquiera se regala.
+
+var trips = app.MapGroup("/api/trips").WithTags("Trips").RequireAuthorization();
+
+trips.MapPost("/", async (
+    StartTripRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    ITruckRouteCalculator calculator,
+    CancellationToken ct) =>
+{
+    if (Validate(request) is { } problem)
+    {
+        return problem;
+    }
+
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    // Un camionero maneja un camion por vez. Dos viajes abiertos ademas dejarian
+    // sin respuesta a cual de los dos acreditarle el recorrido.
+    var open = await db.Trips
+        .AsNoTracking()
+        .FirstOrDefaultAsync(t => t.DriverId == userId && t.Status == TripStatus.InProgress, ct);
+
+    if (open is not null)
+    {
+        return Results.Problem(
+            title: "Ya tenes un viaje sin terminar",
+            detail: "Todavia hay un viaje abierto. Cerralo o cancelalo antes de arrancar otro.",
+            statusCode: StatusCodes.Status409Conflict,
+            extensions: new Dictionary<string, object?> { ["tripId"] = open.Id });
+    }
+
+    var truck = await FindUsableTruckAsync(db, request.TruckId, userId, ct);
+
+    if (truck is null)
+    {
+        return Results.Problem(
+            title: "Camion inexistente",
+            detail: $"No existe un camion con id {request.TruckId} que puedas usar.",
+            statusCode: StatusCodes.Status404NotFound);
+    }
+
+    var departure = request.DepartureTime ?? DateTimeOffset.Now;
+
+    try
+    {
+        var route = await calculator.CalculateAsync(
+            truck,
+            new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude),
+            new GeoPoint(request.Destination!.Latitude, request.Destination.Longitude),
+            departure,
+            ct);
+
+        var trip = new Trip
+        {
+            DriverId = userId,
+            TruckId = truck.Id,
+
+            // Copiado, no solo referenciado: el camion se puede borrar y el
+            // historial tiene que seguir diciendo con cual se hizo el viaje.
+            TruckName = truck.Name,
+
+            OriginLatitude = request.Origin.Latitude,
+            OriginLongitude = request.Origin.Longitude,
+            OriginLabel = Clean(request.OriginLabel),
+            DestinationLatitude = request.Destination.Latitude,
+            DestinationLongitude = request.Destination.Longitude,
+            DestinationLabel = Clean(request.DestinationLabel),
+
+            PlannedDistanceMeters = route.DistanceMeters,
+            PlannedDurationSeconds = route.DurationSeconds,
+            HeavyNetworkSharePercent = route.HeavyNetworkSharePercent,
+
+            StartedAt = DateTimeOffset.UtcNow
+        };
+
+        db.Trips.Add(trip);
+        await db.SaveChangesAsync(ct);
+
+        return Results.Created(
+            $"/api/trips/{trip.Id}",
+            new StartedTripDto(TripDto.From(trip), RouteResponse.From(route, truck.Name, Attribution)));
+    }
+    catch (RoutingException ex)
+    {
+        return Results.Problem(
+            title: "No se pudo calcular la ruta",
+            detail: ex.Message,
+            statusCode: StatusCodes.Status422UnprocessableEntity);
+    }
+    catch (HttpRequestException ex)
+    {
+        return Results.Problem(
+            title: "Motor de ruteo no disponible",
+            detail: $"No se pudo contactar a GraphHopper: {ex.Message}",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+})
+.WithSummary("Arranca un viaje: rutea, lo registra y devuelve la ruta para navegar.");
+
+trips.MapPost("/{id:guid}/finish", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+    await CloseTripAsync(db, id, CurrentUserId(principal), arrived: true, ct))
+.WithSummary("Marca el viaje como llegado y acredita los kilometros que correspondan.");
+
+trips.MapPost("/{id:guid}/cancel", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+    await CloseTripAsync(db, id, CurrentUserId(principal), arrived: false, ct))
+.WithSummary("Abandona el viaje. No acredita kilometros.");
+
+trips.MapGet("/", async (
+    int? limit,
+    int? offset,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    var take = Math.Clamp(limit ?? 20, 1, 100);
+    var skip = Math.Max(offset ?? 0, 0);
+
+    var history = await db.Trips
+        .Where(t => t.DriverId == userId)
+        .OrderByDescending(t => t.StartedAt)
+        .Skip(skip)
+        .Take(take)
+        .AsNoTracking()
+        .ToListAsync(ct);
+
+    return Results.Ok(history.Select(TripDto.From));
+})
+.WithSummary("Historial de viajes, del mas nuevo al mas viejo.");
+
+trips.MapGet("/stats", async (
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    var mine = db.Trips.Where(t => t.DriverId == userId).AsNoTracking();
+
+    var total = await mine.CountAsync(ct);
+    var completed = await mine.CountAsync(t => t.Status == TripStatus.Completed, ct);
+
+    // Suma lo acreditado y no lo planeado: un viaje cancelado tiene distancia
+    // prevista y no suma nada.
+    var meters = total == 0 ? 0 : await mine.SumAsync(t => t.CreditedDistanceMeters, ct);
+
+    // Los tiempos se proyectan y se suman en memoria porque restar dos fechas no
+    // se traduce a SQL de forma portable. Es una lectura angosta y con estos
+    // volumenes no pesa; si algun dia pesa, corresponde un contador guardado.
+    var spans = await mine
+        .Where(t => t.FinishedAt != null)
+        .Select(t => new { t.StartedAt, t.FinishedAt })
+        .ToListAsync(ct);
+
+    var drivenSeconds = spans.Sum(s => (s.FinishedAt!.Value - s.StartedAt).TotalSeconds);
+
+    var first = await mine
+        .OrderBy(t => t.StartedAt)
+        .Select(t => (DateTimeOffset?)t.StartedAt)
+        .FirstOrDefaultAsync(ct);
+
+    var last = await mine
+        .OrderByDescending(t => t.StartedAt)
+        .Select(t => (DateTimeOffset?)t.StartedAt)
+        .FirstOrDefaultAsync(ct);
+
+    return Results.Ok(new TripStatsDto(
+        total,
+        completed,
+        Math.Round(meters / 1000.0, 1),
+        Math.Round(drivenSeconds),
+        first,
+        last));
+})
+.WithSummary("Kilometros acumulados, viajes y tiempo al volante.");
+
+trips.MapGet("/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    var trip = await db.Trips
+        .AsNoTracking()
+        .FirstOrDefaultAsync(t => t.Id == id && t.DriverId == userId, ct);
+
+    return trip is null ? Results.NotFound() : Results.Ok(TripDto.From(trip));
+});
+
 // ------------------------------------------------------------------ rutas
 
 app.MapPost("/api/routes", async (
@@ -552,20 +765,7 @@ app.MapPost("/api/routes", async (
             departure,
             ct);
 
-        return Results.Ok(new RouteResponse(
-            route.DistanceMeters,
-            route.DurationSeconds,
-            new GeoJsonLineString(route.Geometry
-                .Select(p => new[] { p.Longitude, p.Latitude })
-                .ToList()),
-            route.Instructions
-                .Select(i => new RouteInstructionDto(i.Text, i.DistanceMeters, i.DurationSeconds, i.StreetName))
-                .ToList(),
-            route.RestrictionNotes.Select(ToDto).ToList(),
-            route.AccessLegs.Select(ToDto).ToList(),
-            route.HeavyNetworkSharePercent,
-            truck.Name,
-            Attribution));
+        return Results.Ok(RouteResponse.From(route, truck.Name, Attribution));
     }
     catch (RoutingException ex)
     {
@@ -586,22 +786,6 @@ app.MapPost("/api/routes", async (
 .WithSummary("Calcula una ruta compatible con el camion indicado.");
 
 app.Run();
-
-static RouteRestrictionNoteDto ToDto(RouteRestrictionNote note) => new(
-    note.FromPointIndex,
-    note.ToPointIndex,
-    note.StreetName,
-    note.DistanceMeters,
-    note.RequiresAccessException,
-    note.Findings.Select(f => new RestrictionFindingDto(
-        f.Kind.ToString(),
-        f.Description,
-        f.LimitValue,
-        f.Unit,
-        f.RuleSource.ToString(),
-        f.RuleReference,
-        f.DataSource.ToString(),
-        f.DataReference)).ToList());
 
 /// <summary>
 /// Convierte el parametro "categories" en una lista tipada. Devuelve <c>null</c> si
@@ -662,6 +846,59 @@ static IResult? Validate<T>(T instance) where T : notnull
 /// La indistincion es a proposito: responder distinto confirmaria que ese id
 /// existe, y las medidas de un camion son dato de su dueno.
 /// </remarks>
+
+/// <summary>
+/// Cierra un viaje abierto, como llegado o como abandonado.
+/// </summary>
+/// <remarks>
+/// Los dos caminos comparten todo salvo que uno acredita y el otro no, asi que
+/// la diferencia queda en el dominio —<c>Finish</c> contra <c>Cancel</c>— y no
+/// duplicada en dos endpoints. El filtro por camionero va en la misma consulta:
+/// el viaje de otro tiene que dar 404 y no 403.
+/// </remarks>
+static async Task<IResult> CloseTripAsync(
+    AppDbContext db,
+    Guid tripId,
+    Guid? userId,
+    bool arrived,
+    CancellationToken ct)
+{
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == tripId && t.DriverId == userId, ct);
+
+    if (trip is null)
+    {
+        return Results.NotFound();
+    }
+
+    if (!trip.IsOpen)
+    {
+        return Results.Problem(
+            title: "El viaje ya estaba cerrado",
+            detail: $"Quedo como {trip.Status} el {trip.FinishedAt:g}.",
+            statusCode: StatusCodes.Status409Conflict);
+    }
+
+    var now = DateTimeOffset.UtcNow;
+
+    if (arrived)
+    {
+        trip.Finish(now);
+    }
+    else
+    {
+        trip.Cancel(now);
+    }
+
+    await db.SaveChangesAsync(ct);
+
+    return Results.Ok(TripDto.From(trip));
+}
+
 static Task<TruckProfile?> FindUsableTruckAsync(
     AppDbContext db,
     Guid truckId,

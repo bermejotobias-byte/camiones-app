@@ -436,7 +436,7 @@ para SQLite `"ElGaucho"` y `"elgaucho"` son distintos, así que un índice sobre
 columna visible no frenaría el choque —que es justamente el parecido que permite
 suplantar a otro en el chat—.
 
-**El perfil se crea al primer acceso a `/api/perfil`, no durante el alta:**
+**El perfil se crea al primer acceso a `/api/profile`, no durante el alta:**
 `/api/auth/register` lo sirve Identity y no ofrece un gancho donde colgarlo.
 Crearlo en el primer acceso deja un solo camino posible y evita cuentas sin perfil
 si el alta se corta por la mitad. Nombre, apellido y avatar quedan opcionales
@@ -491,3 +491,70 @@ datos menor —devuelve una ruta que no sirve para el vehículo que está maneja
 **Borrar la cuenta borra sus camiones**, que son datos de esa persona. Las
 plantillas quedan, porque no cuelgan de ninguna cuenta. Hay tests de integración
 para ambos casos.
+
+---
+
+## AD-20 · El viaje lo abre el servidor ruteando, no el cliente informando
+
+**Problema:** el documento pide que *"los kilómetros que hagas sumen para
+desbloquear cosas"*. Eso convierte al kilómetro en moneda, y a una moneda hay que
+poder defenderla.
+
+**Decisión:** `POST /api/trips` recibe camión, origen y destino —**nunca una
+distancia**—, llama al motor de ruteo, guarda lo que el motor devolvió y responde
+con el viaje **y** la ruta para navegarlo.
+
+**Por qué junto y no en dos llamadas:** además de ahorrar un viaje de red,
+garantiza que la ruta que se navega sea exactamente la que quedó registrada. Si
+el cliente ruteara por un lado y abriera el viaje por otro, podría mandar una
+distancia que no corresponde a ningún recorrido.
+
+**Los kilómetros acreditados están separados de los planeados.**
+`PlannedDistanceMeters` es lo que dijo el motor; `CreditedDistanceMeters` es lo
+que efectivamente suma. Un viaje cancelado tiene lo primero y no lo segundo.
+
+**La regla de acreditación es de plausibilidad, no de verificación.** Sin ninguna
+condición, abrir un viaje y cerrarlo en el acto regalaría la distancia entera. Se
+exige que haya transcurrido **al menos la mitad de la duración estimada**: deja
+margen para tránsito más suelto que el previsto y descarta lo imposible —cerrar
+en 14 minutos un viaje estimado en 30 implica el doble de la velocidad prevista,
+que dentro de la Ciudad no pasa—.
+
+> **Esto no prueba que el camión haya recorrido la ruta.** Prueba que pasó tiempo
+> suficiente como para que fuera posible. La verificación real necesita el trazado
+> del GPS comparado contra la ruta, y llega con la navegación paso a paso. Cuando
+> llegue se reemplaza el contenido de `TripCrediting` y **no** el esquema: los dos
+> campos ya están separados justamente para eso.
+
+**Un viaje abierto por vez.** Nadie maneja dos camiones a la vez, y dos viajes
+abiertos dejarían sin respuesta a cuál acreditarle el recorrido. Abrir otro
+devuelve **409 con el id del que quedó abierto**, para que la app pueda ofrecer
+cerrarlo en lugar de dejar al usuario trabado.
+
+**El historial es de la persona, no del camión.** Borrar la cuenta borra sus
+viajes; **borrar un camión no**. La referencia queda en `null` y el nombre del
+camión, copiado al crear el viaje, mantiene el historial legible. El caso es
+corriente en el oficio: se cambia de vehículo o de empresa, y perder el historial
+sería perder también los kilómetros acumulados.
+
+**Las estadísticas se agregan, no se guardan en contadores.** Con estos volúmenes
+el agregado es correcto por construcción y no puede desincronizarse. Si algún día
+pesa, se agrega un contador sin cambiar la forma de la respuesta.
+
+### La trampa que costó dos endpoints en 500
+
+**SQLite no sabe ordenar por `DateTimeOffset`.** EF lo persiste como texto con el
+offset adelante, así que un `ORDER BY` sería alfabético sobre eso; el proveedor
+directamente lo rechaza con `NotSupportedException`. El historial —que se lee del
+más nuevo al más viejo— y las estadísticas devolvían **500**.
+
+Se guardan los instantes como **ticks UTC** (`long`) con un `ValueConverter`. El
+orden pasa a ser numérico y correcto, el índice sirve y no se pierde precisión.
+Todas las fechas del sistema se escriben con `UtcNow`, así que no hay offset
+propio que preservar. Se aplicó también a `DriverProfile.CreatedAt`, que tenía la
+misma bomba puesta aunque todavía nadie ordenara por él.
+
+**Ninguno de los tests lo agarró** porque ninguno ordenaba por fecha: se probaba
+que el viaje se guardaba y se leía, no que el historial se pudiera listar. Se
+agregó `The_history_can_be_ordered_by_date_newest_first`, que falla sin el
+conversor.

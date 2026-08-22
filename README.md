@@ -98,10 +98,10 @@ recompilar—. Para averiguarla:
 dotnet test
 ```
 
-51 tests unitarios de dominio (restricciones, aptitud de puntos de interés y
-reglas del alias, sin infraestructura) y 31 de integración: 6 contra GraphHopper
-—que se saltean solos si el motor no está levantado— y 25 sobre los datasets, el
-perfil del camionero, la propiedad de los camiones y su persistencia en SQLite.
+65 tests unitarios de dominio (restricciones, aptitud de puntos de interés, reglas
+del alias y acreditación de viajes, sin infraestructura) y 38 de integración: 6 contra
+GraphHopper —que se saltean solos si el motor no está levantado— y 32 sobre los
+datasets, el perfil, los camiones, el historial de viajes y su persistencia en SQLite.
 
 ## Uso
 
@@ -170,9 +170,9 @@ Por ahora se prueban desde `/swagger` o por HTTP.
 | `POST /api/auth/login` | Devuelve `accessToken` y `refreshToken`. |
 | `POST /api/auth/refresh` | Renueva el token. |
 | `POST /api/auth/forgotPassword` · `/resetPassword` | Recuperación de contraseña. |
-| `GET /api/perfil` | Perfil del usuario autenticado. Lo crea en el primer acceso. |
-| `PUT /api/perfil` | Guarda nombre, apellido, alias y avatar. |
-| `GET /api/perfil/alias-disponible?alias=` | Avisa si el alias está libre mientras se escribe. |
+| `GET /api/profile` | Perfil del usuario autenticado. Lo crea en el primer acceso. |
+| `PUT /api/profile` | Guarda nombre, apellido, alias y avatar. |
+| `GET /api/profile/alias-available?alias=` | Avisa si el alias está libre mientras se escribe. |
 
 El alias es **único e irrepetible** y no distingue mayúsculas: `ElGaucho` y
 `elgaucho` son el mismo. Nombre, apellido y avatar son opcionales, porque el alta
@@ -201,7 +201,7 @@ para elegir el tipo de transporte la primera vez, con sus medidas a la vista.
 | Endpoint | Sesión | Qué hace |
 |---|---|---|
 | `GET /api/trucks` | Opcional | Los camiones del usuario más las plantillas. Sin sesión, sólo las plantillas. |
-| `GET /api/trucks/plantillas` | No | Los tipos de transporte con altura, peso, largo y ejes. |
+| `GET /api/trucks/templates` | No | Los tipos de transporte con altura, peso, largo y ejes. |
 | `GET /api/trucks/{id}` | Opcional | Uno propio o una plantilla. El de otra cuenta da 404. |
 | `POST /api/trucks` | **Sí** | Carga un camión propio. |
 | `PUT` · `DELETE /api/trucks/{id}` | **Sí** | Sólo sobre los propios. Las plantillas dan 403. |
@@ -210,3 +210,26 @@ para elegir el tipo de transporte la primera vez, con sus medidas a la vista.
 > camiones desde la app devuelve 401** hasta que se rehaga el frontend. Leer las
 > plantillas y calcular rutas con ellas sigue andando sin sesión, así que la demo
 > de ruteo no se rompe. Ver AD-19 en [docs/decisions.md](docs/decisions.md).
+
+## Viajes
+
+Un viaje es la unidad del historial y la fuente de los kilómetros. Arrancarlo
+**rutea en el servidor**: el cliente nunca informa distancias.
+
+| Endpoint | Qué hace |
+|---|---|
+| `POST /api/trips` | Arranca un viaje. Devuelve el viaje y la ruta para navegar. |
+| `POST /api/trips/{id}/finish` | Llegaste. Acredita los kilómetros que correspondan. |
+| `POST /api/trips/{id}/cancel` | Lo abandonaste. No acredita nada. |
+| `GET /api/trips` | Historial, del más nuevo al más viejo. `limit` y `offset`. |
+| `GET /api/trips/stats` | Kilómetros acumulados, viajes y tiempo al volante. |
+| `GET /api/trips/{id}` | Un viaje propio. |
+
+Todos piden sesión. Hay **un viaje abierto por vez**: arrancar otro devuelve 409
+con el id del que quedó sin cerrar.
+
+Los kilómetros se acreditan sólo si transcurrió al menos **la mitad de la
+duración estimada**. Es una regla de plausibilidad —evita que abrir y cerrar un
+viaje al instante regale la distancia—, **no una verificación de que el camión
+recorrió la ruta**. Eso llega con la navegación paso a paso. Ver AD-20 en
+[docs/decisions.md](docs/decisions.md).

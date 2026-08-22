@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TruckNavigator.Domain.Pois;
+using TruckNavigator.Domain.Trips;
 using TruckNavigator.Domain.Trucks;
 using TruckNavigator.Domain.Users;
 using TruckNavigator.Infrastructure.Identity;
@@ -27,6 +29,29 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PointOfInterest> PointsOfInterest => Set<PointOfInterest>();
 
     public DbSet<DriverProfile> DriverProfiles => Set<DriverProfile>();
+
+    public DbSet<Trip> Trips => Set<Trip>();
+
+    /// <summary>
+    /// Guarda un instante como ticks UTC en lugar de texto.
+    /// </summary>
+    /// <remarks>
+    /// <b>SQLite no sabe ordenar por <c>DateTimeOffset</c></b>: EF lo persiste como
+    /// texto con el offset adelante, y un ORDER BY sobre eso seria alfabetico. El
+    /// motor directamente lo rechaza con <c>NotSupportedException</c>, asi que el
+    /// historial —que se lee del mas nuevo al mas viejo— no funcionaba.
+    ///
+    /// En ticks el orden es numerico y correcto, el indice sirve, y la precision
+    /// no se pierde. Todas las fechas del sistema se escriben con <c>UtcNow</c>, de
+    /// modo que no hay offset propio que preservar.
+    /// </remarks>
+    private static readonly ValueConverter<DateTimeOffset, long> UtcTicks = new(
+        moment => moment.UtcTicks,
+        ticks => new DateTimeOffset(ticks, TimeSpan.Zero));
+
+    private static readonly ValueConverter<DateTimeOffset?, long?> NullableUtcTicks = new(
+        moment => moment!.Value.UtcTicks,
+        ticks => new DateTimeOffset(ticks!.Value, TimeSpan.Zero));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -104,6 +129,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         driver.Property(d => d.FirstName).HasMaxLength(80);
         driver.Property(d => d.LastName).HasMaxLength(80);
         driver.Property(d => d.AvatarId).HasMaxLength(64);
+        driver.Property(d => d.CreatedAt).HasConversion(UtcTicks);
 
         driver.Ignore(d => d.IsComplete);
 
@@ -121,5 +147,34 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .WithOne()
             .HasForeignKey<DriverProfile>(d => d.Id)
             .OnDelete(DeleteBehavior.Cascade);
+
+        var trip = modelBuilder.Entity<Trip>();
+
+        trip.HasKey(t => t.Id);
+        trip.Property(t => t.Status).HasConversion<string>().HasMaxLength(24);
+        trip.Property(t => t.TruckName).IsRequired().HasMaxLength(120);
+        trip.Property(t => t.OriginLabel).HasMaxLength(300);
+        trip.Property(t => t.DestinationLabel).HasMaxLength(300);
+        trip.Property(t => t.StartedAt).HasConversion(UtcTicks);
+        trip.Property(t => t.FinishedAt).HasConversion(NullableUtcTicks);
+
+        trip.Ignore(t => t.Elapsed);
+        trip.Ignore(t => t.IsOpen);
+
+        // El viaje es historial de la persona: si se borra la cuenta, se va con ella.
+        trip.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(t => t.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Borrar un camion NO borra los viajes que se hicieron con el: la referencia
+        // queda en null y el nombre copiado mantiene legible el historial.
+        trip.HasOne<TruckProfile>()
+            .WithMany()
+            .HasForeignKey(t => t.TruckId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // El historial se lee siempre por camionero y de lo mas nuevo a lo mas viejo.
+        trip.HasIndex(t => new { t.DriverId, t.StartedAt });
     }
 }

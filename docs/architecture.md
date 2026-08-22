@@ -40,8 +40,8 @@
 | `TruckNavigator.Infrastructure` | EF Core sobre SQLite, cliente HTTP de GraphHopper, parseo de `path_details`, datasets de puntos de interés embebidos, registro de DI. |
 | `TruckNavigator.Api` | Minimal API, DTOs, validación, Swagger. |
 | `TruckNavigator.Mobile` | App MAUI Android. |
-| `TruckNavigator.UnitTests` | 51 tests de dominio: restricciones, política de ruteo, aptitud de puntos y reglas del alias. |
-| `TruckNavigator.IntegrationTests` | 31 tests: 6 rutean contra GraphHopper con datos reales, 25 verifican los datasets, el perfil del camionero, la propiedad de los camiones y su persistencia en SQLite. |
+| `TruckNavigator.UnitTests` | 65 tests de dominio: restricciones, política de ruteo, aptitud de puntos, reglas del alias y acreditación de viajes. |
+| `TruckNavigator.IntegrationTests` | 38 tests: 6 rutean contra GraphHopper con datos reales, 32 verifican los datasets, el perfil, los camiones, el historial de viajes y su persistencia en SQLite. |
 
 La dependencia apunta siempre hacia adentro: `Api → Infrastructure → Domain`.
 El motor de restricciones no conoce ni HTTP ni base de datos ni GraphHopper.

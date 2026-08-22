@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using TruckNavigator.Domain.Pois;
+using TruckNavigator.Domain.Restrictions;
+using TruckNavigator.Domain.Routing;
+using TruckNavigator.Domain.Trips;
 using TruckNavigator.Domain.Trucks;
 using TruckNavigator.Domain.Users;
 using TruckNavigator.Infrastructure.Identity;
@@ -184,7 +187,18 @@ public sealed record RestrictionFindingDto(
     string RuleSource,
     string RuleReference,
     string DataSource,
-    string DataReference);
+    string DataReference)
+{
+    public static RestrictionFindingDto From(RestrictionFinding finding) => new(
+        finding.Kind.ToString(),
+        finding.Description,
+        finding.LimitValue,
+        finding.Unit,
+        finding.RuleSource.ToString(),
+        finding.RuleReference,
+        finding.DataSource.ToString(),
+        finding.DataReference);
+}
 
 public sealed record RouteRestrictionNoteDto(
     int FromPointIndex,
@@ -192,13 +206,29 @@ public sealed record RouteRestrictionNoteDto(
     string StreetName,
     double DistanceMeters,
     bool RequiresAccessException,
-    IReadOnlyList<RestrictionFindingDto> Findings);
+    IReadOnlyList<RestrictionFindingDto> Findings)
+{
+    public static RouteRestrictionNoteDto From(RouteRestrictionNote note) => new(
+        note.FromPointIndex,
+        note.ToPointIndex,
+        note.StreetName,
+        note.DistanceMeters,
+        note.RequiresAccessException,
+        note.Findings.Select(RestrictionFindingDto.From).ToList());
+}
 
 public sealed record RouteInstructionDto(
     string Text,
     double DistanceMeters,
     double DurationSeconds,
-    string? StreetName);
+    string? StreetName)
+{
+    public static RouteInstructionDto From(RouteInstruction instruction) => new(
+        instruction.Text,
+        instruction.DistanceMeters,
+        instruction.DurationSeconds,
+        instruction.StreetName);
+}
 
 public sealed record RouteResponse(
     double DistanceMeters,
@@ -210,7 +240,26 @@ public sealed record RouteResponse(
     IReadOnlyList<RouteRestrictionNoteDto> AccessLegs,
     double HeavyNetworkSharePercent,
     string TruckName,
-    string Attribution);
+    string Attribution)
+{
+    /// <summary>
+    /// Arma la respuesta a partir de la ruta del dominio. Existe porque la usan
+    /// dos endpoints —calcular una ruta y arrancar un viaje— y duplicar el mapeo
+    /// dejaria que uno de los dos se quedara viejo sin que nada avise.
+    /// </summary>
+    public static RouteResponse From(TruckRoute route, string truckName, string attribution) => new(
+        route.DistanceMeters,
+        route.DurationSeconds,
+        new GeoJsonLineString(route.Geometry
+            .Select(p => new[] { p.Longitude, p.Latitude })
+            .ToList()),
+        route.Instructions.Select(RouteInstructionDto.From).ToList(),
+        route.RestrictionNotes.Select(RouteRestrictionNoteDto.From).ToList(),
+        route.AccessLegs.Select(RouteRestrictionNoteDto.From).ToList(),
+        route.HeavyNetworkSharePercent,
+        truckName,
+        attribution);
+}
 
 public sealed record GeoJsonLineString(IReadOnlyList<double[]> Coordinates)
 {
@@ -281,3 +330,99 @@ public sealed class SaveDriverProfileRequest
 /// unico que garantiza la unicidad es el indice de la base al guardar.
 /// </param>
 public sealed record AliasAvailabilityDto(string Alias, bool Available, string? Reason);
+
+/// <summary>
+/// Pedido para arrancar un viaje.
+/// </summary>
+/// <remarks>
+/// No lleva distancia ni duracion: las calcula el servidor con el motor de ruteo
+/// al crear el viaje. Si el cliente las informara, los kilometros del camionero
+/// serian un numero que cualquiera se regala.
+/// </remarks>
+public sealed class StartTripRequest
+{
+    [Required]
+    public Guid TruckId { get; set; }
+
+    [Required]
+    public CoordinateDto? Origin { get; set; }
+
+    [Required]
+    public CoordinateDto? Destination { get; set; }
+
+    /// <summary>Direccion legible del origen, para que el historial no muestre coordenadas.</summary>
+    [StringLength(300)]
+    public string? OriginLabel { get; set; }
+
+    [StringLength(300)]
+    public string? DestinationLabel { get; set; }
+
+    public DateTimeOffset? DepartureTime { get; set; }
+}
+
+public sealed record TripDto(
+    Guid Id,
+    Guid? TruckId,
+    string TruckName,
+    double OriginLatitude,
+    double OriginLongitude,
+    string? OriginLabel,
+    double DestinationLatitude,
+    double DestinationLongitude,
+    string? DestinationLabel,
+    double PlannedDistanceMeters,
+    double PlannedDurationSeconds,
+    double HeavyNetworkSharePercent,
+    DateTimeOffset StartedAt,
+    DateTimeOffset? FinishedAt,
+    string Status,
+    /// <summary>
+    /// Metros que suman al total del camionero. Vale cero en un viaje cancelado o
+    /// cerrado antes de que fuera posible haberlo hecho.
+    /// </summary>
+    double CreditedDistanceMeters,
+    double? ElapsedSeconds)
+{
+    public static TripDto From(Trip trip) => new(
+        trip.Id,
+        trip.TruckId,
+        trip.TruckName,
+        trip.OriginLatitude,
+        trip.OriginLongitude,
+        trip.OriginLabel,
+        trip.DestinationLatitude,
+        trip.DestinationLongitude,
+        trip.DestinationLabel,
+        trip.PlannedDistanceMeters,
+        trip.PlannedDurationSeconds,
+        trip.HeavyNetworkSharePercent,
+        trip.StartedAt,
+        trip.FinishedAt,
+        trip.Status.ToString(),
+        trip.CreditedDistanceMeters,
+        trip.Elapsed?.TotalSeconds);
+}
+
+/// <summary>
+/// Lo que devuelve arrancar un viaje: el viaje creado y la ruta para navegarlo.
+/// </summary>
+/// <remarks>
+/// Van juntos para que la app no tenga que pedir la ruta por separado y, sobre
+/// todo, para que la ruta que se navega sea exactamente la que quedo registrada.
+/// </remarks>
+public sealed record StartedTripDto(TripDto Trip, RouteResponse Route);
+
+/// <summary>Estadisticas acumuladas del camionero.</summary>
+/// <remarks>
+/// Se calculan agregando los viajes, no leyendo contadores guardados. Con los
+/// volumenes de esta etapa el agregado es correcto por construccion y no puede
+/// desincronizarse; si algun dia pesa, se agrega un contador y esta respuesta no
+/// cambia de forma.
+/// </remarks>
+public sealed record TripStatsDto(
+    int TotalTrips,
+    int CompletedTrips,
+    double CreditedKilometers,
+    double DrivenSeconds,
+    DateTimeOffset? FirstTripAt,
+    DateTimeOffset? LastTripAt);
