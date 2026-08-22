@@ -99,7 +99,7 @@ dotnet test
 ```
 
 65 tests unitarios de dominio (restricciones, aptitud de puntos de interés, reglas
-del alias y acreditación de viajes, sin infraestructura) y 38 de integración: 6 contra
+del alias y acreditación de viajes, sin infraestructura) y 43 de integración: 11 contra
 GraphHopper —que se saltean solos si el motor no está levantado— y 32 sobre los
 datasets, el perfil, los camiones, el historial de viajes y su persistencia en SQLite.
 

@@ -380,7 +380,114 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 /* ============================================================================
-   Hoja inferior — el patron principal de la pantalla de navegacion
+   Navegacion en curso
+   ----------------------------------------------------------------------------
+   Es la pantalla que se mira de reojo, a sesenta por hora, con el sol de frente.
+   Todo lo demas se corre: una sola maniobra, enorme, y nada que compita con ella.
+   ========================================================================== */
+
+.vehicle {
+  color: var(--brand);
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.6));
+  display: block;
+  line-height: 0;
+}
+
+.maneuver {
+  position: relative;
+  z-index: 3;
+  background: var(--ink);
+  color: var(--ground);
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: calc(12px + var(--safe-top)) 16px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--shadow);
+}
+
+.maneuver-arrow {
+  font-size: 44px;
+  line-height: 1;
+  flex: none;
+  width: 52px;
+  text-align: center;
+}
+
+.maneuver-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+/* La distancia es el dato que se lee de un vistazo: va mas grande que todo. */
+.maneuver-distance {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.maneuver-street {
+  font-size: 15px;
+  font-weight: 600;
+  opacity: .9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Aviso de restriccion durante la navegacion: solo aparece cuando falta poco. */
+.maneuver-alert {
+  position: relative;
+  z-index: 3;
+  margin: 8px 10px 0;
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--warn);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* Barra inferior compacta: llegada, restante y salir. */
+.nav-bar {
+  position: relative;
+  z-index: 3;
+  margin-top: auto;
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 12px 14px calc(12px + var(--safe-bottom));
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--shadow-up);
+}
+
+.nav-eta { display: flex; flex-direction: column; }
+.nav-eta b { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.nav-eta span { font-size: 11.5px; color: var(--ink-3); letter-spacing: .05em; text-transform: uppercase; }
+
+/* Aviso de que se esta recalculando: reemplaza a la maniobra, no se suma. */
+.rerouting {
+  position: relative;
+  z-index: 3;
+  margin: calc(10px + var(--safe-top)) 10px 0;
+  background: var(--brand-soft);
+  border: 1px solid var(--brand);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--brand-ink);
+  font-weight: 600;
+}
+
+/* ============================================================================
+   Hoja inferior — el patron principal de la pantalla de busqueda
    ========================================================================== */
 
 .sheet {

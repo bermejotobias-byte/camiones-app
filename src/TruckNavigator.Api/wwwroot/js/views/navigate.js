@@ -12,7 +12,11 @@
  */
 
 import { api } from '../api.js';
-import { getPosition } from '../platform.js';
+import { getPosition, watchPosition, speak, keepScreenAwake } from '../platform.js';
+import {
+  prepareRoute, advance, shouldReroute, pendingAnnouncement,
+  speakableInstruction, maneuverArrow
+} from '../navigation.js';
 import * as gl from '../map.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
@@ -24,8 +28,19 @@ export function navigateView(host, { openDrawer, go }) {
   let origin = null;          // { lat, lng, label }
   let destination = null;
   let route = null;
-  let stage = 'search';       // 'search' | 'route' | 'trip'
+  let stage = 'search';       // 'search' | 'route' | 'navigation'
   let editing = 'destination';
+
+  // --- estado de la navegacion en curso ---
+  let prepared = null;        // ruta preparada por el motor
+  let navState = null;        // ultimo estado calculado
+  let previousNav = null;     // el anterior, para saber que umbral se cruzo
+  let announced = new Set();  // avisos ya dichos
+  let stopWatching = null;    // corta el seguimiento del GPS
+  let rerouting = false;
+  let lastRerouteAt = null;
+
+  const host0 = host;
 
   host.className = 'screen map-screen';
   host.innerHTML = html`
@@ -66,7 +81,7 @@ export function navigateView(host, { openDrawer, go }) {
   const sheet = () => q(host, '#sheet');
 
   function drawSheet() {
-    if (stage === 'trip') return drawTrip();
+    if (stage === 'navigation') return drawNavigation();
     if (stage === 'route') return drawRoute();
     drawSearch();
   }
@@ -174,44 +189,123 @@ export function navigateView(host, { openDrawer, go }) {
     });
   }
 
-  // --- viaje en curso -------------------------------------------------------
+  // --- viaje en curso: navegacion -------------------------------------------
 
-  function drawTrip() {
+  /**
+   * Pantalla de navegacion.
+   *
+   * Se mira de reojo, a sesenta por hora. Una sola maniobra, enorme, y la
+   * distancia mas grande que todo lo demas: es el dato que se lee de un vistazo.
+   * El resto —restricciones, fuentes, kilometros— se corre de en medio.
+   */
+  function drawNavigation() {
     const trip = state.activeTrip;
+    const nav = navState;
 
-    render(sheet(), html`
-      <div class="sheet-grab"></div>
-
-      <div class="row">
-        <span class="pill pill-brand">Viaje en curso</span>
-        <span class="grow"></span>
-        <span class="muted num">${formatDistance(trip.plannedDistanceMeters)}</span>
-      </div>
-
-      <div class="stack-sm">
-        <div class="row">
-          <span class="dot dot-b" style="width:10px;height:10px;border-radius:50%;background:var(--destination)"></span>
-          <b class="grow truncate">${trip.destinationLabel ?? 'Destino marcado en el mapa'}</b>
+    if (rerouting) {
+      render(sheet(), '');
+      renderOverlay(html`
+        <div class="rerouting">
+          <span class="spinner"></span>
+          <span>Te saliste de la ruta. Buscando otra…</span>
         </div>
-        <p class="hint">
-          Con ${trip.truckName}. Estimado ${formatDuration(trip.plannedDurationSeconds)}.
-        </p>
+      `);
+      return;
+    }
+
+    const upcoming = nav?.next ?? null;
+    const arrow = upcoming ? maneuverArrow(upcoming.kind) : '↑';
+    const distance = nav ? formatDistance(nav.distanceToManeuver) : '—';
+
+    renderOverlay(html`
+      <div class="maneuver">
+        <div class="maneuver-arrow">${arrow}</div>
+        <div class="maneuver-body">
+          <div class="maneuver-distance num">${distance}</div>
+          <div class="maneuver-street">
+            ${upcoming ? (upcoming.streetName || upcoming.text) : 'Seguí la ruta'}
+          </div>
+        </div>
       </div>
 
-      <div class="row" style="gap:10px">
-        <button class="btn btn-ghost grow" id="cancel-trip">Abandonar</button>
-        <button class="btn btn-primary grow" id="finish-trip">Llegué</button>
-      </div>
-
-      <p class="hint" style="text-align:center">
-        Los kilómetros se acreditan al llegar.
-      </p>
+      ${raw(restrictionAheadMarkup(nav))}
     `);
 
-    wire(sheet(), {
-      '#finish-trip': (event) => closeTrip(event.currentTarget, true),
-      '#cancel-trip': (event) => closeTrip(event.currentTarget, false)
+    render(sheet(), '');
+
+    const bar = document.createElement('div');
+    bar.className = 'nav-bar';
+    bar.innerHTML = html`
+      <div class="nav-eta">
+        <b>${nav ? arrivalTime(nav.remainingSeconds) : arrivalTime(trip.plannedDurationSeconds)}</b>
+        <span>Llegada</span>
+      </div>
+      <div class="nav-eta">
+        <b class="num">${nav ? formatDistance(nav.remainingMeters) : formatDistance(trip.plannedDistanceMeters)}</b>
+        <span>Restante</span>
+      </div>
+      <div class="grow"></div>
+      <button class="btn btn-ghost" id="stop-nav">Salir</button>
+    `;
+
+    sheet().replaceWith(bar);
+    bar.id = 'sheet';
+
+    wire(bar, { '#stop-nav': () => askToStop() });
+  }
+
+  /**
+   * Aviso de restriccion, solo cuando esta cerca.
+   *
+   * Mostrar la lista entera de restricciones mientras se maneja es ruido: lo
+   * util es saber que el puente bajo esta a doscientos metros, no que la ruta
+   * tiene nueve tramos fuera de la Red.
+   */
+  function restrictionAheadMarkup(nav) {
+    if (!nav || !route) return '';
+
+    const ahead = (route.restrictionNotes ?? []).find((note) => {
+      if (note.requiresAccessException) return false;
+      if (note.fromPointIndex < nav.index) return false;
+      return note.fromPointIndex - nav.index <= 6;
     });
+
+    if (!ahead) return '';
+
+    const finding = ahead.findings?.[0];
+    if (!finding) return '';
+
+    return `<div class="maneuver-alert"><span>⚠</span><span>${escapeText(finding.description)}</span></div>`;
+  }
+
+  function askToStop() {
+    if (confirm('¿Terminar el viaje? Si llegaste, se acreditan los kilómetros.')) {
+      const button = document.getElementById('stop-nav');
+      closeTrip(button, true);
+      return;
+    }
+
+    if (confirm('¿Abandonar el viaje sin acreditar kilómetros?')) {
+      closeTrip(document.getElementById('stop-nav'), false);
+    }
+  }
+
+  /** Capa de maniobra por encima del mapa, encima de la barra superior. */
+  function renderOverlay(markup) {
+    let host = q(host0, '#nav-overlay');
+
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'nav-overlay';
+      host.style.cssText = 'position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;z-index:3';
+      q(host0, '.map-overlay').after(host);
+    }
+
+    host.innerHTML = markup;
+  }
+
+  function clearOverlay() {
+    q(host0, '#nav-overlay')?.remove();
   }
 
   /* ------------------------------------------------------------------------
@@ -389,8 +483,8 @@ export function navigateView(host, { openDrawer, go }) {
         setState({ activeTrip: started.trip });
         route = started.route;
         gl.drawRoute(started.route, started.route.accessLegs ?? []);
-        stage = 'trip';
-        drawSheet();
+        stage = 'navigation';
+        startNavigating();
       } catch (error) {
         // 409: quedo un viaje abierto de antes. Se ofrece cerrarlo en vez de
         // dejar al usuario trabado sin saber por que.
@@ -436,17 +530,199 @@ export function navigateView(host, { openDrawer, go }) {
   }
 
   /* ------------------------------------------------------------------------
+     El bucle de navegacion
+
+     Cada posicion del GPS entra por aca. No hay temporizador propio: el ritmo lo
+     marca el GPS, que es la unica fuente de verdad sobre donde esta el camion.
+     Un temporizador ademas seguiria latiendo con la pantalla apagada sin nada
+     nuevo que decir.
+  ------------------------------------------------------------------------ */
+
+  function startNavigating() {
+    prepared = prepareRoute(route);
+
+    navState = null;
+    previousNav = null;
+    announced = new Set();
+    rerouting = false;
+    lastRerouteAt = null;
+
+    gl.enterNavigationMode();
+    keepScreenAwake(true);
+    drawSheet();
+
+    // La primera instruccion se dice al arrancar y no por umbral: el camion ya
+    // esta encima de ella, asi que nunca llega a cruzar uno.
+    const first = prepared?.instructions?.[1] ?? prepared?.instructions?.[0];
+
+    if (first) {
+      speak(speakableInstruction(first, first.distanceMeters));
+    }
+
+    stopWatching = watchPosition(onPosition);
+  }
+
+  function stopNavigating() {
+    stopWatching?.();
+    stopWatching = null;
+
+    keepScreenAwake(false);
+    gl.exitNavigationMode();
+    clearOverlay();
+
+    prepared = null;
+    navState = null;
+    previousNav = null;
+    announced = new Set();
+    rerouting = false;
+  }
+
+  async function onPosition(fix) {
+    if (!prepared || rerouting) return;
+
+    previousNav = navState;
+    navState = advance(prepared, fix, navState);
+
+    gl.followVehicle(navState.snapped, navState.bearing);
+    gl.trimRoute(route.geometry.coordinates, navState.index, navState.snapped);
+
+    const announcement = pendingAnnouncement(navState, previousNav, announced);
+
+    if (announcement) {
+      announced.add(announcement.key);
+      speak(speakableInstruction(navState.next, navState.distanceToManeuver));
+    }
+
+    updateNavigationUi();
+
+    if (navState.hasArrived) {
+      await arrive();
+      return;
+    }
+
+    if (shouldReroute(navState, lastRerouteAt)) {
+      await reroute(fix);
+    }
+  }
+
+  /**
+   * Actualiza los numeros sin volver a dibujar la pantalla.
+   *
+   * Rehacer el marcado en cada latido del GPS tira el trabajo del navegador una
+   * vez por segundo y, sobre todo, corta cualquier animacion en curso. Se tocan
+   * solo los tres nodos que cambian.
+   */
+  function updateNavigationUi() {
+    const overlay = q(host0, '#nav-overlay');
+
+    if (!overlay || rerouting) {
+      drawSheet();
+      return;
+    }
+
+    const upcoming = navState?.next ?? null;
+
+    setText(overlay, '.maneuver-distance', formatDistance(navState.distanceToManeuver));
+    setText(overlay, '.maneuver-arrow', upcoming ? maneuverArrow(upcoming.kind) : '↑');
+    setText(overlay, '.maneuver-street',
+      upcoming ? (upcoming.streetName || upcoming.text) : 'Seguí la ruta');
+
+    const bar = q(host0, '#sheet');
+    const figures = bar ? bar.querySelectorAll('.nav-eta b') : [];
+
+    if (figures.length === 2) {
+      figures[0].textContent = arrivalTime(navState.remainingSeconds);
+      figures[1].textContent = formatDistance(navState.remainingMeters);
+    }
+  }
+
+  function setText(root, selector, text) {
+    const node = root.querySelector(selector);
+    if (node && node.textContent !== text) node.textContent = text;
+  }
+
+  /**
+   * Recalcula desde donde esta el camion hasta el mismo destino.
+   *
+   * El viaje NO se cierra ni se abre otro: el que se registro sigue siendo el
+   * mismo y sus kilometros previstos tambien. Cambiar el viaje porque el
+   * conductor se salio de la ruta convertiria cada desvio en un viaje nuevo y
+   * partiria el historial en pedazos.
+   */
+  async function reroute(fix) {
+    rerouting = true;
+    lastRerouteAt = Date.now();
+    drawSheet();
+
+    speak('Recalculando.');
+
+    try {
+      const truck = selectedTruck();
+
+      const fresh = await api.route(
+        truck.id,
+        { latitude: fix.lat, longitude: fix.lng },
+        { latitude: destination.lat, longitude: destination.lng }
+      );
+
+      route = fresh;
+      prepared = prepareRoute(fresh);
+
+      // El estado arranca de cero: los indices de la ruta vieja no significan
+      // nada sobre la nueva, y los avisos ya dichos son de otras maniobras.
+      navState = null;
+      previousNav = null;
+      announced = new Set();
+
+      gl.drawRoute(fresh, fresh.accessLegs ?? []);
+      origin = { ...fix, label: 'Tu ubicación actual' };
+    } catch (error) {
+      toastError(`No se pudo recalcular: ${error.message}`);
+    } finally {
+      rerouting = false;
+      drawSheet();
+    }
+  }
+
+  async function arrive() {
+    const trip = state.activeTrip;
+    if (!trip) return;
+
+    stopNavigating();
+    speak('Llegaste a destino.');
+
+    try {
+      const closed = await api.finishTrip(trip.id);
+      setState({ activeTrip: null });
+
+      toastOk(closed.creditedDistanceMeters > 0
+        ? `Llegaste. Sumaste ${formatDistance(closed.creditedDistanceMeters)}.`
+        : 'Llegaste. No sumó kilómetros: pasó muy poco tiempo.');
+    } catch (error) {
+      toastError(error.message);
+    }
+
+    stage = 'search';
+    route = null;
+    gl.clearRoute();
+    drawSheet();
+  }
+
+  /* ------------------------------------------------------------------------
      Arranque
   ------------------------------------------------------------------------ */
 
   // Si quedo un viaje abierto de una sesion anterior, se retoma.
   if (state.activeTrip) {
-    stage = 'trip';
+    stage = 'navigation';
   }
 
   drawSheet();
 
-  return () => gl.destroyMap();
+  return () => {
+    stopNavigating();
+    gl.destroyMap();
+  };
 }
 
 /* ---------------------------------------------------------------------------

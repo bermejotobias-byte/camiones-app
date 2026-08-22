@@ -185,14 +185,80 @@ public sealed class GraphHopperRouteCalculator(
 
         foreach (var instruction in element.EnumerateArray())
         {
+            var (from, to) = ReadInterval(instruction);
+
             instructions.Add(new RouteInstruction(
                 instruction.GetProperty("text").GetString() ?? string.Empty,
                 instruction.GetProperty("distance").GetDouble(),
                 instruction.GetProperty("time").GetDouble() / 1000.0,
-                instruction.TryGetProperty("street_name", out var street) ? street.GetString() : null));
+                instruction.TryGetProperty("street_name", out var street) ? street.GetString() : null,
+                ToManeuver(instruction),
+                from,
+                to,
+                instruction.TryGetProperty("exit_number", out var exit) && exit.TryGetInt32(out var number)
+                    ? number
+                    : null));
         }
 
         return instructions;
+    }
+
+    /// <summary>
+    /// Lee el rango de puntos de geometria que cubre la instruccion.
+    /// </summary>
+    /// <remarks>
+    /// El primer indice es donde se hace la maniobra. Si faltara, la instruccion
+    /// queda sin ubicacion y el navegador no puede avisar a que distancia esta;
+    /// se devuelve <c>(0, 0)</c> para no romper, y el consumidor decide.
+    /// </remarks>
+    private static (int From, int To) ReadInterval(JsonElement instruction)
+    {
+        if (!instruction.TryGetProperty("interval", out var interval) ||
+            interval.ValueKind != JsonValueKind.Array ||
+            interval.GetArrayLength() < 2)
+        {
+            return (0, 0);
+        }
+
+        return (interval[0].GetInt32(), interval[1].GetInt32());
+    }
+
+    /// <summary>
+    /// Traduce el <c>sign</c> de GraphHopper a una maniobra con nombre.
+    /// </summary>
+    /// <remarks>
+    /// La convencion del motor: negativo a la izquierda, positivo a la derecha, y
+    /// la magnitud es lo cerrado del giro. Los valores estan documentados en
+    /// <see href="https://docs.graphhopper.com/openapi/navigation/getroute"/>.
+    ///
+    /// Un valor desconocido cae en <see cref="ManeuverKind.Unknown"/> a proposito:
+    /// mejor una flecha generica que adivinar un lado y mandar a doblar mal.
+    /// </remarks>
+    private static ManeuverKind ToManeuver(JsonElement instruction)
+    {
+        if (!instruction.TryGetProperty("sign", out var element) ||
+            !element.TryGetInt32(out var sign))
+        {
+            return ManeuverKind.Unknown;
+        }
+
+        return sign switch
+        {
+            -98 or -8 or 8 => ManeuverKind.UTurn,
+            -7 => ManeuverKind.KeepLeft,
+            -3 => ManeuverKind.SharpLeft,
+            -2 => ManeuverKind.Left,
+            -1 => ManeuverKind.SlightLeft,
+            0 => ManeuverKind.Continue,
+            1 => ManeuverKind.SlightRight,
+            2 => ManeuverKind.Right,
+            3 => ManeuverKind.SharpRight,
+            4 => ManeuverKind.Finish,
+            5 => ManeuverKind.Waypoint,
+            6 => ManeuverKind.Roundabout,
+            7 => ManeuverKind.KeepRight,
+            _ => ManeuverKind.Unknown
+        };
     }
 
     private static string ExtractMessage(string body, string fallback)

@@ -301,6 +301,114 @@ export function flyTo(coords, zoom = 15) {
   map?.flyTo({ center: [coords.lng, coords.lat], zoom, duration: 700 });
 }
 
+/* ---------------------------------------------------------------------------
+   Modo navegacion
+
+   Camara en primera persona: inclinada, orientada al rumbo y con el vehiculo
+   corrido hacia abajo para que se vea el camino por delante y no por detras.
+--------------------------------------------------------------------------- */
+
+const NAVIGATION_ZOOM = 16.5;
+const NAVIGATION_PITCH = 60;
+
+/**
+ * El vehiculo se dibuja al 72% del alto en lugar del centro.
+ *
+ * Con la camara inclinada, centrarlo desperdicia la mitad de la pantalla
+ * mostrando lo que ya se recorrio. Corrido hacia abajo, ese espacio muestra las
+ * proximas cuadras, que es lo unico que el conductor necesita ver.
+ */
+const VEHICLE_SCREEN_OFFSET = 0.22;
+
+let vehicleMarker = null;
+let navigating = false;
+
+export function enterNavigationMode() {
+  if (!map) return;
+  navigating = true;
+
+  // Con la camara siguiendo al vehiculo, la rotacion por gesto desorienta mas
+  // de lo que ayuda: el mapa volveria a girar solo en el proximo latido.
+  map.dragRotate.disable();
+  map.touchZoomRotate.disableRotation();
+}
+
+export function exitNavigationMode() {
+  if (!map) return;
+  navigating = false;
+
+  map.dragRotate.enable();
+  map.touchZoomRotate.enableRotation();
+
+  vehicleMarker?.remove();
+  vehicleMarker = null;
+
+  map.easeTo({ pitch: 0, bearing: 0, duration: 500 });
+}
+
+/**
+ * Mueve la camara y el vehiculo a la posicion nueva.
+ *
+ * @param {{lat:number,lng:number}} coords posicion ya ajustada a la ruta
+ * @param {number} bearing rumbo en grados
+ */
+export function followVehicle(coords, bearing) {
+  if (!map) return;
+
+  placeVehicle(coords, bearing);
+
+  if (!navigating) return;
+
+  map.easeTo({
+    center: [coords.lng, coords.lat],
+    bearing,
+    pitch: NAVIGATION_PITCH,
+    zoom: NAVIGATION_ZOOM,
+    // El desplazamiento se aplica en pixeles de pantalla, asi que se recalcula
+    // con el alto real del contenedor.
+    offset: [0, map.getContainer().clientHeight * VEHICLE_SCREEN_OFFSET],
+    // La animacion dura un poco menos que el intervalo entre posiciones: si
+    // durara mas, cada latido cortaria la anterior y el mapa se veria a los
+    // tirones.
+    duration: 900,
+    easing: (t) => t
+  });
+}
+
+function placeVehicle(coords, bearing) {
+  if (!vehicleMarker) {
+    const element = document.createElement('div');
+    element.className = 'vehicle';
+    element.innerHTML =
+      '<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">' +
+      '<path d="M12 2 L20 21 L12 17 L4 21 Z" fill="currentColor"/></svg>';
+
+    vehicleMarker = new maplibregl.Marker({
+      element,
+      // El marcador rota con el mapa para que la flecha apunte siempre hacia
+      // donde avanza el camion.
+      rotationAlignment: 'map'
+    }).setLngLat([coords.lng, coords.lat]).addTo(map);
+  }
+
+  vehicleMarker.setLngLat([coords.lng, coords.lat]);
+  vehicleMarker.setRotation(bearing);
+}
+
+/** Recorta la ruta ya recorrida, para que sólo se vea lo que falta. */
+export function trimRoute(coordinates, fromIndex, snappedPoint) {
+  if (!map || !map.getSource('route')) return;
+
+  const rest = [[snappedPoint.lng, snappedPoint.lat], ...coordinates.slice(fromIndex + 1)];
+
+  if (rest.length < 2) return;
+
+  map.getSource('route').setData({
+    type: 'Feature',
+    geometry: { type: 'LineString', coordinates: rest }
+  });
+}
+
 export function resize() {
   map?.resize();
 }

@@ -706,3 +706,91 @@ primera vez que se instale, en este orden:
    contenido mixto de arriba—;
 2. que el botón de GPS traiga la ubicación (permiso nativo);
 3. que el 911 abra el discador.
+
+---
+
+## AD-23 · Navegación paso a paso: el motor vive en el cliente
+
+**El hallazgo que abrió la fase.** El parser de GraphHopper guardaba de cada
+instrucción sólo el texto, la distancia y la calle, y **descartaba `sign` e
+`interval`**. Sin `interval` no se puede saber *dónde* ocurre la maniobra, así
+que la API no podía sostener navegación paso a paso — y no se notaba, porque la
+ruta se dibujaba perfecta igual.
+
+Ahora `RouteInstruction` lleva `Kind`, `FromPointIndex`, `ToPointIndex` y
+`ExitNumber`. El entero con signo del motor se traduce **una sola vez**, en la
+capa que habla con GraphHopper: el dominio y la app trabajan con nombres. Un
+código desconocido cae en `Unknown` a propósito — mejor una flecha genérica que
+adivinar un lado y mandar a doblar mal.
+
+> **La maniobra ocurre en `FromPointIndex`, y `DistanceMeters` es lo que se
+> recorre _después_ de hacerla.** Leerlo al revés adelanta cada aviso una cuadra
+> entera.
+
+### El motor corre en el cliente, no en el servidor
+
+A una posición por segundo, consultar al servidor sería absurdo y dejaría la
+navegación inservible sin señal — que en un camión pasa. `js/navigation.js` es
+código puro: entran números, salen números. No toca el mapa, ni el DOM, ni la red.
+
+### Tres decisiones que se probaron y una que estaba mal
+
+**Proyección sobre el segmento, no al vértice más cercano.** En una avenida los
+vértices están a cien metros; quedarse con el más cercano mete medio segmento de
+error en la distancia al próximo giro.
+
+**Se trabaja en metros sobre un plano local, no en grados.** Un grado de longitud
+no mide lo mismo que uno de latitud, así que la perpendicular sale torcida.
+Medido contra GraphHopper: **26.260 m calculados contra 26.256 m informados en un
+recorrido de 26 km**.
+
+**La ventana de búsqueda se mide en metros de avance plausible, no en cantidad de
+segmentos.** Ésta es la que estaba mal y costó encontrar. Con la ventana contada
+en segmentos, un recorrido de camión falla: la Red de Tránsito Pesado obliga a
+rodeos y la ruta vuelve sobre calles paralelas. En la ruta de prueba hay **66
+tramos que pasan a menos de 40 m de otro tramo**, y uno de ellos —el punto 112—
+está **a 19 metros del punto 187, separados por 2,6 km de recorrido**. Con quince
+metros de ruido de GPS alcanzaba para que el motor saltara al tramo equivocado; y
+como la ventana sólo miraba hacia adelante, no volvía nunca. Acotando por lo que
+el camión pudo haber avanzado, ese tramo queda fuera de la búsqueda.
+
+*Medido después del arreglo, 20 corridas atravesando esa zona con ±25 m de ruido:
+cero saltos, error máximo 2 metros.*
+
+### Salirse de la ruta
+
+Dos condiciones, y hacen falta las dos: **varios fixes seguidos afuera** —un solo
+rebote contra un edificio no puede disparar un recálculo— y **un tiempo mínimo
+desde el último**, porque sin esa espera un destino inalcanzable produce una
+tormenta de pedidos. El umbral depende de la precisión que informe el GPS: entre
+edificios altos un fix trae cincuenta metros de error, y un umbral fijo mandaría
+a recalcular en cada cuadra del centro.
+
+**Recalcular no abre un viaje nuevo.** El viaje registrado sigue siendo el mismo:
+convertir cada desvío en un viaje partiría el historial en pedazos.
+
+### Los avisos se dan al CRUZAR el umbral
+
+No por estar debajo de él. La diferencia se nota apenas se maneja: con el
+criterio de "estar debajo", una maniobra que aparece a 150 m dispara el aviso de
+800 y enseguida el de 300, y el conductor escucha *"en 150 metros"* seguido de
+*"en 100 metros"* para el mismo giro. **Medido: 35 avisos apelotonados contra 26
+con 220 m de separación mínima.**
+
+La primera instrucción del viaje es el caso que la regla deja afuera —se arranca
+ya encima de ella—, y se anuncia al iniciar.
+
+### El rumbo de la cámara sale de la ruta, no del GPS
+
+El rumbo del GPS es ruido puro con el camión detenido: da vueltas sobre sí mismo
+en un semáforo y el mapa giraría solo. Mientras se sigue la ruta, el rumbo del
+segmento es correcto y además estable.
+
+### Cacheo de los estáticos
+
+Al probar esto apareció un problema que **también rompe en producción**: sin
+nombres versionados, el navegador se queda con la versión vieja de un módulo y la
+sigue ejecutando. En desarrollo se edita un archivo y no cambia nada; publicada,
+una corrección no le llega al usuario. Los estáticos se sirven con
+`Cache-Control: no-cache, must-revalidate` — que no significa "no guardar" sino
+"preguntar antes de reusar", y el servidor contesta 304 sin cuerpo.

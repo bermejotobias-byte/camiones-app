@@ -129,7 +129,25 @@ app.UseCors();
 // La app vive en wwwroot y se sirve desde aca mismo. Es el mismo bundle que
 // empaqueta la app Android: un solo frontend para los dos hosts.
 app.UseDefaultFiles();
-app.UseStaticFiles();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    // "no-cache" no significa "no guardar": significa preguntar siempre antes de
+    // reusar. El navegador revalida y el servidor contesta 304 sin cuerpo, asi
+    // que el costo es un viaje de ida y vuelta y nada de datos.
+    //
+    // Hace falta porque la app se sirve sin paso de compilacion y por lo tanto
+    // sin nombres versionados. Sin esto, el navegador se queda con la version
+    // vieja de un modulo y sigue ejecutandola: en desarrollo se edita un archivo
+    // y no cambia nada, y en produccion una correccion publicada no le llega al
+    // usuario. Cuesta un rato largo darse cuenta, porque el codigo en disco esta
+    // bien y lo que el servidor entrega tambien.
+    //
+    // El dia que haya empaquetador con nombres versionados, esto se reemplaza
+    // por un max-age largo sobre los archivos con hash.
+    OnPrepareResponse = context =>
+        context.Context.Response.Headers.CacheControl = "no-cache, must-revalidate"
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSwagger();

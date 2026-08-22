@@ -217,17 +217,40 @@ public sealed record RouteRestrictionNoteDto(
         note.Findings.Select(RestrictionFindingDto.From).ToList());
 }
 
+/// <summary>
+/// Un paso de la navegacion.
+/// </summary>
+/// <param name="Kind">
+/// Maniobra con nombre. De aca salen la flecha en pantalla y el verbo que se
+/// dice en voz alta.
+/// </param>
+/// <param name="FromPointIndex">
+/// Indice en la geometria <b>donde se hace la maniobra</b>. Es lo que permite
+/// calcular a que distancia esta el proximo giro; sin esto no hay navegacion
+/// paso a paso.
+/// </param>
+/// <param name="DistanceMeters">
+/// Lo que se recorre <b>despues</b> de la maniobra, hasta la siguiente.
+/// </param>
 public sealed record RouteInstructionDto(
     string Text,
     double DistanceMeters,
     double DurationSeconds,
-    string? StreetName)
+    string? StreetName,
+    string Kind,
+    int FromPointIndex,
+    int ToPointIndex,
+    int? ExitNumber)
 {
     public static RouteInstructionDto From(RouteInstruction instruction) => new(
         instruction.Text,
         instruction.DistanceMeters,
         instruction.DurationSeconds,
-        instruction.StreetName);
+        instruction.StreetName,
+        instruction.Kind.ToString(),
+        instruction.FromPointIndex,
+        instruction.ToPointIndex,
+        instruction.ExitNumber);
 }
 
 public sealed record RouteResponse(

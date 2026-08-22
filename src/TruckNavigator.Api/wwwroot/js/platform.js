@@ -155,6 +155,72 @@ function describeGeolocationError(error) {
 }
 
 /* ---------------------------------------------------------------------------
+   Voz
+
+   Manejando, la voz no es un adorno: es la unica salida que no obliga a sacar
+   los ojos del parabrisas.
+--------------------------------------------------------------------------- */
+
+/**
+ * Dice una frase en voz alta.
+ *
+ * En la cascara lo resuelve el motor de sintesis nativo de Android. En el
+ * navegador se usa la Web Speech API, que <b>no esta disponible en el WebView de
+ * Android</b> —de ahi que el camino nativo no sea una optimizacion sino la unica
+ * forma de que la app hable en el telefono—.
+ */
+export function speak(text) {
+  if (!text) return;
+
+  if (isNative) {
+    send({ action: 'speak', text });
+    return;
+  }
+
+  if (!('speechSynthesis' in window)) return;
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'es-AR';
+  utterance.rate = 1.05;
+
+  // Una indicacion vieja que sigue sonando mientras aparece la siguiente es
+  // peor que el silencio: se cancela lo anterior antes de hablar.
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
+/** Si el dispositivo puede hablar. */
+export const canSpeak = () => isNative || 'speechSynthesis' in window;
+
+/* ---------------------------------------------------------------------------
+   Pantalla
+
+   Un GPS que deja apagar la pantalla a mitad de una maniobra no sirve.
+--------------------------------------------------------------------------- */
+
+let wakeLock = null;
+
+export async function keepScreenAwake(on) {
+  if (isNative) {
+    send({ action: 'keepAwake', on });
+    return;
+  }
+
+  if (!('wakeLock' in navigator)) return;
+
+  try {
+    if (on) {
+      wakeLock ??= await navigator.wakeLock.request('screen');
+    } else {
+      await wakeLock?.release();
+      wakeLock = null;
+    }
+  } catch {
+    // El navegador puede negarlo; no es motivo para cortar la navegacion.
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Telefono
 --------------------------------------------------------------------------- */
 

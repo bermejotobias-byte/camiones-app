@@ -22,7 +22,7 @@ OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
 | `tests/TruckNavigator.UnitTests` | 65 tests de dominio, sin infraestructura |
-| `tests/TruckNavigator.IntegrationTests` | 38 tests: 6 contra GraphHopper (se saltean solos si no está levantado) + 32 sobre datasets, perfiles, camiones, viajes y SQLite |
+| `tests/TruckNavigator.IntegrationTests` | 43 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 32 sobre datasets, perfiles, camiones, viajes y SQLite |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -38,7 +38,7 @@ Solución: `TruckNavigator.slnx`.
 ```powershell
 cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª vez baja ~450 MB)
 dotnet run --project src/TruckNavigator.Api    # backend en :5080, migra y siembra al arrancar
-dotnet test                                    # 103 tests
+dotnet test                                    # 108 tests
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -61,6 +61,12 @@ dotnet test                                    # 103 tests
   que ese default está muerto salvo que se regenere con `demo-up.ps1`.
 - **HTTP plano desde el teléfono** está habilitado sólo para la IP de desarrollo, en
   `Platforms/Android/Resources/xml/network_security_config.xml`.
+- **La navegación depende de `sign` e `interval`** de GraphHopper: el `Kind` de la maniobra y
+  el punto donde ocurre. El parser los descartaba y no se notaba, porque la ruta se dibuja
+  igual. Si se tocan las instrucciones, los tests de `NavigationInstructionsTests` lo cubren.
+- **La ventana de búsqueda del motor va en metros, no en segmentos**: la ruta se cruza consigo
+  misma —hay tramos a 19 m de distancia separados por 2,6 km de recorrido— y contada en
+  segmentos el motor salta al tramo equivocado y no vuelve. Ver AD-23.
 - **La app Android no tiene interfaz propia**: es una cáscara sobre `Api/wwwroot`, enlazado
   como `MauiAsset` (no copiado). Si la app queda en blanco en el teléfono, los sospechosos son
   CORS y contenido mixto: el WebView sirve desde un origen `https` virtual y el backend es
