@@ -269,23 +269,54 @@ profiles.MapGet("/alias-disponible", async (
 .WithSummary("Consulta si un alias esta libre, para avisar mientras se escribe.");
 
 // ---------------------------------------------------------------- camiones
+//
+// Un camion pertenece a una cuenta. Las tres plantillas del catalogo no son de
+// nadie (OwnerId nulo) y las ve cualquiera: son el punto de partida para cargar
+// el propio, y muestran altura, peso y largo de cada tipo antes de elegir.
+//
+// Leer esta abierto —la app todavia no tiene login y necesita las plantillas
+// para poder rutear—, pero crear, editar y borrar exigen sesion: son datos
+// personales y sin dueno no se pueden guardar.
 
 var trucks = app.MapGroup("/api/trucks").WithTags("Trucks");
 
-trucks.MapGet("/", async (AppDbContext db, CancellationToken ct) =>
+trucks.MapGet("/", async (
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
 {
+    var userId = CurrentUserId(principal);
+
     var profiles = await db.TruckProfiles
-        .OrderBy(t => t.GrossWeightKg)
+        .Where(t => t.OwnerId == null || t.OwnerId == userId)
+        .OrderBy(t => t.OwnerId == null)   // primero los propios, despues el catalogo
+        .ThenBy(t => t.GrossWeightKg)
         .AsNoTracking()
         .ToListAsync(ct);
 
     return Results.Ok(profiles.Select(TruckProfileDto.From));
 })
-.WithSummary("Lista los perfiles de camion disponibles.");
+.WithSummary("Los camiones del usuario mas las plantillas del catalogo.");
 
-trucks.MapGet("/{id:guid}", async (Guid id, AppDbContext db, CancellationToken ct) =>
+trucks.MapGet("/plantillas", async (AppDbContext db, CancellationToken ct) =>
 {
-    var truck = await db.TruckProfiles.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
+    var templates = await db.TruckProfiles
+        .Where(t => t.OwnerId == null)
+        .OrderBy(t => t.GrossWeightKg)
+        .AsNoTracking()
+        .ToListAsync(ct);
+
+    return Results.Ok(templates.Select(TruckProfileDto.From));
+})
+.WithSummary("Tipos de transporte con sus medidas, para elegir la primera vez.");
+
+trucks.MapGet("/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    var truck = await FindUsableTruckAsync(db, id, CurrentUserId(principal), ct);
 
     return truck is null
         ? Results.NotFound()
@@ -294,6 +325,7 @@ trucks.MapGet("/{id:guid}", async (Guid id, AppDbContext db, CancellationToken c
 
 trucks.MapPost("/", async (
     SaveTruckProfileRequest request,
+    ClaimsPrincipal principal,
     AppDbContext db,
     CancellationToken ct) =>
 {
@@ -302,7 +334,12 @@ trucks.MapPost("/", async (
         return problem;
     }
 
-    var truck = new TruckProfile();
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    var truck = new TruckProfile { OwnerId = userId };
     request.ApplyTo(truck);
 
     db.TruckProfiles.Add(truck);
@@ -310,11 +347,13 @@ trucks.MapPost("/", async (
 
     return Results.Created($"/api/trucks/{truck.Id}", TruckProfileDto.From(truck));
 })
-.WithSummary("Crea un perfil de camion.");
+.RequireAuthorization()
+.WithSummary("Carga un camion propio. Se pueden tener todos los que hagan falta.");
 
 trucks.MapPut("/{id:guid}", async (
     Guid id,
     SaveTruckProfileRequest request,
+    ClaimsPrincipal principal,
     AppDbContext db,
     CancellationToken ct) =>
 {
@@ -323,33 +362,57 @@ trucks.MapPut("/{id:guid}", async (
         return problem;
     }
 
-    var truck = await db.TruckProfiles.FirstOrDefaultAsync(t => t.Id == id, ct);
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    // Se filtra por dueno en la misma consulta: el camion de otro tiene que dar
+    // 404 y no 403, para no confirmar que ese id existe.
+    var truck = await db.TruckProfiles
+        .FirstOrDefaultAsync(t => t.Id == id && t.OwnerId == userId, ct);
 
     if (truck is null)
     {
-        return Results.NotFound();
+        return await TruckIsATemplateAsync(db, id, ct)
+            ? TemplateIsReadOnly()
+            : Results.NotFound();
     }
 
     request.ApplyTo(truck);
     await db.SaveChangesAsync(ct);
 
     return Results.Ok(TruckProfileDto.From(truck));
-});
+})
+.RequireAuthorization();
 
-trucks.MapDelete("/{id:guid}", async (Guid id, AppDbContext db, CancellationToken ct) =>
+trucks.MapDelete("/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
 {
-    var truck = await db.TruckProfiles.FirstOrDefaultAsync(t => t.Id == id, ct);
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    var truck = await db.TruckProfiles
+        .FirstOrDefaultAsync(t => t.Id == id && t.OwnerId == userId, ct);
 
     if (truck is null)
     {
-        return Results.NotFound();
+        return await TruckIsATemplateAsync(db, id, ct)
+            ? TemplateIsReadOnly()
+            : Results.NotFound();
     }
 
     db.TruckProfiles.Remove(truck);
     await db.SaveChangesAsync(ct);
 
     return Results.NoContent();
-});
+})
+.RequireAuthorization();
 
 // ------------------------------------------------------------------ lugares
 
@@ -392,6 +455,7 @@ pois.MapGet("/", async (
     string? categories,
     Guid? truckId,
     bool? suitableOnly,
+    ClaimsPrincipal principal,
     AppDbContext db,
     CancellationToken ct) =>
 {
@@ -419,7 +483,7 @@ pois.MapGet("/", async (
 
     if (truckId is { } id)
     {
-        truck = await db.TruckProfiles.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
+        truck = await FindUsableTruckAsync(db, id, CurrentUserId(principal), ct);
 
         if (truck is null)
         {
@@ -457,6 +521,7 @@ pois.MapGet("/", async (
 
 app.MapPost("/api/routes", async (
     RouteRequest request,
+    ClaimsPrincipal principal,
     AppDbContext db,
     ITruckRouteCalculator calculator,
     CancellationToken ct) =>
@@ -466,9 +531,7 @@ app.MapPost("/api/routes", async (
         return problem;
     }
 
-    var truck = await db.TruckProfiles
-        .AsNoTracking()
-        .FirstOrDefaultAsync(t => t.Id == request.TruckId, ct);
+    var truck = await FindUsableTruckAsync(db, request.TruckId, CurrentUserId(principal), ct);
 
     if (truck is null)
     {
@@ -589,6 +652,41 @@ static IResult? Validate<T>(T instance) where T : notnull
 /// <summary>
 /// Id del usuario autenticado. Identity lo emite como <c>NameIdentifier</c>.
 /// </summary>
+
+/// <summary>
+/// Trae el camion solo si quien pregunta puede usarlo: el suyo, o una plantilla
+/// del catalogo.
+/// </summary>
+/// <remarks>
+/// Devuelve <c>null</c> tanto si el camion no existe como si es de otra cuenta.
+/// La indistincion es a proposito: responder distinto confirmaria que ese id
+/// existe, y las medidas de un camion son dato de su dueno.
+/// </remarks>
+static Task<TruckProfile?> FindUsableTruckAsync(
+    AppDbContext db,
+    Guid truckId,
+    Guid? userId,
+    CancellationToken ct) =>
+    db.TruckProfiles
+        .AsNoTracking()
+        .FirstOrDefaultAsync(
+            t => t.Id == truckId && (t.OwnerId == null || t.OwnerId == userId),
+            ct);
+
+static Task<bool> TruckIsATemplateAsync(AppDbContext db, Guid truckId, CancellationToken ct) =>
+    db.TruckProfiles.AnyAsync(t => t.Id == truckId && t.OwnerId == null, ct);
+
+/// <summary>
+/// Las plantillas del catalogo son de solo lectura: las comparten todas las
+/// cuentas y editarlas afectaria a cualquiera. Se responde distinto de "no
+/// existe" porque el id es publico y el usuario merece entender por que no puede.
+/// </summary>
+static IResult TemplateIsReadOnly() => Results.Problem(
+    title: "Plantilla de solo lectura",
+    detail: "Es un tipo de transporte del catalogo y lo comparten todas las cuentas. " +
+            "Carga un camion propio a partir de el para poder cambiarle las medidas.",
+    statusCode: StatusCodes.Status403Forbidden);
+
 static Guid? CurrentUserId(ClaimsPrincipal principal) =>
     Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
         ? id

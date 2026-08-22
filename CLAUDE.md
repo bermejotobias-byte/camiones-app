@@ -22,7 +22,7 @@ OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080`. `/api/health`, `/api/auth`, `/api/perfil`, `/api/trucks`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. WebView + MapLibre GL JS (`Resources/Raw/wwwroot/`), GPS nativo |
 | `tests/TruckNavigator.UnitTests` | 51 tests de dominio, sin infraestructura |
-| `tests/TruckNavigator.IntegrationTests` | 26 tests: 6 contra GraphHopper (se saltean solos si no está levantado) + 20 sobre datasets, perfiles y SQLite |
+| `tests/TruckNavigator.IntegrationTests` | 31 tests: 6 contra GraphHopper (se saltean solos si no está levantado) + 25 sobre datasets, perfiles, propiedad de camiones y SQLite |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -38,7 +38,7 @@ Solución: `TruckNavigator.slnx`.
 ```powershell
 cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª vez baja ~450 MB)
 dotnet run --project src/TruckNavigator.Api    # backend en :5080, migra y siembra al arrancar
-dotnet test                                    # 77 tests
+dotnet test                                    # 82 tests
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -61,6 +61,10 @@ dotnet test                                    # 77 tests
   que ese default está muerto salvo que se regenere con `demo-up.ps1`.
 - **HTTP plano desde el teléfono** está habilitado sólo para la IP de desarrollo, en
   `Platforms/Android/Resources/xml/network_security_config.xml`.
+- **Los camiones tienen dueño**: `OwnerId` nulo es una **plantilla del catálogo**, que ve
+  todo el mundo y no edita nadie. Leer camiones es anónimo; crear, editar y borrar piden
+  sesión, así que **la app Android da 401 al crear un camión** hasta que tenga login. El
+  ruteo del demo no se rompe porque usa plantillas. Ver AD-19.
 - **Sin SMTP configurado no se manda ningún mail**: el enlace de verificación va al log
   del backend, que es lo que permite probar el alta en desarrollo. En `Production` el
   arranque **corta con excepción** si la sección `Email` está vacía. Ver AD-17.

@@ -18,7 +18,12 @@ public sealed record TruckProfileDto(
     bool HasTrailer,
     double? TrailerLengthMeters,
     double TotalLengthMeters,
-    bool IsSampleData)
+    bool IsSampleData,
+    /// <summary>
+    /// Plantilla del catalogo: la comparten todas las cuentas y no se puede editar
+    /// ni borrar. Sirve de punto de partida para cargar un camion propio.
+    /// </summary>
+    bool IsTemplate)
 {
     public static TruckProfileDto From(TruckProfile truck) => new(
         truck.Id,
@@ -32,7 +37,8 @@ public sealed record TruckProfileDto(
         truck.HasTrailer,
         truck.TrailerLengthMeters,
         truck.TotalLengthMeters,
-        truck.IsSampleData);
+        truck.IsSampleData,
+        truck.IsTemplate);
 }
 
 public sealed class SaveTruckProfileRequest

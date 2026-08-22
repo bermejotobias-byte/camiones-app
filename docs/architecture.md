@@ -41,7 +41,7 @@
 | `TruckNavigator.Api` | Minimal API, DTOs, validación, Swagger. |
 | `TruckNavigator.Mobile` | App MAUI Android. |
 | `TruckNavigator.UnitTests` | 51 tests de dominio: restricciones, política de ruteo, aptitud de puntos y reglas del alias. |
-| `TruckNavigator.IntegrationTests` | 26 tests: 6 rutean contra GraphHopper con datos reales, 20 verifican los datasets, el perfil del camionero y su persistencia en SQLite. |
+| `TruckNavigator.IntegrationTests` | 31 tests: 6 rutean contra GraphHopper con datos reales, 25 verifican los datasets, el perfil del camionero, la propiedad de los camiones y su persistencia en SQLite. |
 
 La dependencia apunta siempre hacia adentro: `Api → Infrastructure → Domain`.
 El motor de restricciones no conoce ni HTTP ni base de datos ni GraphHopper.

@@ -41,10 +41,25 @@ public sealed class TruckProfile
     public double? TrailerLengthMeters { get; set; }
 
     /// <summary>
+    /// Dueno del perfil.
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> significa que es una <b>plantilla del catalogo</b>: no pertenece a
+    /// nadie, se muestra a todos y sirve de punto de partida para que el usuario
+    /// cargue su propio camion. Son las tres que siembra la API con sus medidas, que
+    /// es lo que permite mostrar "cuanto de altura y peso" tiene cada tipo antes de
+    /// elegir.
+    /// </remarks>
+    public Guid? OwnerId { get; set; }
+
+    /// <summary>
     /// Indica que el perfil es un dato de prueba y no una configuracion real
     /// declarada por el usuario. Ver docs/data-sources.md.
     /// </summary>
     public bool IsSampleData { get; set; }
+
+    /// <summary>Si es una plantilla del catalogo y no el camion de alguien.</summary>
+    public bool IsTemplate => OwnerId is null;
 
     public double GrossWeightTons => GrossWeightKg / 1000.0;
 

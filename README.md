@@ -99,9 +99,9 @@ dotnet test
 ```
 
 51 tests unitarios de dominio (restricciones, aptitud de puntos de interés y
-reglas del alias, sin infraestructura) y 26 de integración: 6 contra GraphHopper
-—que se saltean solos si el motor no está levantado— y 20 sobre los datasets, el
-perfil del camionero y su persistencia en SQLite.
+reglas del alias, sin infraestructura) y 31 de integración: 6 contra GraphHopper
+—que se saltean solos si el motor no está levantado— y 25 sobre los datasets, el
+perfil del camionero, la propiedad de los camiones y su persistencia en SQLite.
 
 ## Uso
 
@@ -192,3 +192,21 @@ warn: SMTP sin configurar: no se envio ningun mail. confirmacion de cuenta para 
 **En producción eso es inseguro** —cualquiera con acceso al log podría verificar
 cuentas ajenas— así que el arranque corta con una excepción si el entorno es
 `Production` y no hay SMTP. Ver [docs/deploy.md](docs/deploy.md).
+
+## Camiones
+
+Un camión pertenece a una cuenta. Las tres del catálogo no son de nadie: sirven
+para elegir el tipo de transporte la primera vez, con sus medidas a la vista.
+
+| Endpoint | Sesión | Qué hace |
+|---|---|---|
+| `GET /api/trucks` | Opcional | Los camiones del usuario más las plantillas. Sin sesión, sólo las plantillas. |
+| `GET /api/trucks/plantillas` | No | Los tipos de transporte con altura, peso, largo y ejes. |
+| `GET /api/trucks/{id}` | Opcional | Uno propio o una plantilla. El de otra cuenta da 404. |
+| `POST /api/trucks` | **Sí** | Carga un camión propio. |
+| `PUT` · `DELETE /api/trucks/{id}` | **Sí** | Sólo sobre los propios. Las plantillas dan 403. |
+
+> **Ojo con la app Android:** todavía no tiene login, así que **crear y editar
+> camiones desde la app devuelve 401** hasta que se rehaga el frontend. Leer las
+> plantillas y calcular rutas con ellas sigue andando sin sesión, así que la demo
+> de ruteo no se rompe. Ver AD-19 en [docs/decisions.md](docs/decisions.md).

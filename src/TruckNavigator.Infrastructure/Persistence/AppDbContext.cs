@@ -43,6 +43,21 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         // Propiedades calculadas: viven en el dominio, no en la tabla.
         truck.Ignore(t => t.GrossWeightTons);
         truck.Ignore(t => t.TotalLengthMeters);
+        truck.Ignore(t => t.IsTemplate);
+
+        // Un camion pertenece a una cuenta. OwnerId nulo es la plantilla del
+        // catalogo, que no es de nadie y la ve todo el mundo.
+        //
+        // Al borrar la cuenta se borran sus camiones: son datos de esa persona y no
+        // tienen sentido sin ella. Las plantillas no se tocan porque no cuelgan de
+        // ningun usuario.
+        truck.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(t => t.OwnerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Toda consulta de camiones filtra por dueno.
+        truck.HasIndex(t => t.OwnerId);
 
         var poi = modelBuilder.Entity<PointOfInterest>();
 

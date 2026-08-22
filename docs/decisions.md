@@ -441,3 +441,53 @@ suplantar a otro en el chat—.
 Crearlo en el primer acceso deja un solo camino posible y evita cuentas sin perfil
 si el alta se corta por la mitad. Nombre, apellido y avatar quedan opcionales
 porque el documento pide poder **saltear** ese paso.
+
+---
+
+## AD-19 · Un camión pertenece a una cuenta; las plantillas no son de nadie
+
+**Problema:** el documento pide *"que puedas cargar más de un camión y quede
+registrado para cuando quieras o tengas que usar otro"* y, aparte, *"la primera
+vez que el usuario elija el tipo de transporte, que muestre las características
+principales de cada opción"*. Hasta acá los perfiles vivían sueltos en la base,
+sin dueño y visibles para cualquiera.
+
+**Decisión:** `TruckProfile.OwnerId` nulable.
+
+| `OwnerId` | Qué es | Quién lo ve | Quién lo edita |
+|---|---|---|---|
+| Una cuenta | El camión de esa persona | Sólo su dueño | Sólo su dueño |
+| `null` | **Plantilla del catálogo** | Todos | Nadie |
+
+**Por qué las tres sembradas pasan a ser plantillas y no se borran:** ya traen
+altura, peso, largo y ejes de cada tipo de vehículo, que es exactamente lo que el
+documento pide mostrar antes de elegir. Convertirlas en catálogo resuelve ese
+requisito sin cargar ningún dato nuevo. Siguen marcadas con `IsSampleData`, que
+es una cosa distinta y sigue significando *"estos números son de ejemplo y no
+representan límites legales"*.
+
+**Leer está abierto, escribir exige sesión.** `GET` responde a cualquiera —
+anónimo ve sólo las plantillas, autenticado ve las suyas más las plantillas—.
+`POST`, `PUT` y `DELETE` piden token, porque un camión sin dueño no se puede
+guardar en este modelo.
+
+**Consecuencia asumida:** la app Android todavía no tiene login, así que **crear y
+editar camiones desde la app devuelve 401 hasta que se rehaga el frontend**. Se
+eligió esto antes que dejar la escritura abierta, que habría significado camiones
+huérfanos visibles para todos. El ruteo del demo **no se rompe**, porque usa las
+plantillas y leerlas sigue siendo anónimo.
+
+**El camión ajeno responde 404, no 403.** Un 403 confirmaría que ese id existe, y
+las medidas de un camión son dato de su dueño. La plantilla, en cambio, sí
+responde **403 con explicación**, porque su id es público y el usuario merece
+entender por qué no puede editarla.
+
+**El control no vive sólo en `/api/trucks`.** `POST /api/routes` y
+`GET /api/pois?truckId=` reciben un id de camión y lo resuelven por el mismo
+helper `FindUsableTruckAsync`. Es donde más importa: el camión es **la entrada del
+motor de restricciones**, así que rutear con el equivocado no es una fuga de
+datos menor —devuelve una ruta que no sirve para el vehículo que está manejando—.
+
+**Borrar la cuenta borra sus camiones**, que son datos de esa persona. Las
+plantillas quedan, porque no cuelgan de ninguna cuenta. Hay tests de integración
+para ambos casos.
