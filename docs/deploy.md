@@ -175,3 +175,41 @@ embebidos en cada arranque, y respeta lo que haya cargado el usuario. Ver
 - **Fuera del AMBA no hay ruteo**, por el recorte del grafo. Es deliberado y
   reversible: apuntar `datareader.file` de vuelta a `argentina-latest.osm.pbf`,
   borrar `graph-cache` y ampliar el recorte del geocoder.
+
+## Mail: obligatorio en producción
+
+Desde que existen las cuentas, el backend **no arranca en `Production` sin SMTP
+configurado**. Es deliberado: sin envío de mail el enlace de verificación termina
+en el log, y cualquiera que lo lea podría activar cuentas ajenas.
+
+Completá la sección `Email` de `appsettings.json` —o, mejor, pasala por variables
+de entorno para no versionar la contraseña—:
+
+```json
+"Email": {
+  "Host": "smtp.tuproveedor.com",
+  "Port": 587,
+  "UseStartTls": true,
+  "User": "no-responder@tudominio.com",
+  "Password": "",
+  "FromAddress": "no-responder@tudominio.com",
+  "FromName": "Navegador de Transito Pesado"
+}
+```
+
+Por variables de entorno, con el doble guion bajo como separador:
+
+```bash
+Email__Host=smtp.tuproveedor.com
+Email__User=no-responder@tudominio.com
+Email__Password=la-clave
+```
+
+**La contraseña no va al repositorio.** En el `docker-compose.yml` del deploy,
+pasala por `environment` desde un archivo `.env` que quede fuera del control de
+versiones.
+
+El enlace de verificación se arma con el host desde el que llega el pedido, así
+que detrás del túnel o del proxy tiene que llegar el `Host` original —el
+`Caddyfile` del repositorio ya reenvía las cabeceras necesarias—. Si el mail llega
+con un enlace a `localhost`, el problema está ahí.

@@ -29,6 +29,7 @@ semirremolque tomaría un atajo de 16,3 km que sería ilegal.
 |---|---|
 | Móvil | .NET MAUI (Android), WebView + MapLibre GL JS |
 | Backend | ASP.NET Core 10, Minimal API, Swagger |
+| Cuentas | ASP.NET Core Identity, tokens de portador |
 | Datos | EF Core + SQLite |
 | Ruteo | GraphHopper 11.0 |
 | Mapa | OpenStreetMap (ODbL) |
@@ -97,9 +98,10 @@ recompilar—. Para averiguarla:
 dotnet test
 ```
 
-26 tests unitarios de dominio (restricciones y aptitud de puntos de interés, sin
-infraestructura) y 22 de integración: 6 contra GraphHopper —que se saltean solos si
-el motor no está levantado— y 16 sobre los datasets y su persistencia en SQLite.
+51 tests unitarios de dominio (restricciones, aptitud de puntos de interés y
+reglas del alias, sin infraestructura) y 26 de integración: 6 contra GraphHopper
+—que se saltean solos si el motor no está levantado— y 20 sobre los datasets, el
+perfil del camionero y su persistencia en SQLite.
 
 ## Uso
 
@@ -153,3 +155,40 @@ el motor no está levantado— y 16 sobre los datasets y su persistencia en SQLi
 Datos de mapa © colaboradores de OpenStreetMap, disponibles bajo
 [ODbL](https://opendatacommons.org/licenses/odbl/). Restricciones regulatorias
 según la Ley 2148 de la Ciudad Autónoma de Buenos Aires.
+
+
+## Cuentas
+
+El alta, la verificación por mail y el perfil del camionero ya están en la API.
+**La app Android todavía no los usa**: se agregan cuando se rehaga el frontend.
+Por ahora se prueban desde `/swagger` o por HTTP.
+
+| Endpoint | Qué hace |
+|---|---|
+| `POST /api/auth/register` | Alta con mail y contraseña. Dispara el mail de verificación. |
+| `GET /api/auth/confirmEmail` | Confirma la dirección. Sin esto **no se puede iniciar sesión**. |
+| `POST /api/auth/login` | Devuelve `accessToken` y `refreshToken`. |
+| `POST /api/auth/refresh` | Renueva el token. |
+| `POST /api/auth/forgotPassword` · `/resetPassword` | Recuperación de contraseña. |
+| `GET /api/perfil` | Perfil del usuario autenticado. Lo crea en el primer acceso. |
+| `PUT /api/perfil` | Guarda nombre, apellido, alias y avatar. |
+| `GET /api/perfil/alias-disponible?alias=` | Avisa si el alias está libre mientras se escribe. |
+
+El alias es **único e irrepetible** y no distingue mayúsculas: `ElGaucho` y
+`elgaucho` son el mismo. Nombre, apellido y avatar son opcionales, porque el alta
+permite saltear ese paso.
+
+### Mail: qué pasa si no lo configurás
+
+Sin la sección `Email` de `appsettings.json` completa, la aplicación **no manda
+ningún mail** y escribe el enlace de verificación en el log del backend. Es lo que
+permite probar el alta sin contratar un proveedor:
+
+```
+warn: SMTP sin configurar: no se envio ningun mail. confirmacion de cuenta para vos@ejemplo.com:
+      http://localhost:5080/api/auth/confirmEmail?userId=...&code=...
+```
+
+**En producción eso es inseguro** —cualquiera con acceso al log podría verificar
+cuentas ajenas— así que el arranque corta con una excepción si el entorno es
+`Production` y no hay SMTP. Ver [docs/deploy.md](docs/deploy.md).

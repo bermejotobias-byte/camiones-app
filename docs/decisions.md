@@ -351,3 +351,93 @@ encima del mapa.
 proyectos de test. El motor de restricciones queda aislado en `Domain` para que
 se pueda testear sin infraestructura — de ahí que los 19 tests unitarios corran
 en 200 ms.
+
+---
+
+## AD-17 · La identidad la resuelve ASP.NET Core Identity, no código propio
+
+**Problema:** el documento de requisitos pide alta con mail y contraseña
+verificada por mail, y todo el eje de perfil, comunidad y gamificación cuelga de
+saber quién es el usuario.
+
+**Alternativas:** implementación propia sobre la tabla de usuarios, un proveedor
+externo (Auth0, Firebase Auth), o ASP.NET Core Identity.
+
+**Elegida:** ASP.NET Core Identity con `AddIdentityApiEndpoints<AppUser>()` y
+`MapIdentityApi`, montado en `/api/auth`.
+
+**Por qué:**
+
+- El hasheo de contraseñas, los tokens de verificación de mail, el bloqueo por
+  intentos fallidos y la rotación de tokens son **código de seguridad**. Este
+  proyecto no tiene ninguna razón para reescribirlos, y hacerlo mal no se nota
+  hasta que es tarde.
+- `MapIdentityApi` entrega en un renglón todo el ciclo de vida que pide el
+  documento: registro, confirmación de mail, login, refresh, logout y
+  recuperación de contraseña.
+- Los tokens de portador funcionan igual desde la app Android y desde un
+  navegador, lo que no ata la decisión de frontend.
+
+**Por qué no un proveedor externo:** agrega una dependencia de red en el camino
+crítico del alta, un costo por usuario activo y datos de los camioneros en un
+tercero. Para un padrón que se espera chico y local, no se justifica.
+
+**Configuración deliberada** (en `Program.cs`, con su motivo al lado):
+
+| Opción | Valor | Motivo |
+|---|---|---|
+| `RequireConfirmedEmail` | `true` | Lo pide el documento; además hace que detrás de cada alias haya alguien. |
+| `RequiredLength` | 8 | Se privilegia longitud sobre composición. |
+| `RequireUppercase` / `RequireNonAlphanumeric` | `false` | Exigir mayúsculas y símbolos en el teclado de un teléfono, dentro de un camión, produce contraseñas anotadas en un papel: es **peor** seguridad, no mejor. |
+| `MaxFailedAccessAttempts` | 5, 15 min | Corta la prueba de contraseñas por fuerza bruta. |
+
+**Limitación asumida — el envío de mail.** Sin SMTP configurado la aplicación
+**no manda ningún mail**: escribe el enlace de verificación en el log con nivel
+`Warning`. Es lo que permite desarrollar y probar el alta sin contratar un
+proveedor, y es explícitamente **inseguro en producción**, porque cualquiera con
+acceso al log podría verificar cuentas ajenas. Por eso el arranque **corta con
+excepción** si el entorno es `Production` y la sección `Email` está vacía. Ver
+[deploy.md](deploy.md).
+
+**Trampa que costó una vuelta:** `MapIdentityApi` arma el enlace de confirmación
+**codificado para HTML**, porque su mail por defecto tiene formato. Estos mensajes
+son de texto plano, así que el separador de parámetros llegaba como `&amp;`
+literal y la URL no funcionaba al pegarla en el navegador. El adaptador
+`IdentityEmailSender` lo decodifica con `WebUtility.HtmlDecode`. Si algún día los
+mails pasan a HTML, hay que sacar esa decodificación.
+
+---
+
+## AD-18 · La cuenta y el perfil del camionero son dos entidades
+
+**Decisión:** `AppUser : IdentityUser<Guid>` en `Infrastructure` guarda **sólo**
+credenciales. `DriverProfile` en `Domain` guarda alias, nombre, apellido y avatar.
+Comparten identificador y la relación es uno a uno, con borrado en cascada.
+
+**Por qué:** mantiene a `Domain` sin dependencias externas, que es la regla
+estructural del proyecto (AD-08). Si el perfil colgara de `IdentityUser`, el
+dominio pasaría a depender de ASP.NET Core y dejaría de poder testearse en
+milisegundos. Con la división, las reglas del alias se prueban sin base de datos
+—igual que el motor de restricciones— y cambiar de proveedor de identidad no
+tocaría ni el perfil ni sus tests.
+
+**El alias es único e irrepetible, y eso se garantiza en dos lugares distintos:**
+
+- **El formato** es regla de dominio y vive en `DriverAlias.Validate`.
+- **La unicidad** es un índice único en la base, sobre una columna
+  `NormalizedAlias` en minúsculas. El endpoint consulta antes de guardar sólo
+  para poder dar un mensaje claro; entre esa consulta y el `SaveChanges` otra alta
+  puede quedarse con el alias, así que la garantía real es el índice. Hay tests de
+  integración que lo verifican contra SQLite, incluido el caso
+  `ElGaucho` / `elgaucho`.
+
+**Por qué la columna normalizada y no una comparación sin distinguir mayúsculas:**
+para SQLite `"ElGaucho"` y `"elgaucho"` son distintos, así que un índice sobre la
+columna visible no frenaría el choque —que es justamente el parecido que permite
+suplantar a otro en el chat—.
+
+**El perfil se crea al primer acceso a `/api/perfil`, no durante el alta:**
+`/api/auth/register` lo sirve Identity y no ofrece un gancho donde colgarlo.
+Crearlo en el primer acceso deja un solo camino posible y evita cuentas sin perfil
+si el alta se corta por la mitad. Nombre, apellido y avatar quedan opcionales
+porque el documento pide poder **saltear** ese paso.

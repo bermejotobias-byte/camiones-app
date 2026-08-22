@@ -1,19 +1,39 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using TruckNavigator.Domain.Pois;
 using TruckNavigator.Domain.Trucks;
+using TruckNavigator.Domain.Users;
+using TruckNavigator.Infrastructure.Identity;
 
 namespace TruckNavigator.Infrastructure.Persistence;
 
-public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+/// <summary>
+/// Contexto unico de la aplicacion: incluye las tablas de Identity y las del
+/// dominio.
+/// </summary>
+/// <remarks>
+/// Un solo contexto y no dos: la cuenta y el perfil del camionero se crean juntos
+/// y conviene que entren en la misma transaccion. Partirlo obligaria a coordinar
+/// dos <c>SaveChanges</c> sobre el mismo archivo SQLite sin ganar nada.
+/// </remarks>
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
+    : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>(options)
 {
     public DbSet<TruckProfile> TruckProfiles => Set<TruckProfile>();
 
     public DbSet<PointOfInterest> PointsOfInterest => Set<PointOfInterest>();
 
+    public DbSet<DriverProfile> DriverProfiles => Set<DriverProfile>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Identity configura sus ocho tablas aca adentro. Tiene que ir primero:
+        // lo que sigue ajusta sobre esa base.
+        base.OnModelCreating(modelBuilder);
+
         var truck = modelBuilder.Entity<TruckProfile>();
 
         truck.HasKey(t => t.Id);
@@ -58,5 +78,33 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
         // Las consultas de la app siempre llegan filtradas por categoria.
         poi.HasIndex(p => p.Category);
+
+        var driver = modelBuilder.Entity<DriverProfile>();
+
+        // La clave es la misma que la del usuario de Identity: la relacion es uno a
+        // uno y el perfil no tiene identidad propia sin su cuenta.
+        driver.HasKey(d => d.Id);
+        driver.Property(d => d.Alias).HasMaxLength(DriverAlias.MaxLength);
+        driver.Property(d => d.NormalizedAlias).HasMaxLength(DriverAlias.MaxLength);
+        driver.Property(d => d.FirstName).HasMaxLength(80);
+        driver.Property(d => d.LastName).HasMaxLength(80);
+        driver.Property(d => d.AvatarId).HasMaxLength(64);
+
+        driver.Ignore(d => d.IsComplete);
+
+        // "El nickname es unico e irrepetible". La regla de formato vive en el
+        // dominio; la unicidad la hace cumplir la base, que es la unica que puede
+        // verla entre todas las cuentas a la vez.
+        //
+        // El indice es sobre la forma normalizada, asi que "ElGaucho" y "elgaucho"
+        // chocan. SQLite admite varios NULL en un indice unico, que es lo que
+        // permite que convivan las cuentas que todavia no eligieron alias.
+        driver.HasIndex(d => d.NormalizedAlias).IsUnique();
+
+        // Borrar la cuenta borra el perfil. No tiene sentido que sobreviva.
+        driver.HasOne<AppUser>()
+            .WithOne()
+            .HasForeignKey<DriverProfile>(d => d.Id)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

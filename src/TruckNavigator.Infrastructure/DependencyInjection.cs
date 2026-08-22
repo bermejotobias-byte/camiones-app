@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TruckNavigator.Domain.Places;
 using TruckNavigator.Domain.Restrictions;
 using TruckNavigator.Domain.Routing;
+using TruckNavigator.Infrastructure.Email;
 using TruckNavigator.Infrastructure.Persistence;
 using TruckNavigator.Infrastructure.Places;
 using TruckNavigator.Infrastructure.Routing;
@@ -27,6 +28,14 @@ public static class DependencyInjection
         services.AddOptions<GeocodingOptions>()
             .Bind(configuration.GetSection(GeocodingOptions.SectionName))
             .ValidateOnStart();
+
+        services.AddOptions<EmailOptions>()
+            .Bind(configuration.GetSection(EmailOptions.SectionName))
+            .ValidateOnStart();
+
+        // El envio de mail es infraestructura. Que Identity lo use se cablea en la
+        // capa web, junto con el resto de la configuracion de autenticacion.
+        services.AddSingleton<IAppEmailSender, SmtpEmailSender>();
 
         // Las reglas viven una sola vez: la politica las traduce al motor de
         // ruteo y el evaluador las explica. Ambas se registran juntas para que

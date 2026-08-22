@@ -1,21 +1,80 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi;
 using TruckNavigator.Api.Contracts;
+using TruckNavigator.Api.Identity;
 using TruckNavigator.Domain.Places;
 using TruckNavigator.Domain.Pois;
 using TruckNavigator.Domain.Restrictions;
 using TruckNavigator.Domain.Routing;
 using TruckNavigator.Domain.Trucks;
+using TruckNavigator.Domain.Users;
 using TruckNavigator.Infrastructure;
+using TruckNavigator.Infrastructure.Email;
+using TruckNavigator.Infrastructure.Identity;
 using TruckNavigator.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Permite probar los endpoints protegidos desde /swagger pegando el token que
+    // devuelve /api/auth/login.
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JSON",
+        In = ParameterLocation.Header,
+        Description = "Pegar el accessToken que devuelve /api/auth/login."
+    });
+
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+});
 builder.Services.AddProblemDetails();
+
+// ------------------------------------------------------------- identidad
+//
+// AddIdentityApiEndpoints arma de una sola vez el nucleo de Identity, el esquema
+// de autenticacion por bearer token y los endpoints del ciclo de vida de la
+// cuenta. Se prefiere a una implementacion propia por una razon simple: el
+// hasheo de contrasenas, los tokens de verificacion y el bloqueo por intentos
+// fallidos son codigo de seguridad, y este proyecto no tiene por que reescribirlo.
+builder.Services.AddAuthorization();
+
+builder.Services.AddIdentityApiEndpoints<AppUser>(options =>
+{
+    // Sin mail verificado no se puede iniciar sesion. Es el requisito del
+    // documento y ademas lo que hace que un alias tenga alguien detras.
+    options.SignIn.RequireConfirmedEmail = true;
+    options.User.RequireUniqueEmail = true;
+
+    // Se privilegia la longitud por sobre la composicion. Exigir mayusculas y
+    // simbolos en un teclado de telefono, dentro de un camion, produce
+    // contrasenas anotadas en un papel: es peor seguridad, no mejor.
+    options.Password.RequiredLength = 8;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+})
+.AddEntityFrameworkStores<AppDbContext>();
+
+// Los mails de Identity salen por el envio propio de Infrastructure.
+builder.Services.AddSingleton<IEmailSender<AppUser>, IdentityEmailSender>();
 
 var app = builder.Build();
 
@@ -27,8 +86,31 @@ await using (var scope = app.Services.CreateAsyncScope())
     await PointOfInterestSeed.ApplyAsync(db);
 }
 
+// Sin SMTP configurado no se envia ningun mail y los enlaces de verificacion van
+// al log. Alcanza para desarrollar, pero en produccion dejaria cualquier cuenta
+// al alcance de quien lea el log, asi que ahi el arranque se corta.
+{
+    var emailOptions = app.Services.GetRequiredService<IOptions<EmailOptions>>().Value;
+
+    if (!emailOptions.IsConfigured)
+    {
+        if (app.Environment.IsProduction())
+        {
+            throw new InvalidOperationException(
+                "Falta configurar la seccion Email de appsettings: sin SMTP no se puede " +
+                "verificar ninguna cuenta. Ver docs/deploy.md.");
+        }
+
+        app.Logger.LogWarning(
+            "SMTP sin configurar: no se envian mails. Los enlaces de verificacion " +
+            "aparecen en este log.");
+    }
+}
+
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -41,6 +123,150 @@ app.MapGet("/api/health", () => Results.Ok(new
     utc = DateTimeOffset.UtcNow
 }))
 .WithSummary("Chequeo de conectividad, usado por la app movil.");
+
+// ------------------------------------------------------------------ cuenta
+
+// Alta, verificacion por mail, login, refresh, logout y recuperacion de
+// contrasena. Los sirve Identity; se montan bajo /api/auth para que queden
+// agrupados con el resto de la API.
+app.MapGroup("/api/auth")
+   .WithTags("Cuenta")
+   .MapIdentityApi<AppUser>();
+
+// ------------------------------------------------------------------ perfil
+
+var profiles = app.MapGroup("/api/perfil")
+                  .WithTags("Perfil")
+                  .RequireAuthorization();
+
+profiles.MapGet("/", async (
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    UserManager<AppUser> users,
+    CancellationToken ct) =>
+{
+    var user = await users.GetUserAsync(principal);
+
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var profile = await db.DriverProfiles.FirstOrDefaultAsync(d => d.Id == user.Id, ct);
+
+    // El perfil se crea al primer acceso y no durante el alta. /api/auth/register
+    // lo sirve Identity y no ofrece un gancho donde colgar esto; crearlo aca deja
+    // un solo camino posible y evita cuentas sin perfil si el alta se corta.
+    if (profile is null)
+    {
+        profile = new DriverProfile { Id = user.Id };
+        db.DriverProfiles.Add(profile);
+        await db.SaveChangesAsync(ct);
+    }
+
+    return Results.Ok(DriverProfileDto.From(profile, user));
+})
+.WithSummary("Perfil del camionero autenticado. Lo crea si es el primer acceso.");
+
+profiles.MapPut("/", async (
+    SaveDriverProfileRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    UserManager<AppUser> users,
+    CancellationToken ct) =>
+{
+    if (Validate(request) is { } problem)
+    {
+        return problem;
+    }
+
+    var user = await users.GetUserAsync(principal);
+
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var profile = await db.DriverProfiles.FirstOrDefaultAsync(d => d.Id == user.Id, ct);
+
+    if (profile is null)
+    {
+        profile = new DriverProfile { Id = user.Id };
+        db.DriverProfiles.Add(profile);
+    }
+
+    if (!string.IsNullOrWhiteSpace(request.Alias))
+    {
+        var validation = DriverAlias.Validate(request.Alias);
+
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["alias"] = [validation.Error!]
+            });
+        }
+
+        var normalized = DriverAlias.Normalize(validation.Value!);
+
+        // Se consulta antes de guardar solo para poder dar un mensaje claro. La
+        // garantia real es el indice unico: entre esta consulta y el SaveChanges
+        // otra alta puede quedarse con el alias.
+        var taken = await db.DriverProfiles
+            .AnyAsync(d => d.NormalizedAlias == normalized && d.Id != user.Id, ct);
+
+        if (taken)
+        {
+            return AliasConflict(validation.Value!);
+        }
+
+        profile.SetAlias(validation.Value!);
+    }
+
+    profile.FirstName = Clean(request.FirstName);
+    profile.LastName = Clean(request.LastName);
+    profile.AvatarId = Clean(request.AvatarId);
+
+    try
+    {
+        await db.SaveChangesAsync(ct);
+    }
+    catch (DbUpdateException ex) when (IsAliasConflict(ex))
+    {
+        return AliasConflict(profile.Alias ?? request.Alias!);
+    }
+
+    return Results.Ok(DriverProfileDto.From(profile, user));
+})
+.WithSummary("Guarda nombre, apellido, alias y avatar. El alias es unico.");
+
+profiles.MapGet("/alias-disponible", async (
+    string alias,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    var validation = DriverAlias.Validate(alias);
+
+    if (!validation.IsValid)
+    {
+        return Results.Ok(new AliasAvailabilityDto(alias, false, validation.Error));
+    }
+
+    var normalized = DriverAlias.Normalize(validation.Value!);
+    var currentUserId = CurrentUserId(principal);
+
+    // El alias propio no cuenta como ocupado: sin esto, revisar el formulario sin
+    // cambiar nada diria que el alias que ya tenes no esta disponible.
+    var taken = await db.DriverProfiles
+        .AnyAsync(d => d.NormalizedAlias == normalized && d.Id != currentUserId, ct);
+
+    return Results.Ok(new AliasAvailabilityDto(
+        validation.Value!,
+        !taken,
+        taken ? "Ese alias ya esta en uso." : null));
+})
+.WithSummary("Consulta si un alias esta libre, para avisar mientras se escribe.");
 
 // ---------------------------------------------------------------- camiones
 
@@ -359,4 +585,31 @@ static IResult? Validate<T>(T instance) where T : notnull
 }
 
 /// <summary>Punto de entrada expuesto para los tests de integracion.</summary>
+
+/// <summary>
+/// Id del usuario autenticado. Identity lo emite como <c>NameIdentifier</c>.
+/// </summary>
+static Guid? CurrentUserId(ClaimsPrincipal principal) =>
+    Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
+        ? id
+        : null;
+
+/// <summary>Normaliza un campo opcional: en blanco y ausente son lo mismo.</summary>
+static string? Clean(string? value) =>
+    string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+static IResult AliasConflict(string alias) => Results.Problem(
+    title: "Alias en uso",
+    detail: $"El alias \"{alias}\" ya lo tiene otro camionero. Elegi otro.",
+    statusCode: StatusCodes.Status409Conflict);
+
+/// <summary>
+/// Distingue el choque del indice unico del alias de cualquier otro fallo al
+/// guardar. Se mira el mensaje del proveedor porque inspeccionar el tipo de
+/// excepcion de SQLite obligaria a que la capa web conozca el motor de base de
+/// datos, que es justamente lo que la arquitectura evita.
+/// </summary>
+static bool IsAliasConflict(DbUpdateException exception) =>
+    exception.InnerException?.Message.Contains("NormalizedAlias", StringComparison.Ordinal) == true;
+
 public partial class Program;

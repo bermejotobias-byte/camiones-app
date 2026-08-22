@@ -19,10 +19,10 @@ OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
 |---|---|
 | `src/TruckNavigator.Domain` | Motor de restricciones, ruteo, POIs y perfiles. **Sin dependencias externas** — mantenerlo así |
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
-| `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080`. `/api/health`, `/api/trucks`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
+| `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080`. `/api/health`, `/api/auth`, `/api/perfil`, `/api/trucks`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. WebView + MapLibre GL JS (`Resources/Raw/wwwroot/`), GPS nativo |
-| `tests/TruckNavigator.UnitTests` | 26 tests de dominio, sin infraestructura |
-| `tests/TruckNavigator.IntegrationTests` | 22 tests: 6 contra GraphHopper (se saltean solos si no está levantado) + 16 sobre datasets y SQLite |
+| `tests/TruckNavigator.UnitTests` | 51 tests de dominio, sin infraestructura |
+| `tests/TruckNavigator.IntegrationTests` | 26 tests: 6 contra GraphHopper (se saltean solos si no está levantado) + 20 sobre datasets, perfiles y SQLite |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -38,7 +38,7 @@ Solución: `TruckNavigator.slnx`.
 ```powershell
 cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª vez baja ~450 MB)
 dotnet run --project src/TruckNavigator.Api    # backend en :5080, migra y siembra al arrancar
-dotnet test                                    # 48 tests
+dotnet test                                    # 77 tests
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -61,6 +61,12 @@ dotnet test                                    # 48 tests
   que ese default está muerto salvo que se regenere con `demo-up.ps1`.
 - **HTTP plano desde el teléfono** está habilitado sólo para la IP de desarrollo, en
   `Platforms/Android/Resources/xml/network_security_config.xml`.
+- **Sin SMTP configurado no se manda ningún mail**: el enlace de verificación va al log
+  del backend, que es lo que permite probar el alta en desarrollo. En `Production` el
+  arranque **corta con excepción** si la sección `Email` está vacía. Ver AD-17.
+- **El alias es único y no distingue mayúsculas**: el formato lo valida `DriverAlias` en el
+  dominio, la unicidad la garantiza un índice único sobre `NormalizedAlias`. La consulta
+  previa del endpoint es sólo para dar un mensaje claro, no es la garantía. Ver AD-18.
 - **No inventar datos ni normas.** Donde falta información se dejó explícito y documentado:
   la capa oficial del GCBA no está publicada (L-1), no se modelan restricciones horarias
   porque no se encontró norma general confirmada (L-2), playas de camiones y auxilio pesado

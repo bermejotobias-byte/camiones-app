@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using TruckNavigator.Domain.Pois;
 using TruckNavigator.Domain.Trucks;
+using TruckNavigator.Domain.Users;
+using TruckNavigator.Infrastructure.Identity;
 
 namespace TruckNavigator.Api.Contracts;
 
@@ -208,3 +210,68 @@ public sealed record GeoJsonLineString(IReadOnlyList<double[]> Coordinates)
 {
     public string Type => "LineString";
 }
+
+/// <summary>
+/// El perfil del camionero tal como lo consume la app.
+/// </summary>
+/// <remarks>
+/// Junta en una sola respuesta lo que vive en dos tablas: los datos de la persona
+/// —que son dominio— y el estado de la cuenta —que es de Identity—. La app
+/// necesita ambos para decidir que pantalla mostrar, y pedirlos por separado
+/// obligaria a dos viajes para una sola decision.
+/// </remarks>
+public sealed record DriverProfileDto(
+    Guid Id,
+    string? Alias,
+    string? FirstName,
+    string? LastName,
+    string? AvatarId,
+    string? Email,
+    bool EmailConfirmed,
+    bool IsComplete,
+    DateTimeOffset CreatedAt)
+{
+    public static DriverProfileDto From(DriverProfile profile, AppUser user) => new(
+        profile.Id,
+        profile.Alias,
+        profile.FirstName,
+        profile.LastName,
+        profile.AvatarId,
+        user.Email,
+        user.EmailConfirmed,
+        profile.IsComplete,
+        profile.CreatedAt);
+}
+
+/// <summary>
+/// Datos que el usuario puede cargar o cambiar de su perfil.
+/// </summary>
+/// <remarks>
+/// Todos los campos son opcionales porque el alta permite saltear este paso. Un
+/// campo ausente se interpreta como "dejalo vacio", no como "no lo toques": es un
+/// PUT y reemplaza el perfil entero, que es lo que hace el formulario de la app.
+/// </remarks>
+public sealed class SaveDriverProfileRequest
+{
+    /// <summary>
+    /// El formato lo valida <see cref="DriverAlias"/>, no un atributo: es una regla
+    /// de dominio y tiene que dar el mismo veredicto desde cualquier llamador.
+    /// </summary>
+    public string? Alias { get; set; }
+
+    [StringLength(80)]
+    public string? FirstName { get; set; }
+
+    [StringLength(80)]
+    public string? LastName { get; set; }
+
+    [StringLength(64)]
+    public string? AvatarId { get; set; }
+}
+
+/// <summary>Respuesta de la consulta de disponibilidad de un alias.</summary>
+/// <param name="Available">
+/// <c>true</c> si el alias esta libre y bien formado. Es una foto del momento: lo
+/// unico que garantiza la unicidad es el indice de la base al guardar.
+/// </param>
+public sealed record AliasAvailabilityDto(string Alias, bool Available, string? Reason);
