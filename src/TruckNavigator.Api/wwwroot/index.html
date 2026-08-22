@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <!--
+    viewport-fit=cover deja que el mapa llegue al borde en telefonos con muesca;
+    el CSS compensa con las variables de area segura.
+    Sin escalado: es una aplicacion, no un documento, y el pinch-zoom del
+    navegador pelearia con el del mapa.
+  -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0d1418">
+  <meta name="description" content="Navegación para camiones en CABA según las medidas y el peso del vehículo.">
+
+  <title>Navegador de Tránsito Pesado</title>
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚛</text></svg>">
+
+  <link rel="stylesheet" href="vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div id="app">
+    <div class="center-note"><span class="spinner"></span></div>
+  </div>
+
+  <!--
+    MapLibre va como script clasico porque expone un global. Todo lo nuestro son
+    modulos ES nativos: sin empaquetador, sin paso de compilacion, y los mismos
+    archivos sirven para la web y para el WebView de Android.
+  -->
+  <script src="vendor/maplibre-gl.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

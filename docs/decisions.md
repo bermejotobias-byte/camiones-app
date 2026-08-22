@@ -558,3 +558,86 @@ misma bomba puesta aunque todavía nadie ordenara por él.
 que el viaje se guardaba y se leía, no que el historial se pudiera listar. Se
 agregó `The_history_can_be_ordered_by_date_newest_first`, que falla sin el
 conversor.
+
+---
+
+## AD-21 · Toda la interfaz pasa a una aplicación web, sin paso de compilación
+
+**Problema:** el prototipo era mitad y mitad —pantallas en XAML nativo, mapa
+dentro de un `WebView`—. Construir perfil, historial, chat y gamificación en XAML
+iba a ser lento, no servía para la versión web, y obligaba a mantener dos
+interfaces para lo mismo.
+
+**Decisión:** una sola aplicación web en `src/TruckNavigator.Api/wwwroot`, servida
+por la API y empaquetada tal cual dentro de la app Android. MAUI queda como
+**cáscara nativa**: GPS, notificaciones, servicio en segundo plano, discador,
+compartir.
+
+**Por qué ahí y no en un proyecto aparte:** poniéndola en `wwwroot` funciona igual
+en desarrollo y publicada, sin trucos de MSBuild ni copias en el build. El día que
+la empaquete la app Android, es una línea de copia en `build-apk.ps1`, no un
+sistema de compilación.
+
+### Sin paso de compilación
+
+Módulos ES nativos, sin npm ni empaquetador.
+
+- La web se despliega como archivos estáticos en cualquier lado.
+- La app Android empaqueta los mismos archivos sin coordinar dos builds.
+- El repositorio ya tenía esa forma: MapLibre viaja versionado, no instalado.
+
+Agregar un empaquetador más adelante es fácil; sacarlo, no. Si algún día hace
+falta, las vistas ya están separadas por archivo.
+
+### Ruteo por hash
+
+`#mapa`, `#camiones`, `#perfil`. Así la misma app funciona servida por HTTP y
+cargada desde `file:///android_asset/`, sin fallback en el servidor ni un caso
+especial en la cáscara nativa.
+
+### Tipografía del sistema, sin fuentes web
+
+En Android resuelve a Roboto, que ya está en el teléfono: cero descarga, cero
+dependencia de red **adentro del camión** y render nativo. Una fuente de Google
+sería una petición más que puede fallar justo cuando no hay señal.
+
+### Las dos intensidades
+
+El sistema de diseño declara dos registros y el CSS los separa:
+
+| | Dónde | Qué usa |
+|---|---|---|
+| **Sobrio** | Mapa y navegación | Alto contraste, tipografía grande, blancos de toque de 48 px |
+| **Expresivo** | Perfil y progresión | Color de recompensa, barra de nivel, medallas, movimiento |
+
+**No es sólo estético.** Tener los dos registros declarados es lo que hace que
+nada gamificado se filtre a la pantalla que se mira manejando. Un GPS que
+distrae a alguien que lleva treinta toneladas es un producto peligroso.
+
+El color de recompensa (violeta) está **fuera** de la escala semántica: verde,
+ámbar y rojo quedan reservados para estado y peligro, y no se usan para adornar.
+
+### Naranja → celeste
+
+Los tramos fuera de la Red se dibujan en **celeste** y no en naranja ni rojo. La
+norma admite salir de la Red para llegar al destino: pintarlo como infracción
+sería mentir sobre lo que dice la ley.
+
+### Tres errores que sólo aparecieron probando la interfaz
+
+1. **`Container 'map' not found`.** La vista se armaba antes de insertarse en el
+   documento, y MapLibre busca y mide su contenedor al construirse. Se monta el
+   nodo primero y además se le pasa el elemento en lugar del id.
+
+2. **`POST /api/routes` devolvía 404 sobre el camión propio.** El cliente lo
+   llamaba sin token, así que el servidor sólo veía las plantillas. El endpoint
+   ya soportaba los dos casos; el error estaba en el cliente. Es la contracara de
+   la decisión de AD-19 de dejar ese endpoint abierto.
+
+3. **`Style is not done loading`.** Si la ruta llegaba antes de que el mapa
+   terminara de cargar el estilo, agregar la capa tiraba excepción y la ruta no
+   se dibujaba nunca. Es **intermitente por naturaleza** —depende de si contesta
+   antes el servidor o los tiles—, así que se espera a que el mapa quede quieto y
+   se reintenta.
+
+Ninguno de los tres los agarra un test de API: los tres viven en el navegador.

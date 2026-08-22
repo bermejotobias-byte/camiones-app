@@ -233,3 +233,33 @@ duración estimada**. Es una regla de plausibilidad —evita que abrir y cerrar 
 viaje al instante regale la distancia—, **no una verificación de que el camión
 recorrió la ruta**. Eso llega con la navegación paso a paso. Ver AD-20 en
 [docs/decisions.md](docs/decisions.md).
+
+## La aplicación web
+
+Toda la interfaz vive en `src/TruckNavigator.Api/wwwroot` y la sirve la misma API.
+Con el backend levantado se abre en <http://localhost:5080>.
+
+**No tiene paso de compilación**: son módulos ES nativos. Se edita un archivo, se
+recarga el navegador y listo. No hay `npm install` ni empaquetador.
+
+```
+wwwroot/
+  index.html
+  app.css                sistema de diseño: tokens, modo día y noche
+  js/api.js              cliente HTTP, sesión y renovación de token
+  js/store.js            estado compartido, preferencias, niveles
+  js/ui.js               plantillas, íconos, avisos, formato
+  js/map.js              todo lo que sabe de MapLibre
+  js/app.js              arranque, ruteo por hash, menú lateral
+  js/views/              una pantalla por archivo
+```
+
+El diseño es **mobile first** y usa la tipografía del sistema, sin fuentes web:
+adentro de un camión, una descarga más es una cosa más que puede fallar.
+
+El ruteo es por hash (`#mapa`, `#camiones`, `#perfil`) para que la misma app
+funcione servida por HTTP y cargada desde `file:///android_asset/` dentro de la
+app Android.
+
+> La app Android todavía muestra la interfaz vieja en XAML. Cambiarla por esta es
+> el paso siguiente. Ver AD-21 en [docs/decisions.md](docs/decisions.md).

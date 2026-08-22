@@ -110,6 +110,11 @@ await using (var scope = app.Services.CreateAsyncScope())
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+
+// La app vive en wwwroot y se sirve desde aca mismo. Es el mismo bundle que
+// empaqueta la app Android: un solo frontend para los dos hosts.
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSwagger();
