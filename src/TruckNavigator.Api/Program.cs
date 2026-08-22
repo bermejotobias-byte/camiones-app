@@ -44,6 +44,19 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.AddProblemDetails();
 
+// La app Android carga la interfaz desde el origen virtual del WebView y le pega
+// a este backend: eso es cross-origin y sin CORS el navegador lo bloquea antes
+// de que salga el pedido.
+//
+// Se permite cualquier origen a proposito. La API se autentica con tokens de
+// portador y no con cookies, asi que un origen ajeno no consigue nada que no
+// consiga un cliente HTTP cualquiera: no hay sesion implicita que robar. Si
+// algun dia se agregan cookies, esto tiene que volverse una lista blanca.
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
+    .AllowAnyOrigin()
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
+
 // ------------------------------------------------------------- identidad
 //
 // AddIdentityApiEndpoints arma de una sola vez el nucleo de Identity, el esquema
@@ -110,6 +123,8 @@ await using (var scope = app.Services.CreateAsyncScope())
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+
+app.UseCors();
 
 // La app vive en wwwroot y se sirve desde aca mismo. Es el mismo bundle que
 // empaqueta la app Android: un solo frontend para los dos hosts.

@@ -7,7 +7,8 @@
  * cascara nativa.
  */
 
-import { api, isSignedIn, signOut } from './api.js';
+import { api, isSignedIn, signOut, setApiBase } from './api.js';
+import { initPlatform, call } from './platform.js';
 import { prefs, state, setState, applyTheme, savePrefs } from './store.js';
 import { html, raw, icon, wire, q, render, toastError } from './ui.js';
 
@@ -194,9 +195,10 @@ function emergencyView(host, { go }) {
       <h2>Emergencia</h2>
     </div>
     <div class="scroll">
-      <a class="btn btn-danger btn-block" href="tel:911" style="text-decoration:none">
+      <button class="btn btn-danger btn-block" id="call-911"
+              style="min-height:64px;font-size:18px">
         Llamar al 911
-      </a>
+      </button>
 
       <div class="card">
         <h3>Todavía en camino</h3>
@@ -209,7 +211,12 @@ function emergencyView(host, { go }) {
     </div>
   `;
 
-  wire(host, { '#back': () => go('mapa') });
+  wire(host, {
+    '#back': () => go('mapa'),
+    // Adentro del WebView un `tel:` no abre el discador solo: lo resuelve la
+    // cascara nativa por el puente.
+    '#call-911': () => call('911')
+  });
 }
 
 function settingsView(host, { go }) {
@@ -295,4 +302,31 @@ async function boot() {
   }
 }
 
-boot().then(mount);
+/**
+ * Arranque.
+ *
+ * Primero se resuelve la plataforma, porque hasta no saber la URL del backend no
+ * se puede pedir nada. En el navegador eso es inmediato; adentro de la app
+ * Android es una vuelta por el puente.
+ */
+(async () => {
+  const { apiBase } = await initPlatform();
+
+  if (apiBase === null) {
+    root.innerHTML = html`
+      <div class="center-note">
+        <div class="stack-sm">
+          <b>No se pudo contactar al servidor</b>
+          <p class="hint">La aplicación no recibió la dirección del backend.
+          Cerrala y volvé a abrirla.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  setApiBase(apiBase);
+
+  await boot();
+  mount();
+})();

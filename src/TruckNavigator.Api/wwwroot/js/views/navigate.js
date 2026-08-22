@@ -12,6 +12,7 @@
  */
 
 import { api } from '../api.js';
+import { getPosition } from '../platform.js';
 import * as gl from '../map.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
@@ -311,40 +312,40 @@ export function navigateView(host, { openDrawer, go }) {
    * cargado— y en silencio: si el permiso esta denegado no tiene sentido molestar
    * a alguien que todavia no pidio nada.
    */
-  function locate({ silent }) {
-    if (!navigator.geolocation) {
-      if (!silent) toastError('Este dispositivo no informa la ubicación.');
+  async function locate({ silent }) {
+    let point;
+
+    try {
+      point = await getPosition();
+    } catch (error) {
+      if (!silent) toastError(error.message);
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        const point = { lat: coords.latitude, lng: coords.longitude };
-        gl.setGpsPosition(point);
+    gl.setGpsPosition(point);
 
-        // Solo se toma como origen si todavia no hay uno elegido a mano.
-        if (!origin) {
-          setPoint('origin', { ...point, label: 'Tu ubicación actual' });
-          editing = 'destination';
+    // Solo se toma como origen si todavia no hay uno elegido a mano.
+    if (origin) {
+      gl.flyTo(point);
+      return;
+    }
 
-          try {
-            const place = await api.reverseGeocode(point.lat, point.lng);
-            if (place && origin && origin.label === 'Tu ubicación actual') {
-              origin = { ...point, label: place.label };
-              drawSheet();
-            }
-          } catch {
-            // Queda "Tu ubicación actual", que igual sirve.
-          }
-        } else {
-          gl.flyTo(point);
-        }
-      },
-      () => {
-        if (!silent) toastError('No pudimos leer tu ubicación. Revisá los permisos.');
-      },
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 }
-    );
+    setPoint('origin', { ...point, label: 'Tu ubicación actual' });
+    editing = 'destination';
+
+    try {
+      const place = await api.reverseGeocode(point.lat, point.lng);
+
+      // Se comprueba que el usuario no haya cambiado el origen mientras tanto:
+      // resolver la direccion tarda, y pisarle lo que eligio seria peor que no
+      // mostrar la calle.
+      if (place && origin?.label === 'Tu ubicación actual') {
+        origin = { ...point, label: place.label };
+        drawSheet();
+      }
+    } catch {
+      // Queda "Tu ubicación actual", que igual sirve para rutear.
+    }
   }
 
   /* ------------------------------------------------------------------------

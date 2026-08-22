@@ -20,7 +20,7 @@ OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
 | `src/TruckNavigator.Domain` | Motor de restricciones, ruteo, POIs y perfiles. **Sin dependencias externas** — mantenerlo así |
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
-| `src/TruckNavigator.Mobile` | .NET MAUI Android. WebView + MapLibre GL JS (`Resources/Raw/wwwroot/`), GPS nativo |
+| `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
 | `tests/TruckNavigator.UnitTests` | 65 tests de dominio, sin infraestructura |
 | `tests/TruckNavigator.IntegrationTests` | 38 tests: 6 contra GraphHopper (se saltean solos si no está levantado) + 32 sobre datasets, perfiles, camiones, viajes y SQLite |
 
@@ -61,6 +61,10 @@ dotnet test                                    # 103 tests
   que ese default está muerto salvo que se regenere con `demo-up.ps1`.
 - **HTTP plano desde el teléfono** está habilitado sólo para la IP de desarrollo, en
   `Platforms/Android/Resources/xml/network_security_config.xml`.
+- **La app Android no tiene interfaz propia**: es una cáscara sobre `Api/wwwroot`, enlazado
+  como `MauiAsset` (no copiado). Si la app queda en blanco en el teléfono, los sospechosos son
+  CORS y contenido mixto: el WebView sirve desde un origen `https` virtual y el backend es
+  `http` plano. Ver AD-22.
 - **La interfaz no tiene paso de compilación**: `src/TruckNavigator.Api/wwwroot` son módulos ES
   nativos servidos tal cual. No agregar npm ni empaquetador sin motivo: el mismo bundle
   tiene que poder empaquetarse dentro de la app Android sin coordinar dos builds. Ver AD-21.

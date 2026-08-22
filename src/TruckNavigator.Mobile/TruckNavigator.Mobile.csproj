@@ -64,6 +64,16 @@
 
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+
+		<!-- La interfaz es la MISMA aplicacion web que sirve la API. Se enlaza
+		     desde alli en lugar de copiarla al repositorio: dos copias divergen,
+		     y esta es justo la clase de cosa que se descubre tarde y en el
+		     telefono.
+
+		     LogicalName la deja bajo "wwwroot/", que es el HybridRoot que espera
+		     el control. -->
+		<MauiAsset Include="..\TruckNavigator.Api\wwwroot\**\*"
+		           LogicalName="wwwroot\%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<ItemGroup>

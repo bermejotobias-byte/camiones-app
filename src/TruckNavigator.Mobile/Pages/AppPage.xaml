@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    La aplicacion entera es la web que sirve la API. Esta pagina es la cascara:
+    hospeda el WebView a pantalla completa y resuelve lo que el navegador de
+    adentro no puede hacer solo — la URL del backend, el GPS y el discador.
+
+    El panel de configuracion aparece unicamente cuando el backend no responde.
+    No hay una pantalla nativa permanente: si la web anda, la cascara no se ve.
+-->
+<ContentPage
+    x:Class="TruckNavigator.Mobile.Pages.AppPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#0d1418">
+
+    <Grid>
+
+        <HybridWebView
+            x:Name="WebView"
+            HybridRoot="wwwroot"
+            DefaultFile="index.html"
+            RawMessageReceived="OnMessageReceived" />
+
+        <!-- Se muestra mientras se verifica que el backend conteste. -->
+        <VerticalStackLayout
+            x:Name="StartupPanel"
+            BackgroundColor="#0d1418"
+            VerticalOptions="Fill"
+            HorizontalOptions="Fill"
+            Padding="28"
+            Spacing="16">
+
+            <VerticalStackLayout VerticalOptions="Center" Spacing="16">
+
+                <ActivityIndicator
+                    x:Name="StartupSpinner"
+                    IsRunning="True"
+                    Color="#35b8e8"
+                    HeightRequest="36" />
+
+                <Label
+                    x:Name="StartupLabel"
+                    Text="Conectando…"
+                    TextColor="#a8bcc7"
+                    FontSize="15"
+                    HorizontalTextAlignment="Center" />
+
+                <!-- Escape hatch: solo visible si no se pudo conectar. -->
+                <VerticalStackLayout x:Name="ServerSetup" IsVisible="False" Spacing="12">
+
+                    <Label
+                        Text="Dirección del servidor"
+                        TextColor="#6f8794"
+                        FontSize="12"
+                        FontAttributes="Bold" />
+
+                    <Entry
+                        x:Name="ServerEntry"
+                        Placeholder="http://192.168.1.60:5080"
+                        Keyboard="Url"
+                        TextColor="#eaf1f5"
+                        PlaceholderColor="#6f8794"
+                        BackgroundColor="#1e2b33" />
+
+                    <Button
+                        Text="Reintentar"
+                        Clicked="OnRetry"
+                        BackgroundColor="#35b8e8"
+                        TextColor="#04222f"
+                        FontAttributes="Bold"
+                        HeightRequest="50" />
+
+                    <Label
+                        Text="La app y el backend tienen que estar en la misma red, o el backend publicado con una dirección accesible."
+                        TextColor="#6f8794"
+                        FontSize="12.5" />
+
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+
+    </Grid>
+
+</ContentPage>

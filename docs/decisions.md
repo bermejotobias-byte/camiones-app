@@ -641,3 +641,68 @@ sería mentir sobre lo que dice la ley.
    se reintenta.
 
 Ninguno de los tres los agarra un test de API: los tres viven en el navegador.
+
+---
+
+## AD-22 · La app Android pasa a ser una cáscara: hospeda la web y nada más
+
+**Decisión:** el proyecto MAUI queda reducido a una pantalla —`AppPage`— que
+hospeda un `HybridWebView` a pantalla completa con la aplicación web dentro.
+Desaparecen `MapPage` (922 líneas), `TruckListPage` y `TruckEditPage`.
+
+**Los archivos no se copian, se enlazan.** El `csproj` incluye
+`..\TruckNavigator.Api\wwwroot\**\*` como `MauiAsset`. Dos copias del frontend
+divergen, y esa es justo la clase de diferencia que se descubre tarde y en el
+teléfono.
+
+### Lo que la cáscara sí tiene que resolver
+
+Tres cosas que el WebView no hace solo. Van por el mismo canal de mensajes de
+`HybridWebView` que ya estaba probado (AD-09), y del lado web quedan detrás de
+`js/platform.js`, para que ninguna vista tenga que preguntarse dónde corre:
+
+| | Por qué |
+|---|---|
+| **URL del backend** | Servida por HTTP la web usa el mismo origen. Dentro del WebView no hay origen al que pegarle, así que la aporta la cáscara. |
+| **Ubicación** | El WebView de Android no entrega `navigator.geolocation` sin que la cáscara resuelva el permiso. La posición la lee el GPS nativo y se empuja a la página. |
+| **Discador** | Un `tel:` dentro del WebView no abre el discador solo. |
+
+### Dos bloqueos del navegador que dejarían la app en blanco
+
+Ambos son invisibles desde el servidor —el pedido nunca llega a salir— y por eso
+quedan anotados:
+
+1. **CORS.** `HybridWebView` sirve la interfaz desde un origen virtual propio, así
+   que todo pedido al backend es *cross-origin*. Se agregó una política que
+   **permite cualquier origen**. Es deliberado y acotado: la API se autentica con
+   tokens de portador y no con cookies, de modo que un origen ajeno no consigue
+   nada que no consiga un cliente HTTP cualquiera — no hay sesión implícita que
+   robar. *Si algún día se agregan cookies, esto tiene que volverse una lista
+   blanca.*
+
+2. **Contenido mixto.** Ese origen virtual es `https` y el backend en la red local
+   es `http` plano. Chromium bloquea la combinación por defecto. Se habilita
+   `MixedContentHandling.AlwaysAllow` en el handler del WebView. Android **además**
+   exige que la IP esté declarada en `network_security_config.xml`, así que el
+   tráfico en claro sigue restringido a las direcciones listadas ahí. Cuando el
+   backend se publique por HTTPS, la excepción se puede sacar.
+
+### El panel de conexión
+
+La cáscara comprueba `/api/health` **antes** de entregarle la URL a la web. Si no
+responde, muestra un panel nativo para corregir la dirección. Si responde, el
+panel no se ve nunca.
+
+Se verifica antes en lugar de dejar arrancar la web con una URL muerta: así el
+error se explica una vez y con la dirección a la vista, en lugar de fallar pedido
+por pedido desde adentro, que es mucho más difícil de diagnosticar.
+
+### Lo que no se pudo verificar acá
+
+El APK compila, pero **no se probó en un teléfono**. Lo que hay que mirar la
+primera vez que se instale, en este orden:
+
+1. que la interfaz cargue —si queda en blanco, el sospechoso es el par CORS /
+   contenido mixto de arriba—;
+2. que el botón de GPS traiga la ubicación (permiso nativo);
+3. que el 911 abra el discador.

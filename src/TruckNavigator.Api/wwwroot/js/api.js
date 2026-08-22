@@ -12,10 +12,19 @@ const STORAGE_KEY = 'tn.session';
  * Base de la API.
  *
  * Servida por HTTP es el mismo origen y queda en cadena vacia. Dentro del
- * WebView de Android la app se carga desde file://, donde no hay origen al que
- * pegarle: ahi la cascara nativa inyecta `window.TN_API_BASE` antes de arrancar.
+ * WebView de Android la pagina se carga desde file://, donde no hay origen al
+ * que pegarle, y la URL la aporta la cascara nativa por el puente.
+ *
+ * Se resuelve en el arranque y no al cargar el modulo: cuando este archivo se
+ * evalua, el puente todavia no contesto.
  */
-export const apiBase = (window.TN_API_BASE || '').replace(/\/$/, '');
+let apiBase = '';
+
+export function setApiBase(url) {
+  apiBase = (url || '').replace(/\/$/, '');
+}
+
+export const currentApiBase = () => apiBase;
 
 /** Error con el mensaje ya listo para mostrar. */
 export class ApiError extends Error {
