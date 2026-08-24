@@ -22,7 +22,7 @@ ruta, no como advertencia posterior. Fuente regulatoria: Ley 2148, art. 9.10.1
 Objetivo declarado: *"El GPS de los camioneros de Buenos Aires"*. No sólo un
 navegador: perfil, historial, gamificación, comunidad.
 
-**Rama de trabajo:** `cuentas-de-usuario` (9 commits sobre `main`).
+**Rama de trabajo:** `cuentas-de-usuario` (11 commits sobre `main`, ya empujada).
 
 ---
 
@@ -33,16 +33,16 @@ navegador: perfil, historial, gamificación, comunidad.
 | Documento | Qué tiene |
 |---|---|
 | `CLAUDE.md` | Convenciones, comandos, **trampas que ya costaron tiempo** |
-| `docs/decisions.md` | **25 decisiones arquitectónicas (AD-01…AD-25)** con su porqué |
-| `docs/data-sources.md` | Fuentes, licencias y **8 limitaciones abiertas (L-1…L-8)** |
+| `docs/decisions.md` | **26 decisiones arquitectónicas (AD-01…AD-26)** con su porqué |
+| `docs/data-sources.md` | Fuentes, licencias y limitaciones **L-1…L-8** (L-4 ya resuelta) |
 | `docs/architecture.md` | Estructura y proyectos |
 | `docs/routing.md`, `docs/restrictions.md`, `docs/pois.md`, `docs/deploy.md` | Por tema |
 | `PLAN.md` | Especificación original del MVP |
 | Escritorio del usuario | `PUNTOS A TRABAJAR EN LA APLICACIÓN GPS CAMIONES.docx` — los 33 requisitos |
 
-**Las AD-17 a AD-25 son de esta sesión** y cubren: identidad, perfil, propiedad
+**Las AD-17 a AD-26 son de esta sesión** y cubren: identidad, perfil, propiedad
 de camiones, viajes, mudanza del frontend, cáscara Android, motor de navegación,
-servicio en segundo plano y capas de mapa.
+servicio en segundo plano, capas de camión y mapa base propio.
 
 ---
 
@@ -57,7 +57,7 @@ Prioridad declarada por el usuario:
 | **1 · Navegación** | ⚠️ Código completo, **sin probar manejando** |
 | **2 · Usabilidad** | ✅ Completa — salió adelantada dentro de la mudanza del frontend |
 | **3 · Seguridad** | ❌ Pendiente — pánico con 3 contactos, compartir viaje por WhatsApp |
-| **4 · Info para camiones** | 🔶 Mitad — capas listas; **falta el fondo minimalista** |
+| **4 · Info para camiones** | ✅ Completa — capas de camión y mapa base propio |
 | **5 · Experiencia** | ❌ Pendiente — avatares, cofres, reportes, chat |
 | **Transversal** | ❌ i18n (español, portugués, guaraní, inglés) |
 
@@ -225,13 +225,12 @@ descarta problemas: ¿carga la interfaz? → ¿el GPS ubica? → ¿aparece la
 notificación al arrancar el viaje? → **¿avanza la flecha tras apagar la pantalla
 un minuto?** → ¿habla en los giros?
 
-**Fase 4, segunda mitad:** el fondo minimalista. Camino: generar PMTiles del AMBA
-con **Planetiler** (corre sobre el mismo JDK 21 que ya hace falta) y servirlos
-como archivo estático. Resuelve el minimalismo, el día/noche del fondo y **L-4**
-—los tiles de OSM no se pueden distribuir— de una sola vez.
+**Fase 4 está cerrada.** El mapa base propio en PMTiles resolvió el minimalismo,
+el día/noche del fondo y **L-4** — ya no se depende de `tile.openstreetmap.org`
+(AD-26).
 
-**Después:** Fase 3 (seguridad), modo reparto, Fase 5 (comunidad y gamificación),
-i18n.
+**Después:** Fase 3 (seguridad: pánico con 3 contactos, compartir viaje), modo
+reparto, Fase 5 (comunidad y gamificación), i18n.
 
 **Sin fuente y por lo tanto sin hacer:** las *zonas peligrosas* no tienen dato
 oficial publicable. La única vía honesta es construirlas con reportes de la
@@ -249,3 +248,21 @@ ausente), y en la documentación (L-1 a L-8). Es lo que hace auditable al sistem
 y defendible al producto frente a Waze y Google Maps.
 
 Si hace falta un dato que no existe: **decirlo, no rellenarlo.**
+
+---
+
+## 10. Comandos de datos y mapa
+
+```powershell
+.\data\build-basemap.ps1           # mapa base del AMBA (53 MB) -> routing/amba.pmtiles
+.\data\fetch-caba-map-layers.ps1   # Red, gálibos y sapitos -> wwwroot/data/*.geojson
+```
+
+El **mapa base no se versiona ni entra en el APK** y se sirve bajo `/tiles`; si
+falta, el mapa cae al raster de OSM con un aviso en consola. Las **capas de
+camión sí se versionan** (761 KB) y viajan dentro del APK.
+
+**Al estilar el mapa, verificar los valores de `kind`, no suponerlos.** El
+esquema de Protomaps usa `highway`, `major_road`, `minor_road`, `other`, `path`:
+no existe `medium_road`. Una rama con un valor inexistente no da error, sólo no
+coincide nunca.
