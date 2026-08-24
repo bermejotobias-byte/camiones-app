@@ -62,9 +62,15 @@ export async function initPlatform() {
 
 let positionWaiters = [];
 
-/** La cascara empuja cada posicion que lee del GPS nativo. */
-window.TN_setPosition = (lat, lng) => {
-  const coords = { lat, lng };
+/**
+ * La cascara empuja cada posicion que lee del GPS nativo.
+ *
+ * Vienen tambien precision, velocidad y rumbo: el motor de guiado los necesita
+ * para decidir si el camion se salio de la ruta —el umbral depende de cuanto
+ * error informe el GPS— y cuanto pudo haber avanzado desde la posicion anterior.
+ */
+window.TN_setPosition = (lat, lng, accuracy, speed, heading) => {
+  const coords = { lat, lng, accuracy, speed, heading, at: Date.now() };
 
   positionWaiters.forEach(({ resolve }) => resolve(coords));
   positionWaiters = [];
@@ -116,11 +122,13 @@ const watchers = new Set();
  *
  * @returns {() => void} funcion para dejar de seguir
  */
-export function watchPosition(onMove) {
+export function watchPosition(onMove, destination) {
   watchers.add(onMove);
 
   if (isNative) {
-    send({ action: 'watchLocation', on: true });
+    // El destino viaja para que la notificacion del sistema diga hacia donde va
+    // el viaje, en vez de un "Navegando" pelado.
+    send({ action: 'watchLocation', on: true, destination });
 
     return () => {
       watchers.delete(onMove);
@@ -131,7 +139,14 @@ export function watchPosition(onMove) {
   if (!navigator.geolocation) return () => watchers.delete(onMove);
 
   const id = navigator.geolocation.watchPosition(
-    ({ coords }) => onMove({ lat: coords.latitude, lng: coords.longitude }),
+    ({ coords }) => onMove({
+      lat: coords.latitude,
+      lng: coords.longitude,
+      accuracy: coords.accuracy,
+      speed: coords.speed,
+      heading: coords.heading,
+      at: Date.now()
+    }),
     () => {},
     { enableHighAccuracy: true, maximumAge: 5_000 }
   );

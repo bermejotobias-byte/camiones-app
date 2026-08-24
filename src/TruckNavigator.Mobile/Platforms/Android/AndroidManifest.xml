@@ -5,6 +5,24 @@
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+	<!--
+	    Servicio en primer plano mientras se navega.
+
+	    Android no permite seguir leyendo el GPS con la app tapada sin uno de
+	    estos, y desde Android 14 el servicio ademas tiene que declarar de que
+	    tipo es. Sin FOREGROUND_SERVICE_LOCATION el sistema mata el servicio
+	    apenas arranca.
+
+	    No hace falta ACCESS_BACKGROUND_LOCATION: se pide justamente porque un
+	    servicio de tipo "location" iniciado con la app a la vista puede seguir
+	    leyendo el GPS despues, que es como funcionan todos los navegadores.
+	-->
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+	<!-- Desde Android 13 hay que pedirlo para poder mostrar la notificacion. -->
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 	<uses-feature android:name="android.hardware.location" android:required="false" />
 	<uses-feature android:name="android.hardware.location.gps" android:required="false" />
 </manifest>

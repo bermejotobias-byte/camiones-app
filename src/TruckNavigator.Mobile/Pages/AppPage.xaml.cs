@@ -23,14 +23,19 @@ namespace TruckNavigator.Mobile.Pages;
 public partial class AppPage : ContentPage
 {
     private readonly TruckNavigatorApi _api;
+    private readonly ITripTracker? _tracker;
 
     private bool _configSent;
     private bool _watchingLocation;
 
-    public AppPage(TruckNavigatorApi api)
+    public AppPage(TruckNavigatorApi api, IServiceProvider services)
     {
         InitializeComponent();
         _api = api;
+
+        // Opcional: en una plataforma sin implementacion la app sigue andando y
+        // solo se pierde el seguimiento continuo.
+        _tracker = services.GetService<ITripTracker>();
     }
 
     protected override async void OnAppearing()
@@ -137,17 +142,31 @@ public partial class AppPage : ContentPage
 
                 case "watchLocation":
                     var on = root.TryGetProperty("on", out var flag) && flag.GetBoolean();
+                    var destination = root.TryGetProperty("destination", out var target)
+                        ? target.GetString()
+                        : null;
+
                     MainThread.BeginInvokeOnMainThread(async () =>
                     {
                         if (on)
                         {
-                            await StartWatchingLocationAsync();
+                            await StartWatchingLocationAsync(destination);
                         }
                         else
                         {
                             StopWatchingLocation();
                         }
                     });
+                    break;
+
+                case "speak":
+                    var phrase = root.TryGetProperty("text", out var said) ? said.GetString() : null;
+                    MainThread.BeginInvokeOnMainThread(async () => await SpeakAsync(phrase));
+                    break;
+
+                case "keepAwake":
+                    var awake = root.TryGetProperty("on", out var keep) && keep.GetBoolean();
+                    MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = awake);
                     break;
 
                 case "call":
@@ -217,7 +236,12 @@ public partial class AppPage : ContentPage
                 return;
             }
 
-            await PushPositionAsync(location.Latitude, location.Longitude);
+            await PushPositionAsync(new TrackedPosition(
+                location.Latitude,
+                location.Longitude,
+                location.Accuracy,
+                location.Speed,
+                location.Course));
         }
         catch (Exception ex)
         {
@@ -225,30 +249,63 @@ public partial class AppPage : ContentPage
         }
     }
 
-    private Task PushPositionAsync(double latitude, double longitude) =>
-        RunScriptAsync($"window.TN_setPosition({Num(latitude)},{Num(longitude)})");
+    /// <summary>
+    /// Empuja una posicion a la pagina.
+    /// </summary>
+    /// <remarks>
+    /// Van tambien la precision, la velocidad y el rumbo: el motor de guiado los
+    /// necesita para decidir si el camion se salio de la ruta —el umbral depende
+    /// de cuanto error informe el GPS— y cuanto pudo haber avanzado desde la
+    /// posicion anterior.
+    /// </remarks>
+    private Task PushPositionAsync(TrackedPosition position) =>
+        RunScriptAsync(
+            "window.TN_setPosition(" +
+            Num(position.Latitude) + "," +
+            Num(position.Longitude) + "," +
+            Num(position.AccuracyMeters) + "," +
+            Num(position.SpeedMetersPerSecond) + "," +
+            Num(position.BearingDegrees) + ")");
 
-    private async Task StartWatchingLocationAsync()
+    /// <summary>
+    /// Arranca el seguimiento del viaje.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// No se usa <c>Geolocation.StartListeningForegroundAsync</c>: ese escucha
+    /// solo mientras la app esta a la vista. Apenas el conductor cambia de app o
+    /// apaga la pantalla deja de entregar posiciones, y la navegacion se congela
+    /// con la flecha clavada en la ultima cuadra conocida.
+    /// </para>
+    /// <para>
+    /// El <see cref="ITripTracker"/> levanta un servicio en primer plano, que es
+    /// la unica forma que da Android de seguir leyendo el GPS con la app tapada.
+    /// </para>
+    /// </remarks>
+    private async Task StartWatchingLocationAsync(string? destination)
     {
-        if (_watchingLocation || !await EnsureLocationPermissionAsync())
+        if (_tracker is null || _watchingLocation)
         {
             return;
         }
 
-        Geolocation.Default.LocationChanged += OnLocationChanged;
+        _tracker.PositionChanged -= OnTrackedPosition;
+        _tracker.PositionChanged += OnTrackedPosition;
 
-        try
+        if (!await _tracker.StartAsync(destination))
         {
-            await Geolocation.Default.StartListeningForegroundAsync(
-                new GeolocationListeningRequest(GeolocationAccuracy.Best, TimeSpan.FromSeconds(3)));
+            _tracker.PositionChanged -= OnTrackedPosition;
 
-            _watchingLocation = true;
+            // Sin permiso no hay navegacion. Callarse dejaria una pantalla que no
+            // se actualiza sin ningun motivo visible.
+            await RunScriptAsync(
+                "window.TN_locationFailed('Sin permiso de ubicación no se puede navegar. " +
+                "Habilitalo en los ajustes del teléfono.')");
+
+            return;
         }
-        catch (Exception ex)
-        {
-            Geolocation.Default.LocationChanged -= OnLocationChanged;
-            System.Diagnostics.Debug.WriteLine($"No se pudo seguir la ubicación: {ex.Message}");
-        }
+
+        _watchingLocation = true;
     }
 
     private void StopWatchingLocation()
@@ -258,23 +315,13 @@ public partial class AppPage : ContentPage
             return;
         }
 
-        Geolocation.Default.LocationChanged -= OnLocationChanged;
-
-        try
-        {
-            Geolocation.Default.StopListeningForeground();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"No se pudo detener el seguimiento: {ex.Message}");
-        }
-
+        _tracker!.PositionChanged -= OnTrackedPosition;
+        _tracker.Stop();
         _watchingLocation = false;
     }
 
-    private void OnLocationChanged(object? sender, GeolocationLocationChangedEventArgs e) =>
-        MainThread.BeginInvokeOnMainThread(async () =>
-            await PushPositionAsync(e.Location.Latitude, e.Location.Longitude));
+    private void OnTrackedPosition(object? sender, TrackedPosition position) =>
+        MainThread.BeginInvokeOnMainThread(async () => await PushPositionAsync(position));
 
     private static async Task<bool> EnsureLocationPermissionAsync()
     {
@@ -321,6 +368,29 @@ public partial class AppPage : ContentPage
     /// </summary>
     private static string Num(double value) =>
         value.ToString("0.######", CultureInfo.InvariantCulture);
+
+    /// <summary>Un dato ausente viaja como <c>null</c>, no como cero.</summary>
+    private static string Num(double? value) =>
+        value.HasValue ? Num(value.Value) : "null";
+
+    private static async Task SpeakAsync(string? phrase)
+    {
+        if (string.IsNullOrWhiteSpace(phrase))
+        {
+            return;
+        }
+
+        try
+        {
+            // Se corta lo anterior: una indicacion vieja sonando encima de la
+            // nueva es peor que el silencio.
+            await TextToSpeech.Default.SpeakAsync(phrase);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"No se pudo hablar: {ex.Message}");
+        }
+    }
 
     /// <summary>Serializa a literal de JavaScript, con las comillas escapadas.</summary>
     private static string Json(string? value) =>

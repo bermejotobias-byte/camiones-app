@@ -27,6 +27,13 @@ public static class MauiProgram
 
         builder.Services.AddTransient<AppPage>();
 
+#if ANDROID
+        // El seguimiento del viaje es un servicio en primer plano de Android.
+        // La pagina lo usa por la interfaz y no sabe nada de eso.
+        builder.Services.AddSingleton<Services.ITripTracker,
+            Platforms.Android.AndroidTripTracker>();
+#endif
+
         ConfigureWebView();
 
 #if DEBUG

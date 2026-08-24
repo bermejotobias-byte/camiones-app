@@ -794,3 +794,76 @@ sigue ejecutando. En desarrollo se edita un archivo y no cambia nada; publicada,
 una corrección no le llega al usuario. Los estáticos se sirven con
 `Cache-Control: no-cache, must-revalidate` — que no significa "no guardar" sino
 "preguntar antes de reusar", y el servidor contesta 304 sin cuerpo.
+
+---
+
+## AD-24 · El GPS sigue vivo con un servicio en primer plano, sólo durante el viaje
+
+**Problema:** `Geolocation.StartListeningForegroundAsync` de MAUI escucha
+únicamente mientras la app está a la vista. Apenas el conductor cambia de app o
+apaga la pantalla, Android deja de entregar posiciones y **la navegación se
+congela**: la flecha queda clavada en la última cuadra conocida y no vuelve a
+avisar ningún giro. Es la diferencia entre un mapa y un navegador.
+
+**Decisión:** un `Service` de Android de tipo `location`, que arranca cuando el
+usuario toca *Arrancar viaje* y se apaga al llegar o abandonar.
+
+### La notificación no es opcional
+
+**Android no permite un servicio en primer plano sin notificación.** No es una
+decisión de producto: el sistema mata el servicio si no la presenta. Lo que sí se
+puede posponer es su contenido — hoy dice *"Viaje en curso · Hacia X"* en un canal
+de baja importancia, para que no suene ni vibre. Mostrar ahí la próxima maniobra y
+la distancia se resuelve **actualizando esta notificación**, no agregando otra.
+
+### Vive sólo mientras dura el viaje
+
+Un servicio de ubicación permanente sería un abuso de la batería y del permiso, y
+la razón por la que a una app la sacan de la tienda. El ciclo es exactamente el
+del viaje.
+
+**Es además la única fuente de posiciones durante la navegación.** Tener dos —el
+servicio y el de la app en primer plano— significaría dos trenes de *fixes* con
+ritmos distintos alimentando el mismo motor de guiado.
+
+### Lo que exige `targetSdk 36`
+
+Tres cosas que, si faltan, no dan error de compilación y rompen en el teléfono:
+
+| Requisito | Desde | Si falta |
+|---|---|---|
+| `FOREGROUND_SERVICE_LOCATION` y `android:foregroundServiceType="location"` | Android 14 | El sistema mata el servicio apenas arranca |
+| Declarar el tipo también en `startForeground(...)` | Android 14 | `SecurityException` |
+| `POST_NOTIFICATIONS` en tiempo de ejecución | Android 13 | El servicio corre pero la notificación no se ve |
+| `StartForegroundService` en vez de `StartService` | Android 8 | El sistema rechaza el arranque |
+
+**No hace falta `ACCESS_BACKGROUND_LOCATION`**: un servicio de tipo `location`
+iniciado con la app a la vista puede seguir leyendo el GPS después. Es como
+funcionan todos los navegadores, y pedir el permiso de fondo sin necesitarlo
+complica la revisión en la tienda.
+
+**El permiso de notificaciones se pide pero no se exige.** Si el usuario lo niega,
+el servicio corre igual y la navegación funciona: lo único que se pierde es ver el
+aviso en la barra. Cortar el viaje por eso sería desproporcionado. La ubicación sí
+es excluyente, y si falta se le dice — quedarse callado deja una pantalla que no se
+actualiza sin ningún motivo visible.
+
+### Dos parámetros elegidos, no heredados
+
+**Un segundo entre posiciones.** Más espaciado y la flecha se mueve a los saltos
+justo cuando más importa, en el giro; más seguido no aporta, porque el GPS no
+produce *fixes* más rápido.
+
+**Cero metros de distancia mínima.** Filtrar por distancia parece un ahorro y no lo
+es: con el camión detenido en un semáforo dejarían de llegar posiciones, y el motor
+no podría distinguir *"parado"* de *"el GPS se perdió"*.
+
+**`NotSticky`:** si el sistema mata el proceso, Android no revive el servicio solo.
+Un viaje que se reanuda sin que nadie lo pidiera dejaría el GPS prendido sin que el
+conductor lo sepa.
+
+### La abstracción
+
+`ITripTracker` existe para que la página que hospeda la web no tenga que saber nada
+de servicios, tipos declarados ni permisos. Cuando se agregue iOS, se implementa la
+misma interfaz y no se toca nada de arriba.

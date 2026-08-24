@@ -559,7 +559,7 @@ export function navigateView(host, { openDrawer, go }) {
       speak(speakableInstruction(first, first.distanceMeters));
     }
 
-    stopWatching = watchPosition(onPosition);
+    stopWatching = watchPosition(onPosition, destination?.label);
   }
 
   function stopNavigating() {

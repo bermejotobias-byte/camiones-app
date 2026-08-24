@@ -61,6 +61,11 @@ dotnet test                                    # 108 tests
   que ese default está muerto salvo que se regenere con `demo-up.ps1`.
 - **HTTP plano desde el teléfono** está habilitado sólo para la IP de desarrollo, en
   `Platforms/Android/Resources/xml/network_security_config.xml`.
+- **El GPS en segundo plano es un `Service` de Android tipo `location`**, activo sólo mientras
+  dura el viaje. Android **exige** notificación: no existe servicio en primer plano sin ella.
+  Con `targetSdk 36` hacen falta `FOREGROUND_SERVICE_LOCATION`, el `foregroundServiceType` en
+  el manifiesto **y** el tipo en `startForeground(...)`; si falta alguno compila igual y el
+  sistema mata el servicio en el teléfono. Ver AD-24.
 - **La navegación depende de `sign` e `interval`** de GraphHopper: el `Kind` de la maniobra y
   el punto donde ocurre. El parser los descartaba y no se notaba, porque la ruta se dibuja
   igual. Si se tocan las instrucciones, los tests de `NavigationInstructionsTests` lo cubren.
