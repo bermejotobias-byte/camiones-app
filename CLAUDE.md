@@ -37,7 +37,9 @@ Solución: `TruckNavigator.slnx`.
 
 ```powershell
 cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª vez baja ~450 MB)
-dotnet run --project src/TruckNavigator.Api    # backend en :5080, migra y siembra al arrancar
+.\data\build-basemap.ps1                       # mapa base vectorial del AMBA (53 MB, no se versiona)
+.\data\fetch-caba-map-layers.ps1               # Red, gálibos y pasos a nivel (sí se versionan)
+dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 108 tests
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
@@ -61,6 +63,10 @@ dotnet test                                    # 108 tests
   que ese default está muerto salvo que se regenere con `demo-up.ps1`.
 - **HTTP plano desde el teléfono** está habilitado sólo para la IP de desarrollo, en
   `Platforms/Android/Resources/xml/network_security_config.xml`.
+- **El mapa base es un archivo propio**: `routing/amba.pmtiles`, generado por
+  `data/build-basemap.ps1` y servido bajo `/tiles`. **No se versiona ni entra en el APK**
+  (53 MB). Si falta, el mapa cae al raster de OSM con un aviso en consola. Los valores de
+  `kind` del esquema hay que verificarlos, no suponerlos: no existe `medium_road`. Ver AD-26.
 - **Las capas de camión son dataset propio**: `data/fetch-caba-map-layers.ps1` las genera desde
   OSM a `wwwroot/data/*.geojson`. Ningún proveedor de tiles trae `hgv`, `maxheight` ni pasos a
   nivel. `maxheight=default` NO es una altura y queda afuera; barrera sin declarar NO es "sin

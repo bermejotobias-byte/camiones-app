@@ -189,7 +189,15 @@ Emergencias, servicios públicos y hormigoneras están exceptuadas por la norma.
 El modelo tiene `VehicleType`, así que la extensión es directa, pero el MVP no
 las contempla.
 
-### L-4 · Tiles de OpenStreetMap
+### L-4 · Tiles de OpenStreetMap — RESUELTO (24/08/2026)
+
+> **Ya no aplica.** El mapa base pasó a ser un archivo PMTiles propio que genera
+> `data/build-basemap.ps1` y sirve la API bajo `/tiles`. En tiempo de ejecución
+> no se depende de ningún servicio de tiles. Ver AD-26.
+>
+> El raster de OpenStreetMap queda sólo como respaldo si el archivo no está
+> generado, y **no sirve para distribuir**. El texto original se conserva abajo
+> porque explica por qué se hizo el cambio.
 
 La app usa `tile.openstreetmap.org`, cuya
 [política de uso](https://operations.osmfoundation.org/policies/tiles/)
@@ -282,3 +290,30 @@ barrera**. Esos 36 son los que importan.
 *Próximo paso:* el GCBA no publica el registro —se consultó el portal de datos
 abiertos por *paso a nivel*, *ferroviario*, *barrera* y *tren*, sin resultados—.
 Confirmarlos pide relevamiento o pedido de información pública.
+
+---
+
+## 6. Mapa base vectorial
+
+Lo genera `data/build-basemap.ps1` y queda en `routing/amba.pmtiles` — no se
+versiona, igual que el extract de OSM y el grafo de GraphHopper.
+
+**Origen:** build diario del planeta que publica Protomaps, del que se extrae
+sólo el AMBA. El rectángulo es **el mismo** con el que se recorta el grafo de
+ruteo y se acotan los resultados del geocoder: que coincidan garantiza que todo
+lo que el buscador encuentra se puede ver y rutear.
+
+| | |
+|---|---|
+| Región | `-59.30, -35.20` / `-57.90, -34.00` |
+| Zoom | 0–15 |
+| Tamaño | 53 MB |
+| Esquema | Protomaps basemap — `earth`, `landuse`, `water`, `roads`, `buildings`, `boundaries`, `places` |
+| Licencia | OpenStreetMap (ODbL) |
+
+**Tipografía:** Noto Sans, rangos 0–511, vendorizada en `wwwroot/fonts`. Cubre el
+español completo incluidas las mayúsculas acentuadas. Va con la app y no se pide
+a un servidor: adentro de un camión, una descarga más es una cosa más que puede
+fallar — y sin glifos MapLibre no dibuja ni una letra.
+
+**Para actualizar:** volver a correr el script. Protomaps republica a diario.

@@ -7,6 +7,8 @@
  */
 
 import { installTruckLayers, setTruckLayersVisible, setTruckHeight, refreshLayerColors } from './layers.js';
+import { registerPmtilesProtocol, buildBasemapStyle } from './basemap.js';
+import { currentApiBase } from './api.js';
 
 const CABA_CENTER = [-58.4370, -34.6083];
 
@@ -23,48 +25,80 @@ let map = null;
 let markers = { origin: null, destination: null, gps: null };
 let onLongPress = null;
 
+/** Ya se cayo al raster de respaldo una vez; no hace falta repetirlo. */
+let fellBack = false;
+
 /** Lee un color del sistema de diseno para que el mapa siga al tema. */
 const token = (name) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 /**
+ * Estilo de respaldo con tiles raster.
+ *
+ * Se usa sólo si el mapa base vectorial no está generado. **No sirve para
+ * distribuir** (L-4). Existe para que el mapa no quede en blanco en una máquina
+ * recién clonada, y para que se note que falta correr `data/build-basemap.ps1`.
+ *
+ * Las fuentes viajan con la app en vez de pedirse a un servidor: adentro de un
+ * camión, una descarga más es una cosa más que puede fallar, y sin glifos
+ * MapLibre no dibuja NI UNA letra.
+ */
+const rasterFallbackStyle = () => ({
+  version: 8,
+  glyphs: 'fonts/{fontstack}/{range}.pbf',
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: [TILE_URL],
+      tileSize: 256,
+      attribution: '© colaboradores de OpenStreetMap'
+    }
+  },
+  layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+});
+
+/**
  * Crea el mapa.
  *
  * Conviene pasarle el elemento y no un id: buscarlo por id obliga a que el nodo
- * ya este montado en el documento en el momento exacto de la llamada, que es
+ * ya esté montado en el documento en el momento exacto de la llamada, que es
  * justo lo que se rompe cuando una vista se arma antes de insertarse.
  */
 export function createMap(container, handlers = {}) {
   onLongPress = handlers.onLongPress ?? null;
 
+  // El protocolo pmtiles:// tiene que estar registrado ANTES de crear el mapa:
+  // si no, MapLibre no sabe leer la URL y el estilo entero falla.
+  const vector = registerPmtilesProtocol();
+
   map = new maplibregl.Map({
     container,
-    style: {
-      version: 8,
-
-      // Las fuentes viajan con la app en vez de pedirse a un servidor.
-      // Adentro de un camion, una descarga mas es una cosa mas que puede
-      // fallar, y sin glifos MapLibre no dibuja NI UNA letra: los nombres de
-      // las avenidas de la Red —que son el punto de esa capa— no aparecerian.
-      glyphs: 'fonts/{fontstack}/{range}.pbf',
-
-      sources: {
-        osm: {
-          type: 'raster',
-          tiles: [TILE_URL],
-          tileSize: 256,
-          attribution: '© colaboradores de OpenStreetMap'
-        }
-      },
-      layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
-    },
+    style: vector ? buildBasemapStyle(currentApiBase()) : rasterFallbackStyle(),
     center: CABA_CENTER,
     zoom: 12,
     attributionControl: { compact: true }
   });
 
+  // Si el archivo de tiles no está, MapLibre avisa por este evento y no con una
+  // excepción. Se cae al raster para que el mapa no quede negro y sin explicación.
+  map.on('error', (event) => {
+    const message = event?.error?.message ?? '';
+
+    if (vector && !fellBack && /pmtiles|404|not found|failed to fetch/i.test(message)) {
+      fellBack = true;
+
+      console.warn(
+        'No se pudo cargar el mapa base vectorial; se usa el raster de respaldo. ' +
+        'Generarlo con data/build-basemap.ps1. Detalle: ' + message);
+
+      map.setStyle(rasterFallbackStyle());
+    }
+  });
+
   map.on('click', () => handlers.onTap?.());
 
+  // Con estilo vectorial, cambiar de estilo vuelve a disparar 'load'. Las capas
+  // de camion se reinstalan solas porque installTruckLayers es idempotente.
   map.on('load', async () => {
     // Las capas de camion se agregan apenas carga el estilo y antes de que
     // exista una ruta, para que la ruta quede dibujada por encima.

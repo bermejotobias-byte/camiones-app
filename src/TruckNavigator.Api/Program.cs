@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using TruckNavigator.Api.Contracts;
@@ -161,6 +162,47 @@ app.UseStaticFiles(new StaticFileOptions
     OnPrepareResponse = context =>
         context.Context.Response.Headers.CacheControl = "no-cache, must-revalidate"
 });
+// ------------------------------------------------------------- mapa base
+//
+// El mapa base vectorial (.pmtiles) se sirve desde fuera de wwwroot a
+// proposito. wwwroot entero viaja adentro del APK, y este archivo pesa decenas
+// de megas: empaquetarlo triplicaria el instalador para algo que igual necesita
+// red, porque sin servidor tampoco hay ruteo.
+//
+// Vive junto a los otros artefactos pesados que se generan y no se versionan
+// —el extract de OSM y el grafo de GraphHopper— y lo produce
+// data/build-basemap.ps1.
+//
+// MapLibre lee el archivo por rangos de bytes; el middleware de estaticos
+// responde 206 sin configuracion extra.
+var basemapDirectory = Path.GetFullPath(Path.Combine(
+    app.Environment.ContentRootPath,
+    builder.Configuration["Basemap:Directory"] ?? "../../routing"));
+
+if (Directory.Exists(basemapDirectory))
+{
+    contentTypes.Mappings[".pmtiles"] = "application/vnd.pmtiles";
+
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(basemapDirectory),
+        RequestPath = "/tiles",
+        ContentTypeProvider = contentTypes,
+
+        // Este si se cachea fuerte: es un archivo grande que cambia sólo cuando
+        // se regenera el mapa a mano.
+        OnPrepareResponse = context =>
+            context.Context.Response.Headers.CacheControl = "public, max-age=604800"
+    });
+}
+else
+{
+    app.Logger.LogWarning(
+        "No se encontro el mapa base en {Directorio}. El mapa va a quedar sin fondo: " +
+        "generarlo con data/build-basemap.ps1.",
+        basemapDirectory);
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSwagger();

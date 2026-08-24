@@ -962,3 +962,84 @@ OpenStreetMap, que además no se pueden distribuir (L-4). El camino es generar
 PMTiles del AMBA con Planetiler —que corre sobre el mismo JDK que ya hace falta—
 y servirlos como un archivo estático. Resuelve el minimalismo, el modo día y
 noche del fondo, y L-4 de una sola vez.
+
+---
+
+## AD-26 · El mapa base es un archivo propio en PMTiles, no un servicio de tiles
+
+Cierra la Fase 4 y resuelve tres cosas de una vez: **el mapa minimalista**, el
+**modo día y noche del fondo**, y la limitación **L-4** — la política de uso de
+`tile.openstreetmap.org` desaconseja el consumo desde aplicaciones, así que con
+tiles raster la app no se podía distribuir.
+
+### Por qué un extract y no generar los tiles
+
+Se evaluaron los dos caminos:
+
+| | Costo |
+|---|---|
+| **Planetiler** sobre el `.pbf` que ya tenemos | JAR de 93 MB **más** ~900 MB de Natural Earth y polígonos de agua, ~4 GB de RAM y varios minutos de proceso |
+| **`pmtiles extract`** del build diario de Protomaps | Binario de 18 MB; baja **sólo los rangos de bytes** de la región |
+
+El extract del AMBA entero hasta zoom 15 son **56 MB en 18 segundos**, porque
+PMTiles es direccionable por rango: se piden los bytes de los tiles que
+interesan de un planeta de 128 GB sin bajar el resto. Para una ciudad no hay
+comparación.
+
+El resultado es un archivo nuestro: en tiempo de ejecución no dependemos de
+ningún servicio. Es la misma postura que el `.pbf` de Geofabrik — se baja una
+vez, en tiempo de autoría.
+
+### Ni se versiona ni viaja en el APK
+
+Pesa 53 MB. Vive junto a los otros artefactos generados —el extract de OSM y el
+grafo— y lo produce `data/build-basemap.ps1`.
+
+**Se sirve desde fuera de `wwwroot` a propósito.** Todo `wwwroot` viaja adentro
+del APK, y empaquetarlo triplicaría el instalador para algo que igual necesita
+red: sin servidor tampoco hay ruteo, así que un mapa offline solo no haría a la
+app usable sin conexión.
+
+*Si algún día se quiere mapa offline de verdad, sólo CABA hasta zoom 15 son 11 MB
+—medido— y eso sí es empaquetable.*
+
+### El criterio del estilo
+
+Un mapa de camión se mira de reojo, de día, con el sol de frente y a sesenta por
+hora. Todo lo que no ayuda a decidir por dónde ir, estorba:
+
+- **el fondo no compite**: tierra, agua y manzanas en tres grises apenas
+  separados; los edificios recién aparecen muy cerca y sin contorno;
+- **la jerarquía vial es lo único con contraste**, porque es lo que dice si una
+  calle sirve para pasar con un camión;
+- **casi no hay etiquetas propias**: el fondo rotula barrios y avenidas grandes y
+  nada más. Los nombres que importan los pone la capa de la Red (AD-25), y dos
+  juegos de etiquetas compitiendo terminan tapándose;
+- **nada de puntos de interés del fondo**: farmacias y cafeterías son ruido para
+  quien maneja treinta toneladas. Los lugares útiles son una capa nuestra;
+- **las vías del tren sí se dibujan**, porque explican los pasos a nivel: un
+  sapito suelto sobre el mapa no se entiende, sobre una vía sí.
+
+El estilo se construye en JavaScript y no como archivo JSON: los colores salen de
+las mismas variables CSS que el resto de la app, así el mapa cambia de día a
+noche con todo lo demás en lugar de mantener dos estilos que hay que actualizar a
+la par.
+
+### La jerarquía vial hay que verificarla, no suponerla
+
+El esquema de Protomaps usa `highway`, `major_road`, `minor_road`, `other`,
+`path`. **No existe `medium_road`**, que es el nombre que usan otros esquemas.
+Una rama con ese valor no da error: simplemente no coincide nunca, y esas calles
+caen al ancho por defecto sin que nada avise.
+
+Se verificó muestreando **35 tiles sobre CABA** y listando los valores realmente
+presentes. Mismo método para los tipos de lugar (`neighbourhood`, `locality`,
+`macrohood`) y de agua.
+
+### Respaldo explícito
+
+Si el archivo no está generado, MapLibre avisa por el evento `error` y no con una
+excepción — el mapa quedaría negro y sin explicación. Se cae al raster de
+OpenStreetMap y se deja un aviso en consola diciendo qué script correr. El
+respaldo **no sirve para distribuir**: existe para que una máquina recién clonada
+no muestre un mapa vacío.

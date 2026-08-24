@@ -23,3 +23,6 @@ routing/tools/
 
 ## Claude Code: configuración local de cada máquina
 .claude/settings.local.json
+
+## Mapa base vectorial: lo genera data/build-basemap.ps1, pesa decenas de MB
+routing/*.pmtiles
