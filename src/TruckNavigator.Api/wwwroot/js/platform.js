@@ -13,8 +13,24 @@
  *   · llamar por telefono — un `tel:` adentro del WebView no abre el discador solo.
  */
 
+/**
+ * Hosts virtuales que usan los WebView embebidos para servir los assets.
+ *
+ * Sirven para reconocer que estamos adentro de la cascara aunque el puente no
+ * haya cargado. Es una red de seguridad: sin ella, si falta
+ * `_framework/hybridwebview.js` la app se cree en un navegador comun, le pega al
+ * mismo origen —que aca no tiene API— y todos los pedidos vuelven 404 sin que
+ * nada explique por que. Costo un rato entender ese sintoma.
+ */
+const EMBEDDED_HOSTS = ['0.0.0.0', 'appassets.androidplatform.net'];
+
 /** Si estamos adentro de la cascara nativa. */
-export const isNative = Boolean(window.HybridWebView?.SendRawMessage);
+export const isNative =
+  Boolean(window.HybridWebView?.SendRawMessage) ||
+  EMBEDDED_HOSTS.includes(location.hostname);
+
+/** El puente hace falta pero no esta. */
+export const bridgeMissing = isNative && !window.HybridWebView?.SendRawMessage;
 
 /* ---------------------------------------------------------------------------
    Puente hacia la cascara
@@ -36,9 +52,28 @@ function send(payload) {
 --------------------------------------------------------------------------- */
 
 let resolveConfig;
+let gaveUp = false;
+
 const configArrived = new Promise((resolve) => { resolveConfig = resolve; });
 
-window.TN_setConfig = (config) => resolveConfig(config ?? {});
+/**
+ * La cascara entrega la direccion del backend.
+ *
+ * Acepta un objeto o directamente la cadena: evaluar JavaScript desde el lado
+ * nativo con llaves y comillas adentro es mas fragil que pasar un texto suelto,
+ * y no vale la pena arriesgar la unica llamada de la que depende todo.
+ */
+window.TN_setConfig = (config) => {
+  // Si ya nos habiamos dado por vencidos, la pantalla de error esta puesta y la
+  // promesa no le sirve a nadie. Recargar es la forma mas simple de volver a
+  // empezar bien.
+  if (gaveUp) {
+    location.reload();
+    return;
+  }
+
+  resolveConfig(typeof config === 'string' ? { apiBase: config } : (config ?? {}));
+};
 
 /**
  * Espera la configuracion y devuelve la base de la API.
@@ -50,8 +85,32 @@ window.TN_setConfig = (config) => resolveConfig(config ?? {});
 export async function initPlatform() {
   if (!isNative) return { apiBase: '' };
 
+  // Sin puente no hay forma de recibir la direccion del backend. Se corta acá
+  // con un motivo claro en vez de dejar que cada pedido falle por su cuenta.
+  if (bridgeMissing) {
+    return { apiBase: null, reason: 'El puente con la aplicación no cargó.' };
+  }
+
+  // Se avisa que la pagina esta lista y recien ahi la cascara contesta.
+  //
+  // Antes era al reves —la cascara empujaba la configuracion apenas aparecia la
+  // pantalla— y habia una carrera que se perdia casi siempre: el chequeo de
+  // conexion en la red local tarda milisegundos, menos que lo que tarda el
+  // WebView en cargar la pagina, asi que la configuracion llegaba a una pagina
+  // que todavia no existia y se perdia sin dejar rastro.
+  //
+  // Pidiendola desde acá no hay carrera posible: cuando se pide, la pagina ya
+  // esta.
+  send({ action: 'ready' });
+
   const timeout = new Promise((resolve) =>
-    setTimeout(() => resolve({ apiBase: null }), 6000));
+    setTimeout(() => {
+      gaveUp = true;
+      resolve({
+        apiBase: null,
+        reason: 'La aplicación no informó la dirección del servidor.'
+      });
+    }, 12_000));
 
   return Promise.race([configArrived, timeout]);
 }

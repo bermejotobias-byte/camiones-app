@@ -31,6 +31,23 @@
     modulos ES nativos: sin empaquetador, sin paso de compilacion, y los mismos
     archivos sirven para la web y para el WebView de Android.
   -->
+  <!--
+    Puente hacia la cascara nativa.
+
+    Lo sirve el propio control HybridWebView cuando la app corre adentro de la
+    app Android. Servida por HTTP este archivo NO existe y el pedido da 404: es
+    lo correcto y lo esperado, porque en el navegador no hay cascara con la que
+    hablar y `window.HybridWebView` tiene que quedar sin definir.
+
+    Va antes del modulo a proposito: los scripts clasicos corren antes que los
+    modulos, asi que para cuando platform.js se evalua el puente ya esta puesto.
+
+    Sin esta linea la app cree estar en un navegador comun y le pega al mismo
+    origen — que adentro del WebView es un host virtual sin API—, y todos los
+    pedidos vuelven 404 sin que nada indique por que.
+  -->
+  <script src="_framework/hybridwebview.js"></script>
+
   <script src="vendor/maplibre-gl.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>

@@ -1,13 +1,11 @@
-using System.Globalization;
-using System.Net.Http.Json;
-using System.Text.Json;
-
 namespace TruckNavigator.Mobile.Services;
 
 /// <summary>
-/// Cliente HTTP de la API. La URL base es configurable en tiempo de ejecucion
-/// porque la IP de la maquina de desarrollo cambia de red en red y no queremos
-/// recompilar la app por eso.
+/// Lo que la cascara nativa necesita saber del backend: donde esta y si
+/// responde. La URL base es configurable en tiempo de ejecucion porque la IP
+/// de la maquina de desarrollo cambia de red en red y no queremos recompilar
+/// la app por eso. El resto de las llamadas a la API las hace la web dentro del
+/// WebView (ver AD-22), asi que aca no hace falta ningun otro metodo.
 /// </summary>
 public sealed class TruckNavigatorApi(HttpClient httpClient)
 {
@@ -17,9 +15,7 @@ public sealed class TruckNavigatorApi(HttpClient httpClient)
     /// <summary>
     /// Backend con el que sale el build. Se cambia acá al mover el servidor.
     /// </summary>
-    public const string DefaultBaseUrl = "https://earthquake-vegetarian-careers-statutory.trycloudflare.com";
-
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    public const string DefaultBaseUrl = "http://192.168.100.106:5080";
 
     /// <summary>
     /// URL del backend.
@@ -59,152 +55,66 @@ public sealed class TruckNavigatorApi(HttpClient httpClient)
         }
     }
 
-    public async Task<bool> IsReachableAsync(CancellationToken ct = default)
-    {
-        try
-        {
-            using var response = await httpClient.GetAsync(Url("api/health"), ct);
-            return response.IsSuccessStatusCode;
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-    }
-
-    public async Task<IReadOnlyList<TruckProfileDto>> GetTrucksAsync(CancellationToken ct = default) =>
-        await httpClient.GetFromJsonAsync<List<TruckProfileDto>>(Url("api/trucks"), JsonOptions, ct)
-        ?? [];
-
-    public async Task<TruckProfileDto> CreateTruckAsync(
-        SaveTruckProfileRequest request,
-        CancellationToken ct = default)
-    {
-        using var response = await httpClient.PostAsJsonAsync(Url("api/trucks"), request, JsonOptions, ct);
-        await EnsureSuccessAsync(response, ct);
-
-        return (await response.Content.ReadFromJsonAsync<TruckProfileDto>(JsonOptions, ct))!;
-    }
-
     /// <summary>
-    /// Autocompletado de direcciones. Devuelve una lista vacía ante cualquier
-    /// error: no poder buscar no debe impedir fijar los puntos en el mapa.
-    /// </summary>
-    public async Task<IReadOnlyList<PlaceDto>> SearchPlacesAsync(
-        string query,
-        CancellationToken ct = default)
-    {
-        try
-        {
-            var url = Url($"api/places?q={Uri.EscapeDataString(query)}");
-
-            return await httpClient.GetFromJsonAsync<List<PlaceDto>>(url, JsonOptions, ct) ?? [];
-        }
-        catch (Exception) when (!ct.IsCancellationRequested)
-        {
-            return [];
-        }
-    }
-
-    public async Task<PlaceDto?> ReverseGeocodeAsync(
-        double latitude,
-        double longitude,
-        CancellationToken ct = default)
-    {
-        try
-        {
-            var lat = latitude.ToString("0.######", CultureInfo.InvariantCulture);
-            var lng = longitude.ToString("0.######", CultureInfo.InvariantCulture);
-
-            using var response = await httpClient.GetAsync(
-                Url($"api/places/reverse?lat={lat}&lng={lng}"), ct);
-
-            if (!response.IsSuccessStatusCode ||
-                response.StatusCode == System.Net.HttpStatusCode.NoContent)
-            {
-                return null;
-            }
-
-            return await response.Content.ReadFromJsonAsync<PlaceDto>(JsonOptions, ct);
-        }
-        catch (Exception) when (!ct.IsCancellationRequested)
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Puntos de interés para camiones. Se piden todos de una y se filtran localmente;
-    /// lo único que cambia la respuesta es el camión, porque el servidor resuelve la
-    /// aptitud y así la app no reimplementa esa regla.
+    /// Cuanto se espera al chequeo de conexion.
     /// </summary>
     /// <remarks>
-    /// Devuelve lista vacía ante cualquier error, igual que la búsqueda de lugares: no
-    /// poder mostrar los puntos no puede romper el mapa ni el cálculo de rutas.
+    /// Corto a proposito, y muy por debajo del timeout del <see cref="HttpClient"/>,
+    /// que esta pensado para calcular rutas y por eso es largo.
+    ///
+    /// Heredar aquel timeout hacia que la app se quedara casi dos minutos en
+    /// "Conectando…" antes de admitir que no llegaba al servidor. Para el
+    /// usuario eso no se distingue de una app colgada, y encima durante toda esa
+    /// espera no podia corregir la direccion.
     /// </remarks>
-    public async Task<IReadOnlyList<PoiDto>> GetPoisAsync(
-        Guid? truckId = null,
-        CancellationToken ct = default)
+    private static readonly TimeSpan HealthCheckTimeout = TimeSpan.FromSeconds(6);
+
+    /// <summary>Resultado del chequeo de conexion, con el motivo si fallo.</summary>
+    /// <param name="Reachable">Si el backend contesto lo que se esperaba.</param>
+    /// <param name="Problem">
+    /// Que paso, en una linea y en criollo. Se le muestra al usuario: un
+    /// "no se pudo conectar" a secas no le dice a nadie donde mirar.
+    /// </param>
+    public sealed record HealthCheck(bool Reachable, string? Problem);
+
+    public async Task<HealthCheck> CheckAsync(CancellationToken ct = default)
     {
-        try
-        {
-            var url = Url("api/pois");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(HealthCheckTimeout);
 
-            if (truckId is { } id)
-            {
-                url += $"?truckId={id}";
-            }
-
-            return await httpClient.GetFromJsonAsync<List<PoiDto>>(url, JsonOptions, ct) ?? [];
-        }
-        catch (Exception) when (!ct.IsCancellationRequested)
-        {
-            return [];
-        }
-    }
-
-    public async Task<RouteResponse> GetRouteAsync(RouteRequest request, CancellationToken ct = default)
-    {
-        using var response = await httpClient.PostAsJsonAsync(Url("api/routes"), request, JsonOptions, ct);
-        await EnsureSuccessAsync(response, ct);
-
-        return (await response.Content.ReadFromJsonAsync<RouteResponse>(JsonOptions, ct))!;
-    }
-
-    private static string Url(string relative) => $"{BaseUrl}/{relative}";
-
-    /// <summary>
-    /// Convierte el ProblemDetails de la API en un mensaje legible, para que el
-    /// usuario vea "no hay ruta para este camion" en vez de un 422 pelado.
-    /// </summary>
-    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken ct)
-    {
-        if (response.IsSuccessStatusCode)
-        {
-            return;
-        }
-
-        var body = await response.Content.ReadAsStringAsync(ct);
+        var url = $"{BaseUrl}/api/health";
 
         try
         {
-            var problem = JsonSerializer.Deserialize<JsonElement>(body);
+            using var response = await httpClient.GetAsync(url, timeout.Token);
 
-            var title = problem.TryGetProperty("title", out var t) ? t.GetString() : null;
-            var detail = problem.TryGetProperty("detail", out var d) ? d.GetString() : null;
-
-            if (!string.IsNullOrWhiteSpace(title))
+            if (response.IsSuccessStatusCode)
             {
-                throw new ApiException(string.IsNullOrWhiteSpace(detail) ? title! : $"{title}: {detail}");
+                return new HealthCheck(true, null);
             }
-        }
-        catch (JsonException)
-        {
-            // Cuerpo no-JSON: se informa el codigo de estado.
-        }
 
-        throw new ApiException($"La API respondio {(int)response.StatusCode}.");
+            // Contesto algo, pero no lo nuestro. Suele ser un router o un portal
+            // cautivo respondiendo en esa direccion.
+            return new HealthCheck(false,
+                $"El servidor respondio {(int)response.StatusCode}. " +
+                "Fijate que la dirección apunte al backend y no a otra cosa.");
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return new HealthCheck(false,
+                "El servidor no contestó a tiempo. Puede estar apagado, o el " +
+                "teléfono en otra red.");
+        }
+        catch (HttpRequestException ex)
+        {
+            return new HealthCheck(false, $"No se pudo conectar: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            return new HealthCheck(false, ex.Message);
+        }
     }
+
+    public async Task<bool> IsReachableAsync(CancellationToken ct = default) =>
+        (await CheckAsync(ct)).Reachable;
 }
-
-public sealed class ApiException(string message) : Exception(message);

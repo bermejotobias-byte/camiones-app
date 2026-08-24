@@ -26,6 +26,7 @@ public partial class AppPage : ContentPage
     private readonly ITripTracker? _tracker;
 
     private bool _configSent;
+    private bool _pageAnnounced;
     private bool _watchingLocation;
 
     public AppPage(TruckNavigatorApi api, IServiceProvider services)
@@ -38,16 +39,39 @@ public partial class AppPage : ContentPage
         _tracker = services.GetService<ITripTracker>();
     }
 
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
 
         ServerEntry.Text = TruckNavigatorApi.BaseUrl;
 
-        if (!_configSent)
+        // No se conecta desde aca: la pagina avisa cuando esta lista con el
+        // mensaje "ready", y esa es la unica senal confiable. Empujarle la
+        // configuracion antes se pierde, porque el WebView todavia esta cargando.
+        WatchForSilentPage();
+    }
+
+    /// <summary>
+    /// Si la pagina nunca avisa que esta lista, igual se le da una salida al usuario.
+    /// </summary>
+    /// <remarks>
+    /// Depender solo del aviso de la pagina significa que, si la web no llega a
+    /// cargar, la pantalla queda en "Conectando…" para siempre y sin nada que
+    /// tocar. Este vigia convierte ese cuelgue en un mensaje y un formulario.
+    /// </remarks>
+    private async void WatchForSilentPage()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(15));
+
+        if (_pageAnnounced || _configSent)
         {
-            await ConnectAsync();
+            return;
         }
+
+        ShowStartup(
+            "La aplicación no terminó de cargar." + Environment.NewLine + Environment.NewLine +
+            "Cerrala y volvé a abrirla. Si vuelve a pasar, revisá la dirección del servidor.",
+            showSetup: true);
     }
 
     protected override void OnDisappearing()
@@ -70,14 +94,17 @@ public partial class AppPage : ContentPage
     /// </remarks>
     private async Task ConnectAsync()
     {
-        ShowStartup("Conectando…", showSetup: false);
+        // Se muestra a donde se esta intentando conectar. Sin eso, "Conectando…"
+        // no le dice al usuario ni que direccion probar cuando falla.
+        ShowStartup($"Conectando con {TruckNavigatorApi.BaseUrl}…", showSetup: false);
 
-        var reachable = await _api.IsReachableAsync();
+        var check = await _api.CheckAsync();
 
-        if (!reachable)
+        if (!check.Reachable)
         {
             ShowStartup(
-                $"No se pudo contactar al servidor en {TruckNavigatorApi.BaseUrl}.",
+                $"No se pudo contactar al servidor en {TruckNavigatorApi.BaseUrl}.\n\n" +
+                check.Problem,
                 showSetup: true);
 
             return;
@@ -110,8 +137,16 @@ public partial class AppPage : ContentPage
         await ConnectAsync();
     }
 
+    /// <summary>
+    /// Le pasa a la pagina la direccion del backend.
+    /// </summary>
+    /// <remarks>
+    /// Va como texto suelto y no como objeto JavaScript: evaluar llaves y
+    /// comillas desde el lado nativo es mas fragil, y esta es la unica llamada
+    /// de la que depende todo lo demas.
+    /// </remarks>
     private Task SendConfigAsync() =>
-        RunScriptAsync($"window.TN_setConfig({{ apiBase: {Json(TruckNavigatorApi.BaseUrl)} }})");
+        RunScriptAsync($"window.TN_setConfig({Json(TruckNavigatorApi.BaseUrl)})");
 
     /* --------------------------------------------------------------------
        Puente
@@ -136,6 +171,13 @@ public partial class AppPage : ContentPage
 
             switch (action.GetString())
             {
+                // La pagina avisa que termino de cargar y recien ahi se le manda
+                // la direccion del backend. Ver ConnectAsync.
+                case "ready":
+                    _pageAnnounced = true;
+                    MainThread.BeginInvokeOnMainThread(async () => await ConnectAsync());
+                    break;
+
                 case "locate":
                     MainThread.BeginInvokeOnMainThread(async () => await SendPositionAsync());
                     break;

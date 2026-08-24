@@ -72,9 +72,10 @@
                         HeightRequest="50" />
 
                     <Label
-                        Text="La app y el backend tienen que estar en la misma red, o el backend publicado con una dirección accesible."
                         TextColor="#6f8794"
-                        FontSize="12.5" />
+                        FontSize="12.5"
+                        LineHeight="1.35"
+                        Text="Revisá, en este orden: que el backend esté corriendo; que el teléfono esté en la misma red Wi-Fi que la computadora; y que la IP sea la de ahora — cambia cada vez que la computadora se reconecta." />
 
                 </VerticalStackLayout>
 

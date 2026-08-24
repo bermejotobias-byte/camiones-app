@@ -310,15 +310,15 @@ async function boot() {
  * Android es una vuelta por el puente.
  */
 (async () => {
-  const { apiBase } = await initPlatform();
+  const { apiBase, reason } = await initPlatform();
 
   if (apiBase === null) {
     root.innerHTML = html`
       <div class="center-note">
         <div class="stack-sm">
           <b>No se pudo contactar al servidor</b>
-          <p class="hint">La aplicación no recibió la dirección del backend.
-          Cerrala y volvé a abrirla.</p>
+          <p class="hint">${reason ?? 'La aplicación no recibió la dirección del backend.'}</p>
+          <p class="hint">Cerrá la aplicación y volvé a abrirla.</p>
         </div>
       </div>
     `;
