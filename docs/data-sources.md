@@ -240,3 +240,45 @@ Los tres perfiles que siembra la API (`Camión liviano` 7.500 kg, `Camión pesad
 18.000 kg, `Semirremolque` 40.000 kg) son **valores de prueba** y no representan
 límites legales. Quedan marcados con `IsSampleData = true` y la app los muestra
 con la leyenda "Datos de prueba".
+
+---
+
+## 5. Capas de camión del mapa
+
+Las genera `data/fetch-caba-map-layers.ps1` desde Overpass y quedan versionadas
+en `src/TruckNavigator.Api/wwwroot/data/`. Se sirven a la web y viajan dentro del
+APK, así que en el teléfono no se descargan.
+
+**Ningún proveedor de tiles incluye estos datos.** OpenMapTiles, Protomaps y los
+comerciales son basemaps de propósito general: no traen `hgv`, `maxheight` ni
+`railway=level_crossing` como atributos consultables. Por eso la capa es nuestra.
+
+| Archivo | Objetos | Consulta |
+|---|---|---|
+| `red-transito-pesado.geojson` | 2.426 tramos | `way[hgv=designated]` |
+| `alturas.geojson` | 577 puntos | `way[maxheight]` con altura numérica |
+| `pasos-a-nivel.geojson` | 312 puntos | `node[railway=level_crossing]` |
+
+Medido dentro del límite administrativo de CABA el 24/08/2026.
+
+### L-7 · Un sexto de los gálibos no declara una altura
+
+`maxheight=default` significa "rige el límite legal", no una medida: son **108 de
+685** tramos con la etiqueta. Quedan fuera del dataset porque mostrar un número
+inventado sobre un puente es peor que no mostrar nada — pero eso significa que
+**hay pasos bajo nivel reales que la app no marca**.
+
+*Próximo paso:* si aparece la altura publicada por el GCBA o por el operador
+ferroviario, se cargan como fuente propia y se distinguen de las de OSM.
+
+### L-8 · Un tercio de los pasos a nivel no declara su barrera
+
+117 de 312 no dicen qué protección tienen. Se pintan en gris: **no declarado no
+es lo mismo que sin barrera**, y tratarlo como tal sería inventar una advertencia.
+
+De los que sí declaran: 82 media barrera, 40 completa, 27 doble media y **36 sin
+barrera**. Esos 36 son los que importan.
+
+*Próximo paso:* el GCBA no publica el registro —se consultó el portal de datos
+abiertos por *paso a nivel*, *ferroviario*, *barrera* y *tren*, sin resultados—.
+Confirmarlos pide relevamiento o pedido de información pública.

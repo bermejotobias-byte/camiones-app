@@ -53,6 +53,7 @@ export function navigateView(host, { openDrawer, go }) {
       </div>
 
       <div class="map-side">
+        <button class="fab" id="layers" aria-label="Capas de camión">${raw(icon('bridge'))}</button>
         <button class="fab" id="locate" aria-label="Mi ubicación">${raw(icon('gps'))}</button>
       </div>
 
@@ -63,7 +64,15 @@ export function navigateView(host, { openDrawer, go }) {
   // Se le pasa el elemento y no el id: asi no depende de que este montado
   // en el documento en el momento exacto de la llamada.
   gl.createMap(q(host, '#map'), {
-    onReady: () => locate({ silent: true }),
+    onReady: () => {
+      // Las capas de camion ya estan puestas. Se aplican la preferencia
+      // guardada y la altura del camion elegido, que es la que decide de que
+      // color se pinta cada galibo.
+      gl.showTruckLayers(prefs.truckLayers);
+      gl.useTruckHeight(selectedTruck()?.heightMeters);
+      updateLayerButton();
+      locate({ silent: true });
+    },
     onTap: () => hideSuggestions(),
     onLongPress: (point) => setPointFromMap(point)
   });
@@ -71,8 +80,32 @@ export function navigateView(host, { openDrawer, go }) {
   wire(host, {
     '#menu': openDrawer,
     '#locate': () => locate({ silent: false }),
-    '#panic': () => go('emergencia')
+    '#panic': () => go('emergencia'),
+    '#layers': () => toggleTruckLayers()
   });
+
+  /**
+   * Prende y apaga las capas de camion.
+   *
+   * Se puede apagar a proposito: con la Red, los galibos y los pasos a nivel
+   * encendidos el mapa dice mucho, y a veces lo que hace falta es ver la calle
+   * limpia. La eleccion se recuerda.
+   */
+  function toggleTruckLayers() {
+    savePrefs({ truckLayers: !prefs.truckLayers });
+    gl.showTruckLayers(prefs.truckLayers);
+    updateLayerButton();
+
+    toastOk(prefs.truckLayers
+      ? 'Red, puentes y pasos a nivel a la vista.'
+      : 'Capas de camión apagadas.');
+  }
+
+  /** El boton se pinta segun si las capas estan encendidas. */
+  function updateLayerButton() {
+    const button = q(host, '#layers');
+    if (button) button.style.color = prefs.truckLayers ? 'var(--brand)' : 'var(--ink-3)';
+  }
 
   /* ------------------------------------------------------------------------
      Hoja inferior
@@ -90,6 +123,11 @@ export function navigateView(host, { openDrawer, go }) {
 
   function drawSearch() {
     const truck = selectedTruck();
+
+    // El mismo puente pasa de informativo a peligroso al cambiar de vehiculo, y
+    // esa es justamente la informacion que importa. Se repinta cada vez que se
+    // vuelve a esta pantalla, que es por donde se pasa despues de elegir camion.
+    gl.useTruckHeight(truck?.heightMeters);
 
     render(sheet(), html`
       <div class="sheet-grab"></div>

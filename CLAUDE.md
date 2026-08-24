@@ -61,6 +61,13 @@ dotnet test                                    # 108 tests
   que ese default está muerto salvo que se regenere con `demo-up.ps1`.
 - **HTTP plano desde el teléfono** está habilitado sólo para la IP de desarrollo, en
   `Platforms/Android/Resources/xml/network_security_config.xml`.
+- **Las capas de camión son dataset propio**: `data/fetch-caba-map-layers.ps1` las genera desde
+  OSM a `wwwroot/data/*.geojson`. Ningún proveedor de tiles trae `hgv`, `maxheight` ni pasos a
+  nivel. `maxheight=default` NO es una altura y queda afuera; barrera sin declarar NO es "sin
+  barrera". Ver AD-25.
+- **Sin `glyphs` MapLibre no dibuja texto**: las fuentes están vendorizadas en `wwwroot/fonts`.
+  Y ASP.NET Core no sirve `.geojson` ni `.pbf` salvo que se declaren sus tipos MIME: dan 404
+  con el archivo en su lugar.
 - **El GPS en segundo plano es un `Service` de Android tipo `location`**, activo sólo mientras
   dura el viaje. Android **exige** notificación: no existe servicio en primer plano sin ella.
   Con `targetSdk 36` hacen falta `FOREGROUND_SERVICE_LOCATION`, el `foregroundServiceType` en

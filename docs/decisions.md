@@ -867,3 +867,98 @@ conductor lo sepa.
 `ITripTracker` existe para que la página que hospeda la web no tenga que saber nada
 de servicios, tipos declarados ni permisos. Cuando se agregue iOS, se implementa la
 misma interfaz y no se toca nada de arriba.
+
+---
+
+## AD-25 · Las capas de camión son un dataset propio, no un mapa que se compra
+
+**El hallazgo que define la fase.** El pedido de "mapa minimalista con la Red
+destacada, los puentes con su altura y los sapitos" son en realidad **dos cosas
+distintas**:
+
+- El **fondo** minimalista se resuelve cambiando de proveedor de tiles.
+- Las **capas de camión no vienen en ningún mapa del mundo.** Ningún proveedor
+  —ni OpenMapTiles, ni Protomaps, ni los comerciales— incluye `hgv`, `maxheight`
+  o `railway=level_crossing` como datos consultables. Son basemaps de propósito
+  general.
+
+Esa capa hay que construirla, y **es exactamente lo que nadie más tiene**.
+
+### El dataset
+
+`data/fetch-caba-map-layers.ps1` lo genera desde OpenStreetMap, con el mismo
+criterio que el dataset de puntos de interés (AD-13): se corre en tiempo de
+autoría, el resultado va versionado, y la app trabaja contra el archivo.
+
+| Capa | Objetos | Peso |
+|---|---|---|
+| Red de Tránsito Pesado | 2.426 tramos (2.112 con nombre) | 619 KB |
+| Gálibos declarados | 577 puntos | 95 KB |
+| Pasos a nivel | 312 puntos | 47 KB |
+
+761 KB en total, contra 2,58 MB en crudo: las coordenadas se redondean a seis
+decimales —unos 11 cm, más precisión de la que tiene el dato— y el archivo pesa
+la mitad. Viajan dentro del APK, así que en el teléfono no se descargan.
+
+### Dos reglas del generador que no hay que relajar
+
+**`maxheight=default` no es una altura.** Significa "rige el límite legal", no un
+gálibo medido, y son **108 de 685 tramos**. Quedan afuera: mostrar un número
+inventado sobre un puente es peor que no mostrar nada.
+
+**Lo que la fuente no declara queda en `null`.** Un paso a nivel sin tipo de
+barrera declarado —hay 117— **no es** un paso a nivel sin barrera. Se pinta gris,
+no rojo. Es la misma regla que gobierna la aptitud de los puntos de interés
+(AD-14).
+
+### El gálibo se pinta según el camión, no en abstracto
+
+Un puente de 4,10 no significa lo mismo para un chasis de 3,20 que para un
+semirremolque de 4,20: al primero no le importa y al segundo no le da. El color
+se recalcula al cambiar de vehículo — rojo si no pasa, ámbar si le saca menos de
+30 cm, neutro si sobra.
+
+*El margen existe porque la altura declarada no siempre contempla el
+repavimentado, y un camión cargado se asienta distinto que uno vacío.*
+
+**Para un semirremolque de 4,20 m hay 354 gálibos que no le pasan y 18 que quedan
+justos.** Ése es el número que un GPS de autos nunca da.
+
+### La Red se muestra por el nombre, no por el color
+
+El pedido es literal: *"que no se marque con color pero que sea bien visible el
+nombre de esta avenida de forma destacada de las demás, para referencia del
+camionero"*. Así que el protagonista es el nombre —mayúsculas, espaciado, con
+halo, repetido a lo largo del corredor— y la línea va en un gris apenas
+perceptible, lo justo para que el nombre no flote sobre la nada.
+
+### Las fuentes tipográficas viajan con la app
+
+**Sin glifos, MapLibre no dibuja ni una letra** — y los nombres de las avenidas
+son el punto de esa capa. El estilo raster no declaraba `glyphs`, así que ninguna
+etiqueta habría aparecido.
+
+Se vendorizaron los rangos 0–511 de Noto Sans (regular y bold, 419 KB): cubren el
+español completo, incluidas las mayúsculas acentuadas. Van en `wwwroot/fonts` en
+lugar de pedirse a un servidor: adentro de un camión, una descarga más es una
+cosa más que puede fallar.
+
+### Dos trampas del servidor que dan 404 con el archivo en su lugar
+
+**ASP.NET Core no sirve extensiones que no conoce.** `.geojson` y `.pbf` daban 404
+con el archivo en disco y la ruta correcta. Se declaran los dos tipos MIME en una
+lista blanca, no habilitando cualquier extensión.
+
+**El `catch` que envuelve la descarga no puede envolver también el alta en el
+mapa.** Son dos fallas distintas —una del servidor, otra del mapa— y confundirlas
+hacía que un "estilo todavía no cargado" se reportara como fallo de red y las
+capas no aparecieran nunca sin explicación. Es el mismo error que ya había
+costado la ruta invisible (AD-23).
+
+### Lo que falta de esta fase
+
+El **fondo minimalista** sigue pendiente: hoy son los tiles raster de
+OpenStreetMap, que además no se pueden distribuir (L-4). El camino es generar
+PMTiles del AMBA con Planetiler —que corre sobre el mismo JDK que ya hace falta—
+y servirlos como un archivo estático. Resuelve el minimalismo, el modo día y
+noche del fondo, y L-4 de una sola vez.

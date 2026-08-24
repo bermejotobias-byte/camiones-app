@@ -13,7 +13,16 @@ const defaults = {
   /** 'dark' | 'light' | 'auto' */
   theme: 'auto',
   /** Camion elegido para rutear. */
-  selectedTruckId: null
+  selectedTruckId: null,
+
+  /**
+   * Si se muestran sobre el mapa la Red de Transito Pesado, los galibos y los
+   * pasos a nivel.
+   *
+   * Arranca encendido: es la informacion por la que existe este producto. Se
+   * puede apagar porque a veces hace falta ver la calle limpia.
+   */
+  truckLayers: true
 };
 
 function readPrefs() {

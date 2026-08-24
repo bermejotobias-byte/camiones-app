@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
@@ -130,8 +131,20 @@ app.UseCors();
 // empaqueta la app Android: un solo frontend para los dos hosts.
 app.UseDefaultFiles();
 
+// Las extensiones que el middleware no conoce las rechaza con 404 en vez de
+// servirlas, que es lo correcto pero cuesta un rato entenderlo: el archivo esta
+// en disco, la ruta es la buena, y el servidor igual dice que no existe.
+//
+// Se declaran las dos que usa el mapa en lugar de habilitar cualquier extension:
+// la lista blanca es la que hay que tocar cuando aparezca un formato nuevo.
+var contentTypes = new FileExtensionContentTypeProvider();
+contentTypes.Mappings[".geojson"] = "application/geo+json";
+contentTypes.Mappings[".pbf"] = "application/x-protobuf";
+
 app.UseStaticFiles(new StaticFileOptions
 {
+    ContentTypeProvider = contentTypes,
+
     // "no-cache" no significa "no guardar": significa preguntar siempre antes de
     // reusar. El navegador revalida y el servidor contesta 304 sin cuerpo, asi
     // que el costo es un viaje de ida y vuelta y nada de datos.

@@ -6,6 +6,8 @@
  * manana se cambia de biblioteca de mapas, se reescribe este archivo y nada mas.
  */
 
+import { installTruckLayers, setTruckLayersVisible, setTruckHeight, refreshLayerColors } from './layers.js';
+
 const CABA_CENTER = [-58.4370, -34.6083];
 
 /**
@@ -39,6 +41,13 @@ export function createMap(container, handlers = {}) {
     container,
     style: {
       version: 8,
+
+      // Las fuentes viajan con la app en vez de pedirse a un servidor.
+      // Adentro de un camion, una descarga mas es una cosa mas que puede
+      // fallar, y sin glifos MapLibre no dibuja NI UNA letra: los nombres de
+      // las avenidas de la Red —que son el punto de esa capa— no aparecerian.
+      glyphs: 'fonts/{fontstack}/{range}.pbf',
+
       sources: {
         osm: {
           type: 'raster',
@@ -55,7 +64,13 @@ export function createMap(container, handlers = {}) {
   });
 
   map.on('click', () => handlers.onTap?.());
-  map.on('load', () => handlers.onReady?.());
+
+  map.on('load', async () => {
+    // Las capas de camion se agregan apenas carga el estilo y antes de que
+    // exista una ruta, para que la ruta quede dibujada por encima.
+    await installTruckLayers(map);
+    handlers.onReady?.();
+  });
 
   installLongPress();
 
@@ -411,4 +426,31 @@ export function trimRoute(coordinates, fromIndex, snappedPoint) {
 
 export function resize() {
   map?.resize();
+}
+
+/* ---------------------------------------------------------------------------
+   Capas de camion
+
+   Se reexportan desde aca para que las vistas tengan una sola puerta de entrada
+   al mapa y no tengan que saber que las capas viven en otro archivo.
+--------------------------------------------------------------------------- */
+
+export const showTruckLayers = (visible) => setTruckLayersVisible(map, visible);
+export const useTruckHeight = (metres) => setTruckHeight(map, metres);
+export const refreshColors = () => refreshLayerColors(map);
+
+/**
+ * Que hay en un punto del mapa, de nuestras capas.
+ *
+ * Sirve para que tocar un galibo o un paso a nivel diga que es, en lugar de ser
+ * un punto de color sin explicacion.
+ */
+export function featureAt(point) {
+  if (!map) return null;
+
+  const found = map.queryRenderedFeatures(point, {
+    layers: ['altura-fondo', 'paso-punto'].filter((id) => map.getLayer(id))
+  });
+
+  return found.length ? found[0] : null;
 }
