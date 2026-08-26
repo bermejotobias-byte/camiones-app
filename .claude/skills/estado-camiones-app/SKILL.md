@@ -22,7 +22,8 @@ ruta, no como advertencia posterior. Fuente regulatoria: Ley 2148, art. 9.10.1
 Objetivo declarado: *"El GPS de los camioneros de Buenos Aires"*. No sólo un
 navegador: perfil, historial, gamificación, comunidad.
 
-**Rama de trabajo:** `cuentas-de-usuario` (11 commits sobre `main`, ya empujada).
+**Rama de trabajo:** `cuentas-de-usuario` (12 commits sobre `main`). **El último
+commit todavía no está empujado.**
 
 ---
 
@@ -60,7 +61,7 @@ Prioridad declarada por el usuario:
 | Fase | Estado |
 |---|---|
 | **0 · Cimientos** | ✅ Completa — cuentas, camiones por usuario, viajes, mudanza del frontend |
-| **1 · Navegación** | ⚠️ Código completo, **sin probar manejando** |
+| **1 · Navegación** | ⚠️ Probada en el teléfono parado; **sin probar manejando** |
 | **2 · Usabilidad** | ✅ Completa — salió adelantada dentro de la mudanza del frontend |
 | **3 · Seguridad** | ❌ Pendiente — pánico con 3 contactos, compartir viaje por WhatsApp |
 | **4 · Info para camiones** | ✅ Completa — capas de camión y mapa base propio |
@@ -79,7 +80,21 @@ Prioridad declarada por el usuario:
 49e7d88  El GPS sigue vivo en segundo plano mientras dura el viaje
 53f8914  Arreglos del puente entre la cascara y la web, encontrados probando en el telefono
 1710102  Capas de camion en el mapa: la Red, los galibos y los sapitos
+257600e  Mapa base propio en PMTiles: minimalista, con dia y noche
+53c4a5e  Actualiza la skill: Fase 4 cerrada y comandos de datos
+029794e  Brujula del magnetometro, camara cenital fija, y una app que ya no queda varada
 ```
+
+**`029794e` es el checkpoint del 26/08/2026** y junta dos bloques: el trabajo que
+había quedado sin commitear (AD-27 a AD-29 — viaje abierto en el servidor,
+proveedor combinado de ubicación, cuenta de prueba sembrada) y el de esa sesión
+(AD-30 a AD-34). Comparten archivos, así que separarlos no habría dado un corte
+honesto.
+
+**`routing/config-truck.yml` quedó deliberadamente fuera del commit**: el árbol de
+trabajo apunta a `argentina-latest.osm.pbf` porque el recorte del AMBA no está en
+disco, y sin ese cambio local GraphHopper no arranca. Va a seguir apareciendo como
+modificado en cada `git status`; **no commitearlo**.
 
 ---
 
