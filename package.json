@@ -1,0 +1,9 @@
+{
+  "name": "trucknavigator-web-tests",
+  "private": true,
+  "type": "module",
+  "description": "Solo para correr los tests de los modulos de wwwroot/js con el runner que trae Node. NO hay dependencias, NO hay paso de compilacion y NO hace falta npm install: la interfaz se sigue sirviendo tal cual (ver AD-21 y AD-32).",
+  "scripts": {
+    "test": "node --test \"tests/web/*.test.mjs\""
+  }
+}

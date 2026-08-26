@@ -289,4 +289,107 @@ public sealed class TripPersistenceTests : IAsyncLifetime
         Assert.Equal(expectedFinish!.Value.UtcTicks, reloaded.FinishedAt!.Value.UtcTicks);
     }
 
+    /// <summary>
+    /// El viaje abierto se encuentra por conductor y estado, que es la consulta
+    /// que atiende <c>GET /api/trips/active</c>.
+    /// </summary>
+    /// <remarks>
+    /// Sin ese endpoint el viaje quedaba abierto y solo el servidor lo sabia: la
+    /// aplicacion arrancaba con el estado vacio, dejaba planificar otro viaje y
+    /// recien al arrancarlo respondia 409. El sintoma era "no puedo arrancar" sin
+    /// ningun viaje a la vista que cerrar.
+    /// </remarks>
+    [Fact]
+    public async Task The_open_trip_is_found_by_driver_and_status()
+    {
+        var driver = await CreateUserAsync("uno@example.com");
+        var truck = await AddTruckAsync(driver, "El Scania");
+
+        await AddFinishedTripAsync(driver, truck);
+        var open = await AddTripInProgressAsync(driver, truck);
+
+        _db.ChangeTracker.Clear();
+
+        var found = await _db.Trips
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.DriverId == driver && t.Status == TripStatus.InProgress);
+
+        Assert.NotNull(found);
+        Assert.Equal(open.Id, found!.Id);
+
+        // El destino tiene que volver entero: es con lo que la app rearma la
+        // pantalla de navegacion despues de que se cerro.
+        Assert.Equal("Mataderos", found.DestinationLabel);
+        Assert.Equal(-34.6580, found.DestinationLatitude);
+    }
+
+    /// <summary>
+    /// Cerrar el viaje lo saca de "abierto". Es lo que hace que la app deje de
+    /// retomarlo al entrar.
+    /// </summary>
+    [Fact]
+    public async Task A_closed_trip_is_no_longer_open()
+    {
+        var driver = await CreateUserAsync("uno@example.com");
+        var truck = await AddTruckAsync(driver, "El Scania");
+
+        var trip = await AddTripInProgressAsync(driver, truck);
+
+        trip.Cancel(DateTimeOffset.UtcNow);
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var found = await _db.Trips
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.DriverId == driver && t.Status == TripStatus.InProgress);
+
+        Assert.Null(found);
+    }
+
+    /// <summary>
+    /// El viaje abierto de otro conductor no es de nadie mas: retomarlo seria
+    /// meter a un camionero adentro del viaje ajeno.
+    /// </summary>
+    [Fact]
+    public async Task The_open_trip_of_another_driver_is_not_visible()
+    {
+        var mine = await CreateUserAsync("uno@example.com");
+        var theirs = await CreateUserAsync("dos@example.com");
+
+        var truck = await AddTruckAsync(theirs, "El Scania");
+        await AddTripInProgressAsync(theirs, truck);
+
+        _db.ChangeTracker.Clear();
+
+        var found = await _db.Trips
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.DriverId == mine && t.Status == TripStatus.InProgress);
+
+        Assert.Null(found);
+    }
+
+    private async Task<Trip> AddTripInProgressAsync(Guid driverId, TruckProfile truck)
+    {
+        var trip = new Trip
+        {
+            DriverId = driverId,
+            TruckId = truck.Id,
+            TruckName = truck.Name,
+            OriginLatitude = -34.5915,
+            OriginLongitude = -58.3745,
+            OriginLabel = "Retiro",
+            DestinationLatitude = -34.6580,
+            DestinationLongitude = -58.5030,
+            DestinationLabel = "Mataderos",
+            PlannedDistanceMeters = 21_200,
+            PlannedDurationSeconds = TimeSpan.FromMinutes(24).TotalSeconds,
+            HeavyNetworkSharePercent = 88.8,
+            StartedAt = DateTimeOffset.UtcNow.AddMinutes(-12)
+        };
+
+        _db.Trips.Add(trip);
+        await _db.SaveChangesAsync();
+
+        return trip;
+    }
 }

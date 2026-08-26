@@ -240,6 +240,47 @@ button { font-family: inherit; font-size: inherit; }
 
 .fab-panic { background: var(--danger); color: #fff; border-color: transparent; font-weight: 800; }
 
+/* Zoom: un solo control con dos mitades.
+
+   Van juntos y no como dos botones sueltos porque son una sola idea —"acercar o
+   alejar"— y separados ocupan el doble de una columna que ya tiene cuatro
+   controles. Es la forma que usan todos los mapas y no hay motivo para inventar
+   otra: acá lo conocido vale más que lo original. */
+.zoom-pair {
+  display: flex;
+  flex-direction: column;
+  width: var(--tap);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  flex: none;
+}
+
+.zoom-pair[hidden] { display: none; }
+
+.zoom-pair button {
+  width: 100%;
+  height: var(--tap);
+  border: 0;
+  background: none;
+  color: var(--ink);
+  /* Los signos + y − a este tamaño se leen de un vistazo, que es lo que hay que
+     poder hacer manejando. Un ícono de lupa con un signo adentro, no. */
+  font: 300 26px/1 var(--ui);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background .12s ease;
+}
+
+.zoom-pair button:active { background: var(--surface-3); }
+
+/* Una línea entre las dos mitades, para que se lean como dos blancos de toque
+   y no como un botón alto. */
+.zoom-pair button + button { border-top: 1px solid var(--rule); }
+
 .field { display: flex; flex-direction: column; gap: 6px; }
 
 .field label {
@@ -353,7 +394,30 @@ button { font-family: inherit; font-size: inherit; }
   padding: calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom));
 }
 
-.map-overlay > * { pointer-events: auto; }
+/* ----------------------------------------------------------------------------
+   Quien recibe los toques
+
+   La capa de controles flota sobre el mapa, y **sus contenedores de
+   posicionamiento no pueden interceptar nada**: son cajas invisibles que ocupan
+   todo el ancho aunque adentro haya un botón de 48 px pegado a un borde.
+
+   Poniendo `pointer-events: auto` en los contenedores, el mapa quedaba tocable
+   sólo en dos franjas angostas: arrastrar y hacer zoom con los dedos dejaba de
+   funcionar en casi toda la pantalla, sin nada visible que explicara por qué.
+   Cada control nuevo que se agrega a la columna agranda esa zona muerta.
+
+   La regla: `none` en los contenedores, `auto` en los controles concretos.
+   -------------------------------------------------------------------------- */
+.map-overlay,
+.map-top,
+.map-side { pointer-events: none; }
+
+.map-top > *,
+.map-side > *,
+.map-overlay > .sheet { pointer-events: auto; }
+
+/* El espaciador que empuja el SOS contra el borde no es un control. */
+.map-top .grow { pointer-events: none; }
 
 .map-top { display: flex; align-items: flex-start; gap: 10px; }
 .map-side { margin-top: auto; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
@@ -377,6 +441,85 @@ button { font-family: inherit; font-size: inherit; }
   width: 18px; height: 18px;
   background: var(--brand);
   border-color: var(--surface);
+}
+
+/* ----------------------------------------------------------------------------
+   Brujula
+   ----------------------------------------------------------------------------
+   Dos piezas para el mismo dato del magnetometro:
+
+   · el CONO sobre el punto de la ubicacion, dibujado sobre el mapa, dice hacia
+     donde se esta mirando en relacion a las calles;
+   · el DIAL flotante es una brujula de verdad: la aguja marca donde queda el
+     norte respecto del telefono, y el cartelito de abajo lo dice en letras.
+
+   El cartelito no es redundante. Deducir "sudoeste" de la posicion de una aguja
+   pide un segundo de atencion, y esta pantalla se mira de reojo.
+   -------------------------------------------------------------------------- */
+
+.gps-puck {
+  width: 48px; height: 48px;
+  display: grid;
+  place-items: center;
+  color: var(--brand);
+}
+
+/* El cono y el punto comparten la misma celda de la grilla, en vez de apilarse
+   con position:absolute. MapLibre le pone `position: absolute` al elemento del
+   marcador y lo ubica por transform: declarar `position: relative` aca se lo
+   pisa y el marcador se cae del mapa —queda apilado en el flujo del contenedor,
+   junto a los demas pines—. Costo un rato notarlo porque con un solo marcador
+   en pantalla la posicion coincide igual. */
+.gps-puck > * { grid-area: 1 / 1; }
+
+.gps-cone {
+  opacity: 0;
+  transition: opacity .25s ease;
+  pointer-events: none;      /* el cono no puede robarle el toque al mapa */
+}
+
+.gps-facing .gps-cone { opacity: 1; }
+
+.compass {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Un contenedor flex ignora el atributo hidden si no se lo dice explicito. */
+.compass[hidden] { display: none; }
+
+.compass-dial svg { width: 30px; height: 30px; }
+
+.compass-needle {
+  transform-origin: 50% 50%;
+  /* Los rumbos llegan hasta seis veces por segundo; la transicion tapa el
+     escalon entre uno y otro sin agregar retraso perceptible. */
+  transition: transform .18s linear;
+}
+
+.compass-n { fill: var(--brand); }
+.compass-s { fill: var(--ink-3); }
+
+.compass-facing {
+  font: 800 11px/1 var(--ui);
+  letter-spacing: .05em;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 4px 7px;
+  box-shadow: var(--shadow);
+}
+
+/* Magnetometro sin calibrar. Se sigue mostrando —una orientacion gruesa sirve—
+   pero dicho: la regla de la casa es que donde el dato flaquea, se avisa. */
+.compass-rough .compass-dial  { border-color: var(--warn); }
+.compass-rough .compass-n     { fill: var(--warn); }
+.compass-rough .compass-facing {
+  color: var(--warn);
+  border-color: var(--warn);
 }
 
 /* ============================================================================
@@ -432,6 +575,27 @@ button { font-family: inherit; font-size: inherit; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Segunda linea del bloque de maniobra. Hoy la usa la espera del GPS: dice por
+   que se está esperando, en el mismo lugar donde después va la calle. */
+.maneuver-substreet {
+  font-size: 13px;
+  opacity: .65;
+  line-height: 1.35;
+  margin-top: 3px;
+}
+
+/* El bloque de maniobra tiene fondo oscuro, así que el spinner que se muestra
+   mientras engancha el GPS necesita su propio contraste: el de la app se apoya
+   en los tonos de superficie, que ahí no se ven. */
+.maneuver .spinner {
+  border-color: rgba(255, 255, 255, .25);
+  border-top-color: var(--ground);
+  width: 26px;
+  height: 26px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Aviso de restriccion durante la navegacion: solo aparece cuando falta poco. */
@@ -545,6 +709,33 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 .waypoint input::placeholder { color: var(--ink-3); }
+
+/* Cruz para vaciar el campo.
+
+   40 px y no los 48 del blanco de toque general: es una accion secundaria de la
+   pantalla de planificar, que se usa con el camion detenido. El minimo de 48
+   rige donde se toca en movimiento. Aun asi el boton es mas grande que su
+   dibujo, para que no haya que apuntar. */
+.waypoint-clear {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin-right: -8px;          /* se come el padding del campo, sin agrandarlo */
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-3);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform .12s ease, color .12s ease;
+}
+
+/* Un contenedor con display propio ignora el atributo hidden si no se lo dice. */
+.waypoint-clear[hidden] { display: none; }
+
+.waypoint-clear:active { transform: scale(.85); color: var(--ink); }
+.waypoint-clear svg { width: 16px; height: 16px; }
 
 /* Sugerencias de direccion */
 .suggestions {
@@ -789,8 +980,53 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
 
 .toast-error { border-left-color: var(--danger); }
 .toast-ok    { border-left-color: var(--ok); }
+.toast-warn  { border-left-color: var(--warn); }
 
 @keyframes toast-in { from { transform: translateY(10px); opacity: 0; } }
+
+/* ============================================================================
+   Decisiones
+
+   La hoja que reemplaza a confirm(), que adentro de la app Android no muestra
+   nada. Sube desde abajo y los botones ocupan todo el ancho: se tocan con el
+   pulgar, sin apuntar.
+   ========================================================================== */
+
+.ask-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(0, 0, 0, .5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+  padding-bottom: calc(12px + var(--safe-bottom));
+  animation: ask-fade .15s ease;
+}
+
+.ask {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: ask-rise .2s ease;
+}
+
+.ask-title { font-size: 17px; font-weight: 700; line-height: 1.3; }
+
+.ask-message { font-size: 14.5px; color: var(--ink-2); line-height: 1.45; }
+
+.ask-actions { display: flex; flex-direction: column; gap: 8px; }
+
+@keyframes ask-fade { from { opacity: 0; } }
+@keyframes ask-rise { from { transform: translateY(18px); } }
 
 /* ============================================================================
    Carga

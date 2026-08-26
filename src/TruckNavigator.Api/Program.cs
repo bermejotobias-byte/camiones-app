@@ -100,6 +100,21 @@ await using (var scope = app.Services.CreateAsyncScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await TruckProfileSeed.ApplyAsync(db);
     await PointOfInterestSeed.ApplyAsync(db);
+
+    // En desarrollo se agrega una cuenta de prueba con el mail ya confirmado.
+    // Sin SMTP el enlace de verificacion va al log, y mandar a buscarlo a la
+    // consola de la maquina para poder entrar desde el telefono no sirve.
+    // Fuera de Development esta rama no corre.
+    if (app.Environment.IsDevelopment())
+    {
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        await DevUserSeed.ApplyAsync(users, db);
+
+        app.Logger.LogInformation(
+            "Cuenta de prueba disponible: {Email} / {Password}",
+            DevUserSeed.Email,
+            DevUserSeed.Password);
+    }
 }
 
 // Sin SMTP configurado no se envia ningun mail y los enlaces de verificacion van
@@ -721,6 +736,65 @@ trips.MapPost("/", async (
     }
 })
 .WithSummary("Arranca un viaje: rutea, lo registra y devuelve la ruta para navegar.");
+
+// El viaje vive en el servidor, no en la pantalla. Sin este endpoint la app no
+// tiene como enterarse de que dejo uno abierto: al volver a abrirla su estado
+// arranca vacio, deja planificar otro viaje y recien al arrancarlo se choca con
+// el 409 de mas arriba, sin entender por que.
+trips.MapGet("/active", async (
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    ITruckRouteCalculator calculator,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    var trip = await db.Trips
+        .AsNoTracking()
+        .FirstOrDefaultAsync(t => t.DriverId == userId && t.Status == TripStatus.InProgress, ct);
+
+    if (trip is null)
+    {
+        return Results.NoContent();
+    }
+
+    var truck = trip.TruckId is { } truckId
+        ? await FindUsableTruckAsync(db, truckId, userId, ct)
+        : null;
+
+    if (truck is null)
+    {
+        return Results.Ok(new ActiveTripDto(
+            TripDto.From(trip),
+            null,
+            "El camion con el que se arranco este viaje ya no esta disponible."));
+    }
+
+    try
+    {
+        var route = await calculator.CalculateAsync(
+            truck,
+            new GeoPoint(trip.OriginLatitude, trip.OriginLongitude),
+            new GeoPoint(trip.DestinationLatitude, trip.DestinationLongitude),
+            DateTimeOffset.Now,
+            ct);
+
+        return Results.Ok(new ActiveTripDto(
+            TripDto.From(trip),
+            RouteResponse.From(route, truck.Name, Attribution),
+            null));
+    }
+    catch (Exception ex) when (ex is RoutingException or HttpRequestException)
+    {
+        // Sin ruta el viaje se sigue devolviendo: cerrarlo o abandonarlo no
+        // necesita rutear, y es lo que el camionero tiene que poder hacer.
+        return Results.Ok(new ActiveTripDto(TripDto.From(trip), null, ex.Message));
+    }
+})
+.WithSummary("El viaje que quedo abierto, con su ruta. 204 si no hay ninguno.");
 
 trips.MapPost("/{id:guid}/finish", async (
     Guid id,

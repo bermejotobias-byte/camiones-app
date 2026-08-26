@@ -1,6 +1,8 @@
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
+using Android.Gms.Common;
+using Android.Gms.Location;
 using Android.Locations;
 using Android.OS;
 using Android.Runtime;
@@ -9,6 +11,12 @@ using AndroidX.Core.App;
 // MAUI trae su propio Location entre los using implicitos, asi que el de Android
 // se nombra explicito para que no quede ambiguo.
 using AndroidLocation = Android.Locations.Location;
+
+// Y lo mismo con el oyente: Play Services trae uno con el mismo nombre.
+using SystemLocationListener = Android.Locations.ILocationListener;
+
+// Y con el pedido de posiciones: hay uno del sistema y otro de Play Services.
+using FusedLocationRequest = Android.Gms.Location.LocationRequest;
 
 namespace TruckNavigator.Mobile.Platforms.Android;
 
@@ -36,7 +44,7 @@ namespace TruckNavigator.Mobile.Platforms.Android;
 [Service(
     Exported = false,
     ForegroundServiceType = ForegroundService.TypeLocation)]
-public sealed class NavigationForegroundService : Service, ILocationListener
+public sealed class NavigationForegroundService : Service, SystemLocationListener
 {
     public const string ActionStart = "ar.com.trucknavigator.NAVEGAR";
     public const string ActionStop = "ar.com.trucknavigator.PARAR";
@@ -65,6 +73,17 @@ public sealed class NavigationForegroundService : Service, ILocationListener
     /// </remarks>
     private const float MinimumDistanceMeters = 0f;
 
+    /// <summary>
+    /// Hasta cuando sirve la ultima posicion guardada del sistema.
+    /// </summary>
+    /// <remarks>
+    /// Diez minutos. Alcanza para el caso real —se abre la app y se arranca el
+    /// viaje desde donde uno ya estaba— y es corto para que el camion no pueda
+    /// haberse ido lejos. Mas viejo que eso se descarta: es preferible una
+    /// pantalla que dice "buscando" a una flecha puesta en otro barrio.
+    /// </remarks>
+    private const long MaximumLastKnownAgeNanos = 10L * 60L * 1_000_000_000L;
+
     /// <summary>Posiciones que lee el servicio, para quien las quiera.</summary>
     public static event EventHandler<AndroidLocation>? PositionChanged;
 
@@ -72,6 +91,8 @@ public sealed class NavigationForegroundService : Service, ILocationListener
     public static bool IsRunning { get; private set; }
 
     private LocationManager? _locationManager;
+    private IFusedLocationProviderClient? _fusedClient;
+    private FusedLocationCallback? _fusedCallback;
     private string? _destination;
 
     public override IBinder? OnBind(Intent? intent) => null;
@@ -185,14 +206,78 @@ public sealed class NavigationForegroundService : Service, ILocationListener
     {
         _locationManager = (LocationManager?)GetSystemService(LocationService);
 
+        // La ultima posicion conocida sale primero y sin esperar a nadie: el
+        // mapa se ubica al instante en vez de quedarse mirando la nada hasta que
+        // el GPS enganche. Es aproximada y se corrige sola con el primer fix.
+        PublishLastKnownLocation();
+
+        // Y despues se engancha el tren de posiciones frescas, por el proveedor
+        // combinado si el telefono lo tiene.
+        if (StartFusedUpdates())
+        {
+            return;
+        }
+
+        StartSystemUpdates();
+    }
+
+    /// <summary>
+    /// Proveedor combinado de Google: satelites, WiFi, antenas y sensores.
+    /// </summary>
+    /// <remarks>
+    /// Es el que usan los navegadores conocidos y la razon es medible: el GPS
+    /// crudo tarda decenas de segundos en dar el primer fix bajo techo, y el
+    /// respaldo por antenas del sistema puede estar deshabilitado sin que la app
+    /// se entere. El combinado entrega en uno o dos segundos.
+    /// </remarks>
+    /// <returns>Si se pudo enganchar. Falso deja paso al proveedor del sistema.</returns>
+    private bool StartFusedUpdates()
+    {
+        try
+        {
+            if (GoogleApiAvailability.Instance.IsGooglePlayServicesAvailable(this) != ConnectionResult.Success)
+            {
+                return false;
+            }
+
+            _fusedClient = LocationServices.GetFusedLocationProviderClient(this);
+
+            var request = new FusedLocationRequest.Builder(Priority.PriorityHighAccuracy, MinimumIntervalMs)
+                .SetMinUpdateIntervalMillis(MinimumIntervalMs)
+                .SetMinUpdateDistanceMeters(MinimumDistanceMeters)
+                .Build();
+
+            _fusedCallback = new FusedLocationCallback(this);
+
+            // Looper.MainLooper y no el hilo del servicio: sin un Looper vivo el
+            // cliente no tiene donde entregar y no llama nunca al callback.
+            _fusedClient.RequestLocationUpdates(request, _fusedCallback, Looper.MainLooper);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // Play Services falta, esta desactualizado, o el fabricante lo
+            // recorto. No es motivo para quedarse sin navegacion: hay respaldo.
+            System.Diagnostics.Debug.WriteLine($"Proveedor combinado no disponible: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Respaldo con el proveedor del sistema, para telefonos sin Play Services.
+    /// </summary>
+    private void StartSystemUpdates()
+    {
         if (_locationManager is null)
         {
             return;
         }
 
-        // Se escucha el GPS y tambien la red. El GPS es el que sirve, pero tarda
-        // en enganchar bajo techo o entre edificios; mientras tanto la red da una
-        // posicion aproximada que evita que la pantalla arranque en blanco.
+        // Se piden los dos proveedores. El GPS es el que sirve para navegar; la
+        // red, cuando existe, tapa el hueco del arranque. Puede estar
+        // deshabilitada —se midio asi en el equipo de prueba—, y por eso el
+        // arranque no puede depender de ella.
         foreach (var provider in new[] { LocationManager.GpsProvider, LocationManager.NetworkProvider })
         {
             try
@@ -212,6 +297,77 @@ public sealed class NavigationForegroundService : Service, ILocationListener
         }
     }
 
+    /// <summary>
+    /// Empuja la ultima posicion que el sistema tenga guardada, si no es vieja.
+    /// </summary>
+    /// <remarks>
+    /// El limite de antiguedad usa el reloj monotono del dispositivo
+    /// (<c>ElapsedRealtimeNanos</c>) y no la hora: la hora del telefono puede
+    /// saltar por el operador o por el usuario, y un salto haria pasar por fresca
+    /// una posicion de ayer.
+    /// </remarks>
+    private void PublishLastKnownLocation()
+    {
+        if (_locationManager is null)
+        {
+            return;
+        }
+
+        AndroidLocation? best = null;
+
+        foreach (var provider in new[]
+        {
+            LocationManager.GpsProvider,
+            LocationManager.NetworkProvider,
+            LocationManager.PassiveProvider
+        })
+        {
+            try
+            {
+                var candidate = _locationManager.GetLastKnownLocation(provider);
+
+                if (candidate is not null &&
+                    (best is null || candidate.ElapsedRealtimeNanos > best.ElapsedRealtimeNanos))
+                {
+                    best = candidate;
+                }
+            }
+            catch (Java.Lang.SecurityException)
+            {
+                // Sin permiso no hay ultima posicion. El pedido de permiso ya
+                // ocurrio antes de arrancar el servicio.
+            }
+            catch (Java.Lang.IllegalArgumentException)
+            {
+                // El proveedor no existe en este telefono.
+            }
+        }
+
+        if (best is null)
+        {
+            return;
+        }
+
+        var ageNanos = SystemClock.ElapsedRealtimeNanos() - best.ElapsedRealtimeNanos;
+
+        if (ageNanos <= MaximumLastKnownAgeNanos)
+        {
+            PositionChanged?.Invoke(this, best);
+        }
+    }
+
+    /// <summary>Recibe las posiciones del proveedor combinado.</summary>
+    private sealed class FusedLocationCallback(NavigationForegroundService service) : LocationCallback
+    {
+        public override void OnLocationResult(LocationResult result)
+        {
+            if (result.LastLocation is { } location)
+            {
+                PositionChanged?.Invoke(service, location);
+            }
+        }
+    }
+
     private void StopEverything()
     {
         try
@@ -222,6 +378,24 @@ public sealed class NavigationForegroundService : Service, ILocationListener
         {
             // Nada que hacer: igual se esta apagando.
         }
+
+        // El cliente combinado se da de baja aparte: es otro registro de
+        // ubicacion y quedaria vivo consumiendo bateria con el viaje terminado.
+        try
+        {
+            if (_fusedCallback is not null)
+            {
+                _fusedClient?.RemoveLocationUpdates(_fusedCallback);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"No se pudo dar de baja el proveedor combinado: {ex.Message}");
+        }
+
+        _fusedCallback?.Dispose();
+        _fusedCallback = null;
+        _fusedClient = null;
 
         _locationManager = null;
         IsRunning = false;

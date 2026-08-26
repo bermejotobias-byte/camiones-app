@@ -99,10 +99,21 @@ if (-not $Push) {
     return
 }
 
-$adb = 'C:\Program Files (x86)\Android\android-sdk\platform-tools\adb.exe'
+# adb vive donde haya quedado el SDK: el instalador de Visual Studio lo pone en
+# Program Files (x86) y Android Studio en el perfil del usuario. Buscarlo en una
+# sola ruta hacía que -Push avisara "no encontré adb" con el teléfono enchufado.
+$candidatosAdb = @(
+    if ($env:ANDROID_HOME) { "$env:ANDROID_HOME\platform-tools\adb.exe" }
+    "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+    'C:\Program Files (x86)\Android\android-sdk\platform-tools\adb.exe'
+    'C:\Program Files\Android\android-sdk\platform-tools\adb.exe'
+    (Get-Command adb -ErrorAction SilentlyContinue).Source
+) | Where-Object { $_ }
 
-if (-not (Test-Path $adb)) {
-    Write-Warning "No se encontró adb en $adb"
+$adb = $candidatosAdb | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if (-not $adb) {
+    Write-Warning "No se encontró adb. Buscado en:`n  $($candidatosAdb -join "`n  ")"
     return
 }
 

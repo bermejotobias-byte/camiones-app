@@ -14,7 +14,7 @@
 import { api } from '../api.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
-  html, raw, icon, wire, q, qa, render, withBusy, toastOk, toastError
+  html, raw, icon, wire, q, qa, render, withBusy, toastOk, toastError, askConfirm
 } from '../ui.js';
 
 const VEHICLE_TYPES = [
@@ -343,7 +343,15 @@ export function trucksView(host, { go }) {
   }
 
   async function remove(button) {
-    if (!confirm('¿Borrar este camión? Los viajes que hiciste con él se conservan.')) return;
+    const borrar = await askConfirm({
+      title: '¿Borrás este camión?',
+      message: 'Los viajes que hiciste con él se conservan en tu historial.',
+      confirmLabel: 'Borrar el camión',
+      cancelLabel: 'No borrarlo',
+      danger: true
+    });
+
+    if (!borrar) return;
 
     await withBusy(button, 'Borrando', async () => {
       try {

@@ -46,7 +46,18 @@ export const state = {
   profile: null,
   trucks: [],
   /** Viaje en curso, si hay uno. */
-  activeTrip: null
+  activeTrip: null,
+
+  /**
+   * Ruta del viaje en curso.
+   *
+   * Se guarda al lado del viaje porque al retomarlo despues de cerrar la app no
+   * hay de donde sacarla: la pantalla se rearma de cero y la ruta la tiene el
+   * servidor, no el navegador. Es null si el viaje esta abierto pero no se pudo
+   * rutear —motor caido, camion borrado—, caso en el que igual hay que dejar
+   * cerrarlo.
+   */
+  activeRoute: null
 };
 
 const listeners = new Set();

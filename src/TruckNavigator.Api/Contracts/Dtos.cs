@@ -435,6 +435,25 @@ public sealed record TripDto(
 /// </remarks>
 public sealed record StartedTripDto(TripDto Trip, RouteResponse Route);
 
+/// <summary>
+/// El viaje que quedo abierto, con la ruta para seguir navegandolo.
+/// </summary>
+/// <remarks>
+/// <para>
+/// La ruta es opcional a proposito, y es la diferencia con
+/// <see cref="StartedTripDto"/>. Al arrancar un viaje, sin ruta no hay nada que
+/// registrar y el pedido falla entero. Al retomarlo ya existe: el viaje esta
+/// abierto en la base y el camionero necesita poder cerrarlo aunque el motor de
+/// ruteo este caido o el camion ya no exista. Devolver un error ahi lo dejaria
+/// trabado sin salida, que es exactamente lo que este endpoint viene a evitar.
+/// </para>
+/// <para>
+/// <see cref="RouteUnavailableReason"/> explica por que falta, para que la app
+/// pueda decirlo en vez de mostrar una pantalla de navegacion vacia.
+/// </para>
+/// </remarks>
+public sealed record ActiveTripDto(TripDto Trip, RouteResponse? Route, string? RouteUnavailableReason);
+
 /// <summary>Estadisticas acumuladas del camionero.</summary>
 /// <remarks>
 /// Se calculan agregando los viajes, no leyendo contadores guardados. Con los

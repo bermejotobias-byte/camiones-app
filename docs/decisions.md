@@ -1043,3 +1043,567 @@ excepción — el mapa quedaría negro y sin explicación. Se cae al raster de
 OpenStreetMap y se deja un aviso en consola diciendo qué script correr. El
 respaldo **no sirve para distribuir**: existe para que una máquina recién clonada
 no muestre un mapa vacío.
+
+---
+
+## AD-27 · El viaje abierto vive en el servidor, y la app lo recupera al entrar
+
+El viaje en curso es estado del servidor: está en la tabla `Trips` con estado
+`InProgress` y es la fuente de los kilómetros acreditados. La aplicación lo
+guardaba además en su estado de pantalla, **y sólo ahí lo leía**.
+
+Al cerrar la app y volver a abrirla, el estado de pantalla arranca vacío. La app
+mostraba el buscador como si no pasara nada, dejaba elegir otro destino, calcular
+la ruta, y recién al tocar *Arrancar viaje* el servidor respondía **409 · "Todavía
+hay un viaje abierto"**. Desde afuera es incomprensible: en la pantalla no hay
+ningún viaje que cerrar.
+
+`GET /api/trips/active` devuelve el viaje abierto con su ruta, o **204** si no
+hay ninguno. La app lo consulta al entrar y, si hay uno, entra directo a la
+pantalla de navegación.
+
+### La ruta es opcional en la respuesta, y esa es la diferencia con arrancar
+
+Al **arrancar** un viaje, sin ruta no hay nada que registrar: el pedido falla
+entero. Al **retomarlo**, el viaje ya existe en la base, y el camionero tiene que
+poder cerrarlo aunque el motor de ruteo esté caído o el camión con el que arrancó
+ya no exista. Devolver un error ahí lo dejaría trabado sin salida — que es
+exactamente lo que este endpoint viene a evitar.
+
+Por eso `ActiveTripDto` lleva `Route` nulo y un `RouteUnavailableReason` que
+explica por qué falta. La pantalla de viaje funciona sin ruta: los números salen
+de lo que quedó registrado y el botón de salir sigue estando.
+
+### La consulta va aparte del resto del arranque
+
+Pedir el perfil y los camiones puede fallar por sesión vencida y eso deja al
+usuario afuera, que es correcto. La consulta del viaje abierto tiene su propio
+`catch`: si falla, la aplicación se usa igual, aunque sea sin retomar.
+
+---
+
+## AD-28 · Las decisiones se piden con una hoja propia, nunca con `confirm()`
+
+**`confirm()` no existe adentro de la aplicación Android.** El WebView no dibuja
+los diálogos de JavaScript salvo que la cáscara nativa instale un
+`WebChromeClient` que los atienda, y MAUI no instala ninguno: se verificó que en
+`Microsoft.Maui.dll` no hay ningún `OnJsConfirm` ni `OnJsAlert`. Sin eso,
+`confirm()` **devuelve `false` sin mostrar nada**.
+
+El efecto era que la app parecía ignorar botones enteros. Pasaban por ahí:
+
+| Acción | Qué parecía |
+|---|---|
+| Terminar el viaje | El botón *Salir* no hacía nada |
+| Abandonar el viaje | Ídem |
+| Cerrar sesión | El botón no respondía |
+| Borrar un camión | Ídem |
+| Cerrar el viaje viejo tras un 409 | Salía el error, nunca la pregunta |
+
+**Terminar el viaje es la peor de todas**: es lo que dejaba el viaje abierto para
+siempre, que a su vez trababa el arranque del siguiente. Las dos decisiones —
+AD-27 y esta — se descubrieron por el mismo síntoma.
+
+`askChoice()` y `askConfirm()` en `ui.js` arman una hoja que sube desde abajo,
+con los botones a todo el ancho. Se descarta tocando fuera, con Escape, o con la
+opción de salida.
+
+Aunque `confirm()` funcionara, la hoja propia sería lo correcto: los botones del
+sistema son chicos para una mano en un camión, y `confirm()` bloquea el hilo —
+adentro de una pantalla de navegación que recibe posiciones del GPS, eso es
+justamente lo que no se quiere.
+
+**Salir del viaje muestra las tres salidas juntas** —llegué, abandono, sigo— en
+vez de encadenar dos preguntas. La diferencia importa: llegar acredita kilómetros
+y abandonar no, y encadenadas, decir que no a la primera parecía cancelar todo.
+
+### Salir del viaje tiene que apagar la navegación, no sólo cambiar de pantalla
+
+Llegar a destino apagaba el guiado; **salir a mano no**. `closeTrip` cerraba el
+viaje en el servidor y volvía al buscador, pero dejaba viva la navegación:
+
+- el GPS seguía observado — y con él, **el servicio en primer plano de Android y
+  su notificación de viaje**, con el viaje ya cerrado;
+- la pantalla seguía forzada a no apagarse;
+- el mapa seguía en modo navegación, sin rotación por gesto;
+- el cartel de la próxima maniobra seguía encima del mapa.
+
+Visto desde afuera es indistinguible de "el viaje quedó abierto", y es la otra
+mitad de por qué este defecto se reportó así.
+
+La hoja inferior además **se reemplazaba por otro nodo** al entrar al viaje,
+copiándole el id: al volver al buscador, el buscador se dibujaba adentro de un
+contenedor que seguía siendo la barra de navegación. Ahora es siempre el mismo
+nodo y lo que cambia es la clase.
+
+---
+
+## AD-29 · La ubicación sale del proveedor combinado, y la pantalla no espera al GPS
+
+Arrancar un viaje "tardaba demasiado" y a veces terminaba en *"La ubicación tardó
+demasiado"*. El servidor estaba descartado desde el principio: `POST /api/trips`
+resuelve en **18 ms**, ruteo incluido. Todo el tiempo se iba esperando al GPS.
+
+### La medición
+
+Del `dumpsys location` del teléfono de prueba, dos pedidos consecutivos:
+
+```
+16:37:35  gps provider  +registration  ar.com.trucknavigator.caba  HIGH_ACCURACY
+16:37:50  gps provider  -registration                              (locations = 0)
+16:37:52  gps provider  +registration                              HIGH_ACCURACY
+16:38:07  gps provider  -registration                              (locations = 0)
+```
+
+Quince segundos exactos cada uno, cero posiciones: la firma de
+`GetLocationAsync(Best, 15s)` expirando. Y en el mismo volcado:
+
+| Dato | Valor |
+|---|---|
+| `network provider` | **`enabled=false`** |
+| `fused provider` | `enabled=true` — disponible y sin usar |
+| Última posición conocida | presente, 15 satélites, 10,9 m de precisión |
+| Servicio del viaje, una vez enganchado | **465 posiciones en 13m37s** |
+
+El GPS del teléfono funciona. Lo que fallaba era **cómo se lo pedía**.
+
+### Tres causas, una encima de la otra
+
+1. **Se usaba el proveedor crudo del sistema.** El código pedía `GpsProvider` y
+   `NetworkProvider` al `LocationManager`. El GPS crudo tarda decenas de segundos
+   bajo techo, y el respaldo por antenas que el código creía tener **estaba
+   deshabilitado en el equipo** — sin que la app se enterara.
+2. **Nadie usaba la última posición conocida**, aunque el sistema la tenía
+   guardada y era buena.
+3. **La perspectiva dependía del primer fix.** `enterNavigationMode()` sólo
+   deshabilitaba la rotación; el pitch, el zoom y el rumbo vivían en
+   `followVehicle`, que sólo corre desde `onPosition`. Sin posición no cambiaba
+   nada en pantalla, y tocar *Arrancar viaje* no producía ningún efecto visible.
+
+### Lo que se hizo
+
+- **Proveedor combinado de Google** (`FusedLocationProviderClient`) en el servicio
+  del viaje, con el `LocationManager` como respaldo para teléfonos sin Play
+  Services. Mezcla satélites, WiFi, antenas y sensores: primera posición en uno o
+  dos segundos, también adentro de un edificio.
+- **La última posición conocida se empuja primero**, antes de pedir nada, tanto en
+  el servicio como en el pedido puntual. Se descarta si tiene más de **diez
+  minutos**, medidos con el reloj monótono del dispositivo y no con la hora — la
+  hora del teléfono puede saltar y haría pasar por fresca una posición de ayer.
+- **El pedido puntual va en tres intentos**, del más barato al más caro, y el
+  primero que sirve se muestra: última conocida → máxima precisión con 8 s →
+  precisión media. Sólo se avisa del fallo si ninguno sirvió.
+- **La cámara se inclina al tocar el botón**, centrada en el origen del viaje.
+- **La pantalla dice qué está esperando**: "Buscando señal de GPS…" con el motivo,
+  en lugar de un guion indistinguible de una app trabada.
+
+### `minSdk` sube de 21 a 23
+
+Lo exige el binding del proveedor combinado: con 21 falla el merge del
+manifiesto. Android 5 es de 2014 y además el código ya usaba APIs de 23
+—`PendingIntentFlags.Immutable`— con aviso del compilador.
+
+### Un canal propio para el fallo del seguimiento
+
+`StartWatchingLocationAsync` reportaba sus errores por `window.TN_locationFailed`,
+que es el canal que resuelve los **pedidos puntuales** de posición. Al arrancar un
+viaje no hay ninguno esperando, así que **el aviso se perdía en silencio** y la
+pantalla quedaba quieta sin motivo visible. Ahora hay `window.TN_trackingFailed`,
+con sus propios oyentes.
+
+---
+
+## AD-30 · La brújula sale de los sensores crudos, y elige el eje según la inclinación
+
+El rumbo que ya circulaba por la app venía del GPS: dice hacia dónde **se mueve**
+el camión. No existe con el camión parado, y tarda en aparecer. Falta la otra
+pregunta, que es la que se hace el conductor buscando la entrada de un depósito o
+frenado en una esquina: **hacia dónde estoy mirando**. Eso lo contesta el
+magnetómetro, y vale también con el vehículo detenido.
+
+### Por qué no `Compass` de MAUI
+
+Existe, es multiplataforma y se resuelve en tres líneas. Entrega
+`HeadingMagneticNorth`, que es el azimut del **eje largo del teléfono** — el que
+va del mentón a la frente del aparato.
+
+Ese eje sirve con el teléfono apoyado horizontal sobre una mesa. **Se degenera con
+el teléfono parado en un soporte de parabrisas**, que es exactamente como se usa
+arriba de un camión: ahí el eje largo apunta al cielo, y su proyección sobre el
+plano del horizonte deja de significar nada. La brújula quedaría dando vueltas
+sola con el camión quieto.
+
+La corrección conocida es elegir el eje de referencia según cuánto esté inclinado
+el aparato:
+
+| Posición | Eje que manda | Por qué |
+|---|---|---|
+| Acostado | el borde superior de la pantalla | es hacia donde apunta el que lo mira |
+| De pie | el perpendicular a la pantalla | en un soporte, la espalda del teléfono mira hacia adelante |
+
+`Compass` no expone nada de esto. Con `SensorManager` sí:
+`RemapCoordinateSystem` cambia el eje de referencia antes de calcular el azimut.
+La contra es que hay que implementarlo por plataforma — se resolvió con el mismo
+reparto que ya usaba el seguimiento del viaje: `IHeadingSensor` en `Services`,
+`AndroidHeadingSensor` en `Platforms/Android`.
+
+Dos detalles que no son opcionales:
+
+- **Histeresis en el umbral de inclinación.** Con un solo corte a 45°, un teléfono
+  sostenido justo ahí alterna entre los dos modos varias veces por segundo y la
+  flecha pega saltos de 90°. Pasa a "de pie" por debajo de 0,60 y vuelve a
+  "acostado" por encima de 0,80, medido sobre la componente vertical del eje
+  perpendicular a la pantalla.
+- **Media vuelta en el modo de pie.** El remapeo deja como referencia el eje que
+  sale *de* la pantalla, o sea el que apunta al conductor. Lo que interesa es el
+  opuesto.
+
+Se lee el `RotationVector` y no el campo magnético crudo: es una fusión de
+magnetómetro, acelerómetro y giróscopo que el propio sistema filtra. Si el
+teléfono no lo trae, se cae al `GeomagneticRotationVector`, que hace lo mismo sin
+giróscopo.
+
+### El norte magnético no es el del mapa
+
+El magnetómetro apunta al norte **magnético**; el mapa está dibujado sobre el
+**geográfico**. La diferencia —la declinación— depende del lugar y de la época, así
+que no se puede fijar como constante: la de Buenos Aires no es la de Salta ni la
+de hace veinte años. La calcula `GeomagneticField`, el modelo geomagnético que
+trae Android, a partir de la posición.
+
+Coherente con la regla de la casa: **el dato existe, se lo pide; no se lo
+inventa.** La posición se la pasa el mismo canal que ya empuja el GPS, y al
+arrancar se siembra con la última posición conocida del sistema. Mientras no haya
+ninguna, el rumbo queda referido al norte magnético — unos pocos grados en CABA.
+
+### El puente no puede recibir dieciséis avisos por segundo
+
+Cada rumbo cruza hacia el WebView como una evaluación de JavaScript, que no es
+gratis. El sensor entrega unas dieciséis lecturas por segundo. Se filtra en el
+lado nativo, antes de cruzar:
+
+- **promedio como vector**, no como número. Promediando grados, 359 y 1 dan 180:
+  la flecha saltaría al sur cada vez que se cruza el norte;
+- **nada por debajo de 2°** de cambio, que no se ven en una flecha de 30 px;
+- **tope de seis avisos por segundo**.
+
+Yendo derecho el puente queda casi mudo y sólo se despierta en las curvas.
+
+### Dos representaciones, porque son dos preguntas
+
+| Pieza | Qué contesta | Dónde vive |
+|---|---|---|
+| Cono sobre el punto de ubicación | hacia dónde miro **respecto de las calles** | dibujado en el mapa |
+| Dial flotante con la aguja al norte | dónde queda el norte **respecto del teléfono** | pegado a la pantalla |
+| Cartelito con el punto cardinal | lo mismo, en letras | debajo del dial |
+
+El cono va **anclado al mapa** y no a la pantalla: navegando la cámara gira, y un
+cono anclado a la pantalla apuntaría a cualquier lado porque el norte de la
+pantalla ya no es el norte del mapa. El cartelito no es redundante con la aguja:
+leer "SO" es instantáneo y deducirlo de la posición de una aguja no lo es, y esta
+es una pantalla que se mira de reojo.
+
+Ocho puntos cardinales y no dieciséis: "nornoreste" no se lee manejando, y con la
+precisión de un magnetómetro de teléfono tampoco sería honesto.
+
+### Cuando el dato flaquea, se dice
+
+- **Sin magnetómetro** —hay teléfonos que no lo traen, y ninguna computadora de
+  escritorio— el dial y el cono **no se muestran**. Una flecha clavada al norte
+  parecería un dato y no lo es.
+- **Sin calibrar**: Android informa la precisión del sensor. Cuando baja de media,
+  el dial se pinta de ámbar y tocarlo explica cómo calibrarlo. Se sigue mostrando
+  porque una orientación gruesa sirve, pero dicha como tal.
+- La precisión arranca supuesta buena y sólo se baja cuando el sistema lo dice:
+  hay teléfonos que nunca informan nada, y suponer lo peor dejaría la brújula
+  marcada como dudosa para siempre en esos equipos.
+
+### En el navegador es otra cosa, y menos
+
+La versión web usa `DeviceOrientation`. Toma el rumbo como lo entrega la
+plataforma: **no corrige la declinación ni distingue el teléfono acostado del
+teléfono de pie**. Es el camino de desarrollo, no el que se usa en el camión —el
+WebView de Android no es un terreno donde convenga dar por sentada una API del
+navegador (ver AD-28), así que adentro de la cáscara la brújula va por el puente,
+como el GPS y la voz.
+
+### Un efecto colateral que era un error viejo
+
+El punto de la ubicación propia quedaba en el mapa al arrancar un viaje, congelado
+en la última vez que se había tocado *Mi ubicación*, debajo de la flecha del
+vehículo. No se notaba porque son dos puntos del mismo color en el mismo lugar; con
+un cono encima habría quedado a la vista. Ahora `enterNavigationMode` lo saca.
+
+---
+
+## AD-31 · La consola del WebView y los diagnósticos salen al log del sistema
+
+Adentro del APK **la interfaz entera es JavaScript**. Hasta acá, todo lo que esa
+capa dijera —un `console.error`, una excepción sin atrapar, un módulo que no
+carga— **ocurría sin dejar ningún rastro**: Android descarta los mensajes de
+consola de un WebView salvo que haya un `WebChromeClient` que los atienda, y MAUI
+no instala ninguno.
+
+Es la misma ausencia que hacía que `confirm()` devolviera `false` sin mostrar nada
+(AD-28). Ahí se vio la consecuencia; acá se ataca la causa.
+
+### Por qué importa más de lo que parece
+
+Las cinco fallas que más tiempo costaron en este proyecto estuvieron **todas** en
+la costura entre la cáscara nativa y la web, y todas se diagnosticaron a ciegas:
+pidiéndole al usuario el mensaje textual de la pantalla, cambiando una cosa por
+vez y recompilando. Con la consola visible, cada una de esas vueltas se habría
+resuelto leyendo un renglón.
+
+### Lo que se hizo
+
+- **`WebViewConsole`**, un `WebChromeClient` que manda cada mensaje de consola a
+  logcat bajo la etiqueta `Web`, con el archivo y la línea de origen. Se lee con
+  `adb logcat -s Web`.
+- **Errores no atrapados y promesas rechazadas** se enganchan en `app.js` y se
+  mandan a `console.error`. Sin eso no pasan por ningún `catch` propio y el
+  navegador se los traga, que es justo el caso donde hace más falta verlos.
+- **Los diagnósticos nativos dejan de usar `Debug.WriteLine`.** Ese método lleva
+  `[Conditional("DEBUG")]`: **el compilador borra las llamadas en Release**, o sea
+  que todos los mensajes desaparecían justo en el APK que se instala en el
+  teléfono — el único lugar donde hay GPS, sensores y WebView de verdad. El
+  puente ahora escribe con `Android.Util.Log` bajo la etiqueta `Cascara`.
+
+### Lo que NO se hizo, a propósito
+
+`onJsAlert` y `onJsConfirm` quedan sin implementar. Que los diálogos del navegador
+no existan **es una decisión tomada, no una carencia**: la app pide sus decisiones
+con una hoja propia, que se toca sin apuntar y se lee manejando (AD-28).
+Atenderlos acá reabriría esa puerta y volvería a hacer plausible un `confirm()`
+en el código.
+
+### Etiquetas de logcat
+
+| Etiqueta | Qué trae |
+|---|---|
+| `Web` | la consola del WebView: la interfaz entera |
+| `Cascara` | el puente nativo: configuración, posiciones, brújula, errores al evaluar JavaScript |
+| `Brujula` | cada rumbo calculado, con la inclinación y la declinación aplicada |
+
+### ⚠ Sin verificar en el equipo de prueba — 26/08/2026
+
+**Esto todavía no se comprobó que funcione.** En el Xiaomi de prueba
+(`24117RN76L`, HyperOS) el APK de Release corrió con un `Log.Info` incondicional
+en el arranque de `ConnectAsync` y **no apareció ni una línea** bajo ninguna de
+las tres etiquetas. Lo medido, para que la próxima sesión no repita el camino:
+
+- El proceso de la app produjo **24 líneas de logcat, todas del framework de
+  Android/MIUI**. Ninguna del runtime de .NET ni de nuestro código.
+- **No es un filtro de etiquetas**: escribir a mano
+  `adb shell log -p i -t Cascara "..."` sí aparece.
+- **No es que el código no se ejecute**: la pantalla muestra el error de conexión,
+  que sale de la misma función, dos líneas después del log.
+- `log.tag` global está en `M`, un valor que no es de los estándar
+  (`V D I W E F S`). Sin confirmar que sea la causa.
+
+La sospecha abierta es que **MIUI descarta los logs de aplicaciones de terceros**
+—las líneas de prueba pasaron porque `shell` es privilegiado—, pero no está
+demostrado. Hasta que lo esté, **no dar por sentado que el log alcanza para
+diagnosticar en este equipo**, y dejar siempre un camino visible en pantalla.
+
+---
+
+## AD-32 · Los módulos de `wwwroot/js` se testean con el runner de Node, sin dependencias
+
+El motor de guiado —`navigation.js`— es el código más riesgoso de la aplicación:
+decide cuándo hablar, cuándo dar la ruta por perdida y cuánto falta. Hasta acá se
+verificaba **a mano en el navegador**, con un recorrido sintético de 1051
+posiciones, porque se creía que en esta máquina no había Node. **Sí lo hay**
+(24.19, verificado el 26/08/2026), y esa creencia costó no tener red de
+seguridad sobre esa capa.
+
+### Por qué esto no contradice AD-21
+
+AD-21 dice que la interfaz **no tiene paso de compilación**: módulos ES nativos
+servidos tal cual, para que el mismo bundle entre al APK sin coordinar dos builds.
+Eso se mantiene intacto:
+
+- **Cero dependencias.** Se usa `node --test`, que viene con Node. No hay
+  `node_modules`, no hay `npm install`, no hay lockfile.
+- **Nada cambia en lo que se sirve ni en lo que se empaqueta.** El APK y el
+  `wwwroot` son idénticos con o sin los tests.
+- El `package.json` de la raíz existe **sólo** para declarar `"type": "module"`
+  —que es lo que el navegador ya asume con `<script type="module">`— y para
+  guardar el comando. No declara ninguna dependencia.
+
+Un paso de compilación agrega algo entre el código y el artefacto. Esto no
+agrega nada: agrega una forma de mirarlo.
+
+### Qué se cubre y qué no
+
+`navigation.js` es **puro**: no importa nada y no toca ninguna API del navegador,
+así que corre en Node sin adaptadores ni mocks. 28 tests sobre las reglas que ya
+estaban decididas y que son fáciles de romper sin darse cuenta:
+
+| Área | Qué fija |
+|---|---|
+| Ángulos | el camino corto cruzando el norte: 350 y 10 están a 20°, no a 340 |
+| Recalculo | los strikes, el enfriamiento, y que no recalcule después de llegar |
+| Avisos | que se avise **al cruzar** el umbral y no por estar debajo, que no se repita, y que no se arrastre de una maniobra a otra |
+| Voz | redondeo a múltiplos de 50, coma decimal en kilómetros, y que una maniobra desconocida no rompa nada |
+| Geometría | error menor al 1% en 1 km, distancia acumulada monótona, y que lo que informó el servidor no se recalcule |
+
+**Esto no reemplaza la prueba en movimiento**, que sigue pendiente. Fija las
+reglas de escritorio; que la flecha siga al camión sólo se comprueba manejando.
+
+Los módulos que tocan el DOM —`map.js`, `ui.js`, las vistas— quedan afuera: para
+testearlos haría falta un DOM simulado, o sea una dependencia, y ahí el
+argumento de AD-21 sí pesa.
+
+```bash
+node --test "tests/web/*.test.mjs"
+```
+
+---
+
+## AD-33 · Una dirección escrita a mano no puede dejar la app inutilizable
+
+Una dirección de servidor mal escrita dejó la aplicación **muerta y sin salida**:
+no conectaba, reinstalarla no servía, y el único mensaje era
+`net_http_client_invalid_requesturi`.
+
+No fue un error, fueron **cuatro, encadenados**. Cada uno por separado es menor;
+juntos convierten un tipeo en una app que hay que desinstalar.
+
+| # | Falla | Consecuencia |
+|---|---|---|
+| 1 | El setter de `BaseUrl` guardaba **cualquier texto**, sin validar | `192.168.1.5:5080` —sin `http://`, que es lo que cualquiera escribe— quedaba guardado |
+| 2 | `CheckAsync` armaba `$"{BaseUrl}/api/health"` y se lo pasaba a `HttpClient` | Sin esquema no es una URI absoluta: tira **antes de salir a la red** |
+| 3 | El valor guardado **le gana al compilado y sobrevive a reinstalar** | Instalar un APK nuevo con la dirección correcta no cambiaba nada |
+| 4 | El recorte de Release reemplaza los mensajes del framework por **claves de recurso** | El usuario recibía `net_http_client_invalid_requesturi` como explicación |
+
+El punto 3 es el que convierte un problema en una trampa: sin él, reinstalar
+habría alcanzado. El 4 es el que la vuelve indiagnosticable, incluso para quien
+escribió el código.
+
+### Lo que se hizo
+
+**Validar donde se escribe, no donde se usa.** `BackendAddress.TryNormalize` es
+indulgente con lo que la gente escribe de verdad y estricta con lo que devuelve:
+completa el esquema faltante —`192.168.1.5:5080` → `http://192.168.1.5:5080`—,
+rechaza lo que no puede funcionar diciendo por qué, y **reconstruye la dirección
+desde lo parseado**, así una ruta pegada al copiar del navegador no termina
+produciendo `/api/health/api/health`.
+
+**Tres redes de seguridad, en orden de menos a más visible:**
+
+1. **El getter ignora lo guardado si es inválido** y cae al valor del build. Cubre
+   los teléfonos donde ya quedó una dirección rota de una versión anterior.
+2. **Auto-rescate al arrancar**: si la dirección guardada no responde, se prueba
+   la de fábrica **antes** de darse por vencido. Sólo si esa anda se descarta la
+   guardada — si tampoco anda, lo que el usuario configuró no se toca.
+3. **Botón "Usar la dirección de fábrica"** en el panel de conexión. El
+   auto-rescate cubre el caso normal, pero si en ese momento el backend de
+   fábrica tampoco responde, hace falta poder descartar lo escrito sin adivinar
+   cuál era el valor original.
+
+**Nunca más un mensaje del framework en pantalla.** `CheckAsync` no muestra
+`ex.Message`: los textos del framework no sobreviven al recorte. Se muestra una
+frase propia, y como mucho el **nombre del tipo** de la excepción, que sí
+sobrevive.
+
+**Y que los mensajes vuelvan a ser legibles:**
+`<UseSystemResourceKeys>false</UseSystemResourceKeys>` en el csproj. Al recortar,
+.NET reemplaza por defecto los textos de las excepciones por sus claves para
+ahorrar tamaño — en el único build que se instala en un teléfono. Cuesta unos KB
+y ahorra noches.
+
+### Tests
+
+`BackendAddress` no depende de MAUI a propósito y **el proyecto de tests enlaza el
+archivo** (no el proyecto: `TruckNavigator.Mobile` sólo compila para Android).
+20 casos, incluido el que rompió la app, más la invariante que importa: lo que
+salga de la normalización, pegado con `/api/health`, tiene que dar una URI
+absoluta válida.
+
+### La lección
+
+**Un valor que el usuario puede escribir y que la app persiste tiene que
+validarse al escribirlo, y tiene que tener una forma de deshacerse sin conocer
+el valor original.** Si además le gana a la configuración de fábrica, sobrevive a
+la reinstalación, que es lo último que le queda a alguien cuando algo no anda.
+
+---
+
+## AD-34 · Fuera del viaje la cámara es cenital y fija; la perspectiva es del viaje
+
+El mapa se movía demasiado solo. Tres causas distintas, con el mismo efecto: el
+usuario perdía el encuadre que había elegido.
+
+### 1 · Girar e inclinar salían sin querer
+
+MapLibre trae por defecto el arrastre con dos dedos para inclinar y el giro con
+pellizco. En un teléfono **esos gestos salen sin querer**: un pellizco desparejo
+basta para dejar el mapa torcido, y quien no sabe qué tocó tampoco sabe cómo
+volver. No hay ningún botón de "enderezar".
+
+Ahora están apagados: `dragRotate`, `pitchWithRotate`, `touchPitch`,
+`touchZoomRotate.disableRotation()` y `keyboard.disableRotation()`. **El arrastre
+y el zoom por pellizco quedan intactos** — son la forma de mover un mapa.
+
+La perspectiva del viaje **no depende de esos manejadores**: la aplica la app con
+`easeTo`, que va directo a la cámara. Apagar los gestos no la afecta, y eso deja
+la inclinación donde tiene sentido y en ningún otro lado.
+
+### 2 · Cada punto que se fijaba forzaba el zoom
+
+`flyTo` tenía `zoom = 15` por defecto y lo aplicaba siempre. Elegir un destino te
+sacaba del encuadre: si te habías acercado a mirar una esquina, lo perdías; si
+estabas mirando la ciudad entera, aparecías adentro de una cuadra.
+
+Ahora **`flyTo` centra y no toca el zoom**. La única excepción es `minZoom`, que
+**sólo acerca y nunca aleja**, y la usa un solo llamador: *Mi ubicación*, donde el
+punto no se vería con la ciudad entera en pantalla.
+
+El encuadre de la ruta calculada (`fitBounds`) se mantiene: ahí el usuario pidió
+ver algo nuevo y esperar que entre entero es lo correcto.
+
+### 3 · No había forma de hacer zoom con una mano
+
+El pellizco pide dos dedos y una mano libre. Arriba de un camión suele haber una
+sola. Se agregaron **botones + y −**, juntos en un solo control de dos mitades,
+como en cualquier navegador conocido — acá lo familiar vale más que lo original.
+
+**Se esconden durante el viaje.** La cámara sigue al vehículo y se reencuadra en
+cada posición, así que un zoom manual quedaría deshecho un segundo después.
+Ofrecer un botón que no hace efecto es peor que no ofrecerlo.
+
+### El resultado
+
+| | Fuera del viaje | En viaje |
+|---|---|---|
+| Inclinación | 0°, siempre | 60° |
+| Orientación | norte arriba, siempre | rumbo de marcha |
+| Zoom | el que eligió el usuario | 16,5 fijo |
+| Botones + / − | sí | escondidos |
+
+Dicho de otro modo: **fuera del viaje el mapa es un plano, y durante el viaje es
+un parabrisas.**
+
+### El efecto colateral: la capa de botones se comía el mapa
+
+Agregar los botones de zoom destapó un error que ya estaba: **los contenedores de
+posicionamiento de la capa flotante interceptaban los toques**.
+
+`.map-side` es una columna alineada a la derecha, pero como ítem de un flex
+vertical **ocupa todo el ancho**. Con `pointer-events: auto` heredado de
+`.map-overlay > *`, esa caja invisible de 458 × 214 px se comía el arrastre y el
+pellizco en toda su franja, aunque adentro sólo hubiera botones de 48 px pegados
+al borde. El mapa quedaba manejable en dos tiras angostas, sin nada visible que
+lo explicara.
+
+Estaba desde antes; los botones nuevos agrandaron la banda hasta volverlo
+imposible de ignorar. **Cada control que se sume a esa columna empeora el
+problema**, así que la regla queda escrita: `none` en los contenedores, `auto`
+sólo en los controles concretos —incluido el espaciador `.grow`, que no es un
+control—.
+
+Medido con `document.elementFromPoint` sobre una grilla: **29 de 36 sondas sobre
+el área del mapa llegan al canvas**, y las 7 que no son exactamente donde están
+los botones. Es una comprobación barata y vale la pena repetirla cada vez que se
+toca esa capa.

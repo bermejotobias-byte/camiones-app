@@ -20,6 +20,18 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 
+		<!--
+		    Que los mensajes de error del framework se puedan leer en el APK.
+
+		    Al recortar, .NET reemplaza por defecto los textos de las excepciones
+		    del framework por sus claves de recurso para ahorrar tamano. En Release
+		    —el unico build que se instala en un telefono— eso convierte cualquier
+		    error en algo como "net_http_client_invalid_requesturi", que no le
+		    dice nada ni al usuario ni a quien lo esta diagnosticando a distancia.
+		    Costo una noche entera. Ver AD-33.
+		-->
+		<UseSystemResourceKeys>false</UseSystemResourceKeys>
+
 		<!-- Enable XAML source generation for faster build times and improved performance.
 		     This generates C# code from XAML at compile time instead of runtime inflation.
 		     To disable, remove this line.
@@ -43,7 +55,12 @@
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<!-- Android 6.0. Lo exige el proveedor de ubicacion combinado de Google, que
+		     declara minSdk 23: con 21 el merge del manifiesto falla el build. No es
+		     una perdida real —Android 5 es de 2014— y ademas alinea el codigo con
+		     las APIs que ya se usaban, como PendingIntentFlags.Immutable, que
+		     tambien pide 23 y venia dando aviso. -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
@@ -79,6 +96,22 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+	</ItemGroup>
+
+	<!-- Proveedor de ubicacion combinado de Google.
+
+	     El LocationManager del sistema entrega el GPS crudo: bajo techo tarda
+	     decenas de segundos en enganchar, y su respaldo por antenas —el
+	     NetworkProvider— puede estar deshabilitado en el telefono sin que la app
+	     se entere. Medido en el equipo de prueba: dos pedidos consecutivos
+	     expiraron a los 15 segundos con cero posiciones, con el NetworkProvider
+	     apagado y el proveedor combinado disponible y sin usar.
+
+	     El combinado mezcla satelites, WiFi, antenas y sensores, y da la primera
+	     posicion en uno o dos segundos tambien adentro de un edificio. El
+	     LocationManager queda como respaldo para telefonos sin Play Services. -->
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<PackageReference Include="Xamarin.GooglePlayServices.Location" Version="121.3.0.9" />
 	</ItemGroup>
 
 	<ItemGroup>

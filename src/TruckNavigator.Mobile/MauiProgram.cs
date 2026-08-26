@@ -32,6 +32,11 @@ public static class MauiProgram
         // La pagina lo usa por la interfaz y no sabe nada de eso.
         builder.Services.AddSingleton<Services.ITripTracker,
             Platforms.Android.AndroidTripTracker>();
+
+        // La brujula sale de los sensores del telefono. Mismo reparto: la pagina
+        // pide "avisame el rumbo" y no sabe que hay un magnetometro detras.
+        builder.Services.AddSingleton<Services.IHeadingSensor,
+            Platforms.Android.AndroidHeadingSensor>();
 #endif
 
         ConfigureWebView();
@@ -69,6 +74,18 @@ public static class MauiProgram
             {
                 handler.PlatformView.Settings.MixedContentMode =
                     Android.Webkit.MixedContentHandling.AlwaysAllow;
+            });
+
+        // La consola del WebView al log del sistema. Sin esto, todo lo que diga
+        // la capa de JavaScript adentro del APK —que es la interfaz entera—
+        // desaparece en silencio, y cada falla hay que diagnosticarla a ciegas.
+        // Ver AD-31.
+        Microsoft.Maui.Handlers.HybridWebViewHandler.Mapper.AppendToMapping(
+            "ConsolaAlLog",
+            (handler, _) =>
+            {
+                handler.PlatformView.SetWebChromeClient(
+                    new Platforms.Android.WebViewConsole());
             });
 #endif
     }

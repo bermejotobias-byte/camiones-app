@@ -3,7 +3,7 @@
 ```
 ┌──────────────────────────────────────────────┐
 │  TruckNavigator.Mobile  (.NET MAUI, Android) │
-│  WebView + MapLibre GL JS  ·  GPS nativo     │
+│  WebView + MapLibre GL JS  ·  GPS y brújula  │
 └───────────────────┬──────────────────────────┘
                     │  HTTP/REST  (LAN)
                     ▼
@@ -39,7 +39,7 @@
 | `TruckNavigator.Domain` | Entidades, motor de restricciones, política de ruteo y aptitud de puntos de interés. **Sin dependencias externas**, lo que permite testearlo en milisegundos. |
 | `TruckNavigator.Infrastructure` | EF Core sobre SQLite, cliente HTTP de GraphHopper, parseo de `path_details`, datasets de puntos de interés embebidos, registro de DI. |
 | `TruckNavigator.Api` | Minimal API, DTOs, validación, Swagger. |
-| `TruckNavigator.Mobile` | App MAUI Android. |
+| `TruckNavigator.Mobile` | App MAUI Android. Cáscara sobre la web de `Api/wwwroot`: le aporta la URL del backend, el GPS, la brújula, la voz y el discador. Cada capacidad del teléfono entra por una interfaz en `Services/` con su implementación en `Platforms/Android/`. |
 | `TruckNavigator.UnitTests` | 65 tests de dominio: restricciones, política de ruteo, aptitud de puntos, reglas del alias y acreditación de viajes. |
 | `TruckNavigator.IntegrationTests` | 43 tests: 11 rutean contra GraphHopper con datos reales, 32 verifican los datasets, el perfil, los camiones, el historial de viajes y su persistencia en SQLite. |
 

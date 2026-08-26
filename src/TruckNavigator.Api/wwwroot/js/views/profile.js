@@ -14,7 +14,7 @@ import { state, setState, levelFor } from '../store.js';
 import { signOut } from '../api.js';
 import {
   html, raw, icon, wire, q, render, withBusy, debounce,
-  formatDistance, formatDuration, formatDate, toastOk, toastError
+  formatDistance, formatDuration, formatDate, toastOk, toastError, askConfirm
 } from '../ui.js';
 
 /**
@@ -194,8 +194,17 @@ export function profileView(host, { go }) {
     wire(host, {
       '#to-history': () => { tab = 'historial'; draw(); },
 
-      '#signout': () => {
-        if (!confirm('¿Cerrar sesión en este dispositivo?')) return;
+      '#signout': async () => {
+        const salir = await askConfirm({
+          title: '¿Cerrás sesión?',
+          message: 'Tus viajes y kilómetros quedan guardados en tu cuenta.',
+          confirmLabel: 'Cerrar sesión',
+          cancelLabel: 'Quedarme',
+          danger: true
+        });
+
+        if (!salir) return;
+
         signOut();
         location.reload();
       },

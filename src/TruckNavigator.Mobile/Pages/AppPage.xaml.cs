@@ -24,19 +24,22 @@ public partial class AppPage : ContentPage
 {
     private readonly TruckNavigatorApi _api;
     private readonly ITripTracker? _tracker;
+    private readonly IHeadingSensor? _compass;
 
     private bool _configSent;
     private bool _pageAnnounced;
     private bool _watchingLocation;
+    private bool _readingHeading;
 
     public AppPage(TruckNavigatorApi api, IServiceProvider services)
     {
         InitializeComponent();
         _api = api;
 
-        // Opcional: en una plataforma sin implementacion la app sigue andando y
-        // solo se pierde el seguimiento continuo.
+        // Opcionales: en una plataforma sin implementacion la app sigue andando y
+        // solo se pierden el seguimiento continuo y la brujula.
         _tracker = services.GetService<ITripTracker>();
+        _compass = services.GetService<IHeadingSensor>();
     }
 
     protected override void OnAppearing()
@@ -78,6 +81,7 @@ public partial class AppPage : ContentPage
     {
         base.OnDisappearing();
         StopWatchingLocation();
+        StopReadingHeading();
     }
 
     /* --------------------------------------------------------------------
@@ -98,7 +102,44 @@ public partial class AppPage : ContentPage
         // no le dice al usuario ni que direccion probar cuando falla.
         ShowStartup($"Conectando con {TruckNavigatorApi.BaseUrl}…", showSetup: false);
 
+        // Incondicional y lo primero de todo: es la unica linea que prueba que el
+        // puente al log funciona, y de paso dice que URL se esta usando de
+        // verdad. Una URL fijada a mano en "Configurar servidor" le gana a la que
+        // viene compilada, y desde afuera eso es indistinguible de un problema de
+        // red.
+        Note($"conectando a {TruckNavigatorApi.BaseUrl} " +
+             $"(compilada: {TruckNavigatorApi.DefaultBaseUrl}, " +
+             $"fijada a mano: {TruckNavigatorApi.IsPinned})");
+
         var check = await _api.CheckAsync();
+
+        Note($"resultado: alcanzable={check.Reachable} motivo={check.Problem ?? "ninguno"}");
+
+        // Auto-rescate: una direccion guardada que dejo de servir no puede dejar
+        // la app varada para siempre. Se prueba la de fabrica ANTES de darse por
+        // vencido, y recien si esa anda se descarta la guardada — si tampoco
+        // anda, lo que el usuario configuro no se toca. Ver AD-33.
+        if (!check.Reachable &&
+            TruckNavigatorApi.IsPinned &&
+            !string.Equals(TruckNavigatorApi.BaseUrl, TruckNavigatorApi.DefaultBaseUrl,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            ShowStartup(
+                $"La dirección guardada no responde." + Environment.NewLine +
+                $"Probando con {TruckNavigatorApi.DefaultBaseUrl}…",
+                showSetup: false);
+
+            var fallback = await _api.CheckAsync(TruckNavigatorApi.DefaultBaseUrl);
+
+            Note($"rescate con la de fabrica: alcanzable={fallback.Reachable}");
+
+            if (fallback.Reachable)
+            {
+                TruckNavigatorApi.ResetToDefault();
+                ServerEntry.Text = TruckNavigatorApi.BaseUrl;
+                check = fallback;
+            }
+        }
 
         if (!check.Reachable)
         {
@@ -129,10 +170,32 @@ public partial class AppPage : ContentPage
     {
         var typed = ServerEntry.Text?.Trim();
 
-        if (!string.IsNullOrWhiteSpace(typed))
+        if (!string.IsNullOrWhiteSpace(typed) &&
+            !TruckNavigatorApi.TrySetBaseUrl(typed, out var problem))
         {
-            TruckNavigatorApi.BaseUrl = typed;
+            // No se guarda nada y se dice por que, sin salir de la pantalla. Antes
+            // se guardaba cualquier texto: una direccion sin http:// quedaba
+            // pegada y rompia todos los intentos siguientes.
+            ShowStartup(problem, showSetup: true);
+            return;
         }
+
+        await ConnectAsync();
+    }
+
+    /// <summary>
+    /// Vuelve a la direccion con la que se compilo la app.
+    /// </summary>
+    /// <remarks>
+    /// Es la salida de emergencia explicita. El auto-rescate de
+    /// <see cref="ConnectAsync"/> cubre el caso normal, pero si el backend de
+    /// fabrica tampoco responde en ese momento, el usuario necesita poder
+    /// descartar lo que escribio sin adivinar cual era el valor original.
+    /// </remarks>
+    private async void OnUseFactoryUrl(object? sender, EventArgs e)
+    {
+        TruckNavigatorApi.ResetToDefault();
+        ServerEntry.Text = TruckNavigatorApi.BaseUrl;
 
         await ConnectAsync();
     }
@@ -201,6 +264,22 @@ public partial class AppPage : ContentPage
                     });
                     break;
 
+                case "heading":
+                    var reading = root.TryGetProperty("on", out var compass) && compass.GetBoolean();
+
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        if (reading)
+                        {
+                            StartReadingHeading();
+                        }
+                        else
+                        {
+                            StopReadingHeading();
+                        }
+                    });
+                    break;
+
                 case "speak":
                     var phrase = root.TryGetProperty("text", out var said) ? said.GetString() : null;
                     MainThread.BeginInvokeOnMainThread(async () => await SpeakAsync(phrase));
@@ -245,8 +324,32 @@ public partial class AppPage : ContentPage
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"No se pudo evaluar el script: {ex.Message}");
+            Note($"no se pudo evaluar el script: {ex.Message}", error: true);
         }
+    }
+
+    /// <summary>
+    /// Deja rastro en el log del sistema.
+    /// </summary>
+    /// <remarks>
+    /// <b>No usa <c>Debug.WriteLine</c> a proposito.</b> Ese metodo lleva
+    /// <c>[Conditional("DEBUG")]</c>: el compilador borra las llamadas en Release,
+    /// asi que los diagnosticos desaparecen justo en el APK que se instala en el
+    /// telefono — el unico lugar donde hay GPS, sensores y WebView de verdad—.
+    /// Este escribe siempre, y se lee con <c>adb logcat -s Cascara</c>.
+    /// </remarks>
+    private static void Note(string message, bool error = false)
+    {
+#if ANDROID
+        if (error)
+        {
+            global::Android.Util.Log.Error("Cascara", message);
+        }
+        else
+        {
+            global::Android.Util.Log.Info("Cascara", message);
+        }
+#endif
     }
 
     /* --------------------------------------------------------------------
@@ -257,6 +360,38 @@ public partial class AppPage : ContentPage
        a la pagina.
     -------------------------------------------------------------------- */
 
+    /// <summary>
+    /// Cuanto puede tener la ultima posicion guardada para seguir sirviendo.
+    /// </summary>
+    /// <remarks>
+    /// Diez minutos: alcanza para ubicar el mapa al abrir la app y es corto para
+    /// que el camion no pueda haberse ido lejos. La posicion fresca la corrige
+    /// en cuanto llega.
+    /// </remarks>
+    private static readonly TimeSpan LastKnownUsefulFor = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// Responde el pedido puntual de ubicacion de la pagina.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Va en tres intentos, del mas barato al mas caro, y <b>el primero que sirva
+    /// se muestra sin esperar a los otros</b>:
+    /// </para>
+    /// <list type="number">
+    /// <item>la ultima posicion que el sistema ya tiene guardada — instantanea;</item>
+    /// <item>una lectura de maxima precision, con paciencia corta;</item>
+    /// <item>una de precision media, que se conforma con antenas y WiFi.</item>
+    /// </list>
+    /// <para>
+    /// Antes habia un solo intento: maxima precision con quince segundos de
+    /// espera. Bajo techo el GPS puede no enganchar en ese tiempo, y se midio
+    /// haciendo exactamente eso — dos pedidos seguidos que expiraron a los quince
+    /// segundos con cero posiciones. El usuario veia "La ubicacion tardo
+    /// demasiado" y el mapa se quedaba sin ubicar, con el sistema teniendo
+    /// guardada una posicion buena de minutos antes.
+    /// </para>
+    /// </remarks>
     private async Task SendPositionAsync()
     {
         if (!await EnsureLocationPermissionAsync())
@@ -267,29 +402,60 @@ public partial class AppPage : ContentPage
             return;
         }
 
+        var served = false;
+
         try
         {
-            var location = await Geolocation.Default.GetLocationAsync(
-                new GeolocationRequest(GeolocationAccuracy.Best, TimeSpan.FromSeconds(15)));
+            var known = await Geolocation.Default.GetLastKnownLocationAsync();
 
-            if (location is null)
+            if (known is not null &&
+                DateTimeOffset.UtcNow - known.Timestamp <= LastKnownUsefulFor)
             {
-                await RunScriptAsync("window.TN_locationFailed('No se pudo determinar tu ubicación.')");
-                return;
+                await PushPositionAsync(Track(known));
+                served = true;
             }
-
-            await PushPositionAsync(new TrackedPosition(
-                location.Latitude,
-                location.Longitude,
-                location.Accuracy,
-                location.Speed,
-                location.Course));
         }
         catch (Exception ex)
         {
-            await RunScriptAsync($"window.TN_locationFailed({Json(ex.Message)})");
+            // Que no haya ultima posicion no es un error: se sigue con la fresca.
+            System.Diagnostics.Debug.WriteLine($"Sin ultima posicion conocida: {ex.Message}");
+        }
+
+        foreach (var accuracy in new[] { GeolocationAccuracy.Best, GeolocationAccuracy.Medium })
+        {
+            try
+            {
+                var location = await Geolocation.Default.GetLocationAsync(
+                    new GeolocationRequest(accuracy, TimeSpan.FromSeconds(8)));
+
+                if (location is not null)
+                {
+                    await PushPositionAsync(Track(location));
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Lectura {accuracy} fallida: {ex.Message}");
+            }
+        }
+
+        // Solo se avisa si no se pudo mostrar nada. Si ya se empujo la ultima
+        // conocida, el mapa esta ubicado y un cartel de error seria mentira.
+        if (!served)
+        {
+            await RunScriptAsync(
+                "window.TN_locationFailed('No se pudo determinar tu ubicación. " +
+                "Si estás bajo techo, salí a cielo abierto o marcá el origen tocando el mapa.')");
         }
     }
+
+    private static TrackedPosition Track(Location location) => new(
+        location.Latitude,
+        location.Longitude,
+        location.Accuracy,
+        location.Speed,
+        location.Course);
 
     /// <summary>
     /// Empuja una posicion a la pagina.
@@ -300,14 +466,20 @@ public partial class AppPage : ContentPage
     /// de cuanto error informe el GPS— y cuanto pudo haber avanzado desde la
     /// posicion anterior.
     /// </remarks>
-    private Task PushPositionAsync(TrackedPosition position) =>
-        RunScriptAsync(
+    private Task PushPositionAsync(TrackedPosition position)
+    {
+        // De paso, la brujula se entera de donde esta el camion. Lo necesita para
+        // corregir la declinacion magnetica, que depende del lugar.
+        _compass?.UseLocation(position.Latitude, position.Longitude);
+
+        return RunScriptAsync(
             "window.TN_setPosition(" +
             Num(position.Latitude) + "," +
             Num(position.Longitude) + "," +
             Num(position.AccuracyMeters) + "," +
             Num(position.SpeedMetersPerSecond) + "," +
             Num(position.BearingDegrees) + ")");
+    }
 
     /// <summary>
     /// Arranca el seguimiento del viaje.
@@ -338,10 +510,12 @@ public partial class AppPage : ContentPage
         {
             _tracker.PositionChanged -= OnTrackedPosition;
 
-            // Sin permiso no hay navegacion. Callarse dejaria una pantalla que no
-            // se actualiza sin ningun motivo visible.
+            // Canal propio y no TN_locationFailed: ese resuelve los pedidos
+            // puntuales de posicion, y si en ese momento no hay ninguno esperando
+            // —que es lo habitual al arrancar un viaje— el aviso se perdia en
+            // silencio y la pantalla quedaba muerta sin motivo visible.
             await RunScriptAsync(
-                "window.TN_locationFailed('Sin permiso de ubicación no se puede navegar. " +
+                "window.TN_trackingFailed('Sin permiso de ubicación no se puede navegar. " +
                 "Habilitalo en los ajustes del teléfono.')");
 
             return;
@@ -375,6 +549,90 @@ public partial class AppPage : ContentPage
         }
 
         return status == PermissionStatus.Granted;
+    }
+
+    /* --------------------------------------------------------------------
+       Brujula
+
+       El rumbo del GPS dice hacia donde se MUEVE el camion, y no existe cuando
+       esta parado. El magnetometro dice hacia donde APUNTA el telefono, siempre.
+       Son dos datos distintos y la pantalla usa los dos.
+    -------------------------------------------------------------------- */
+
+    /// <summary>
+    /// Arranca la lectura del rumbo, a pedido de la pagina.
+    /// </summary>
+    /// <remarks>
+    /// A pedido y no siempre: los sensores consumen bateria y solo la pantalla
+    /// del mapa muestra la brujula. Cuando la pagina se va a otra vista avisa que
+    /// deje de leer.
+    /// </remarks>
+    private void StartReadingHeading()
+    {
+        if (_compass is null || _readingHeading)
+        {
+            return;
+        }
+
+        Note($"brujula: arrancando, soportada={_compass.IsSupported}");
+
+        if (!_compass.IsSupported)
+        {
+            // Hay telefonos sin magnetometro. Se avisa para que la pantalla
+            // esconda la brujula en vez de dejar una flecha clavada al norte,
+            // que seria peor que no mostrar nada.
+            _ = RunScriptAsync("window.TN_headingUnavailable && window.TN_headingUnavailable()");
+            return;
+        }
+
+        _compass.HeadingChanged -= OnHeadingChanged;
+        _compass.HeadingChanged += OnHeadingChanged;
+
+        _compass.Start();
+        _readingHeading = true;
+
+        // Antes del primer viaje no hay ninguna posicion empujada, asi que la
+        // declinacion se sembra con la ultima que el sistema tenga guardada. Sin
+        // esto la brujula arranca referida al norte magnetico.
+        _ = SeedDeclinationAsync();
+    }
+
+    private async Task SeedDeclinationAsync()
+    {
+        try
+        {
+            var known = await Geolocation.Default.GetLastKnownLocationAsync();
+
+            if (known is not null)
+            {
+                _compass?.UseLocation(known.Latitude, known.Longitude);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Sin posicion para la declinacion: {ex.Message}");
+        }
+    }
+
+    private void StopReadingHeading()
+    {
+        if (!_readingHeading)
+        {
+            return;
+        }
+
+        _compass!.HeadingChanged -= OnHeadingChanged;
+        _compass.Stop();
+        _readingHeading = false;
+    }
+
+    private void OnHeadingChanged(object? sender, HeadingReading reading)
+    {
+        var script = $"window.TN_setHeading({Num(reading.Degrees)},{(reading.Reliable ? "true" : "false")})";
+
+        Note($"brujula: empujo {script}");
+
+        MainThread.BeginInvokeOnMainThread(async () => await RunScriptAsync(script));
     }
 
     /* --------------------------------------------------------------------

@@ -71,11 +71,25 @@
                         FontAttributes="Bold"
                         HeightRequest="50" />
 
+                    <!--
+                        Salida de emergencia. Sin esto, una direccion guardada que
+                        dejo de servir no se puede descartar sin adivinar cual era
+                        la original, y la app queda inutilizable.
+                    -->
+                    <Button
+                        Text="Usar la dirección de fábrica"
+                        Clicked="OnUseFactoryUrl"
+                        BackgroundColor="Transparent"
+                        BorderColor="#24333c"
+                        BorderWidth="1"
+                        TextColor="#a8bcc7"
+                        HeightRequest="46" />
+
                     <Label
                         TextColor="#6f8794"
                         FontSize="12.5"
                         LineHeight="1.35"
-                        Text="Revisá, en este orden: que el backend esté corriendo; que el teléfono esté en la misma red Wi-Fi que la computadora; y que la IP sea la de ahora — cambia cada vez que la computadora se reconecta." />
+                        Text="Podés escribir sólo la IP y el puerto, por ejemplo 192.168.1.5:5080. Revisá, en este orden: que el backend esté corriendo; que el teléfono esté en la misma red Wi-Fi que la computadora; y que la IP sea la de ahora — cambia cada vez que la computadora se reconecta." />
 
                 </VerticalStackLayout>
 

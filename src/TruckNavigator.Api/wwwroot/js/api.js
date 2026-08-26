@@ -226,6 +226,11 @@ export const api = {
 
   // viajes
   startTrip: (data) => post('/api/trips', data),
+
+  // Devuelve null cuando no hay ninguno abierto: el 204 del servidor no trae
+  // cuerpo. Se consulta al entrar, porque el viaje sobrevive a cerrar la app.
+  activeTrip: () => get('/api/trips/active'),
+
   finishTrip: (id) => post(`/api/trips/${id}/finish`),
   cancelTrip: (id) => post(`/api/trips/${id}/cancel`),
   trips: (limit = 20) => get(`/api/trips${query({ limit })}`),

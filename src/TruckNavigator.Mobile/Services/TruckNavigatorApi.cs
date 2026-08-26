@@ -36,24 +36,72 @@ public sealed class TruckNavigatorApi(HttpClient httpClient)
                 return DefaultBaseUrl;
             }
 
-            return Preferences.Default.Get(BaseUrlPreferenceKey, DefaultBaseUrl);
-        }
-        set
-        {
-            var url = value.Trim().TrimEnd('/');
+            var saved = Preferences.Default.Get(BaseUrlPreferenceKey, DefaultBaseUrl);
 
-            // Escribir la URL del propio build equivale a volver al valor de fábrica.
-            if (string.Equals(url, DefaultBaseUrl, StringComparison.OrdinalIgnoreCase))
-            {
-                Preferences.Default.Remove(PinnedPreferenceKey);
-                Preferences.Default.Remove(BaseUrlPreferenceKey);
-                return;
-            }
-
-            Preferences.Default.Set(BaseUrlPreferenceKey, url);
-            Preferences.Default.Set(PinnedPreferenceKey, true);
+            // Ultima linea de defensa. Una version anterior guardaba lo que
+            // fuera, sin validar: si en el telefono quedo una direccion invalida
+            // de entonces, se la ignora en vez de arrastrar el problema para
+            // siempre. Sin esto, la app queda inutilizable y la unica salida es
+            // adivinar que hay que reescribir la direccion. Ver AD-33.
+            return TryNormalize(saved, out var url, out _) ? url : DefaultBaseUrl;
         }
     }
+
+    /// <summary>
+    /// Guarda una direccion escrita a mano, si es usable.
+    /// </summary>
+    /// <param name="input">Lo que escribio el usuario.</param>
+    /// <param name="problem">Que tiene de malo, para mostrarselo.</param>
+    /// <returns><c>false</c> si no se guardo nada.</returns>
+    /// <remarks>
+    /// <b>Validar aca no es opcional.</b> Antes el setter guardaba cualquier
+    /// texto. Escribir la IP sin <c>http://</c> —que es lo que cualquiera
+    /// escribe— producia una direccion que ni siquiera es una URI absoluta, y a
+    /// partir de ahi <see cref="HttpClient"/> tiraba antes de salir a la red.
+    /// Como el valor quedaba guardado y le gana al del build, la app quedaba
+    /// muerta incluso reinstalandola.
+    /// </remarks>
+    public static bool TrySetBaseUrl(string? input, out string problem)
+    {
+        if (!TryNormalize(input, out var url, out problem))
+        {
+            return false;
+        }
+
+        // Escribir la URL del propio build equivale a volver al valor de fábrica.
+        if (string.Equals(url, DefaultBaseUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            ResetToDefault();
+            return true;
+        }
+
+        Preferences.Default.Set(BaseUrlPreferenceKey, url);
+        Preferences.Default.Set(PinnedPreferenceKey, true);
+
+        return true;
+    }
+
+    /// <summary>Vuelve a la direccion con la que se compilo la app.</summary>
+    public static void ResetToDefault()
+    {
+        Preferences.Default.Remove(PinnedPreferenceKey);
+        Preferences.Default.Remove(BaseUrlPreferenceKey);
+    }
+
+    /// <inheritdoc cref="BackendAddress.TryNormalize"/>
+    private static bool TryNormalize(string? input, out string url, out string problem) =>
+        BackendAddress.TryNormalize(input, out url, out problem);
+
+    /// <summary>
+    /// Si hay una URL fijada a mano que le gana a la del build.
+    /// </summary>
+    /// <remarks>
+    /// Es para poder <b>decirlo</b> en el log. Una URL vieja fijada desde
+    /// "Configurar servidor" sobrevive a reinstalar la app, y desde afuera el
+    /// sintoma —"no se pudo conectar"— es identico al de un problema de red. Sin
+    /// esta distincion se persigue el fantasma equivocado.
+    /// </remarks>
+    public static bool IsPinned => Preferences.Default.Get(PinnedPreferenceKey, false);
 
     /// <summary>
     /// Cuanto se espera al chequeo de conexion.
@@ -77,12 +125,28 @@ public sealed class TruckNavigatorApi(HttpClient httpClient)
     /// </param>
     public sealed record HealthCheck(bool Reachable, string? Problem);
 
-    public async Task<HealthCheck> CheckAsync(CancellationToken ct = default)
+    /// <summary>
+    /// Pregunta si un backend responde.
+    /// </summary>
+    /// <param name="candidate">
+    /// Que direccion probar. Si va <c>null</c>, la que este configurada. Se pasa
+    /// explicita para poder probar la de fabrica sin pisar todavia la que el
+    /// usuario guardo: si la de fabrica tampoco anda, la suya no se toca.
+    /// </param>
+    public async Task<HealthCheck> CheckAsync(string? candidate = null, CancellationToken ct = default)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(HealthCheckTimeout);
 
-        var url = $"{BaseUrl}/api/health";
+        // La direccion se valida ANTES de armar el pedido. Con una invalida,
+        // HttpClient tira una excepcion cuyo mensaje en Release es una clave de
+        // recurso ilegible, y el usuario recibe eso como explicacion.
+        if (!TryNormalize(candidate ?? BaseUrl, out var baseUrl, out var invalid))
+        {
+            return new HealthCheck(false, invalid);
+        }
+
+        var url = $"{baseUrl}/api/health";
 
         try
         {
@@ -105,16 +169,26 @@ public sealed class TruckNavigatorApi(HttpClient httpClient)
                 "El servidor no contestó a tiempo. Puede estar apagado, o el " +
                 "teléfono en otra red.");
         }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException)
         {
-            return new HealthCheck(false, $"No se pudo conectar: {ex.Message}");
+            // El mensaje de la excepcion NO se muestra. En un build recortado
+            // .NET reemplaza los textos del framework por sus claves de recurso,
+            // asi que lo que le llegaba al usuario era algo como
+            // "net_http_client_invalid_requesturi" — ruido puro. Ver AD-33.
+            return new HealthCheck(false,
+                "No se pudo conectar. Fijate que el backend esté corriendo y que " +
+                "el teléfono esté en la misma red que la computadora.");
         }
         catch (Exception ex)
         {
-            return new HealthCheck(false, ex.Message);
+            // Del tipo de excepcion sí se puede dar el nombre: los nombres de
+            // tipo sobreviven al recorte, los mensajes no.
+            return new HealthCheck(false,
+                $"Falló el intento de conexión ({ex.GetType().Name}). " +
+                "Revisá la dirección.");
         }
     }
 
     public async Task<bool> IsReachableAsync(CancellationToken ct = default) =>
-        (await CheckAsync(ct)).Reachable;
+        (await CheckAsync(null, ct)).Reachable;
 }

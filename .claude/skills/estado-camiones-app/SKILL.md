@@ -33,16 +33,22 @@ navegador: perfil, historial, gamificación, comunidad.
 | Documento | Qué tiene |
 |---|---|
 | `CLAUDE.md` | Convenciones, comandos, **trampas que ya costaron tiempo** |
-| `docs/decisions.md` | **26 decisiones arquitectónicas (AD-01…AD-26)** con su porqué |
+| `docs/decisions.md` | **34 decisiones arquitectónicas (AD-01…AD-34)** con su porqué |
 | `docs/data-sources.md` | Fuentes, licencias y limitaciones **L-1…L-8** (L-4 ya resuelta) |
 | `docs/architecture.md` | Estructura y proyectos |
 | `docs/routing.md`, `docs/restrictions.md`, `docs/pois.md`, `docs/deploy.md` | Por tema |
 | `PLAN.md` | Especificación original del MVP |
 | Escritorio del usuario | `PUNTOS A TRABAJAR EN LA APLICACIÓN GPS CAMIONES.docx` — los 33 requisitos |
 
-**Las AD-17 a AD-26 son de esta sesión** y cubren: identidad, perfil, propiedad
-de camiones, viajes, mudanza del frontend, cáscara Android, motor de navegación,
-servicio en segundo plano, capas de camión y mapa base propio.
+**Las AD-17 a AD-34 son del trabajo reciente.** Las cinco últimas, del 25–26/08/2026:
+
+| AD | Qué resuelve | Por qué importa releerla |
+|---|---|---|
+| **AD-30** | Brújula del magnetómetro | Por qué NO se usa `Compass` de MAUI: se degenera con el teléfono en un soporte |
+| **AD-31** | Consola del WebView y diagnósticos a logcat | `Debug.WriteLine` se **borra en Release**: los diagnósticos no existían en el APK |
+| **AD-32** | 28 tests de JS con el runner de Node | Cero dependencias; no contradice AD-21 |
+| **AD-33** | Una dirección mal escrita dejaba la app **inutilizable** | Cuatro fallas encadenadas; la lección se generaliza a cualquier valor persistido |
+| **AD-34** | Cámara cenital fija fuera del viaje, zoom con botones | Incluye la capa de botones comiéndose los toques del mapa |
 
 ---
 
@@ -82,6 +88,15 @@ Prioridad declarada por el usuario:
 **Distinción crítica.** Mucho está probado a fondo; una franja específica no se
 pudo probar y hay que decirlo cada vez.
 
+### Verificado en el teléfono el 26/08/2026
+
+- **La app entra y conecta.** Costó una noche: ver AD-33, cuatro fallas
+  encadenadas que la dejaban inutilizable con una dirección mal escrita.
+- **La brújula anda** con el teléfono en la mano: dial, punto cardinal y cono
+  sobre la ubicación. Reportado por el usuario.
+- **El ruteo desde el teléfono funciona end-to-end**: GraphHopper sirvió cinco
+  rutas de camión con el custom model completo, en 7–78 ms.
+
 ### Verificado con rigor
 
 - **Motor de navegación** (`wwwroot/js/navigation.js`): recorrido sintético de
@@ -89,7 +104,7 @@ pudo probar y hay que decirlo cada vez.
   de GraphHopper (**4 m de error en 26 km**); robusto a ±30 m de ruido; detección
   de desvío 0→1→2→3 strikes con enfriamiento; avisos de 35 apelotonados a 26 con
   220 m de separación mínima.
-- **Backend completo**: 65 tests de dominio + 43 de integración (11 contra
+- **Backend completo**: 85 tests de dominio y utilidades + 46 de integración (11 contra
   GraphHopper real). Flujos end-to-end por HTTP: alta, verificación, login,
   perfil, alias único, camiones, propiedad, viajes, acreditación de km.
 - **Datos del mapa**: medidos contra Overpass el 24/08/2026, dentro del límite
@@ -100,17 +115,138 @@ pudo probar y hay que decirlo cada vez.
 - **Navegación manejando.** Nunca se probó en movimiento. Pendiente para cerrar
   Fase 1: que la flecha siga al camión, que hable en los giros, que el servicio
   sobreviva a apagar la pantalla.
+- **La brújula en el soporte del camión.** El usuario la probó en el teléfono el
+  26/08/2026 y reportó que **funciona** —dial, cardinal y cono—, pero con el
+  aparato en la mano. Falta el caso que motivó no usar `Compass` de MAUI: el
+  teléfono **parado en un soporte de parabrisas** (AD-30). Ahí es donde el eje
+  cambia, y ahí es donde se sabrá si el trabajo extra valió la pena.
 - **El mapa renderizado.** El panel de navegador de las sesiones no compone
   frames → el mapa nunca carga tiles → nada que dependa de él se puede ver.
   Las capas de camión están servidas y empaquetadas pero **no vistas**.
 - **La app en el teléfono, salvo lo que reportó el usuario.**
 
-### Lección que se pagó tres veces
+### Lección que se pagó cinco veces
 
-Las tres fallas encontradas en el teléfono estuvieron **todas en la costura entre
-la cáscara nativa y la web** — justamente lo único que no se puede probar acá.
-Cuando se toque esa costura, asumir que va a fallar y **pedirle al usuario el
+Las cinco fallas encontradas en el teléfono estuvieron **todas en la costura
+entre la cáscara nativa y la web** — justamente lo único que no se puede probar
+acá. Cuando se toque esa costura, asumir que va a fallar y **pedirle al usuario el
 mensaje de error textual**: cada uno descartó una capa.
+
+La cuarta (25/08/2026) fue `confirm()`: el WebView no lo dibuja y devuelve `false`
+en silencio, así que *Terminar viaje*, *Cerrar sesión* y *Borrar camión* parecían
+botones muertos. **Nada en el navegador de escritorio lo delata**: ahí funciona.
+Al escribir código para la web que corre adentro del APK, preguntarse siempre qué
+API del navegador se está dando por sentada. Ver AD-28.
+
+La quinta (25/08/2026) fue el GPS: proveedor crudo en vez del combinado, sin usar
+la última posición conocida, y una pantalla que no cambiaba nada hasta el primer
+fix. Ver AD-29.
+
+### `dumpsys location` es la herramienta de diagnóstico del GPS
+
+Lo que cerró el caso del arranque lento, y sirve para cualquier duda de ubicación:
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb shell "dumpsys location | grep -E 'provider|trucknavigator'"
+```
+
+Da, sin ambigüedad: **qué proveedores están habilitados** en ese teléfono
+—`network provider: enabled=false` fue el hallazgo—, **cuántas posiciones recibió
+cada cliente** (`locations = 0` contra `locations = 465`), la **última posición
+conocida**, y un historial con marca de tiempo de cada alta y baja de registro.
+Dos altas seguidas separadas por exactamente 15 s con cero posiciones es la firma
+de un `GetLocationAsync` expirando.
+
+Complementos: `dumpsys activity services <paquete>` para ver si el servicio en
+primer plano está vivo y desde cuándo, y `ls -lt /data/anr/` para ANRs.
+
+### "No se pudo conectar al servidor": probar desde el teléfono, no deducir
+
+Confirmado el 26/08/2026. El síntoma casi siempre es la **IP vieja grabada en el
+APK** tras un cambio de red, pero antes de recompilar conviene probar de verdad,
+porque hay dos espejismos que llevan por el camino equivocado:
+
+- **`ping` desde el teléfono a la máquina falla SIEMPRE**, aunque todo ande:
+  Windows bloquea ICMP por defecto en todos los perfiles. Un 100% de pérdida
+  **no prueba nada**.
+- **El perfil de red suele ser "Public"** al entrar a una WiFi nueva, lo que
+  asusta, pero la regla `TruckNavigator API 5080 (dev)` ya cubre ese perfil.
+  Verificar con `Get-NetFirewallProfile` que `DefaultInboundAction` no esté en
+  `Block` y con `Get-NetFirewallAddressFilter` que el `RemoteAddress` de la regla
+  incluya la subred de hoy — está limitado a una subred, así que **cambiar de red
+  puede dejarlo afuera**.
+
+La prueba que sí sirve es TCP desde el propio teléfono, con `toybox nc`
+(`curl` no existe en Android):
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb shell "toybox nc -w 5 192.168.100.106 5080 < /dev/null; echo `$?"
+```
+
+`0` es que llegó, distinto de `0` es que no. **Y validá el instrumento**: la misma
+prueba contra un puerto cerrado (`9999`) y una IP inexistente tiene que dar `1`.
+Sin ese control, un `nc` que siempre devuelve 0 lleva a una conclusión falsa.
+
+No usar `echo -e 'GET ...'` para armar el pedido HTTP: el shell de Android no
+interpreta esos escapes y `nc` conecta pero manda basura, con lo que parece que
+el servidor no contesta. Va `printf`.
+
+### Cuando la WiFi no sea opción: túnel por USB
+
+```powershell
+& $adb reverse tcp:5080 tcp:5080
+& $adb reverse tcp:8989 tcp:8989
+```
+
+El `localhost` del teléfono pasa a ser el de la máquina. Se configura la app con
+`http://127.0.0.1:5080` y anda sin depender de la red ni del firewall — sirve
+para probar de escritorio, no para manejar.
+
+### Adentro del APK ahora SÍ hay log — usalo antes que nada
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb logcat -c                          # limpiar antes de reproducir
+& $adb logcat -s Web Cascara Brujula
+```
+
+| Etiqueta | Qué trae |
+|---|---|
+| `Web` | **la consola del WebView**, o sea la interfaz entera, con archivo y línea |
+| `Cascara` | el puente nativo: configuración, posiciones, brújula, fallos al evaluar JS |
+| `Brujula` | cada rumbo calculado, con inclinación y declinación |
+
+Esto no existía hasta el 25/08/2026 y **es la causa de fondo de que las cinco
+fallas de la costura nativa-web costaran tanto**: MAUI no instala
+`WebChromeClient`, y sin uno Android descarta los mensajes de consola en
+silencio. Ver AD-31.
+
+**Y no diagnostiques con `Debug.WriteLine`**: lleva `[Conditional("DEBUG")]`, el
+compilador borra las llamadas en Release y los mensajes desaparecen justo en el
+APK que se instala en el teléfono. Va `Android.Util.Log`.
+
+### `dumpsys sensorservice` es el equivalente para la brújula
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb shell "dumpsys sensorservice | grep -B1 -A1 trucknavigator"
+```
+
+Tres secciones sirven, y conviene mirarlas en este orden:
+
+- **`Sensor List`** dice qué trae el equipo. En el teléfono de prueba (Xiaomi
+  `24117RN76L`, medido el 25/08/2026) están los tres que importan: `mmc5603`
+  (`magnetic_field`), `rot_vec` (`rotation_vector`, 5–200 Hz) y `geo_rotvec`
+  (`geomagnetic_rotation_vector`, el respaldo). Con giróscopo, así que el vector
+  de rotación es el fusionado.
+- **`Active sensors` / `Connection Number`** dice si la app está enganchada
+  **ahora**: tiene que aparecer una conexión de `ar.com.trucknavigator.caba` con
+  `rot_vec`. Si no aparece con el mapa abierto, el sensor nunca arrancó.
+- **`Previous Registrations`** es el historial con hora, en formato
+  `(sensor, package)`. Altas y bajas sin lecturas en el medio son la firma de un
+  registro que falla.
 
 ---
 
@@ -141,8 +277,14 @@ mensaje de error textual**: cada uno descartó una capa.
 
 ### La máquina
 
-- **No hay Node ni Python.** Sin tests unitarios de JS. Se compensa con
-  recorridos sintéticos ejecutados en el navegador.
+- **Node 24.19 y npm 11.17 SÍ están instalados** (verificado el 26/08/2026; la
+  nota anterior decía lo contrario y estaba vieja, y esa creencia costó no tener
+  tests sobre el motor de guiado). No hay Python. **Ya hay 28 tests de JS**:
+  `node --test "tests/web/*.test.mjs"`, con el runner que trae Node, **sin una
+  sola dependencia** — no hay `node_modules` ni `npm install`, y el `wwwroot` que
+  se sirve y se empaqueta es idéntico con o sin ellos. Ver AD-32. Cubren
+  `navigation.js`, que es puro; los módulos que tocan el DOM quedan afuera porque
+  necesitarían un DOM simulado, o sea una dependencia.
 - **PowerShell 5.1**, sin `&&` ni operadores modernos.
 - **`$PSScriptRoot` viene vacío dentro del bloque `param()`** → una ruta relativa
   con `..` se ancla en la raíz del disco y el script escribe en `C:\src\...`
@@ -180,6 +322,15 @@ mensaje de error textual**: cada uno descartó una capa.
   falla. Esperar `once('idle')`. Y **no envolver el alta de capas en el mismo
   `catch` que la descarga** — confundirlas oculta el problema.
 
+### MapLibre: los marcadores y su `position`
+
+La biblioteca le pone `position: absolute` al elemento del marcador y lo ubica por
+`transform`. **Declararle `position: relative` se lo pisa** y el marcador se cae
+del mapa: queda apilado en el flujo del contenedor junto a los demás pines. Con un
+solo marcador en pantalla la posición coincide igual, así que no se nota hasta que
+hay dos. Para apilar cosas adentro de un marcador —un cono debajo de un punto— va
+una grilla con `grid-area: 1 / 1`, no `position: absolute`.
+
 ### Android
 
 - `targetSdk 36`. Un servicio en primer plano necesita
@@ -202,7 +353,7 @@ mensaje de error textual**: cada uno descartó una capa.
 ```powershell
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
-dotnet test                              # 108 tests
+dotnet test                              # 131 tests (.NET) + 28 de JS
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
 ```
@@ -213,17 +364,41 @@ lo correcto.
 
 - El mail **no se envía** (sin SMTP): el enlace de verificación aparece en el log
   del backend. En `Production` el arranque corta si falta SMTP.
-- IP del usuario al 24/08/2026: `192.168.100.106`. La app deja corregirla desde
-  el teléfono si cambia.
+- **Cuenta de prueba en desarrollo**: `demo@camiones.test` / `camion2026`, sembrada
+  por `DevUserSeed` sólo en `Development`. Mail confirmado y perfil completo
+  (alias `demo`): entra directo al mapa sin buscar el enlace en el log.
+- IP del usuario al 26/08/2026: `192.168.100.106` (el 25/08 era `192.168.1.78` y
+  el 24/08 `192.168.100.106` otra vez — **cambia de red en red y volvió a cambiar
+  a mitad de una sesión de pruebas, verificarla siempre**, con
+  `Get-NetIPAddress -AddressFamily IPv4`). La app deja corregirla desde
+  *Configurar servidor* en el teléfono, y `network_security_config.xml` ya
+  permite HTTP en claro a cualquier dirección, así que cambiarla **no obliga a
+  recompilar**. Si el APK quedó con la IP vieja, se arregla desde el teléfono.
+- **`adb` está en `%LOCALAPPDATA%\Android\Sdk\platform-tools`**, no en el SDK de
+  Visual Studio. `build-apk.ps1 -Push` busca en ambos desde el 25/08/2026.
+- **El túnel de `demo-up.ps1`: si el hostname no resuelve, reabrirlo.** Confirmado
+  el 25/08/2026. El DNS del ISP (vía router `192.168.1.1`) devolvió **NXDOMAIN**
+  para el hostname nuevo de `trycloudflare.com`, mientras 1.1.1.1 y 8.8.8.8 sí lo
+  resolvían — y `ipconfig /flushdns` no lo arregló, porque el caché negativo está
+  río arriba. **Matar `cloudflared` y relanzarlo dio otro nombre que resolvió al
+  instante.** Para separar DNS de conectividad sin adivinar:
+  `curl --resolve <host>:443:104.16.230.132 https://<host>/api/health` — si eso
+  responde, el túnel está bien y el problema es sólo de nombres.
+  `cloudflared` se instala con `winget install --id Cloudflare.cloudflared` y
+  queda en `C:\Program Files (x86)\cloudflared\`, que es donde el script lo busca.
+- **`routing/config-truck.yml` apunta en el árbol de trabajo a
+  `argentina-latest.osm.pbf`** y no a `amba-latest.osm.pbf` como en el commit: el
+  recorte del AMBA no está en disco. Sin ese cambio local GraphHopper no arranca.
 
 ---
 
 ## 8. Lo que sigue
 
 **Inmediato:** cerrar Fase 1 probando en movimiento. Orden que más rápido
-descarta problemas: ¿carga la interfaz? → ¿el GPS ubica? → ¿aparece la
-notificación al arrancar el viaje? → **¿avanza la flecha tras apagar la pantalla
-un minuto?** → ¿habla en los giros?
+descarta problemas: ¿carga la interfaz? → ¿el GPS ubica? → **¿el dial de la
+brújula marca bien con el teléfono en el soporte?** → ¿aparece la notificación al
+arrancar el viaje? → **¿avanza la flecha tras apagar la pantalla un minuto?** →
+¿habla en los giros?
 
 **Fase 4 está cerrada.** El mapa base propio en PMTiles resolvió el minimalismo,
 el día/noche del fondo y **L-4** — ya no se depende de `tile.openstreetmap.org`

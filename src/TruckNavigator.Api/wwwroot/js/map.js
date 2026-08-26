@@ -76,8 +76,28 @@ export function createMap(container, handlers = {}) {
     style: vector ? buildBasemapStyle(currentApiBase()) : rasterFallbackStyle(),
     center: CABA_CENTER,
     zoom: 12,
-    attributionControl: { compact: true }
+    attributionControl: { compact: true },
+
+    // --- la camara no se inclina ni gira por gesto, nunca ------------------
+    //
+    // Fuera del viaje el mapa es una vista cenital fija, mirando al norte, como
+    // en cualquier navegador conocido. Girarlo e inclinarlo son gestos que en un
+    // telefono salen SIN QUERER —un pellizco desparejo alcanza— y dejan el mapa
+    // torcido sin que el usuario sepa que toco ni como volver.
+    //
+    // La perspectiva existe en un solo lugar y por una sola razon: durante el
+    // viaje, donde inclinar la camara muestra las cuadras que vienen en vez de
+    // las que ya se pasaron. Esa inclinacion la aplica la app con easeTo, que no
+    // pasa por estos manejadores, asi que apagarlos no la afecta.
+    dragRotate: false,
+    pitchWithRotate: false,
+    touchPitch: false
   });
+
+  // El pellizco sigue haciendo zoom —eso es esencial— pero pierde la parte que
+  // rota. Son el mismo manejador y por eso se desactiva aparte.
+  map.touchZoomRotate.disableRotation();
+  map.keyboard.disableRotation();
 
   // Si el archivo de tiles no está, MapLibre avisa por este evento y no con una
   // excepción. Se cae al raster para que el mapa no quede negro y sin explicación.
@@ -237,7 +257,80 @@ function place(kind, coords, className, label) {
 
 export const setOrigin = (coords) => place('origin', coords, 'pin-origin', 'A');
 export const setDestination = (coords) => place('destination', coords, 'pin-destination', 'B');
-export const setGpsPosition = (coords) => place('gps', coords, 'pin-gps');
+
+/* ---------------------------------------------------------------------------
+   Donde estoy y hacia donde miro
+
+   El punto de la ubicacion propia lleva un cono que dice hacia donde apunta el
+   telefono. No sale del GPS: el GPS informa hacia donde se MUEVE el camion y no
+   dice nada con el camion parado. Esto sale del magnetometro y vale siempre.
+
+   El cono se dibuja EN EL MAPA y no pegado a la pantalla. Con la camara girada
+   —lo normal navegando— un cono anclado a la pantalla apuntaria a cualquier
+   lado, porque el norte de la pantalla ya no es el norte del mapa.
+--------------------------------------------------------------------------- */
+
+let gpsHeading = null;
+
+export function setGpsPosition(coords) {
+  if (!map) return;
+
+  if (!coords) {
+    markers.gps?.remove();
+    markers.gps = null;
+    return;
+  }
+
+  if (!markers.gps) {
+    markers.gps = new maplibregl.Marker({ element: gpsElement(), rotationAlignment: 'map' })
+      .setLngLat([coords.lng, coords.lat])
+      .addTo(map);
+
+    applyGpsHeading();
+  }
+
+  markers.gps.setLngLat([coords.lng, coords.lat]);
+}
+
+/**
+ * Hacia donde apunta el telefono.
+ *
+ * @param {number|null} degrees grados horarios desde el norte, o `null` si el
+ *   dispositivo no lo informa — ahi el cono se esconde en vez de quedar clavado
+ *   al norte, que seria mentir.
+ */
+export function setGpsHeading(degrees) {
+  gpsHeading = Number.isFinite(degrees) ? degrees : null;
+  applyGpsHeading();
+}
+
+function applyGpsHeading() {
+  if (!markers.gps) return;
+
+  markers.gps.setRotation(gpsHeading ?? 0);
+  markers.gps.getElement().classList.toggle('gps-facing', gpsHeading !== null);
+}
+
+function gpsElement() {
+  const node = document.createElement('div');
+  node.className = 'gps-puck';
+
+  // El cono se desvanece hacia afuera: dice una direccion, no una distancia. Con
+  // un borde neto parecia un haz que llega hasta ahi y no mas.
+  node.innerHTML = `
+    <svg class="gps-cone" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
+      <defs>
+        <radialGradient id="gps-cone-fade" cx="50%" cy="50%" r="50%">
+          <stop offset="15%" stop-color="currentColor" stop-opacity=".6"/>
+          <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <path d="M24 24 L14 6.7 A20 20 0 0 1 34 6.7 Z" fill="url(#gps-cone-fade)"/>
+    </svg>
+    <div class="pin pin-gps"></div>`;
+
+  return node;
+}
 
 /* ---------------------------------------------------------------------------
    Ruta
@@ -346,8 +439,49 @@ function fitTo(coordinates) {
   });
 }
 
-export function flyTo(coords, zoom = 15) {
-  map?.flyTo({ center: [coords.lng, coords.lat], zoom, duration: 700 });
+/**
+ * Centra el mapa en un punto.
+ *
+ * @param {{lat:number,lng:number}|null} coords
+ * @param {{minZoom?: number}} [options]
+ *
+ * <b>El zoom que eligio el usuario no se toca.</b> Antes cada punto que se
+ * fijaba forzaba el zoom a 15: alguien que se habia acercado a mirar una esquina
+ * perdia su encuadre al elegir el destino, y alguien que estaba mirando la
+ * ciudad entera se encontraba de golpe adentro de una cuadra. Mover la camara
+ * bajo los pies del usuario es de las cosas que mas molestan de un mapa.
+ *
+ * `minZoom` es la unica excepcion y solo acerca, nunca aleja: sirve para "Mi
+ * ubicacion", donde el punto no se veria si el mapa esta en toda la ciudad.
+ */
+export function flyTo(coords, { minZoom } = {}) {
+  // Sin punto no hay a donde ir. Se comprueba porque borrar un origen o un
+  // destino pasa por el mismo camino que ponerlo, y ahi el punto es nulo.
+  if (!coords || !map) return;
+
+  const current = map.getZoom();
+  const zoom = minZoom && current < minZoom ? minZoom : current;
+
+  map.flyTo({ center: [coords.lng, coords.lat], zoom, duration: 700 });
+}
+
+/* ---------------------------------------------------------------------------
+   Zoom
+
+   Con botones y no solo con pellizco. El pellizco pide dos dedos y una mano
+   libre; los botones se tocan con el pulgar de la mano que sostiene el
+   telefono, que arriba de un camion suele ser la unica disponible.
+--------------------------------------------------------------------------- */
+
+/** Un paso de zoom. Entero: medio paso no se percibe y dos marean. */
+const ZOOM_STEP = 1;
+
+export function zoomIn() {
+  map?.easeTo({ zoom: map.getZoom() + ZOOM_STEP, duration: 220 });
+}
+
+export function zoomOut() {
+  map?.easeTo({ zoom: map.getZoom() - ZOOM_STEP, duration: 220 });
 }
 
 /* ---------------------------------------------------------------------------
@@ -372,26 +506,48 @@ const VEHICLE_SCREEN_OFFSET = 0.22;
 let vehicleMarker = null;
 let navigating = false;
 
-export function enterNavigationMode() {
+/**
+ * Pone el mapa en modo viaje.
+ *
+ * @param {{lat:number,lng:number}} [from] desde donde arranca el viaje
+ *
+ * Si se le pasa un punto, **la camara se inclina ahi mismo**, sin esperar al
+ * GPS. Antes la perspectiva se aplicaba recien en el primer `followVehicle`, o
+ * sea con la primera posicion: tocar "Arrancar viaje" no producia ningun cambio
+ * visible hasta que el GPS enganchara —decenas de segundos bajo techo— y la app
+ * parecia colgada. La inclinacion es lo que le dice al conductor que el viaje
+ * empezo, y eso tiene que pasar cuando toca el boton.
+ */
+export function enterNavigationMode(from) {
   if (!map) return;
   navigating = true;
 
-  // Con la camara siguiendo al vehiculo, la rotacion por gesto desorienta mas
-  // de lo que ayuda: el mapa volveria a girar solo en el proximo latido.
-  map.dragRotate.disable();
-  map.touchZoomRotate.disableRotation();
+  // El punto de la ubicacion propia le deja el lugar a la flecha del vehiculo.
+  // Si no, quedan dos marcadores encima del mismo punto y el de la ubicacion
+  // ademas congelado en la ultima vez que se toco "Mi ubicacion".
+  setGpsPosition(null);
+
+  if (!from) return;
+
+  map.easeTo({
+    center: [from.lng, from.lat],
+    pitch: NAVIGATION_PITCH,
+    zoom: NAVIGATION_ZOOM,
+    offset: [0, map.getContainer().clientHeight * VEHICLE_SCREEN_OFFSET],
+    duration: 600
+  });
 }
 
 export function exitNavigationMode() {
   if (!map) return;
   navigating = false;
 
-  map.dragRotate.enable();
-  map.touchZoomRotate.enableRotation();
-
   vehicleMarker?.remove();
   vehicleMarker = null;
 
+  // Se vuelve a la vista cenital mirando al norte. No se reactiva ningun gesto
+  // de rotacion: fuera del viaje el mapa no se inclina ni gira por ningun
+  // camino, y esta es la unica funcion que deshace la perspectiva.
   map.easeTo({ pitch: 0, bearing: 0, duration: 500 });
 }
 

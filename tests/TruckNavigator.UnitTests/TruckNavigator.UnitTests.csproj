@@ -22,4 +22,15 @@
     <ProjectReference Include="..\..\src\TruckNavigator.Domain\TruckNavigator.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+        Se enlaza el archivo, no el proyecto. TruckNavigator.Mobile solo compila
+        para Android y no se puede referenciar desde net10.0, pero esta clase es
+        C# puro —solo System.Uri— y es demasiado critica para quedar sin tests:
+        su ausencia dejo la app inutilizable sin forma de volver atras (AD-33).
+    -->
+    <Compile Include="..\..\src\TruckNavigator.Mobile\Services\BackendAddress.cs"
+             Link="Mobile\BackendAddress.cs" />
+  </ItemGroup>
+
 </Project>

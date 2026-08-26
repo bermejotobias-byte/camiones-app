@@ -12,7 +12,9 @@
  */
 
 import { api } from '../api.js';
-import { getPosition, watchPosition, speak, keepScreenAwake } from '../platform.js';
+import {
+  getPosition, watchPosition, watchHeading, speak, keepScreenAwake, onTrackingFailed
+} from '../platform.js';
 import {
   prepareRoute, advance, shouldReroute, pendingAnnouncement,
   speakableInstruction, maneuverArrow
@@ -21,7 +23,8 @@ import * as gl from '../map.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
   html, raw, icon, wire, q, qa, render, debounce, withBusy,
-  formatDistance, formatDuration, arrivalTime, toastOk, toastError
+  formatDistance, formatDuration, arrivalTime, toast, toastOk, toastError,
+  cardinal, cardinalName, askChoice, askConfirm
 } from '../ui.js';
 
 export function navigateView(host, { openDrawer, go }) {
@@ -40,6 +43,12 @@ export function navigateView(host, { openDrawer, go }) {
   let rerouting = false;
   let lastRerouteAt = null;
 
+  // Si el viaje arranco pero todavia no llego ninguna posicion. Lo unico que
+  // cambia es lo que dice la pantalla, y no es poco: sin esto mostraba un guion
+  // y nada mas, indistinguible de una app trabada.
+  let waitingForGps = false;
+  let trackingProblem = null;
+
   const host0 = host;
 
   host.className = 'screen map-screen';
@@ -53,6 +62,28 @@ export function navigateView(host, { openDrawer, go }) {
       </div>
 
       <div class="map-side">
+        <!--
+            Zoom con botones, no solo con pellizco: el pellizco pide dos dedos y
+            una mano libre, y arriba de un camión suele haber una sola.
+            Se esconden durante el viaje, donde la cámara sigue al vehículo y
+            cualquier zoom manual quedaría deshecho en el próximo latido del GPS.
+        -->
+        <div class="zoom-pair" id="zoom">
+          <button id="zoom-in" aria-label="Acercar">+</button>
+          <button id="zoom-out" aria-label="Alejar">−</button>
+        </div>
+
+        <div class="compass" id="compass" hidden>
+          <button class="fab compass-dial" id="compass-dial"
+                  aria-label="Brújula: hacia dónde estás mirando">
+            <svg class="compass-needle" viewBox="0 0 40 40" aria-hidden="true">
+              <path class="compass-n" d="M20 4 L25.5 22 L20 19 L14.5 22 Z"/>
+              <path class="compass-s" d="M20 36 L14.5 18 L20 21 L25.5 18 Z"/>
+            </svg>
+          </button>
+          <span class="compass-facing" id="compass-facing">—</span>
+        </div>
+
         <button class="fab" id="layers" aria-label="Capas de camión">${raw(icon('bridge'))}</button>
         <button class="fab" id="locate" aria-label="Mi ubicación">${raw(icon('gps'))}</button>
       </div>
@@ -81,7 +112,10 @@ export function navigateView(host, { openDrawer, go }) {
     '#menu': openDrawer,
     '#locate': () => locate({ silent: false }),
     '#panic': () => go('emergencia'),
-    '#layers': () => toggleTruckLayers()
+    '#layers': () => toggleTruckLayers(),
+    '#compass-dial': () => explainHeading(),
+    '#zoom-in': () => gl.zoomIn(),
+    '#zoom-out': () => gl.zoomOut()
   });
 
   /**
@@ -108,10 +142,95 @@ export function navigateView(host, { openDrawer, go }) {
   }
 
   /* ------------------------------------------------------------------------
+     Brujula
+
+     Dos lecturas del mismo dato, porque responden preguntas distintas:
+
+       · la aguja del dial dice DONDE QUEDA EL NORTE respecto del telefono. Es
+         una brujula de verdad, y sirve igual con el mapa girado.
+       · el cono sobre el punto de la ubicacion dice HACIA DONDE SE ESTA
+         MIRANDO, pero dibujado sobre el mapa, que es donde estan las calles.
+
+     El cartelito de abajo dice el punto cardinal en letras, porque leer "SO" es
+     instantaneo y deducirlo de una aguja no lo es.
+  ------------------------------------------------------------------------ */
+
+  let heading = null;
+
+  // Los grados se acumulan sin envolver en 360. Si la aguja saltara de 359 a 1,
+  // la animacion CSS la haria dar la vuelta entera por el lado largo.
+  let needleTurn = 0;
+
+  function onHeading(reading) {
+    heading = reading;
+
+    // Sin brujula el cono se esconde: una flecha clavada al norte seria peor que
+    // no mostrar nada, porque parece un dato.
+    gl.setGpsHeading(reading ? reading.degrees : null);
+
+    const compass = q(host0, '#compass');
+    if (!compass) return;
+
+    compass.hidden = !reading;
+    if (!reading) return;
+
+    compass.classList.toggle('compass-rough', !reading.reliable);
+
+    const needle = q(host0, '.compass-needle');
+
+    if (needle) {
+      const previous = ((needleTurn % 360) + 360) % 360;
+      let step = reading.degrees - previous;
+
+      if (step > 180) step -= 360;
+      else if (step < -180) step += 360;
+
+      needleTurn += step;
+
+      // La aguja apunta al norte, o sea al reves de hacia donde apunta el
+      // telefono: mirando al este, el norte queda a la izquierda.
+      needle.style.transform = `rotate(${-needleTurn}deg)`;
+    }
+
+    setText(compass, '.compass-facing', cardinal(reading.degrees));
+  }
+
+  /** Tocar el dial dice el rumbo con todas las letras. */
+  function explainHeading() {
+    if (!heading) return;
+
+    if (!heading.reliable) {
+      toast(
+        'La brújula está sin calibrar. Movés el teléfono dibujando un ocho en el aire ' +
+        'y se acomoda sola.',
+        'warn');
+
+      return;
+    }
+
+    toastOk(`Estás mirando al ${cardinalName(heading.degrees)} · ${Math.round(heading.degrees)}°`);
+  }
+
+  /* ------------------------------------------------------------------------
      Hoja inferior
   ------------------------------------------------------------------------ */
 
   const sheet = () => q(host, '#sheet');
+
+  /**
+   * La hoja cambia de forma segun el estado: hoja inferior para buscar y
+   * planificar, barra angosta durante el viaje.
+   *
+   * Es siempre el mismo nodo y lo que cambia es la clase. Antes la pantalla de
+   * viaje reemplazaba el nodo por otro y le copiaba el id, asi que al cerrar el
+   * viaje el buscador se dibujaba adentro de un contenedor que seguia siendo la
+   * barra de navegacion, con sus estilos puestos.
+   */
+  function sheetAs(className) {
+    const node = sheet();
+    node.className = className;
+    return node;
+  }
 
   function drawSheet() {
     if (stage === 'navigation') return drawNavigation();
@@ -129,7 +248,7 @@ export function navigateView(host, { openDrawer, go }) {
     // vuelve a esta pantalla, que es por donde se pasa despues de elegir camion.
     gl.useTruckHeight(truck?.heightMeters);
 
-    render(sheet(), html`
+    render(sheetAs('sheet'), html`
       <div class="sheet-grab"></div>
 
       <button class="row card-tap" id="pick-truck"
@@ -145,12 +264,18 @@ export function navigateView(host, { openDrawer, go }) {
         <span class="dot dot-a"></span>
         <input id="origin" placeholder="Origen" autocomplete="off"
                value="${origin?.label ?? ''}">
+        <button class="waypoint-clear" id="clear-origin" type="button"
+                aria-label="Borrar el origen"
+                ${origin?.label ? '' : 'hidden'}>${raw(icon('close', 16))}</button>
       </div>
 
       <div class="waypoint">
         <span class="dot dot-b"></span>
         <input id="destination" placeholder="¿A dónde vas?" autocomplete="off"
                value="${destination?.label ?? ''}">
+        <button class="waypoint-clear" id="clear-destination" type="button"
+                aria-label="Borrar el destino"
+                ${destination?.label ? '' : 'hidden'}>${raw(icon('close', 16))}</button>
       </div>
 
       <div id="suggestions"></div>
@@ -168,11 +293,67 @@ export function navigateView(host, { openDrawer, go }) {
     wire(sheet(), {
       '#pick-truck': () => go('camiones'),
       '#calc': (event) => calculate(event.currentTarget),
-      '#origin@input': onType('origin'),
-      '#destination@input': onType('destination'),
+      '#origin@input': onInput('origin'),
+      '#destination@input': onInput('destination'),
       '#origin@focus': () => { editing = 'origin'; },
-      '#destination@focus': () => { editing = 'destination'; }
+      '#destination@focus': () => { editing = 'destination'; },
+      '#clear-origin': () => clearPoint('origin'),
+      '#clear-destination': () => clearPoint('destination')
     });
+  }
+
+  /**
+   * Escribir hace dos cosas, y a distinto ritmo.
+   *
+   * La cruz aparece y desaparece **en la tecla**, porque un boton que tarda
+   * medio segundo en aparecer se siente roto. La busqueda va con espera, que es
+   * lo que evita consultarle al geocoder en cada letra.
+   */
+  const onInput = (which) => {
+    const search = onType(which);
+
+    return (event) => {
+      showClear(which, event.target.value.length > 0);
+      search(event);
+    };
+  };
+
+  /**
+   * Los botones de zoom, solo fuera del viaje.
+   *
+   * Durante el viaje la camara sigue al vehiculo y se reencuadra en cada
+   * posicion: un zoom manual quedaria deshecho al segundo siguiente. Ofrecer un
+   * boton que no hace efecto es peor que no ofrecerlo.
+   */
+  function showZoomControls(visible) {
+    const node = q(host0, '#zoom');
+    if (node) node.hidden = !visible;
+  }
+
+  function showClear(which, visible) {
+    const button = q(host0, `#clear-${which}`);
+    if (button) button.hidden = !visible;
+  }
+
+  /**
+   * Borra un extremo del viaje.
+   *
+   * Borra las tres cosas que forman ese extremo —el texto, el punto guardado y
+   * el marcador del mapa—, no solo la que se ve. Borrar el texto y dejar el
+   * marcador puesto seria peor que no borrar nada: la pantalla diria una cosa y
+   * el mapa otra.
+   *
+   * No hace falta ocuparse de la ruta: con una calculada la hoja muestra el
+   * resumen, que no tiene estos campos. Para volver acá hay que descartarla
+   * antes, y de eso se encarga su propio boton.
+   */
+  function clearPoint(which) {
+    editing = which;
+    setPoint(which, null);
+
+    // El teclado queda listo para escribir el reemplazo. Borrar casi siempre es
+    // el primer paso de corregir, no un fin en si mismo.
+    q(host0, `#${which}`)?.focus();
   }
 
   // --- ruta calculada -------------------------------------------------------
@@ -181,7 +362,7 @@ export function navigateView(host, { openDrawer, go }) {
     const share = Math.round(route.heavyNetworkSharePercent);
     const notes = groupNotes(route);
 
-    render(sheet(), html`
+    render(sheetAs('sheet'), html`
       <div class="sheet-grab"></div>
 
       <div class="row-between">
@@ -241,7 +422,7 @@ export function navigateView(host, { openDrawer, go }) {
     const nav = navState;
 
     if (rerouting) {
-      render(sheet(), '');
+      render(sheetAs('nav-bar'), '');
       renderOverlay(html`
         <div class="rerouting">
           <span class="spinner"></span>
@@ -251,28 +432,45 @@ export function navigateView(host, { openDrawer, go }) {
       return;
     }
 
-    const upcoming = nav?.next ?? null;
-    const arrow = upcoming ? maneuverArrow(upcoming.kind) : '↑';
-    const distance = nav ? formatDistance(nav.distanceToManeuver) : '—';
-
-    renderOverlay(html`
-      <div class="maneuver">
-        <div class="maneuver-arrow">${arrow}</div>
-        <div class="maneuver-body">
-          <div class="maneuver-distance num">${distance}</div>
-          <div class="maneuver-street">
-            ${upcoming ? (upcoming.streetName || upcoming.text) : 'Seguí la ruta'}
+    // Todavia sin posicion: se dice que se esta buscando, en vez de un guion.
+    // Es la diferencia entre "esperá, está enganchando" y "esto no anda".
+    if (waitingForGps && !nav) {
+      renderOverlay(html`
+        <div class="maneuver">
+          <div class="maneuver-arrow"><span class="spinner"></span></div>
+          <div class="maneuver-body">
+            <div class="maneuver-street" style="font-size:15px">
+              ${trackingProblem ?? 'Buscando señal de GPS…'}
+            </div>
+            <div class="maneuver-substreet">
+              ${trackingProblem
+                ? 'El viaje quedó abierto: podés cerrarlo desde Salir.'
+                : 'Bajo techo puede tardar. Al aire libre engancha enseguida.'}
+            </div>
           </div>
         </div>
-      </div>
+      `);
+    } else {
+      const upcoming = nav?.next ?? null;
+      const arrow = upcoming ? maneuverArrow(upcoming.kind) : '↑';
+      const distance = nav ? formatDistance(nav.distanceToManeuver) : '—';
 
-      ${raw(restrictionAheadMarkup(nav))}
-    `);
+      renderOverlay(html`
+        <div class="maneuver">
+          <div class="maneuver-arrow">${arrow}</div>
+          <div class="maneuver-body">
+            <div class="maneuver-distance num">${distance}</div>
+            <div class="maneuver-street">
+              ${upcoming ? (upcoming.streetName || upcoming.text) : 'Seguí la ruta'}
+            </div>
+          </div>
+        </div>
 
-    render(sheet(), '');
+        ${raw(restrictionAheadMarkup(nav))}
+      `);
+    }
 
-    const bar = document.createElement('div');
-    bar.className = 'nav-bar';
+    const bar = sheetAs('nav-bar');
     bar.innerHTML = html`
       <div class="nav-eta">
         <b>${nav ? arrivalTime(nav.remainingSeconds) : arrivalTime(trip.plannedDurationSeconds)}</b>
@@ -285,9 +483,6 @@ export function navigateView(host, { openDrawer, go }) {
       <div class="grow"></div>
       <button class="btn btn-ghost" id="stop-nav">Salir</button>
     `;
-
-    sheet().replaceWith(bar);
-    bar.id = 'sheet';
 
     wire(bar, { '#stop-nav': () => askToStop() });
   }
@@ -316,16 +511,27 @@ export function navigateView(host, { openDrawer, go }) {
     return `<div class="maneuver-alert"><span>⚠</span><span>${escapeText(finding.description)}</span></div>`;
   }
 
-  function askToStop() {
-    if (confirm('¿Terminar el viaje? Si llegaste, se acreditan los kilómetros.')) {
-      const button = document.getElementById('stop-nav');
-      closeTrip(button, true);
-      return;
-    }
+  /**
+   * Salir del viaje.
+   *
+   * Las tres salidas se muestran juntas en vez de encadenar dos preguntas: al
+   * camionero le importa la diferencia —llegar acredita kilometros y abandonar
+   * no— y encadenarlas hacia que "no" a la primera pareciera cancelar todo.
+   */
+  async function askToStop() {
+    const choice = await askChoice({
+      title: '¿Salís del viaje?',
+      message: 'Si llegaste, se acreditan los kilómetros. Si lo abandonás, no suma nada.',
+      options: [
+        { id: 'arrived', label: 'Llegué a destino', kind: 'primary' },
+        { id: 'abandon', label: 'Abandonar el viaje', kind: 'danger' },
+        { id: 'stay', label: 'Seguir viaje', kind: 'ghost' }
+      ]
+    });
 
-    if (confirm('¿Abandonar el viaje sin acreditar kilómetros?')) {
-      closeTrip(document.getElementById('stop-nav'), false);
-    }
+    if (choice === 'stay' || choice === null) return;
+
+    closeTrip(document.getElementById('stop-nav'), choice === 'arrived');
   }
 
   /** Capa de maniobra por encima del mapa, encima de la barra superior. */
@@ -458,7 +664,10 @@ export function navigateView(host, { openDrawer, go }) {
 
     // Solo se toma como origen si todavia no hay uno elegido a mano.
     if (origin) {
-      gl.flyTo(point);
+      // Unico lugar que fuerza un acercamiento, y solo si el mapa esta mas
+      // lejos: "Mi ubicacion" con la ciudad entera en pantalla no mostraria
+      // nada. Del resto de la app el zoom del usuario no se toca.
+      gl.flyTo(point, { minZoom: 15 });
       return;
     }
 
@@ -518,7 +727,9 @@ export function navigateView(host, { openDrawer, go }) {
           destinationLabel: destination.label
         });
 
-        setState({ activeTrip: started.trip });
+        // La ruta se guarda en el estado compartido, no solo en la variable de
+        // la vista: es lo que permite retomar el viaje si la app se cierra.
+        setState({ activeTrip: started.trip, activeRoute: started.route });
         route = started.route;
         gl.drawRoute(started.route, started.route.accessLegs ?? []);
         stage = 'navigation';
@@ -526,9 +737,22 @@ export function navigateView(host, { openDrawer, go }) {
       } catch (error) {
         // 409: quedo un viaje abierto de antes. Se ofrece cerrarlo en vez de
         // dejar al usuario trabado sin saber por que.
+        //
+        // Con el viaje abierto ya recuperado al entrar, llegar aca es raro: pasa
+        // si quedo abierto en otro telefono. Se mantiene igual, porque el
+        // servidor es el que manda sobre que viajes hay.
         if (error.status === 409 && error.problem?.tripId) {
-          if (confirm('Tenés un viaje sin terminar. ¿Lo cerramos para arrancar este?')) {
+          const cerrar = await askConfirm({
+            title: 'Tenés un viaje sin terminar',
+            message: 'Para arrancar este hay que abandonar el anterior. No suma kilómetros.',
+            confirmLabel: 'Abandonar el anterior y arrancar',
+            cancelLabel: 'Dejarlo como está',
+            danger: true
+          });
+
+          if (cerrar) {
             await api.cancelTrip(error.problem.tripId);
+            setState({ activeTrip: null, activeRoute: null });
             await startTrip(button);
             return;
           }
@@ -548,7 +772,18 @@ export function navigateView(host, { openDrawer, go }) {
           ? await api.finishTrip(trip.id)
           : await api.cancelTrip(trip.id);
 
-        setState({ activeTrip: null });
+        // Primero se apaga la navegacion y despues se cambia de pantalla.
+        //
+        // Sin esto el viaje se cerraba en el servidor pero la app seguia
+        // navegando: el GPS seguia observado —y con el, el servicio en primer
+        // plano de Android y su notificacion de viaje—, la pantalla seguia sin
+        // poder apagarse y el cartel de la proxima maniobra quedaba encima del
+        // mapa. Visto desde afuera, el viaje "seguia abierto".
+        //
+        // Llegar a destino ya lo hacia bien; salir a mano, no.
+        stopNavigating();
+
+        setState({ activeTrip: null, activeRoute: null });
         stage = 'search';
         route = null;
         gl.clearRoute();
@@ -585,8 +820,14 @@ export function navigateView(host, { openDrawer, go }) {
     rerouting = false;
     lastRerouteAt = null;
 
-    gl.enterNavigationMode();
+    // La camara se inclina ya, en el origen del viaje. No espera al GPS: entre
+    // tocar el boton y el primer fix pueden pasar decenas de segundos, y sin
+    // ningun cambio en pantalla la app parece no haber hecho nada.
+    gl.enterNavigationMode(origin);
+    showZoomControls(false);
     keepScreenAwake(true);
+
+    waitingForGps = true;
     drawSheet();
 
     // La primera instruccion se dice al arrancar y no por umbral: el camion ya
@@ -606,6 +847,7 @@ export function navigateView(host, { openDrawer, go }) {
 
     keepScreenAwake(false);
     gl.exitNavigationMode();
+    showZoomControls(true);
     clearOverlay();
 
     prepared = null;
@@ -613,10 +855,19 @@ export function navigateView(host, { openDrawer, go }) {
     previousNav = null;
     announced = new Set();
     rerouting = false;
+    waitingForGps = false;
+    trackingProblem = null;
   }
 
   async function onPosition(fix) {
     if (!prepared || rerouting) return;
+
+    // Primera posicion del viaje: se sale del cartel de "buscando" y se rehace
+    // la pantalla entera, porque el bloque de maniobra tiene otra forma. Los
+    // latidos siguientes solo tocan los numeros.
+    const wasWaiting = waitingForGps;
+    waitingForGps = false;
+    trackingProblem = null;
 
     previousNav = navState;
     navState = advance(prepared, fix, navState);
@@ -631,7 +882,15 @@ export function navigateView(host, { openDrawer, go }) {
       speak(speakableInstruction(navState.next, navState.distanceToManeuver));
     }
 
-    updateNavigationUi();
+    // El primer fix cambia la forma de la pantalla —del cartel de "buscando" al
+    // bloque de maniobra—, asi que se rehace entera. Los demas latidos solo
+    // tocan los numeros, que es lo que evita tirar el trabajo del navegador una
+    // vez por segundo.
+    if (wasWaiting) {
+      drawSheet();
+    } else {
+      updateNavigationUi();
+    }
 
     if (navState.hasArrived) {
       await arrive();
@@ -722,6 +981,49 @@ export function navigateView(host, { openDrawer, go }) {
     }
   }
 
+  /**
+   * Retoma el viaje que quedo abierto.
+   *
+   * El viaje vive en el servidor y sobrevive a cerrar la aplicacion; esta
+   * pantalla no. Al volver, el estado de la vista arranca vacio: sin esto la app
+   * mostraba la busqueda como si no pasara nada, dejaba elegir otro destino y
+   * recien al arrancar el servidor devolvia 409, con un mensaje que desde afuera
+   * es incomprensible porque en pantalla no habia ningun viaje.
+   *
+   * El origen y el destino salen del viaje registrado, no de lo que hubiera
+   * quedado escrito en los campos de busqueda.
+   */
+  function resumeTrip() {
+    const trip = state.activeTrip;
+
+    origin = {
+      lat: trip.originLatitude,
+      lng: trip.originLongitude,
+      label: trip.originLabel ?? 'Donde arrancaste'
+    };
+
+    destination = {
+      lat: trip.destinationLatitude,
+      lng: trip.destinationLongitude,
+      label: trip.destinationLabel ?? 'Tu destino'
+    };
+
+    stage = 'navigation';
+
+    // Sin ruta no se puede guiar, pero el viaje sigue abierto y cerrarlo no
+    // necesita rutear. Se entra igual a la pantalla de viaje: es la unica que
+    // tiene el boton para salir.
+    if (!state.activeRoute) {
+      toastError('Retomamos tu viaje, pero no se pudo recuperar la ruta. Podés cerrarlo desde "Salir".');
+      return;
+    }
+
+    route = state.activeRoute;
+
+    gl.drawRoute(route, route.accessLegs ?? []);
+    startNavigating();
+  }
+
   async function arrive() {
     const trip = state.activeTrip;
     if (!trip) return;
@@ -731,7 +1033,7 @@ export function navigateView(host, { openDrawer, go }) {
 
     try {
       const closed = await api.finishTrip(trip.id);
-      setState({ activeTrip: null });
+      setState({ activeTrip: null, activeRoute: null });
 
       toastOk(closed.creditedDistanceMeters > 0
         ? `Llegaste. Sumaste ${formatDistance(closed.creditedDistanceMeters)}.`
@@ -750,14 +1052,28 @@ export function navigateView(host, { openDrawer, go }) {
      Arranque
   ------------------------------------------------------------------------ */
 
+  // La cascara avisa por su propio canal si no pudo arrancar el seguimiento.
+  // Sin esto la pantalla se quedaba diciendo "buscando señal" para siempre,
+  // aunque el motivo real fuera un permiso denegado.
+  const stopListeningTracking = onTrackingFailed((message) => {
+    trackingProblem = message;
+    if (stage === 'navigation') drawSheet();
+  });
+
+  // La brujula se lee solo mientras el mapa esta a la vista: los sensores gastan
+  // bateria y ninguna otra pantalla la muestra.
+  const stopListeningHeading = watchHeading(onHeading);
+
   // Si quedo un viaje abierto de una sesion anterior, se retoma.
   if (state.activeTrip) {
-    stage = 'navigation';
+    resumeTrip();
   }
 
   drawSheet();
 
   return () => {
+    stopListeningTracking();
+    stopListeningHeading();
     stopNavigating();
     gl.destroyMap();
   };

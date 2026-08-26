@@ -159,6 +159,94 @@ export function toast(message, kind = 'info', ms = 4200) {
 export const toastError = (message) => toast(message, 'error', 6000);
 export const toastOk = (message) => toast(message, 'ok');
 
+// --- decisiones -------------------------------------------------------------
+
+/**
+ * Hoja de decision.
+ *
+ * Reemplaza a `confirm()`, que **no existe adentro de la aplicacion Android**: el
+ * WebView no dibuja los dialogos de JavaScript salvo que la cascara nativa
+ * instale un WebChromeClient que los atienda, y MAUI no instala ninguno. Sin el,
+ * `confirm()` devuelve false sin mostrar nada — la app parecia ignorar el boton.
+ * Cerrar un viaje, abandonarlo y borrar un camion pasaban todos por ahi.
+ *
+ * Ademas es la forma correcta aca aunque funcionara: los botones del sistema son
+ * chicos para una mano en un camion, y esta hoja se puede tocar sin apuntar.
+ *
+ * @param {{title:string, message?:string, options:Array<{id:string,label:string,kind?:'primary'|'danger'|'ghost'}>}} spec
+ * @returns {Promise<string|null>} el id elegido, o null si se descarto
+ */
+export function askChoice({ title, message, options }) {
+  return new Promise((resolve) => {
+    const backdrop = fromHtml(html`
+      <div class="ask-backdrop" role="dialog" aria-modal="true">
+        <div class="ask">
+          <div class="ask-title">${title}</div>
+          ${message ? raw(`<p class="ask-message">${escapeHtml(message)}</p>`) : ''}
+          <div class="ask-actions">
+            ${raw(options.map((option) => `
+              <button class="btn btn-block btn-${option.kind ?? 'ghost'}" data-id="${escapeHtml(option.id)}">
+                ${escapeHtml(option.label)}
+              </button>
+            `).join(''))}
+          </div>
+        </div>
+      </div>
+    `);
+
+    let settled = false;
+
+    function close(result) {
+      if (settled) return;
+      settled = true;
+
+      document.removeEventListener('keydown', onKey);
+      backdrop.remove();
+      resolve(result);
+    }
+
+    function onKey(event) {
+      if (event.key === 'Escape') close(null);
+    }
+
+    backdrop.addEventListener('click', (event) => {
+      // Tocar fuera de la hoja descarta. Adentro no: un pulgar que roza el
+      // borde no puede cancelar una decision sobre un viaje.
+      if (event.target === backdrop) close(null);
+
+      const button = event.target.closest('button[data-id]');
+      if (button) close(button.dataset.id);
+    });
+
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(backdrop);
+
+    // El foco arranca en la primera opcion para que el teclado y el lector de
+    // pantalla entren en la hoja y no queden atras, en la pantalla.
+    backdrop.querySelector('button')?.focus();
+  });
+}
+
+/** Caso de dos salidas: la habitual y la que confirma. */
+export async function askConfirm({
+  title,
+  message,
+  confirmLabel = 'Aceptar',
+  cancelLabel = 'Cancelar',
+  danger = false
+}) {
+  const choice = await askChoice({
+    title,
+    message,
+    options: [
+      { id: 'ok', label: confirmLabel, kind: danger ? 'danger' : 'primary' },
+      { id: 'cancel', label: cancelLabel, kind: 'ghost' }
+    ]
+  });
+
+  return choice === 'ok';
+}
+
 // --- formato ----------------------------------------------------------------
 
 export function formatDistance(meters) {
@@ -189,6 +277,28 @@ export function formatDate(iso) {
     year: 'numeric'
   });
 }
+
+/* --- puntos cardinales ------------------------------------------------------
+   Ocho y no dieciseis: "nornoreste" no se lee de reojo manejando, y con la
+   precision que da un magnetometro de telefono tampoco seria honesto.
+---------------------------------------------------------------------------- */
+
+const CARDINAL_SHORT = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+const CARDINAL_LONG = [
+  'norte', 'noreste', 'este', 'sudeste',
+  'sur', 'sudoeste', 'oeste', 'noroeste'
+];
+
+const cardinalIndex = (degrees) =>
+  Math.round((((degrees % 360) + 360) % 360) / 45) % 8;
+
+/** El punto cardinal abreviado de un rumbo: `NE`, `SO`. */
+export const cardinal = (degrees) =>
+  Number.isFinite(degrees) ? CARDINAL_SHORT[cardinalIndex(degrees)] : '—';
+
+/** El punto cardinal escrito, para decirlo en una frase. */
+export const cardinalName = (degrees) =>
+  Number.isFinite(degrees) ? CARDINAL_LONG[cardinalIndex(degrees)] : '';
 
 /** Hora de llegada estimada a partir de ahora. */
 export function arrivalTime(seconds) {

@@ -18,6 +18,34 @@ import { navigateView } from './views/navigate.js';
 import { trucksView } from './views/trucks.js';
 import { profileView } from './views/profile.js';
 
+/* ---------------------------------------------------------------------------
+   Que ningun error se pierda
+
+   Adentro del APK la consola del WebView sale al log del sistema (`adb logcat
+   -s Web`, ver AD-31). Para que eso sirva, lo que revienta tiene que llegar a la
+   consola: un error sin atrapar y una promesa rechazada no pasan por ningun
+   `catch` nuestro y, sin esto, se los traga el navegador.
+
+   Va antes que todo lo demas a proposito: si falla el arranque mismo, tiene que
+   quedar dicho.
+--------------------------------------------------------------------------- */
+
+// Una linea incondicional al arrancar. No es decorativa: es la unica prueba de
+// que el puente de la consola esta vivo. Sin ella, "no hay mensajes" y "los
+// mensajes no llegan" se ven exactamente igual desde afuera.
+console.log(`interfaz cargada · ${location.href}`);
+
+window.addEventListener('error', (event) => {
+  console.error(
+    `sin atrapar: ${event.message} en ${event.filename}:${event.lineno}`,
+    event.error?.stack ?? '');
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  console.error(`promesa rechazada: ${reason?.message ?? reason}`, reason?.stack ?? '');
+});
+
 const root = document.getElementById('app');
 
 /** Limpieza que dejo la vista anterior, si dejo alguna. */
@@ -299,6 +327,38 @@ async function boot() {
     } else {
       console.error(error);
     }
+
+    return;
+  }
+
+  await loadActiveTrip();
+}
+
+/**
+ * Recupera el viaje que haya quedado abierto.
+ *
+ * El viaje vive en el servidor y sobrevive a cerrar la aplicacion; el estado de
+ * la pantalla no. Sin esta consulta la app arranca creyendo que no hay viaje,
+ * deja planificar otro y recien al arrancarlo el servidor lo rechaza, con un
+ * mensaje que desde afuera no se entiende.
+ *
+ * Va aparte del resto y con su propio catch: si esta consulta falla el usuario
+ * tiene que poder usar la app igual, aunque sea sin retomar el viaje.
+ */
+async function loadActiveTrip() {
+  try {
+    const active = await api.activeTrip();
+
+    setState({
+      activeTrip: active?.trip ?? null,
+      activeRoute: active?.route ?? null
+    });
+
+    if (active && !active.route) {
+      console.warn('Viaje abierto sin ruta:', active.routeUnavailableReason);
+    }
+  } catch (error) {
+    console.error('No se pudo consultar el viaje abierto:', error);
   }
 }
 

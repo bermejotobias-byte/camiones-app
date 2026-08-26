@@ -143,6 +143,31 @@ window.TN_locationFailed = (reason) => {
   positionWaiters = [];
 };
 
+const trackingListeners = new Set();
+
+/**
+ * La cascara avisa cuando no pudo arrancar el seguimiento del viaje.
+ *
+ * Es un canal aparte de <c>TN_locationFailed</c> a proposito. Aquel resuelve los
+ * pedidos puntuales de posicion, y si no hay ninguno esperando —que es lo
+ * habitual al arrancar un viaje— el aviso se perdia: la pantalla de navegacion
+ * quedaba quieta para siempre sin decir por que.
+ */
+window.TN_trackingFailed = (reason) => {
+  const message = reason || 'No se pudo seguir tu ubicación.';
+  trackingListeners.forEach((fn) => fn(message));
+};
+
+/**
+ * Escucha los fallos del seguimiento.
+ *
+ * @returns {() => void} funcion para dejar de escuchar
+ */
+export function onTrackingFailed(listener) {
+  trackingListeners.add(listener);
+  return () => trackingListeners.delete(listener);
+}
+
 /**
  * Ubicacion actual, una sola vez.
  *
@@ -226,6 +251,139 @@ function describeGeolocationError(error) {
   }
 
   return 'La ubicación tardó demasiado.';
+}
+
+/* ---------------------------------------------------------------------------
+   Brujula
+
+   El rumbo que trae el GPS dice hacia donde SE MUEVE el camion, y no existe
+   cuando esta parado. El magnetometro dice hacia donde APUNTA el telefono,
+   siempre. Son dos datos distintos: este es el que permite saber para que lado
+   se esta mirando en un semaforo o buscando la entrada de un deposito.
+
+   Adentro de la cascara lo resuelve el sensor nativo, que elige el eje segun la
+   inclinacion del telefono y corrige la declinacion magnetica. En el navegador
+   se usa DeviceOrientation, que alcanza para desarrollar. Ver AD-30.
+--------------------------------------------------------------------------- */
+
+const headingListeners = new Set();
+
+/** Ultimo rumbo conocido, o null si el dispositivo no lo informa. */
+let lastHeading = null;
+
+function publishHeading(reading) {
+  // TEMPORAL — diagnostico de la brujula en el telefono. Sacar cuando cierre.
+  console.log(`brujula: llego ${reading ? reading.degrees.toFixed(1) : 'nada'}`
+    + ` a ${headingListeners.size} oyente(s)`);
+
+  lastHeading = reading;
+  headingListeners.forEach((fn) => fn(reading));
+}
+
+/**
+ * La cascara empuja cada rumbo nuevo.
+ *
+ * @param {number} degrees grados horarios desde el norte geografico
+ * @param {boolean} reliable si el magnetometro esta calibrado
+ */
+window.TN_setHeading = (degrees, reliable) =>
+  publishHeading({ degrees, reliable: reliable !== false });
+
+/** La cascara avisa que este telefono no tiene con que medir el rumbo. */
+window.TN_headingUnavailable = () => publishHeading(null);
+
+/**
+ * Sigue hacia donde apunta el dispositivo.
+ *
+ * El oyente recibe `{ degrees, reliable }`, o `null` cuando no hay forma de
+ * saberlo — una computadora de escritorio, un telefono sin magnetometro—. La
+ * diferencia importa: sin brujula hay que esconder la flecha, no dejarla
+ * apuntando al norte como si el dato fuera bueno.
+ *
+ * @returns {() => void} funcion para dejar de seguir
+ */
+export function watchHeading(onHeading) {
+  headingListeners.add(onHeading);
+
+  if (lastHeading) onHeading(lastHeading);
+
+  if (headingListeners.size === 1) startCompass();
+
+  return () => {
+    headingListeners.delete(onHeading);
+    if (headingListeners.size === 0) stopCompass();
+  };
+}
+
+let stopWebCompass = null;
+
+function startCompass() {
+  if (isNative) {
+    send({ action: 'heading', on: true });
+    return;
+  }
+
+  stopWebCompass = startBrowserCompass();
+}
+
+function stopCompass() {
+  lastHeading = null;
+
+  if (isNative) {
+    send({ action: 'heading', on: false });
+    return;
+  }
+
+  stopWebCompass?.();
+  stopWebCompass = null;
+}
+
+/**
+ * Brujula del navegador.
+ *
+ * Es el camino de desarrollo, no el que se usa en el camion. Toma el rumbo tal
+ * como lo entrega la plataforma: <b>no corrige la declinacion magnetica</b> —en
+ * Buenos Aires son unos pocos grados— ni distingue el telefono acostado del
+ * telefono de pie, que es lo que si hace la version nativa. Una computadora de
+ * escritorio no tiene magnetometro y no dispara nunca el evento, con lo cual la
+ * brujula no aparece; eso es correcto.
+ */
+function startBrowserCompass() {
+  if (typeof window.DeviceOrientationEvent === 'undefined') return null;
+
+  const onOrientation = (event) => {
+    const degrees = browserHeading(event);
+    if (degrees !== null) publishHeading({ degrees, reliable: true });
+  };
+
+  // El evento "absolute" es el unico referido al norte; el otro puede estar
+  // referido a donde estaba el aparato al abrir la pagina, que no sirve de nada.
+  // Safari no lo tiene y en cambio expone el rumbo ya calculado.
+  const name = 'ondeviceorientationabsolute' in window
+    ? 'deviceorientationabsolute'
+    : 'deviceorientation';
+
+  window.addEventListener(name, onOrientation);
+
+  // iOS exige pedir permiso desde un gesto del usuario. Se intenta igual: si lo
+  // rechaza por no venir de un toque, simplemente no hay brujula.
+  DeviceOrientationEvent.requestPermission?.().catch(() => {});
+
+  return () => window.removeEventListener(name, onOrientation);
+}
+
+function browserHeading(event) {
+  // Safari entrega el rumbo hecho, ya referido al norte.
+  if (typeof event.webkitCompassHeading === 'number') return event.webkitCompassHeading;
+
+  if (event.absolute !== true || typeof event.alpha !== 'number') return null;
+
+  // alpha crece en sentido antihorario desde el norte; el rumbo es al reves. Y
+  // se le suma como esta rotada la pantalla, porque lo que se quiere saber es
+  // hacia donde apunta el borde de arriba de lo que el usuario ve.
+  const screenAngle = screen.orientation?.angle ?? window.orientation ?? 0;
+
+  return (360 - event.alpha + screenAngle) % 360;
 }
 
 /* ---------------------------------------------------------------------------
