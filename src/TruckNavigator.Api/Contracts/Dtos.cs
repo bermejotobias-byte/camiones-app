@@ -263,7 +263,25 @@ public sealed record RouteResponse(
     IReadOnlyList<RouteRestrictionNoteDto> AccessLegs,
     double HeavyNetworkSharePercent,
     string TruckName,
-    string Attribution)
+    string Attribution,
+
+    /// <summary>
+    /// Otras rutas posibles, ya ordenadas por lo que le conviene a un camion.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Va como campo opcional de la misma respuesta y NO como un envoltorio
+    /// nuevo: asi la raiz conserva exactamente la forma de siempre y la app que
+    /// ya esta instalada en el telefono sigue funcionando —lee lo que siempre
+    /// leyo e ignora este campo—. Cambiar la raiz a <c>{ route, alternatives }</c>
+    /// la habria roto hasta actualizarla.
+    /// </para>
+    /// <para>
+    /// Cada alternativa viene completa, con su geometria, porque la app las
+    /// dibuja para que uno elija mirando el mapa y no leyendo minutos.
+    /// </para>
+    /// </remarks>
+    IReadOnlyList<RouteResponse>? Alternatives = null)
 {
     /// <summary>
     /// Arma la respuesta a partir de la ruta del dominio. Existe porque la usan
@@ -288,6 +306,7 @@ public sealed record GeoJsonLineString(IReadOnlyList<double[]> Coordinates)
 {
     public string Type => "LineString";
 }
+
 
 /// <summary>
 /// El perfil del camionero tal como lo consume la app.

@@ -925,14 +925,25 @@ app.MapPost("/api/routes", async (
 
     try
     {
-        var route = await calculator.CalculateAsync(
+        var routes = await calculator.CalculateAlternativesAsync(
             truck,
             new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude),
             new GeoPoint(request.Destination!.Latitude, request.Destination.Longitude),
             departure,
             ct);
 
-        return Results.Ok(RouteResponse.From(route, truck.Name, Attribution));
+        // La raiz de la respuesta conserva EXACTAMENTE la forma de antes —la ruta
+        // recomendada— y `alternatives` se suma como campo. Asi la app que ya
+        // esta instalada en el telefono sigue funcionando sin cambios: lee lo que
+        // siempre leyo e ignora el campo nuevo.
+        var alternativas = routes.Skip(1)
+            .Select(r => RouteResponse.From(r, truck.Name, Attribution))
+            .ToList();
+
+        return Results.Ok(RouteResponse.From(routes[0], truck.Name, Attribution) with
+        {
+            Alternatives = alternativas
+        });
     }
     catch (RoutingException ex)
     {
@@ -950,7 +961,7 @@ app.MapPost("/api/routes", async (
     }
 })
 .WithTags("Routing")
-.WithSummary("Calcula una ruta compatible con el camion indicado.");
+.WithSummary("Calcula una ruta compatible con el camion indicado, con alternativas.");
 
 app.Run();
 

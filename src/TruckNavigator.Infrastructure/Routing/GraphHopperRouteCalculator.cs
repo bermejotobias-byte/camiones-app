@@ -37,6 +37,42 @@ public sealed class GraphHopperRouteCalculator(
         DateTimeOffset departure,
         CancellationToken cancellationToken = default)
     {
+        var rutas = await RequestAsync(truck, origin, destination, departure, alternativas: false, cancellationToken);
+
+        return rutas[0];
+    }
+
+    public async Task<IReadOnlyList<TruckRoute>> CalculateAlternativesAsync(
+        TruckProfile truck,
+        GeoPoint origin,
+        GeoPoint destination,
+        DateTimeOffset departure,
+        CancellationToken cancellationToken = default)
+    {
+        var rutas = await RequestAsync(truck, origin, destination, departure, alternativas: true, cancellationToken);
+
+        // Se ordenan por lo que le conviene a un camion, NO por tiempo: el orden
+        // que devuelve el motor es por peso, y ahi una ruta que obliga a salir de
+        // la Red puede quedar primera solo por ser dos minutos mas rapida. El
+        // criterio esta en el dominio, en TruckRouteComparer.
+        var ordenadas = rutas.OrderBy(r => r, TruckRouteComparer.Instance).ToList();
+
+        logger.LogDebug(
+            "GraphHopper devolvio {Total} rutas para {TruckName}; la elegida tiene {Bloqueos} tramos bloqueados",
+            ordenadas.Count, truck.Name,
+            ordenadas[0].RestrictionNotes.Count(n => !n.RequiresAccessException));
+
+        return ordenadas;
+    }
+
+    private async Task<IReadOnlyList<TruckRoute>> RequestAsync(
+        TruckProfile truck,
+        GeoPoint origin,
+        GeoPoint destination,
+        DateTimeOffset departure,
+        bool alternativas,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(truck);
 
         var customModel = routingPolicy.BuildCustomModel(truck, departure);
@@ -63,6 +99,23 @@ public sealed class GraphHopperRouteCalculator(
         payload.Remove("ch_disable");
         payload["ch.disable"] = true;
 
+        if (alternativas)
+        {
+            // Las claves tambien llevan punto, por el mismo motivo que "ch.disable".
+            payload["algorithm"] = "alternative_route";
+            payload["alternative_route.max_paths"] = MaxAlternatives;
+
+            // Cuanto mas larga puede ser una alternativa respecto de la mejor.
+            // 1,6 deja entrar rodeos que valen la pena para un camion —esquivar
+            // un tramo prohibido cuesta kilometros— sin llegar a ofrecer paseos.
+            payload["alternative_route.max_weight_factor"] = 1.6;
+
+            // Cuanto puede compartir con la mejor. Sin esto las "alternativas"
+            // son la misma ruta con dos cuadras distintas, y elegir no cambia
+            // nada.
+            payload["alternative_route.max_share_factor"] = 0.7;
+        }
+
         logger.LogDebug("Solicitando ruta a GraphHopper para el camion {TruckName}", truck.Name);
 
         using var response = await httpClient.PostAsJsonAsync("route", payload, cancellationToken);
@@ -81,8 +134,26 @@ public sealed class GraphHopperRouteCalculator(
             throw new RoutingException("El motor de ruteo no encontro ninguna ruta valida para este vehiculo.");
         }
 
-        return BuildRoute(paths[0], truck, departure);
+        var rutas = new List<TruckRoute>(paths.GetArrayLength());
+
+        foreach (var path in paths.EnumerateArray())
+        {
+            rutas.Add(BuildRoute(path, truck, departure));
+        }
+
+        return rutas;
     }
+
+    /// <summary>
+    /// Cuantas rutas se le piden al motor.
+    /// </summary>
+    /// <remarks>
+    /// Tres. Cada alternativa se evalua entera contra el motor de restricciones
+    /// —tramo por tramo, con sus galibos y su pertenencia a la Red—, asi que
+    /// pedir mas cuesta tiempo de respuesta real. Y en la pantalla de un camion,
+    /// elegir entre mas de tres opciones no es ayudar.
+    /// </remarks>
+    private const int MaxAlternatives = 3;
 
     private TruckRoute BuildRoute(JsonElement path, TruckProfile truck, DateTimeOffset departure)
     {

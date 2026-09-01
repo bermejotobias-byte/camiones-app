@@ -2079,3 +2079,80 @@ El generador hoy descarta los gálibos sin altura, pero el motor no puede depend
 de eso: es exactamente la clase de dato faltante que la regla de la casa manda
 tratar como faltante.
 
+## AD-40 · Las rutas alternativas se ordenan por restricciones, no por tiempo
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+El brainstorm v2 pedía *"alternativas de ruta cuando la recomendada está
+deshabilitada"*. GraphHopper las sabe dar con `algorithm=alternative_route`, y ya
+se pedía `ch.disable=true`, que es su requisito.
+
+### La decisión: el orden
+
+**El motor devuelve las alternativas ordenadas por peso, que es básicamente
+duración. Para un camión ese orden es el equivocado.** Una ruta dos minutos más
+larga que no obliga a salir de la Red de Tránsito Pesado es mejor que la más
+rápida que sí obliga: la primera se maneja tranquilo y la segunda es una multa
+esperando.
+
+`TruckRouteComparer` vive en el **dominio** —es una regla del producto, no un
+detalle del cliente HTTP— y compara en cuatro escalones:
+
+1. **Tramos que el camión no puede transitar.** Una ruta que obliga a pasar por
+   donde este vehículo tiene prohibido circular no es una alternativa más lenta:
+   es una ruta que no se puede hacer.
+2. **Tramos que dependen de la excepción de acceso.** Salir de la Red para llegar
+   al destino es legal, pero hay que poder justificarlo. Menos es mejor.
+3. **Duración**, con una tolerancia de **60 segundos**.
+4. **Cuánto va por la Red**, sólo cuando la duración empata dentro de esa
+   tolerancia.
+
+**La tolerancia es la pieza que hace que el cuarto criterio sirva sin ser
+peligroso.** Sin ella, una ruta que va entera por la Red pierde contra otra que va
+por calles de barrio sólo por llegar tres segundos antes — una diferencia que
+además es una estimación del motor, no un hecho, y que en la calle desaparece en
+el primer semáforo. Y al ir *después* de la duración, la Red nunca puede elegir un
+rodeo largo: cinco minutos de más ya no es ruido.
+
+Medido contra el motor real, Obelisco → Bajo Flores:
+
+| | Tiempo | Red |
+|---|---:|---:|
+| **Recomendada** | 803 s | **3,9%** |
+| Alternativa 1 | 831 s | 3,3% |
+| Alternativa 2 | **797 s** | 0,0% |
+
+La más rápida queda **última**. Un GPS de auto la habría puesto primera.
+
+### La respuesta no cambia de forma
+
+`alternatives` se suma como **campo opcional de `RouteResponse`**, no como un
+envoltorio nuevo. Así la raíz conserva exactamente la forma de siempre y **la app
+que ya está instalada en el teléfono sigue funcionando**: lee lo que siempre leyó
+e ignora el campo nuevo. Cambiar la raíz a `{ route, alternatives }` la habría
+roto hasta actualizarla.
+
+### Los parámetros del motor
+
+- `max_paths: 3`. Cada alternativa se evalúa entera contra el motor de
+  restricciones —tramo por tramo, con sus gálibos y su pertenencia a la Red—, así
+  que pedir más cuesta tiempo de respuesta real. Y elegir entre más de tres
+  opciones en la pantalla de un camión no es ayudar.
+- `max_weight_factor: 1.6`. Deja entrar rodeos que valen la pena para un camión
+  —esquivar un tramo prohibido cuesta kilómetros— sin llegar a ofrecer paseos.
+- `max_share_factor: 0.7`. Sin esto las "alternativas" son la misma ruta con dos
+  cuadras distintas, y elegir no cambia nada. **Como efecto, en tramos cortos y
+  directos no hay alternativas** —Obelisco a Constitución por la 9 de Julio no
+  tiene ninguna que comparta menos del 70%— y el selector no aparece. Es
+  correcto: no hay nada que elegir.
+
+### En la pantalla
+
+Cada opción es un botón ancho que dice **lo que decide**: si hay tramos
+prohibidos, cuánto tarda y cuánto va por la Red. El tiempo no va primero. La
+elegida se marca con borde y fondo, no sólo con color de texto: se mira de reojo
+y tiene que distinguirse sin leer.
+

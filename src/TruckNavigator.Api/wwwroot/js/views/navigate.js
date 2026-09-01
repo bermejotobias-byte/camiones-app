@@ -33,6 +33,8 @@ export function navigateView(host, { openDrawer, go }) {
   let origin = null;          // { lat, lng, label }
   let destination = null;
   let route = null;
+  let routeOptions = [];      // la recomendada y sus alternativas, ya ordenadas
+  let chosenRoute = 0;        // cuál de todas se está mirando
   let stage = 'search';       // 'search' | 'route' | 'navigation'
   let editing = 'destination';
 
@@ -454,6 +456,8 @@ export function navigateView(host, { openDrawer, go }) {
     render(sheetAs('sheet'), html`
       <div class="sheet-grab"></div>
 
+      ${routeOptions.length > 1 ? raw(alternativesMarkup()) : ''}
+
       <div class="row-between">
         <div class="route-summary">
           <div class="route-figure">
@@ -489,12 +493,58 @@ export function navigateView(host, { openDrawer, go }) {
     wire(sheet(), {
       '#close-route': () => {
         route = null;
+        routeOptions = [];
+        chosenRoute = 0;
         stage = 'search';
         gl.clearRoute();
         drawSheet();
       },
       '#start': (event) => startTrip(event.currentTarget)
     });
+
+    for (const boton of qa(sheet(), '.route-option')) {
+      boton.addEventListener('click', () => elegirRuta(Number(boton.dataset.index)));
+    }
+  }
+
+  /**
+   * Las rutas posibles, para elegir mirando el mapa.
+   *
+   * Cada opción dice lo que decide: si obliga a pasar por donde el camión no
+   * puede, cuánto tarda y cuánto va por la Red. **El tiempo no va primero** —
+   * es lo que mira un GPS de auto, y acá una ruta cinco minutos más larga que
+   * no obliga a salir de la Red es mejor.
+   */
+  function alternativesMarkup() {
+    return routeOptions.map((opcion, i) => {
+      const bloqueos = (opcion.restrictionNotes ?? []).filter((n) => !n.requiresAccessException).length;
+      const red = Math.round(opcion.heavyNetworkSharePercent);
+      const elegida = i === chosenRoute;
+
+      const estado = bloqueos > 0
+        ? `<span style="color:var(--danger)">${bloqueos} tramo${bloqueos > 1 ? 's' : ''} que no podés transitar</span>`
+        : `<span style="color:var(--ok)">Sin tramos prohibidos</span>`;
+
+      return `
+        <button class="route-option${elegida ? ' is-chosen' : ''}" data-index="${i}">
+          <div class="route-option-head">
+            <b>${i === 0 ? 'Recomendada' : `Alternativa ${i}`}</b>
+            <span>${formatDuration(opcion.durationSeconds)} · ${formatDistance(opcion.distanceMeters)}</span>
+          </div>
+          <div class="route-option-note">${estado} · ${red}% por la Red</div>
+        </button>`;
+    }).join('');
+  }
+
+  /** Cambia la ruta que se está mirando, y la dibuja. */
+  function elegirRuta(index) {
+    if (!Number.isInteger(index) || !routeOptions[index] || index === chosenRoute) return;
+
+    chosenRoute = index;
+    route = routeOptions[index];
+
+    gl.drawRoute(route, route.accessLegs ?? []);
+    drawSheet();
   }
 
   // --- viaje en curso: navegacion -------------------------------------------
@@ -788,11 +838,19 @@ export function navigateView(host, { openDrawer, go }) {
 
     await withBusy(button, 'Calculando', async () => {
       try {
-        route = await api.route(
+        const calculada = await api.route(
           truck.id,
           { latitude: origin.lat, longitude: origin.lng },
           { latitude: destination.lat, longitude: destination.lng }
         );
+
+        // El backend manda la recomendada en la raíz y las otras en
+        // `alternatives`, ya ordenadas por lo que le conviene a un camión:
+        // primero las que menos tramos prohibidos tienen, después las que
+        // menos dependen de la excepción de acceso, y recién ahí por tiempo.
+        routeOptions = [calculada, ...(calculada.alternatives ?? [])];
+        chosenRoute = 0;
+        route = calculada;
 
         gl.drawRoute(route, route.accessLegs ?? []);
         stage = 'route';
