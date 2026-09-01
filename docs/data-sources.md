@@ -496,5 +496,15 @@ se ven idénticos a un barrio sin registros: limpios.
 
 Para un camionero eso es exactamente al revés de la verdad, y contradice la regla
 del proyecto: donde falta el dato, se dice que falta. El arreglo es un aviso
-cuando el mapa sale del área cubierta. Queda pendiente, y su prioridad sube cuando
-se sume el AMBA, porque hasta entonces todo el conurbano es zona muda.
+cuando el mapa sale del área cubierta.
+
+**Congelada por decisión, no por olvido (01/09/2026).** El objetivo declarado es
+que la aplicación cubra el AMBA cuando salga al público, y la información está en
+recopilación. Hasta tener esa base de datos **no se toca nada de este sector**:
+el aviso de "saliste del área cubierta" y la ampliación al conurbano son el mismo
+trabajo mirado desde dos lados, y hacer el aviso ahora significaría escribir el
+límite de la cobertura en el código para tener que reescribirlo entero después.
+
+Se retoma cuando estén los datos del AMBA, y ahí no es un aviso: es replicar para
+el conurbano todo lo que hoy existe para CABA —Red, gálibos, pasos a nivel,
+radares, zonas— más el aviso para lo que quede afuera de eso.
