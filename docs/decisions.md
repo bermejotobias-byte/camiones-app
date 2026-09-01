@@ -1734,123 +1734,115 @@ sin desinstalar.**
 
 ---
 
-## AD-36 · Se cuentan robos a mano armada, y se dibujan como calor sobre los hechos
+## AD-36 · Las zonas peligrosas salen de un mapa comunitario, no del dato oficial
 
-**Fecha:** 01/09/2026
+**Fecha:** 01/09/2026 (reemplaza la primera versión del mismo día)
 **Estado:** aceptada
 
 ### Contexto
 
-El pedido era mostrar zonas peligrosas "con una escala de color", sin recargar el
-mapa, tomando como referencia un mapa comunitario de Google My Maps.
+El pedido era mostrar zonas peligrosas de CABA con escala de color, sin recargar
+el mapa, tomando como referencia un mapa colaborativo de Google My Maps.
 
-El dato disponible es el **Mapa del Delito del GCBA** (CC-BY): 133.203 hechos de
-2025 con coordenadas. Ver la sección 7 de `data-sources.md`.
+Se construyó **primero con el dato oficial** —el Mapa del Delito del GCBA, CC-BY,
+133.203 hechos de 2025 con coordenadas— y hubo que descartarlo.
 
-### Decisión 1: contar robos A MANO ARMADA, no cantidad de robos
+### Por qué el dato oficial no servía
 
-La primera versión contaba todos los robos por igual. **Estaba mal**, y no por
-poco: contar cantidad mide *exposición* —cuánta gente pasa por ahí— y no peligro.
-Medido en 2025, en 500 m a la redonda:
+**1. Contar delitos denunciados mide dónde hay gente, no dónde hay peligro.**
 
-| Zona | Hechos | Con arma | % |
-|---|---:|---:|---:|
-| Villa 21-24 (Barracas) | 336 | **121** | 36,0% |
-| Villa 1-11-14 (Bajo Flores) | 559 | **69** | 12,3% |
-| Villa Soldati | 66 | **28** | 42,4% |
-| Palermo (Plaza Serrano) | 446 | 26 | 5,8% |
-| Palermo (Av. Santa Fe) | 425 | **18** | 4,2% |
+Palermo encabezaba la Ciudad con 4.126 hechos. Filtrar a robos a mano armada
+corregía buena parte del sesgo —Villa Soldati tiene 30,9% de robos con arma
+contra 6,3% de Palermo— y era una mejora real, pero no tocaba el fondo: **un
+conteo de hechos no es un mapa de peligro**.
 
-Por cantidad, Palermo encabeza la Ciudad y **Villa Soldati aparece como la zona
-más segura del cuadro** — un resultado que se contradice con cualquiera que
-maneje por la Ciudad. Por robos con arma el orden se da vuelta. En Villa Soldati
-uno de cada tres robos es a mano armada; en Palermo, uno de cada dieciséis.
+**2. El dataset cubre exactamente CABA.**
 
-Se cuentan los **5.551 hechos con `uso_arma = SI`**, sin ponderaciones
-inventadas: un hecho con arma cuenta, uno sin arma no. El criterio es nítido y se
-puede discutir mirando el número.
+Y ése fue el que lo mató. El mapa de calor terminaba dibujando **la silueta de la
+Ciudad**: un manchón rojo con la forma del límite administrativo, que en pantalla
+decía *"toda la Ciudad es peligrosa y el conurbano es seguro"*. Absurdo, y al
+revés de la realidad.
 
-Como efecto secundario, arregla lo otro que estaba mal: son diez veces menos
-hechos y mucho más concentrados, así que **el mapa deja de estar pintado de punta
-a punta**. Antes, con 413 celdas sobre 3.005, la lectura era "toda la Ciudad es
-peligrosa" — que no informa nada.
+Ese fallo tiene una forma general que conviene reconocer: **cuando la cobertura de
+una fuente coincide con una frontera, el mapa termina dibujando la frontera.** No
+es un problema de calibración ni de colores — ningún ajuste de opacidad lo
+arregla, porque el dato está diciendo dónde hay dataset, no dónde hay riesgo.
 
-**Lo que esto NO arregla** es el subregistro, y hay que decirlo: en los barrios
-más precarios se denuncia menos, así que el mapa subestima las zonas más duras.
-Villa Soldati registra 66 hechos donde Palermo registra 446. La *proporción*
-armada es lo que sobrevive a ese sesgo, y es la razón de usarla.
+### Decisión
 
-### Decisión 2: mapa de calor sobre los hechos crudos
+Se usan las **19 zonas del mapa colaborativo** que tocan CABA: 8,8 km², el 4,3%
+de la Ciudad, contra el 100% que pintaba el anterior. Caen en Villa Soldati,
+Villa 21-24, Villa Lugano, Villa 31, Villa 1-11-14, La Boca, Nueva Pompeya y
+otros — donde cualquiera que maneje por la Ciudad esperaría.
 
-Los 5.551 puntos van **crudos, en un solo MultiPoint**, y el `heatmap` de
-MapLibre los dibuja. La grilla sobrevive sólo como **focos invisibles** (`t="f"`,
-celdas de 300 m que duplican la media): son los que contestan al tocar el mapa y
-los que llevan el triángulo, porque una capa `heatmap` no responde a
-`queryRenderedFeatures`.
+Las zonas que un repartidor evita son **un juicio**, y este mapa las tiene
+marcadas a mano por gente que anda por ahí todos los días. Eso es exactamente lo
+que un conteo no puede darte.
 
-Costó tres intentos llegar acá, y los tres enseñaron algo:
+**El precio, y se paga con los ojos abiertos:** autoría anónima, sin metodología,
+sin fecha y sin licencia declarada. Por eso el toque dice *"Marcada por
+conductores, no es un dato oficial"* cada vez. Ver la sección 7 de
+`data-sources.md`.
 
-1. **Pintar las celdas de la grilla**, con relleno translúcido y sin borde,
-   esperando que las vecinas se fundieran. Quedó un tablero de ajedrez. Y antes
-   que estético el problema es de fondo: el cuadrado de 300 m es una unidad de
-   **cálculo**, no un hecho del territorio, y dibujarlo afirma que el riesgo
-   cambia al cruzar una línea recta que en la calle no existe.
-2. **Un `heatmap` alimentado con esa misma grilla.** Empapeló el mapa de lunares
-   alineados: el heatmap normaliza por densidad de *puntos*, y con una grilla
-   regular redibuja la grilla sin importar el radio — agrandarlo sólo daba
-   lunares más grandes.
-3. **Círculos difuminados por celda**, con opacidad baja y acumulación de
-   solapes. Funcionaba, y de ahí salió el efecto — es cómo está hecho el mapa
-   comunitario de referencia, cuyos 403 polígonos son todos del mismo rojo al
-   62% y cuya gradación sale del solapamiento. Pero seguía atado a la grilla.
+### Cómo se dibuja
 
-La conclusión es que el `heatmap` no estaba mal: estaba **mal alimentado**. Con
-los hechos uno por uno hace exactamente lo que se le pide.
+Se mantiene el mapa de calor, que era lo que funcionaba visualmente. El script
+rellena cada polígono con puntos cada 60 m y el `heatmap` los difumina — 2.449
+puntos en un solo MultiPoint.
 
-### Calibración, y por qué estos números
+Dos razones para muestrear en vez de dibujar el polígono: una capa `heatmap` de
+MapLibre **sólo acepta puntos**, y el difuminado **evita prometer un borde exacto
+que este dato no tiene**. El límite de una zona marcada a mano no es una línea,
+es un degradado.
 
-- **Radio**: de ~280 m en zoom 11 a ~150 m en zoom 17. NO son metros constantes, a
-  propósito: de lejos hace falta suavizar más o los 5.551 puntos sueltos quedan
-  en un puntillismo donde no se distingue ningún foco; de cerca conviene ser fiel
-  al lugar donde ocurrió cada hecho.
-- **Intensidad baja** (0,35 a 0,9). Con 1,4 en zoom 12 la Ciudad entera saturaba
-  en rojo.
-- **La rampa de color arranca recién en densidad 0,35**, y ése es el número que
-  decide cuánto mapa queda pintado: un hecho suelto no alcanza para teñir nada,
-  hacen falta varios coincidiendo. Con el corte en 0,12 aparecía un fondo
-  amarillo por toda la Ciudad y volvía la sensación de que todo es igual de
-  peligroso — justo lo que esta capa tiene que evitar.
+### El interruptor, y por qué arranca apagado
+
+Las zonas se prenden y apagan con **su propio botón**, aparte de las capas de
+camión, y arrancan **apagadas**.
+
+Son datos de naturaleza distinta: la Red y los gálibos son oficiales y dicen por
+dónde puede pasar el vehículo; esto es un juicio de la comunidad sobre dónde no
+conviene parar. Quien quiere una no necesariamente quiere la otra. Y el sombreado
+cubre área, así que es lo primero que uno quiere sacar del medio para leer el
+mapa.
+
+Es el segundo botón que se agrega a la columna lateral, así que vale repetir la
+advertencia de AD-34: **cada control nuevo agranda la franja que se come el
+arrastre del mapa si los contenedores pierden `pointer-events: none`.**
+
+### El toque no dice números
+
+Antes decía cuántos robos hubo y cuántas veces el promedio de la Ciudad. Ahora
+dice **"Zona peligrosa · Barracas"** y nada más.
+
+Dos razones. El número no es accionable manejando: lo único que el conductor
+puede hacer con esa información es decidir si para ahí o no. Y comparar zonas por
+cantidad invita a una precisión que la fuente no tiene.
+
+**Y no dice "segura" en ningún caso.** El dato tiene dos estados —marcada y no
+marcada— y ninguno de los dos es "revisada y limpia". Que una zona no aparezca
+significa que nadie la marcó.
 
 ### Consecuencias
 
-- El toque lo contesta la capa invisible de focos. Dice el número crudo, qué se
-  contó y contra qué se compara: *"BARRACAS · zona de riesgo extrema: 77 robos a
-  mano armada denunciados en 2025, 31,4 veces el promedio de la Ciudad. 16 entre
-  las 22 y las 6."* Decir **"a mano armada"** y no "robos" a secas no es un
-  detalle: es la diferencia entre este mapa y uno que marca Palermo como lo peor
-  de la Ciudad por tener mucha gente en la calle.
-- El archivo publica los hechos como **un MultiPoint y no como 5.551 features**:
-  la envoltura de cada Feature pesa más que la coordenada que contiene, y la
-  diferencia es de 636 KB a 180.
-- El silencio del mapa **no es un certificado de seguridad**, y fuera de CABA eso
-  es una deuda abierta: ver L-11 en `data-sources.md`.
+- El archivo pasó de 180 KB a 60 KB.
+- La capa que contesta el toque es un `fill`, no un `circle`: las zonas son
+  polígonos, y **una capa `circle` de MapLibre sólo dibuja puntos** — con un
+  polígono no dibuja nada ni contesta nada, sin emitir un solo error.
+- El análisis del Mapa del Delito queda documentado en `data-sources.md` §7
+  aunque no se use: sirve para contrastar y explica por qué no se usa.
 
-### Tres trampas de MapLibre que costaron estas iteraciones
+### Una trampa que apareció dos veces en la misma sesión
 
-**Una capa `circle` sólo dibuja geometrías de tipo punto.** Con polígonos no
-dibuja nada y no emite ningún error. Una capa `symbol`, en cambio, sí acepta
-polígonos y coloca el símbolo en el centroide — así que el triángulo aparecía y la
-mancha no, sobre la misma fuente.
+Mover bloques grandes de `layers.js` por rango de líneas se llevó puestas
+definiciones que seguían en uso —`chapa`, `LADO`, `rectangulo`, `imagen` la
+primera vez; `RIESGO` la segunda—. **`node --check` no lo detecta**: un
+`RIESGO.extrema` sin `const RIESGO` es sintaxis válida y sólo revienta al
+ejecutar, adentro del teléfono, donde el único rastro es una capa que no aparece.
 
-**`['zoom']` sólo se admite en el nivel superior de un `step` o un `interpolate`.**
-Envuelto en una multiplicación, MapLibre rechaza la capa entera con
-*"zoom expression may only be used as input to a top-level step or interpolate
-expression"* — y lo hace por el evento `error` del mapa, **no por excepción**, así
-que ningún `try/catch` lo ve y el síntoma es que la capa simplemente no aparece.
+El chequeo que sí lo encuentra es buscar identificadores usados y nunca
+declarados en el módulo. Vale correrlo después de cualquier reorganización
+grande de un archivo de `wwwroot/js`.
 
-Esa falla muda motivó envolver **cada** instalación de capa por separado en
-`installTruckLayers`: antes iban sueltas y un error en la primera se llevaba
-puestas a las otras cuatro sin dejar rastro en la consola.
+---
 
-**El `heatmap` es para nubes de puntos, no para datos ya agregados.** Si la fuente
-viene en grilla, el heatmap la redibuja.

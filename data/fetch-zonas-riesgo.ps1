@@ -1,78 +1,73 @@
 <#
 .SYNOPSIS
-    Genera la capa de zonas de riesgo de CABA desde el Mapa del Delito oficial.
+    Genera la capa de zonas peligrosas de CABA desde el mapa comunitario.
 
 .DESCRIPTION
-    Fuente: dataset "Delitos" de Buenos Aires Data, publicado por el Ministerio
-    de Justicia y Seguridad del GCBA. Licencia CC-BY. Un archivo por anio, con
-    latitud y longitud por hecho. El de 2025 trae 133.203 registros.
+    Fuente: mapa colaborativo "Zonas Peligrosas" de Google My Maps, que circula
+    entre repartidores del AMBA. Lo eligio el usuario del proyecto como criterio
+    despues de descartar el Mapa del Delito del GCBA.
 
-    QUE SE CUENTA: ROBOS A MANO ARMADA, NO CANTIDAD DE ROBOS
+    POR QUE NO SE USA EL DATO OFICIAL DE DELITOS
 
-    Esta es la decision central del archivo y reemplaza a la anterior, que
-    contaba todos los robos por igual. Contar cantidad mide EXPOSICION —cuanta
-    gente pasa por ahi— y no peligro, y el resultado se lee al reves de la
-    realidad. Medido en 2025, en un radio de 500 m:
+    Se intento antes y el resultado era inservible, por dos motivos distintos:
 
-        Villa 21-24 (Barracas)   336 hechos   121 con arma   36,0%
-        Villa 1-11-14 (Flores)   559 hechos    69 con arma   12,3%
-        Villa Soldati             66 hechos    28 con arma   42,4%
-        Palermo (Plaza Serrano)  446 hechos    26 con arma    5,8%
-        Palermo (Av. Santa Fe)   425 hechos    18 con arma    4,2%
+    1. Contar delitos denunciados mide DONDE HAY GENTE, no donde hay peligro.
+       Palermo encabezaba la Ciudad. Filtrar a robos a mano armada corregia parte
+       del sesgo, pero no el fondo.
+    2. El dataset del GCBA cubre exactamente CABA, asi que el mapa de calor
+       terminaba dibujando la silueta de la Ciudad: un manchon rojo con la forma
+       del limite administrativo, que decia "toda la Ciudad es peligrosa y el
+       conurbano es seguro". Absurdo, y al reves de la realidad.
 
-    Por cantidad, Palermo encabeza la Ciudad y Villa Soldati aparece como la zona
-    MAS SEGURA del cuadro. Por robos con arma el orden se da vuelta y coincide con
-    lo que cualquiera que maneje por la Ciudad sabe. En Villa Soldati uno de cada
-    tres robos es a mano armada; en Palermo, uno de cada dieciseis.
+    El problema de fondo es que un conteo de hechos no es un mapa de peligro. Las
+    zonas que un repartidero evita son un juicio, y este mapa las tiene marcadas
+    a mano por gente que anda por ahi todos los dias.
 
-    Para un camionero la diferencia no es academica: un arrebato de celular en una
-    esquina concurrida no le cambia la ruta, y un asalto armado si.
+    QUE SE QUEDA
 
-    Se cuentan los 5.551 robos con `uso_arma = SI`. Sin ponderaciones inventadas:
-    un hecho con arma cuenta, uno sin arma no. El criterio es nitido y se puede
-    discutir mirando el numero.
+    De los 403 poligonos del mapa, solo 19 tocan CABA — el resto es conurbano y
+    otras provincias. Esos 19 cubren 8,8 km2, el 4,3% de la Ciudad, y caen donde
+    uno esperaria:
 
-    Los robos armados ademas son mas nocturnos que el resto —33,5% entre las 22 y
-    las 6, contra 24,5% del total—, que es justo cuando un camion queda parado.
+        Villa Soldati          2,49 km2
+        Barracas (Villa 21-24) 2,02
+        Villa Lugano           1,54
+        Retiro (Villa 31)      0,86
+        Flores (Villa 1-11-14) 0,78
+        y menores en La Boca, Nueva Pompeya, Parque Avellaneda, Recoleta,
+        Puerto Madero, Saavedra, Paternal, Parque Patricios y Chacarita.
 
-    QUE EMITE EL ARCHIVO
+    QUE EMITE
 
     Dos clases de objeto, distinguidas por la propiedad `t`:
 
-      t = "h"   los 5.551 hechos, uno por punto, sin agregar. Son los que
-                alimentan el mapa de calor. Van crudos y no en grilla porque una
-                capa `heatmap` normaliza por densidad de PUNTOS: alimentada con
-                una grilla regular redibuja la grilla en forma de lunares
-                alineados, sin importar el radio. Ver AD-36.
-      t = "f"   los focos: celdas de 300 m que al menos duplican la densidad
-                media de robos armados de la Ciudad. No se dibujan — son las que
-                contestan al tocar el mapa y las que llevan el triangulo.
+      t = "h"   puntos muestreados adentro de las zonas, cada 60 m, en un solo
+                MultiPoint. Son los que alimentan el mapa de calor: una capa
+                `heatmap` de MapLibre solo acepta puntos, y ademas el difuminado
+                es lo que evita prometer un borde exacto que este dato no tiene.
+      t = "f"   los poligonos, para contestar al tocar el mapa.
 
-    LO QUE ESTE DATO NO DICE
+    LO QUE ESTE DATO NO ES
 
-    - Son hechos DENUNCIADOS, y la propension a denunciar no es igual en toda la
-      Ciudad. En los barrios mas precarios se denuncia menos, asi que el mapa
-      SUBESTIMA justamente las zonas mas duras. Villa Soldati registra 66 hechos
-      en 500 m contra 446 de Palermo: eso no es que sea mas tranquila, es que ahi
-      no se denuncia. La proporcion armada (42% contra 6%) es lo que sobrevive a
-      ese sesgo, y es la razon de usarla.
-    - Que no haya calor NO significa que ahi no pase nada.
-    - Solo CABA: el dataset es del Gobierno de la Ciudad y no cubre el conurbano.
+    - **No es oficial.** Es un mapa de autoria anonima, sin metodologia escrita,
+      sin fecha y sin licencia declarada. Se usa como lo que es: el juicio de
+      gente que trabaja en la calle, no un registro.
+    - **No tiene grados.** Los 403 poligonos son del mismo color y ninguno se
+      superpone con otro dentro de CABA: del dato salen dos estados —marcada y no
+      marcada—, no una escala.
+    - **Que una zona no este marcada NO significa que sea segura.** Significa que
+      nadie la marco. La app no dice "zona segura" en ningun lado por eso.
 
-.PARAMETER Anio
-    Anio del dataset. 2025 es el ultimo completo publicado.
-
-.PARAMETER LadoMetros
-    Lado de la celda de los focos. Con 300 m la media es 2,45 hechos por celda;
-    achicarla mas deja conteos de uno o dos, donde el ruido manda.
+.PARAMETER KmlPath
+    KML ya descargado. Si no se pasa, se baja del mapa publicado.
 
 .EXAMPLE
     .\data\fetch-zonas-riesgo.ps1
 #>
 [CmdletBinding()]
 param(
-    [int] $Anio = 2025,
-    [int] $LadoMetros = 300,
+    [string] $KmlPath,
+    [int] $PasoMetros = 60,
     [string] $OutputDirectory
 )
 
@@ -89,191 +84,265 @@ if (-not $OutputDirectory) {
 
 $OutputDirectory = (Resolve-Path $OutputDirectory).Path
 
-# Superficie de CABA: 203,99 km2, que es la suma de los 48 barrios del dataset
-# oficial "Barrios" de Buenos Aires Data. Se deja como constante en vez de bajar
-# ese archivo cada vez —un limite administrativo no cambia— pero se anota de
-# donde salio para que sea verificable y no un numero de memoria.
-$superficieCaba = 203.99
+$mid = '1ZVh-1tRfDFTc4O1eITKjEkASCXFQExtL'
 
-$url = "https://cdn.buenosaires.gob.ar/datosabiertos/datasets/ministerio-de-justicia-y-seguridad/delitos/delitos_$Anio.csv"
-$temporal = Join-Path ([System.IO.Path]::GetTempPath()) "delitos_$Anio.csv"
+if (-not $KmlPath) {
+    # forcekml=1 devuelve KML plano; sin eso viene KMZ comprimido.
+    $KmlPath = Join-Path ([System.IO.Path]::GetTempPath()) 'zonas-peligrosas.kml'
 
-if (-not (Test-Path $temporal)) {
-    Write-Host "Descargando el Mapa del Delito $Anio ..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $url -OutFile $temporal -UseBasicParsing -TimeoutSec 600
-}
-else {
-    Write-Host "Reusando la descarga previa: $temporal" -ForegroundColor DarkGray
-}
-
-# Este CSV SI viene en UTF-8 —a diferencia del de camaras de control vehicular,
-# que viene en Latin-1— y separado por comas. Se verifico que ningun campo trae
-# comas adentro: las 133.204 lineas parten en exactamente 15 campos. Por eso
-# alcanza con un split manual, que sobre 133 mil filas es varios ordenes de
-# magnitud mas rapido que ConvertFrom-Csv.
-$lineas = [System.IO.File]::ReadAllLines($temporal, [System.Text.Encoding]::UTF8)
-
-$encabezado = $lineas[0].Split(',') | ForEach-Object { $_.Trim('"') }
-$col = @{}
-for ($i = 0; $i -lt $encabezado.Count; $i++) { $col[$encabezado[$i]] = $i }
-
-foreach ($obligatoria in 'tipo', 'subtipo', 'latitud', 'longitud', 'barrio', 'franja', 'uso_arma') {
-    if (-not $col.ContainsKey($obligatoria)) {
-        throw "El dataset no trae la columna '$obligatoria'. Cambio el formato: revisar la fuente antes de seguir."
+    if (-not (Test-Path $KmlPath)) {
+        Write-Host 'Descargando el mapa comunitario ...' -ForegroundColor Cyan
+        Invoke-WebRequest -Uri "https://www.google.com/maps/d/kml?mid=$mid&forcekml=1" `
+            -OutFile $KmlPath -UseBasicParsing -TimeoutSec 120
+    }
+    else {
+        Write-Host "Reusando la descarga previa: $KmlPath" -ForegroundColor DarkGray
     }
 }
 
-# Proyeccion plana local. A la latitud de Buenos Aires y sobre 200 km2 el error
-# es de centimetros: no hace falta nada mas caro para agrupar en celdas.
-$metrosPorGradoLat = 110574.0
-$metrosPorGradoLng = 111320.0 * [math]::Cos(-34.61 * [math]::PI / 180.0)
+$kml = [System.IO.File]::ReadAllText($KmlPath, [System.Text.Encoding]::UTF8)
 
-$hechos = New-Object System.Collections.ArrayList
-$celdas = @{}
-$robosTotales = 0
-$sinCoordenada = 0
+# ---------------------------------------------------------------- Limite de CABA
+#
+# Se necesita por dos razones: para quedarse solo con las zonas de la Ciudad, y
+# para recortar los puntos de muestreo que caen del otro lado del Riachuelo o de
+# General Paz. Sin el recorte, una zona a caballo del limite pintaria conurbano
+# donde no hay ningun otro dato de la app.
+#
+# Sale del dataset oficial "Barrios" de Buenos Aires Data (CC-BY-2.5-AR). Se baja
+# aparte y no se versiona: es medio mega y solo hace falta al generar.
 
-foreach ($linea in $lineas[1..($lineas.Count - 1)]) {
-    if ([string]::IsNullOrWhiteSpace($linea)) { continue }
+$barriosPath = Join-Path ([System.IO.Path]::GetTempPath()) 'barrios-caba.geojson'
 
-    $f = $linea.Split(',')
-    $tipo = $f[$col['tipo']].Trim('"')
-    $subtipo = $f[$col['subtipo']].Trim('"')
+if (-not (Test-Path $barriosPath)) {
+    Write-Host 'Descargando el limite de CABA (barrios oficiales) ...' -ForegroundColor Cyan
+    Invoke-WebRequest -UseBasicParsing -TimeoutSec 120 -OutFile $barriosPath `
+        -Uri 'https://cdn.buenosaires.gob.ar/datosabiertos/datasets/innovacion-transformacion-digital/barrios/barrios.geojson'
+}
 
-    # Robo (cualquier subtipo) mas el hurto de vehiculos.
-    if (-not ($tipo -eq 'Robo' -or $subtipo -like '*automotor*')) { continue }
+$barrios = Get-Content $barriosPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
-    $lat = 0.0; $lng = 0.0
-    $okLat = [double]::TryParse($f[$col['latitud']].Trim('"'), [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref] $lat)
-    $okLng = [double]::TryParse($f[$col['longitud']].Trim('"'), [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref] $lng)
+$anillosCaba = New-Object System.Collections.ArrayList
+$nombreBarrio = New-Object System.Collections.ArrayList
 
-    if (-not $okLat -or -not $okLng -or $lat -eq 0 -or $lng -eq 0) { $sinCoordenada++; continue }
-
-    # Control de cordura. Si un punto cae fuera de la Ciudad, algo se leyo mal.
-    if ($lat -lt -34.75 -or $lat -gt -34.50 -or $lng -lt -58.56 -or $lng -gt -58.32) {
-        $sinCoordenada++; continue
-    }
-
-    $robosTotales++
-
-    # A partir de aca, SOLO los que llevaron arma. Ver el encabezado.
-    if ($f[$col['uso_arma']].Trim('"') -ne 'SI') { continue }
-
-    # Cinco decimales son ~1,1 m: mas precision de la que tiene el dato y mucha
-    # mas de la que necesita un mapa de calor. Sobre 5.500 puntos, el redondeo
-    # decide buena parte del peso del archivo.
-    [void] $hechos.Add(@(
-        [math]::Round($lng, 5),
-        [math]::Round($lat, 5)
-    ))
-
-    $cx = [math]::Floor($lng * $metrosPorGradoLng / $LadoMetros)
-    $cy = [math]::Floor($lat * $metrosPorGradoLat / $LadoMetros)
-    $clave = "$cx|$cy"
-
-    if (-not $celdas.ContainsKey($clave)) {
-        $celdas[$clave] = [pscustomobject] @{
-            cx = $cx; cy = $cy; armados = 0; noche = 0; barrios = @{}
+# Los dos casos se escriben aparte y sin el truco del operador coma para envolver
+# el Polygon: PowerShell desenrolla arrays anidados al asignarlos, y con
+# `, $geometry.coordinates` se perdia un nivel — los "anillos" quedaban siendo
+# pares sueltos de numeros, ninguna zona caia adentro de la Ciudad y el script
+# cortaba diciendo que el mapa de origen habia cambiado. No habia cambiado nada.
+foreach ($f in $barrios.features) {
+    if ($f.geometry.type -eq 'MultiPolygon') {
+        foreach ($poli in $f.geometry.coordinates) {
+            [void] $anillosCaba.Add($poli[0])
+            [void] $nombreBarrio.Add($f.properties.nombre)
         }
     }
-
-    $celda = $celdas[$clave]
-    $celda.armados++
-
-    # Franja horaria: el dataset la da como hora entera 0..23. Se cuenta como
-    # nocturno de 22 a 5 inclusive, que es cuando el camion suele estar parado.
-    $franja = -1
-    [void] [int]::TryParse($f[$col['franja']].Trim('"'), [ref] $franja)
-    if ($franja -ge 22 -or ($franja -ge 0 -and $franja -le 5)) { $celda.noche++ }
-
-    $barrio = $f[$col['barrio']].Trim('"')
-    if ($barrio) { $celda.barrios[$barrio] = 1 + $celda.barrios[$barrio] }
+    else {
+        [void] $anillosCaba.Add($f.geometry.coordinates[0])
+        [void] $nombreBarrio.Add($f.properties.nombre)
+    }
 }
 
-$areaCelda = [math]::Pow($LadoMetros / 1000.0, 2)
-$densidadMedia = $hechos.Count / $superficieCaba
-$mediaPorCelda = $densidadMedia * $areaCelda
+Write-Host "Limite de CABA: $($anillosCaba.Count) anillos de barrio" -ForegroundColor DarkGray
+
+# Punto en poligono, por cruce de rayos.
+function Test-Dentro {
+    param($Lng, $Lat, $Anillo)
+
+    $dentro = $false
+    $j = $Anillo.Count - 1
+
+    for ($i = 0; $i -lt $Anillo.Count; $i++) {
+        $yi = $Anillo[$i][1]; $xi = $Anillo[$i][0]
+        $yj = $Anillo[$j][1]; $xj = $Anillo[$j][0]
+
+        if ((($yi -gt $Lat) -ne ($yj -gt $Lat)) -and
+            ($Lng -lt (($xj - $xi) * ($Lat - $yi) / ($yj - $yi) + $xi))) {
+            $dentro = -not $dentro
+        }
+
+        $j = $i
+    }
+
+    return $dentro
+}
+
+function Get-Barrio {
+    param($Lng, $Lat)
+
+    for ($i = 0; $i -lt $anillosCaba.Count; $i++) {
+        if (Test-Dentro -Lng $Lng -Lat $Lat -Anillo $anillosCaba[$i]) { return $nombreBarrio[$i] }
+    }
+
+    return $null
+}
+
+# CONTROL DEL INSTRUMENTO. Antes de creerle al limite, se le pregunta por lugares
+# cuya respuesta se sabe. Sin esto, un limite mal armado no da error: simplemente
+# no encuentra ninguna zona, y el sintoma —"cambio el mapa de origen"— manda a
+# buscar el problema al lado equivocado. Ya paso.
+$control = @(
+    @{ nombre = 'Obelisco';       lng = -58.38159; lat = -34.60373; dentro = $true },
+    @{ nombre = 'Villa Soldati';  lng = -58.44200; lat = -34.67200; dentro = $true },
+    @{ nombre = 'Avellaneda';     lng = -58.36500; lat = -34.66200; dentro = $false },
+    @{ nombre = 'Vicente Lopez';  lng = -58.47800; lat = -34.52700; dentro = $false }
+)
+
+foreach ($c in $control) {
+    $hay = $null -ne (Get-Barrio -Lng $c.lng -Lat $c.lat)
+    if ($hay -ne $c.dentro) {
+        throw "El limite de CABA no pasa el control: $($c.nombre) dio dentro=$hay y se esperaba $($c.dentro)."
+    }
+}
+
+Write-Host "  control del limite: ok" -ForegroundColor DarkGray
+
+# ------------------------------------------------------------------ Las zonas
+
+$zonas = New-Object System.Collections.ArrayList
+$totalPoligonos = 0
+
+foreach ($marca in ($kml -split '<Placemark>') | Select-Object -Skip 1) {
+    if ($marca -notmatch '(?s)<coordinates>(.*?)</coordinates>') { continue }
+
+    $totalPoligonos++
+
+    $anillo = New-Object System.Collections.ArrayList
+    foreach ($par in ($matches[1].Trim() -split '\s+')) {
+        $c = $par -split ','
+        if ($c.Count -lt 2) { continue }
+        [void] $anillo.Add(@(
+            [double]::Parse($c[0], [Globalization.CultureInfo]::InvariantCulture),
+            [double]::Parse($c[1], [Globalization.CultureInfo]::InvariantCulture)
+        ))
+    }
+
+    if ($anillo.Count -lt 3) { continue }
+
+    # Toca CABA si alguno de sus vertices cae adentro de la Ciudad.
+    $toca = $false
+    foreach ($v in $anillo) {
+        if ($null -ne (Get-Barrio -Lng $v[0] -Lat $v[1])) { $toca = $true; break }
+    }
+
+    if (-not $toca) { continue }
+
+    $titulo = if ($marca -match '<value>(ZP[^<]*)</value>') { $matches[1] } else { $null }
+
+    [void] $zonas.Add([pscustomobject] @{ titulo = $titulo; anillo = $anillo })
+}
+
+Write-Host "Poligonos en el mapa: $totalPoligonos   ->   tocan CABA: $($zonas.Count)" -ForegroundColor DarkGray
+
+if ($zonas.Count -eq 0) {
+    throw 'Ninguna zona toca CABA. Cambio el mapa de origen: revisar antes de seguir.'
+}
+
+# ------------------------------------------------- Muestreo para el mapa de calor
+
+$kLat = 110574.0
+$kLng = 111320.0 * [math]::Cos(-34.61 * [math]::PI / 180.0)
+
+$puntos = New-Object System.Collections.ArrayList
+$recortados = 0
+$porBarrio = @{}
+
+foreach ($z in $zonas) {
+    $mnLat = 90.0; $mxLat = -90.0; $mnLng = 180.0; $mxLng = -180.0
+    foreach ($v in $z.anillo) {
+        if ($v[1] -lt $mnLat) { $mnLat = $v[1] }
+        if ($v[1] -gt $mxLat) { $mxLat = $v[1] }
+        if ($v[0] -lt $mnLng) { $mnLng = $v[0] }
+        if ($v[0] -gt $mxLng) { $mxLng = $v[0] }
+    }
+
+    for ($y = [math]::Floor($mnLat * $kLat / $PasoMetros); $y -le [math]::Ceiling($mxLat * $kLat / $PasoMetros); $y++) {
+        for ($x = [math]::Floor($mnLng * $kLng / $PasoMetros); $x -le [math]::Ceiling($mxLng * $kLng / $PasoMetros); $x++) {
+            $lat = ($y + 0.5) * $PasoMetros / $kLat
+            $lng = ($x + 0.5) * $PasoMetros / $kLng
+
+            if (-not (Test-Dentro -Lng $lng -Lat $lat -Anillo $z.anillo)) { continue }
+
+            # Recorte a CABA: una zona a caballo del Riachuelo no puede pintar
+            # conurbano, donde la app no tiene ningun otro dato que mostrar.
+            $barrio = Get-Barrio -Lng $lng -Lat $lat
+            if (-not $barrio) { $recortados++; continue }
+
+            $porBarrio[$barrio] = 1 + $porBarrio[$barrio]
+
+            [void] $puntos.Add(@(
+                [math]::Round($lng, 5),
+                [math]::Round($lat, 5)
+            ))
+        }
+    }
+}
+
+$areaKm2 = $puntos.Count * [math]::Pow($PasoMetros / 1000.0, 2)
 
 Write-Host ""
-Write-Host "Robos y hurtos de vehiculos ubicados: $robosTotales" -ForegroundColor DarkGray
-Write-Host ("  de esos, A MANO ARMADA:          {0}  ({1:N1}%)" -f $hechos.Count, ($hechos.Count / $robosTotales * 100)) -ForegroundColor Yellow
-Write-Host "  sin coordenada utilizable:       $sinCoordenada" -ForegroundColor DarkYellow
-Write-Host ("  densidad media de CABA:          {0:N1} armados/km2 = {1:N2} por celda de {2} m" -f $densidadMedia, $mediaPorCelda, $LadoMetros) -ForegroundColor DarkGray
-Write-Host "  celdas con al menos un armado:   $($celdas.Count)" -ForegroundColor DarkGray
+Write-Host ("Puntos de calor: {0} (cada {1} m) = {2:N1} km2, el {3:N1}% de CABA" -f `
+    $puntos.Count, $PasoMetros, $areaKm2, ($areaKm2 / 203.99 * 100)) -ForegroundColor Yellow
+Write-Host "  recortados por caer fuera de CABA: $recortados" -ForegroundColor DarkGray
+Write-Host ""
+Write-Host "Barrios alcanzados:" -ForegroundColor DarkGray
+foreach ($b in ($porBarrio.GetEnumerator() | Sort-Object Value -Descending)) {
+    Write-Host ("  {0,5:N2} km2  {1}" -f ($b.Value * [math]::Pow($PasoMetros / 1000.0, 2)), $b.Key) -ForegroundColor DarkGray
+}
 
-# Los cortes, en multiplos de la media. Expresarlos asi —y no en cuantiles— es lo
-# que hace que la leyenda se explique sola: "el triple que el promedio de la
-# Ciudad" se entiende sin saber estadistica.
-$corteAlta    = $mediaPorCelda * 2
-$corteMuyAlta = $mediaPorCelda * 3
-$corteExtrema = $mediaPorCelda * 5
+# ------------------------------------------------------------------- GeoJSON
 
 $features = New-Object System.Collections.ArrayList
 
-# Los hechos crudos van en UN SOLO objeto MultiPoint, no en 5.551 features.
-#
-# MapLibre expande un MultiPoint y el mapa de calor cuenta cada punto por
-# separado, que es exactamente lo que hace falta. La diferencia es de peso: cada
-# Feature arrastra su `type`, su `properties` y su `geometry`, y esa envoltura
-# pesa mas que la coordenada que contiene — 636 KB contra unos 90.
+# Los puntos van en UN SOLO MultiPoint: MapLibre lo expande y el mapa de calor
+# cuenta cada punto por separado. Como Feature suelta, la envoltura pesaria mas
+# que la coordenada que contiene.
 [void] $features.Add([ordered] @{
     type       = 'Feature'
     properties = [ordered] @{ t = 'h' }
-    geometry   = [ordered] @{ type = 'MultiPoint'; coordinates = $hechos }
+    geometry   = [ordered] @{ type = 'MultiPoint'; coordinates = $puntos }
 })
 
-$porNivel = @{ alta = 0; 'muy-alta' = 0; extrema = 0 }
+foreach ($z in $zonas) {
+    # El anillo va cerrado, como pide GeoJSON.
+    $coords = New-Object System.Collections.ArrayList
+    foreach ($v in $z.anillo) {
+        [void] $coords.Add(@([math]::Round($v[0], 6), [math]::Round($v[1], 6)))
+    }
+    if ($coords[0][0] -ne $coords[$coords.Count - 1][0] -or $coords[0][1] -ne $coords[$coords.Count - 1][1]) {
+        [void] $coords.Add($coords[0])
+    }
 
-foreach ($celda in $celdas.Values) {
-    if ($celda.armados -lt $corteAlta) { continue }
+    # Barrio dominante, para nombrar la zona al tocarla.
+    $centroLng = 0.0; $centroLat = 0.0
+    foreach ($v in $z.anillo) { $centroLng += $v[0]; $centroLat += $v[1] }
+    $centroLng /= $z.anillo.Count; $centroLat /= $z.anillo.Count
 
-    $nivel = if ($celda.armados -ge $corteExtrema) { 'extrema' }
-             elseif ($celda.armados -ge $corteMuyAlta) { 'muy-alta' }
-             else { 'alta' }
-
-    $porNivel[$nivel]++
-
-    $centroLng = [math]::Round(($celda.cx + 0.5) * $LadoMetros / $metrosPorGradoLng, 5)
-    $centroLat = [math]::Round(($celda.cy + 0.5) * $LadoMetros / $metrosPorGradoLat, 5)
-
-    $barrio = ($celda.barrios.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1).Key
+    $barrio = Get-Barrio -Lng $centroLng -Lat $centroLat
 
     [void] $features.Add([ordered] @{
         type       = 'Feature'
         properties = [ordered] @{
-            t       = 'f'
-            nivel   = $nivel
-            armados = $celda.armados
-            veces   = [math]::Round($celda.armados / $mediaPorCelda, 1)
-            noche   = $celda.noche
-            barrio  = $barrio
-            # El anio se repite en cada foco aunque ya este en la cabecera del
-            # documento. La app arma el texto del toque con las propiedades de la
-            # feature, y sin esto tendria el anio escrito en el codigo, que es
-            # como se termina mostrando una fecha vieja durante meses.
-            anio    = $Anio
+            t      = 'f'
+            barrio = $barrio
         }
-        geometry   = [ordered] @{ type = 'Point'; coordinates = @($centroLng, $centroLat) }
+        geometry   = [ordered] @{ type = 'Polygon'; coordinates = @(, $coords) }
     })
 }
 
 $documento = [ordered] @{
     type        = 'FeatureCollection'
     name        = 'zonas-riesgo'
-    description = "Robos a mano armada denunciados en $Anio. Los objetos con t='h' son los hechos, uno por punto, y alimentan el mapa de calor; los que tienen t='f' son focos agregados en celdas de $LadoMetros m que al menos duplican la densidad media de la Ciudad. Se cuentan robos CON ARMA y no cantidad de robos: la cantidad mide cuanta gente circula, no peligro."
-    attribution = "Buenos Aires Data - Mapa del Delito $Anio (CC-BY), Ministerio de Justicia y Seguridad del GCBA"
-    source      = 'https://data.buenosaires.gob.ar/dataset/delitos'
-    anio        = $Anio
-    ladoMetros  = $LadoMetros
-    # Se guardan los numeros con los que se armo la escala: sin ellos las
-    # propiedades "veces" y "nivel" no se pueden auditar ni reproducir.
+    description = "Zonas marcadas como peligrosas en un mapa colaborativo del AMBA, recortadas a CABA. Los objetos con t='h' son puntos muestreados cada $PasoMetros m que alimentan el mapa de calor; los que tienen t='f' son los poligonos, para contestar al tocar. NO es un dato oficial y NO tiene grados: que una zona no este marcada significa que nadie la marco, no que sea segura."
+    attribution = 'Mapa colaborativo "Zonas Peligrosas" (Google My Maps), de autoria anonima. Limite de CABA: Buenos Aires Data (CC-BY-2.5-AR)'
+    source      = "https://www.google.com/maps/d/u/0/viewer?mid=$mid"
+    oficial     = $false
+    pasoMetros  = $PasoMetros
     baseline    = [ordered] @{
-        robosTotales     = $robosTotales
-        armados          = $hechos.Count
-        sinCoordenada    = $sinCoordenada
-        superficieKm2    = $superficieCaba
-        densidadMediaKm2 = [math]::Round($densidadMedia, 1)
-        mediaPorCelda    = [math]::Round($mediaPorCelda, 2)
+        poligonosEnElMapa = $totalPoligonos
+        poligonosEnCaba   = $zonas.Count
+        puntosDeCalor     = $puntos.Count
+        areaKm2           = [math]::Round($areaKm2, 2)
     }
     generatedOn = (Get-Date).ToString('yyyy-MM-dd')
     features    = $features
@@ -283,12 +352,7 @@ $destino = Join-Path $OutputDirectory 'zonas-riesgo.geojson'
 $documento | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $destino -Encoding UTF8
 
 $peso = [math]::Round((Get-Item $destino).Length / 1KB, 1)
-$focos = $porNivel['alta'] + $porNivel['muy-alta'] + $porNivel['extrema']
 
 Write-Host ""
-Write-Host ("Zonas de riesgo -> {0} ({1} KB)" -f $destino, $peso) -ForegroundColor Green
-Write-Host ("  hechos para el mapa de calor: {0}" -f $hechos.Count) -ForegroundColor DarkGray
-Write-Host ("  focos consultables:           {0}" -f $focos) -ForegroundColor DarkGray
-Write-Host ("     alta (x2 a x3):      {0,4}   desde {1:N0} armados" -f $porNivel['alta'], [math]::Ceiling($corteAlta)) -ForegroundColor DarkGray
-Write-Host ("     muy alta (x3 a x5):  {0,4}   desde {1:N0} armados" -f $porNivel['muy-alta'], [math]::Ceiling($corteMuyAlta)) -ForegroundColor DarkGray
-Write-Host ("     extrema (x5 o mas):  {0,4}   desde {1:N0} armados" -f $porNivel['extrema'], [math]::Ceiling($corteExtrema)) -ForegroundColor DarkGray
+Write-Host ("Zonas peligrosas -> {0} ({1} KB)" -f $destino, $peso) -ForegroundColor Green
+Write-Host ("  {0} zonas  ·  {1} puntos de calor" -f $zonas.Count, $puntos.Count) -ForegroundColor DarkGray

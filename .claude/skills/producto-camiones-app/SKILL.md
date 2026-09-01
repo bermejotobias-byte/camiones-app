@@ -78,7 +78,7 @@ Lo que falta para cerrarla, y lo que el v2 le agrega:
 | | Ítem | Origen |
 |---|---|---|
 | 🔨 | **Probar manejando.** Nunca se hizo. Es la tesis del producto | — |
-| ⬜ | **El nombre de la calle por la que vas, legible durante el viaje.** Hoy lo tapa la línea de la ruta. Debe verse **3× más grande** que las calles que no se toman, y en verde | v2 · estética |
+| 🔨 | **El nombre de la calle por la que vas, legible durante el viaje.** Hecho: la ruta pasó a dibujarse **debajo** de los rótulos, y el tramo que se recorre lleva su nombre en verde a **33 px — 3× los 11 px** del mapa base, siguiendo la curva de la calle. **Falta verlo manejando** | v2 · estética · 01/09/2026 |
 | ⬜ | **Vibrar ante cada eventualidad**: doblar, gálibo, accidente, radar | v2 |
 | ⬜ | **Alternativas de ruta** cuando la recomendada está deshabilitada | v2 |
 | ✅ | **Reintento al conectar.** 3 intentos con espera creciente, y sólo se reintenta lo que puede resolverse solo — una dirección mal escrita falla igual las tres veces. Peor caso ~22 s, con el cartel diciendo en qué intento va. Apéndice de AD-33 | defecto medido · 01/09/2026 |
@@ -98,7 +98,7 @@ pantalla de fuentes, leyenda achicada, iconos, mobile-first, modo día y noche.
 | ⬜ | **3 llamadas de emergencia** a contactos que elige el usuario | v1 |
 | ⬜ | **Compartir el viaje en tiempo real** por WhatsApp | v1 |
 | ⬜ | **S.O.S. rápido dentro del reporte de siniestro**: al marcar un accidente grave, un aviso emergente para llegar al 911 en un toque | v2 |
-| ✅ 🔎 | **Zonas peligrosas de CABA** — resuelto con el **Mapa del Delito del GCBA** (CC-BY, un archivo por año, 133.203 hechos de 2025). Cuenta **robos a mano armada**, no cantidad de robos: contar cantidad mide cuánta gente circula y ponía a Palermo primero y a Villa Soldati como la más segura. Mapa de calor sobre los hechos crudos (AD-36). **Falta verlo en el APK** | v1 + v2 · 01/09/2026 |
+| ✅ | **Zonas peligrosas de CABA** — resuelto con el **mapa colaborativo del AMBA**, no con el dato oficial: 19 zonas, 8,8 km², el 4,3% de la Ciudad. El Mapa del Delito del GCBA se probó y se descartó — contar hechos mide dónde hay gente, y como el dataset cubre exactamente CABA el mapa de calor dibujaba la silueta de la Ciudad. Botón propio, arranca apagado, y el toque no da números. Verificado en el APK. Ver AD-36 | v1 + v2 · 01/09/2026 |
 
 ### Fase 4 · Información para camiones — 🔨 **reabierta por el v2**
 

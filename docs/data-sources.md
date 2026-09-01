@@ -389,139 +389,103 @@ como tal tiene que verse distinto de un dato oficial.
 
 ---
 
-## 7. Zonas de riesgo — Mapa del Delito del GCBA
+## 7. Zonas peligrosas — mapa colaborativo del AMBA
 
-**Dataset:** [Delitos](https://data.buenosaires.gob.ar/dataset/delitos)
+**Fuente:** mapa ["Zonas Peligrosas"](https://www.google.com/maps/d/u/0/viewer?mid=1ZVh-1tRfDFTc4O1eITKjEkASCXFQExtL)
+de Google My Maps, que circula entre repartidores del AMBA.
 
 | | |
 |---|---|
-| Organismo | Ministerio de Justicia y Seguridad del GCBA |
-| Licencia | **CC-BY** (confirmada por la API del portal) |
-| Cobertura | un archivo por año, de 2016 a **2025** |
-| Formatos | CSV y XLSX |
-| Registros 2025 | **133.203**, todos dentro de CABA |
-| Sin coordenada | 2.782 (2,1%) |
+| Autoría | **anónima** |
+| Licencia | **no declarada** |
+| Metodología | **no publicada** |
+| Fecha | **no declarada** |
+| Polígonos | 403 en todo el país · **19 tocan CABA** |
+| Superficie en CABA | **8,8 km², el 4,3% de la Ciudad** |
 
-Lo genera `data/fetch-zonas-riesgo.ps1` a `wwwroot/data/zonas-riesgo.geojson`.
+Lo genera `data/fetch-zonas-riesgo.ps1`, que baja el KML, se queda con los
+polígonos que tocan CABA y los recorta al límite de la Ciudad.
 
-### Qué se cuenta: robos a mano armada, no cantidad de robos
+**No es un dato oficial y la app lo dice cada vez que se toca una zona.** Se usa
+como lo que es: el juicio de gente que trabaja en la calle todos los días.
 
-**Ésta es la decisión central, y reemplaza a la primera versión**, que contaba
-todos los robos por igual.
+### Por qué se descartó el Mapa del Delito del GCBA
 
-Contar cantidad mide **exposición** —cuánta gente pasa por ahí— y no peligro. El
-resultado se leía al revés de la realidad. Medido en 2025, en 500 m a la redonda:
+Se construyó primero con el dataset oficial de delitos (CC-BY, 133.203 hechos de
+2025 con coordenadas) y **hubo que descartarlo**. Los dos motivos valen la pena
+porque son fáciles de repetir:
 
-| Zona | Hechos | Con arma | % |
-|---|---:|---:|---:|
-| Villa 21-24 (Barracas) | 336 | **121** | 36,0% |
-| Villa 1-11-14 (Bajo Flores) | 559 | **69** | 12,3% |
-| Villa Soldati | 66 | **28** | 42,4% |
-| Palermo (Plaza Serrano) | 446 | 26 | 5,8% |
-| Palermo (Av. Santa Fe) | 425 | **18** | 4,2% |
+**1. Contar delitos denunciados mide dónde hay gente, no dónde hay peligro.**
+Palermo encabezaba la Ciudad con 4.126 hechos. Filtrar a robos a mano armada
+corregía buena parte del sesgo —Villa Soldati tiene 30,9% de robos con arma
+contra 6,3% de Palermo— pero no el fondo: un conteo de hechos no es un mapa de
+peligro.
 
-Por cantidad, Palermo encabeza la Ciudad y **Villa Soldati aparece como la zona
-más segura del cuadro**. Por robos con arma el orden se da vuelta.
+**2. El dataset cubre exactamente CABA**, así que el mapa de calor terminaba
+dibujando la silueta de la Ciudad. En pantalla era un manchón rojo con la forma
+del límite administrativo, diciendo *"toda la Ciudad es peligrosa y el conurbano
+es seguro"* — absurdo, y al revés de la realidad.
 
-Lo mismo por barrio: en Villa Soldati **uno de cada tres robos es a mano armada**
-(30,9%); en Palermo, uno de cada dieciséis (6,3%).
+El análisis del dato oficial queda acá porque sigue siendo útil para contrastar,
+y porque explica por qué la app **no** lo usa.
 
-| Barrio | Hechos | Con arma | % |
-|---|---:|---:|---:|
-| Palermo | 4.126 | 260 | 6,3% |
-| Caballito | 2.613 | 121 | 4,6% |
-| Almagro | 2.247 | 102 | 4,5% |
-| Villa Soldati | 1.579 | 488 | **30,9%** |
-| Villa Lugano | 1.979 | 486 | **24,6%** |
-| Nueva Pompeya | 1.201 | 238 | **19,8%** |
-| Barracas | 2.274 | 442 | **19,4%** |
-| La Boca | 1.095 | 187 | **17,1%** |
+### Dónde caen las 19 zonas
 
-Para un camionero la diferencia no es académica: un arrebato en una esquina
-concurrida no le cambia la ruta, y un asalto armado sí.
+| Barrio | km² |
+|---|---:|
+| Villa Soldati | 2,49 |
+| Barracas (Villa 21-24) | 2,02 |
+| Villa Lugano | 1,54 |
+| Retiro (Villa 31) | 0,86 |
+| Flores (Villa 1-11-14) | 0,78 |
+| Recoleta | 0,30 |
+| Parque Avellaneda | 0,19 |
+| Nueva Pompeya | 0,18 |
+| Puerto Madero | 0,12 |
+| La Boca | 0,09 |
+| Saavedra · Paternal · Parque Patricios · Chacarita · Villa Riachuelo · Parque Chacabuco | < 0,09 c/u |
 
-**Se cuentan los 5.551 robos con `uso_arma = SI`.** Sin ponderaciones inventadas:
-un hecho con arma cuenta, uno sin arma no. Se descartan los mismos cuatro tipos
-que antes —hurto común, lesiones, amenazas, homicidios y siniestros viales— por
-las mismas razones.
+Es un control de cordura por sí solo: caen donde cualquiera que maneje por la
+Ciudad esperaría, y el dato oficial ponía a Palermo primero.
 
-Los robos armados además son **más nocturnos** que el resto: 33,5% entre las 22 y
-las 6, contra 24,5% del total. Que es justo cuando un camión queda parado.
+### Qué emite el archivo
 
-### Cómo se arma la escala
-
-El archivo publica **dos clases de objeto**, distinguidas por la propiedad `t`:
+Dos clases de objeto, distinguidas por la propiedad `t`:
 
 | `t` | Qué es | Cuántos | Para qué |
 |---|---|---:|---|
-| `"h"` | los hechos, uno por punto, en un solo MultiPoint | 5.551 | alimentan el mapa de calor |
-| `"f"` | focos: celdas de 300 m que duplican la media | 332 | contestan el toque y llevan el triángulo |
+| `"h"` | puntos muestreados adentro de las zonas, cada 60 m, en un solo MultiPoint | 2.449 | alimentan el mapa de calor |
+| `"f"` | los polígonos | 19 | contestan al tocar el mapa |
 
-Los hechos van **crudos y no agregados** porque una capa `heatmap` normaliza por
-densidad de *puntos*: alimentada con una grilla regular redibuja la grilla en
-forma de lunares alineados, sin importar el radio. Ver AD-36.
+Los puntos existen porque una capa `heatmap` de MapLibre **sólo acepta puntos**, y
+porque el difuminado evita prometer un borde exacto que este dato no tiene: el
+límite de una zona marcada a mano no es una línea, es un degradado.
 
-Los focos se comparan contra la densidad media de robos armados de la Ciudad
-—5.551 sobre 203,99 km², o sea **27,2/km²**, 2,45 por celda de 300 m:
+Tres puntos del muestreo caen fuera de CABA y **se recortan**: una zona a caballo
+del Riachuelo no puede pintar conurbano, donde la app no tiene ningún otro dato
+que mostrar.
 
-| Nivel | Corte | Desde | Celdas |
-|---|---|---:|---:|
-| alta | x2 a x3 la media | 5 armados | 186 |
-| muy alta | x3 a x5 | 8 armados | 92 |
-| extrema | x5 o más | 13 armados | 54 |
+### El interruptor
 
-El foco más intenso es **Villa 21-24 (Barracas): 77 robos armados en una celda de
-300 m, 31 veces la media de la Ciudad.**
-
-La escala se expresa en múltiplos de la media y no en cuantiles porque así se
-explica sola: "el triple que el promedio de la Ciudad" se entiende sin saber
-estadística.
-
-
-### Contraste con el mapa comunitario de "Zonas Peligrosas"
-
-Se cruzó contra un mapa colaborativo de Google My Maps que circula entre
-repartidores ([mid `1ZVh-1tRfDFTc4O1eITKjEkASCXFQExtL`](https://www.google.com/maps/d/u/0/viewer?mid=1ZVh-1tRfDFTc4O1eITKjEkASCXFQExtL)),
-usado como referencia. Medido el 01/09/2026:
-
-| | |
-|---|---|
-| Polígonos totales | 403, de todo el país |
-| **Dentro de CABA** | **19** |
-| En el resto del AMBA | 172 |
-| Fuera del AMBA | 212 |
-
-- **No tiene escala de color.** Los 403 polígonos usan el mismo rojo `#A52714` al
-  62% de opacidad. La gradación que se percibe sale del **solapamiento**, no del
-  dato — y esa observación es la que se adoptó para dibujar esta capa.
-- De las 19 zonas que caen en CABA, **8 superan la media de la Ciudad** y la
-  mediana es **x0,9** — o sea, la mitad apunta a lugares de riesgo promedio. La más
-  intensa llega a **x2,0**, mientras el dato oficial identifica celdas de **x16**.
-
-**No es una mala fuente: es otra cosa.** Está hecho para repartidores en moto de
-todo el AMBA, y su valor está mayormente **fuera** de CABA, donde el dataset del
-GCBA no llega. Se tomó su **estética** y no sus polígonos: son de autoría anónima,
-sin metodología, sin fecha y sin licencia declarada.
+Las zonas se prenden y apagan con **su propio botón**, aparte de las capas de
+camión, y **arrancan apagadas**. Son datos de naturaleza distinta: la Red y los
+gálibos son oficiales y dicen por dónde puede pasar el vehículo; esto es un
+juicio de la comunidad sobre dónde no conviene parar. Quien quiere una no
+necesariamente quiere la otra, y el sombreado cubre área.
 
 ### L-10 · Lo que este dato no dice
 
-- **Que no haya calor NO significa que ahí no pase nada.** Significa que ahí no se
-  denunciaron robos a mano armada.
-- **El subregistro no es parejo, y ésta es la limitación más seria.** Son hechos
-  *denunciados*, y en los barrios más precarios se denuncia menos: el mapa
-  **subestima justamente las zonas más duras**. Villa Soldati registra 66 hechos
-  en 500 m contra los 446 de Palermo — eso no es que sea más tranquila. La
-  **proporción** armada (42% contra 6%) es lo que sobrevive a ese sesgo, y es la
-  razón de usarla en vez de la cantidad.
-- **No está normalizado por cuánta gente circula.** Contar robos armados corrige
-  la mayor parte de la distorsión —un lugar concurrido genera muchos arrebatos y
-  pocos asaltos— pero no toda: una avenida transitada sigue teniendo más hechos de
-  los que tendría vacía.
-- **Sólo CABA.** El dataset es del Gobierno de la Ciudad y no cubre el conurbano.
-  Ver L-11.
-- Es el año **2025** completo. No hay dato de 2026 publicado.
-- El 90% de los robos —los que no llevaron arma— **no se muestran**. Un tirón de
-  mercadería sin arma existe y acá no aparece.
+- **No tiene grados.** Los polígonos son todos iguales y ninguno se superpone con
+  otro dentro de CABA: hay **dos estados**, marcada y no marcada. La app no
+  muestra una escala de gravedad porque la fuente no la tiene.
+- **Que una zona no esté marcada NO significa que sea segura.** Significa que
+  nadie la marcó. Por eso la app **nunca dice "zona segura"**.
+- **No hay metodología ni fecha.** No se sabe cuándo se marcó cada zona, con qué
+  criterio, ni cuántas personas lo hicieron.
+- **Está pensado para repartidores en moto**, no para camiones. Buena parte de su
+  valor está en el conurbano, donde esta app todavía no llega.
+- **Sólo se muestran 8,8 km²** de los 204 de la Ciudad. El resto no está evaluado.
+
 
 ### L-11 · Fuera de CABA el mapa calla, y ese silencio se lee como seguridad
 

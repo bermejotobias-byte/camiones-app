@@ -27,14 +27,18 @@ const SOURCES = {
 const LAYER_IDS = [
   'red-linea', 'red-nombre',
   'altura-senal',
-  'paso-senal',
-  // Las zonas de riesgo SI se apagan con el boton, aunque no sean un dato de
-  // camion: son un sombreado que cubre area, y es lo primero que uno quiere
-  // sacar del medio para leer el mapa. No llevan control propio a proposito —
-  // cada boton nuevo en la columna lateral agranda la franja que se come el
-  // arrastre del mapa, y esto no vale ese precio.
-  'zona-riesgo-calor', 'zona-riesgo', 'zona-riesgo-senal'
+  'paso-senal'
 ];
+
+/**
+ * Las capas de zonas peligrosas, que se prenden y apagan APARTE.
+ *
+ * Tienen su propio boton y no viajan con las de camion. Son dos cosas distintas:
+ * los galibos y la Red son datos oficiales sobre por donde puede pasar el
+ * vehiculo; esto es el juicio de gente que trabaja en la calle sobre donde no
+ * conviene parar. Quien quiera una no necesariamente quiere la otra.
+ */
+const RISK_LAYER_IDS = ['zona-riesgo-calor', 'zona-riesgo', 'zona-riesgo-senal'];
 
 const token = (name) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -117,68 +121,60 @@ export async function installTruckLayers(map) {
 }
 
 /* ---------------------------------------------------------------------------
-   Zonas de riesgo
+   Zonas peligrosas
 
-   Dato oficial: Mapa del Delito del GCBA (CC-BY). Lo genera
-   `data/fetch-zonas-riesgo.ps1`.
+   Fuente: mapa colaborativo "Zonas Peligrosas" de Google My Maps, que circula
+   entre repartidores del AMBA. Lo genera `data/fetch-zonas-riesgo.ps1`, que se
+   queda con los 19 poligonos que tocan CABA —8,8 km2, el 4,3% de la Ciudad— y
+   los recorta al limite de la Ciudad.
 
-   SE CUENTAN ROBOS A MANO ARMADA, NO CANTIDAD DE ROBOS.
+   POR QUE NO ES EL DATO OFICIAL DE DELITOS
 
-   Es la decision que manda acá, y reemplaza a la primera version, que contaba
-   todos los robos por igual. Contar cantidad mide EXPOSICION —cuanta gente pasa
-   por ahi— y no peligro, y asi el mapa terminaba diciendo lo contrario de la
-   realidad. Medido en 2025, en 500 m a la redonda:
+   Se intento antes con el Mapa del Delito del GCBA y hubo que descartarlo, por
+   dos motivos que conviene no repetir:
 
-       Villa 21-24 (Barracas)   336 hechos   121 con arma   36,0%
-       Villa Soldati             66 hechos    28 con arma   42,4%
-       Palermo (Plaza Serrano)  446 hechos    26 con arma    5,8%
-       Palermo (Av. Santa Fe)   425 hechos    18 con arma    4,2%
+   1. Contar delitos denunciados mide DONDE HAY GENTE, no donde hay peligro.
+      Palermo encabezaba la Ciudad. Filtrar a robos a mano armada corregia parte
+      del sesgo —Villa Soldati tiene 42% de robos con arma contra 6% de Palermo—
+      pero no el fondo.
+   2. El dataset cubre exactamente CABA, asi que el mapa de calor terminaba
+      dibujando la silueta de la Ciudad: un manchon rojo con la forma del limite
+      administrativo, que decia "toda la Ciudad es peligrosa y el conurbano es
+      seguro". Absurdo, y al reves de la realidad.
 
-   Por cantidad, Palermo encabeza la Ciudad y Villa Soldati aparece como la zona
-   MAS SEGURA del cuadro. Por robos con arma el orden se da vuelta. Para un
-   camionero la diferencia no es academica: un arrebato en una esquina concurrida
-   no le cambia la ruta y un asalto armado si.
+   El problema de fondo es que un conteo de hechos no es un mapa de peligro. Las
+   zonas que un repartidor evita son un juicio, y este mapa las tiene marcadas a
+   mano por gente que anda por ahi todos los dias. Caen donde uno esperaria:
+   Villa Soldati, Villa 21-24, Villa Lugano, Villa 31, Villa 1-11-14, La Boca.
 
-   Y de paso se arregla lo otro: los armados son 5.551 contra 54.475 —diez veces
-   menos y mucho mas concentrados—, asi que el mapa deja de estar pintado de
-   punta a punta.
+   LO QUE ESTE DATO NO ES
 
-   EL SILENCIO DEL MAPA NO ES UN CERTIFICADO DE SEGURIDAD. Que no haya calor
-   significa que ahi no se denunciaron robos armados, no que no pase nada — y el
-   subregistro no es parejo: en los barrios mas precarios se denuncia menos, asi
-   que el mapa subestima justamente las zonas mas duras. La proporcion armada es
-   lo que sobrevive a ese sesgo, y es la razon de usarla.
+   - **No es oficial.** Autoria anonima, sin metodologia escrita, sin fecha y sin
+     licencia declarada. El toque lo dice con todas las letras.
+   - **No tiene grados.** Los poligonos son todos iguales y ninguno se superpone
+     con otro dentro de CABA: hay dos estados, marcada y no marcada.
+   - **Que una zona no este marcada NO significa que sea segura.** Significa que
+     nadie la marco. Por eso la app no dice "zona segura" en ningun lado.
 
-   COMO SE DIBUJA: mapa de calor sobre los hechos CRUDOS.
+   COMO SE DIBUJA: mapa de calor sobre puntos muestreados adentro de las zonas.
 
-   Costo tres intentos llegar acá, y los tres enseñaron algo:
+   El script rellena cada poligono con puntos cada 60 m y el `heatmap` los
+   difumina. Dos razones: una capa `heatmap` solo acepta puntos, y el difuminado
+   evita prometer un borde exacto que este dato no tiene — el limite de una zona
+   marcada a mano no es una linea, es un degradado.
 
-   1. Pintar las celdas de la grilla, con relleno translucido y sin borde,
-      esperando que las vecinas se fundieran. Quedo un tablero de ajedrez. Y
-      antes que estetico el problema es de fondo: el cuadrado de 300 m es una
-      unidad de CALCULO, no un hecho del territorio, y dibujarlo afirma que el
-      riesgo cambia al cruzar una linea recta que en la calle no existe.
-   2. Un `heatmap` alimentado con esa misma grilla. Empapelo el mapa de lunares
-      alineados: el heatmap normaliza por densidad de PUNTOS, y con una grilla
-      regular redibuja la grilla sin importar el radio.
-   3. Circulos difuminados por celda, con opacidad baja y acumulacion. Funcionaba
-      —de ahi salio el efecto— pero seguia atado a la grilla.
-
-   Lo que corresponde es alimentar el `heatmap` con los hechos uno por uno, que
-   es para lo que esta hecho: los 5.551 puntos vienen crudos en un MultiPoint y
-   el calor sale de donde estan de verdad, sin ninguna grilla atras.
-
-   La grilla sobrevive solo como FOCOS invisibles (`t = "f"`): son los que
-   contestan al tocar el mapa y los que llevan el triangulo, porque una capa
-   `heatmap` no responde a queryRenderedFeatures.
+   El calor se prende y apaga con su propio boton, aparte de las capas de camion.
+   Arranca APAGADO: es dato de comunidad, cubre area, y no es lo que uno necesita
+   para manejar.
 --------------------------------------------------------------------------- */
 
 /**
  * Colores de la escala de calor. Fijos, como el resto de las señales.
  *
  * Va de amarillo a rojo y no de verde a rojo a proposito: no hay ningun nivel
- * "seguro" que justifique un verde. Donde no hay dato no se pinta nada, que es
- * distinto de pintar de verde.
+ * "seguro" que justifique un verde. Donde no hay zona marcada no se pinta nada,
+ * que es distinto de pintar de verde — nadie reviso ese lugar y decirlo seguro
+ * seria inventar.
  */
 const RIESGO = {
   alta:       '#f2b705',
@@ -253,43 +249,48 @@ function addRiskZoneLayers(map) {
 
   // Invisible y a proposito: es la que contesta el toque. Una capa `heatmap` no
   // devuelve nada en queryRenderedFeatures, asi que sin esto el calor no podria
-  // decir cuantos hechos hay ni de que anio son. Opacidad cero, no
-  // `visibility: none` — una capa oculta tampoco se consulta.
+  // decir de que zona se trata. Opacidad cero, no `visibility: none` — una capa
+  // oculta tampoco se consulta.
   //
-  // El radio es el del foco —celda de 300 m, o sea 150 de centro a borde— mas un
-  // margen: el toque tiene que enganchar el foco que uno ve, no exigir punteria.
+  // Va como `fill` y no como `circle` porque las zonas son POLIGONOS: una capa
+  // `circle` de MapLibre solo dibuja puntos, y con un poligono no dibuja nada ni
+  // contesta nada, sin emitir un solo error.
   map.addLayer({
     id: 'zona-riesgo',
-    type: 'circle',
+    type: 'fill',
     source: 'zonas',
     filter: ['==', ['get', 't'], 'f'],
-    paint: {
-      'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 11, 3.2, 17, 200],
-      'circle-opacity': 0,
-      'circle-pitch-alignment': 'map'
-    }
+    paint: { 'fill-opacity': 0 }
   }, primerTexto);
 
-  // El triangulo solo en los focos extremos. Ponerlo en los 332 seria volver a
-  // cargar el mapa, que es lo que el calor evita.
+  // Un triangulo por zona, en su centroide. Son 19: no hace falta filtrar por
+  // gravedad porque este dato no tiene grados — una zona esta marcada o no.
   map.addLayer({
     id: 'zona-riesgo-senal',
     type: 'symbol',
     source: 'zonas',
     minzoom: 12,
-    filter: ['all', ['==', ['get', 't'], 'f'], ['==', ['get', 'nivel'], 'extrema']],
+    filter: ['==', ['get', 't'], 'f'],
     layout: {
       'icon-image': 'senal-riesgo',
       'icon-size': tamanoSenal,
-      // Los focos extremos vienen en racimo —Villa Soldati tiene seis celdas
-      // pegadas— y sin esto salen seis triangulos identicos a un centimetro uno
-      // del otro. El padding grande deja uno por foco, y el orden por cantidad
-      // garantiza que el que sobrevive sea el peor del racimo.
+      // Hay zonas pegadas —Villa Soldati y Villa Lugano se tocan— y sin esto
+      // salen dos triangulos a un centimetro uno del otro.
       'icon-allow-overlap': false,
-      'icon-padding': 28,
-      'symbol-sort-key': ['-', 0, ['get', 'armados']]
+      'icon-padding': 28
     }
   });
+}
+
+/** Prende o apaga el mapa de zonas peligrosas. */
+export function setRiskZonesVisible(map, visible) {
+  if (!map) return;
+
+  for (const id of RISK_LAYER_IDS) {
+    if (map.getLayer(id)) {
+      map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+    }
+  }
 }
 
 /* ---------------------------------------------------------------------------

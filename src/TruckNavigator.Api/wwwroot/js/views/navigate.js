@@ -85,6 +85,7 @@ export function navigateView(host, { openDrawer, go }) {
         </div>
 
         <button class="fab" id="layers" aria-label="Capas de camión">${raw(icon('bridge'))}</button>
+        <button class="fab" id="risk" aria-label="Zonas peligrosas">${raw(icon('warning'))}</button>
         <button class="fab" id="locate" aria-label="Mi ubicación">${raw(icon('gps'))}</button>
       </div>
 
@@ -100,8 +101,10 @@ export function navigateView(host, { openDrawer, go }) {
       // guardada y la altura del camion elegido, que es la que decide de que
       // color se pinta cada galibo.
       gl.showTruckLayers(prefs.truckLayers);
+      gl.showRiskZones(prefs.riskZones);
       gl.useTruckHeight(selectedTruck()?.heightMeters);
       updateLayerButton();
+      updateRiskButton();
       locate({ silent: true });
     },
     onTap: (feature) => { hideSuggestions(); explicarSimbolo(feature); },
@@ -151,26 +154,16 @@ export function navigateView(host, { openDrawer, go }) {
     }
 
     if (feature.layer?.id === 'zona-riesgo' || feature.layer?.id === 'zona-riesgo-senal') {
-      const nivel = { alta: 'alta', 'muy-alta': 'muy alta', extrema: 'extrema' }[p.nivel] ?? p.nivel;
-      const veces = String(p.veces).replace('.', ',');
-      const barrio = p.barrio ? `${p.barrio} · ` : '';
-
-      // Se dice el numero crudo, que se conto y contra que se compara. "Zona
-      // peligrosa" a secas no se puede discutir ni verificar; "77 robos a mano
-      // armada, 31 veces el promedio" si — y deja claro que es un dato de
-      // denuncias de un anio, no un veredicto sobre el barrio.
+      // Sin números, a propósito. Antes decía cuántos robos hubo y cuántas veces
+      // el promedio de la Ciudad: era un dato que el conductor no puede usar
+      // manejando y que además invitaba a comparar zonas con una precisión que
+      // la fuente no tiene. Lo único accionable es si conviene parar acá o no.
       //
-      // Decir "A MANO ARMADA" y no "robos" a secas no es un detalle: es la
-      // diferencia entre este mapa y uno que marca Palermo como lo peor de la
-      // Ciudad por tener mucha gente en la calle.
-      const deNoche = p.noche > 0 ? ` ${p.noche} entre las 22 y las 6.` : '';
+      // Y no dice "segura" en ningún caso: este mapa marca lo peligroso, así que
+      // lo que no está marcado es lo que nadie marcó, no lo que alguien revisó.
+      const donde = p.barrio ? ` · ${p.barrio}` : '';
 
-      toast(
-        `${barrio}zona de riesgo ${nivel}: ${p.armados} robos a mano armada ` +
-        `denunciados en ${p.anio}, ${veces} veces el promedio de la Ciudad.${deNoche}`,
-        p.nivel === 'alta' ? 'info' : 'warn',
-        7000
-      );
+      toast(`Zona peligrosa${donde}. Marcada por conductores, no es un dato oficial.`, 'warn', 6000);
     }
   }
 
@@ -179,6 +172,7 @@ export function navigateView(host, { openDrawer, go }) {
     '#locate': () => locate({ silent: false }),
     '#panic': () => go('emergencia'),
     '#layers': () => toggleTruckLayers(),
+    '#risk': () => toggleRiskZones(),
     '#compass-dial': () => explainHeading(),
     '#zoom-in': () => gl.zoomIn(),
     '#zoom-out': () => gl.zoomOut()
@@ -205,6 +199,31 @@ export function navigateView(host, { openDrawer, go }) {
   function updateLayerButton() {
     const button = q(host, '#layers');
     if (button) button.style.color = prefs.truckLayers ? 'var(--brand)' : 'var(--ink-3)';
+  }
+
+  /**
+   * Prende y apaga el mapa de zonas peligrosas.
+   *
+   * Va aparte de las capas de camión a propósito: son datos de naturaleza
+   * distinta. La Red y los gálibos son oficiales y dicen por dónde puede pasar
+   * el vehículo; las zonas peligrosas son el juicio de gente que trabaja en la
+   * calle sobre dónde no conviene parar. Quien quiere una no necesariamente
+   * quiere la otra, y el sombreado cubre área, así que es lo primero que uno
+   * quiere sacar del medio para leer el mapa.
+   */
+  function toggleRiskZones() {
+    savePrefs({ riskZones: !prefs.riskZones });
+    gl.showRiskZones(prefs.riskZones);
+    updateRiskButton();
+
+    toastOk(prefs.riskZones
+      ? 'Zonas peligrosas a la vista.'
+      : 'Zonas peligrosas apagadas.');
+  }
+
+  function updateRiskButton() {
+    const button = q(host, '#risk');
+    if (button) button.style.color = prefs.riskZones ? 'var(--danger)' : 'var(--ink-3)';
   }
 
   /* ------------------------------------------------------------------------
@@ -940,6 +959,7 @@ export function navigateView(host, { openDrawer, go }) {
 
     gl.followVehicle(navState.snapped, navState.bearing);
     gl.trimRoute(route.geometry.coordinates, navState.index, navState.snapped);
+    rotularCalleActual();
 
     const announcement = pendingAnnouncement(navState, previousNav, announced);
 
@@ -966,6 +986,33 @@ export function navigateView(host, { openDrawer, go }) {
     if (shouldReroute(navState, lastRerouteAt)) {
       await reroute(fix);
     }
+  }
+
+  /**
+   * Escribe sobre el mapa el nombre de la calle por la que se va.
+   *
+   * Se toma el tramo de la instrucción que se está recorriendo —del punto donde
+   * empieza al donde empieza la siguiente— y se rotula esa porción de la ruta.
+   * Es lo que permite que el nombre siga la curva de la calle en vez de flotar
+   * en un cartel, que es como lo muestran Waze y Maps.
+   */
+  function rotularCalleActual() {
+    const paso = navState?.step;
+    const calle = paso?.streetName;
+
+    if (!calle || !route?.geometry?.coordinates) {
+      gl.labelCurrentStreet(null, null);
+      return;
+    }
+
+    const puntos = route.geometry.coordinates;
+    const desde = Math.max(0, Math.min(paso.fromPointIndex ?? 0, puntos.length - 1));
+    const hasta = navState.next?.fromPointIndex ?? puntos.length - 1;
+
+    // `trimRoute` recorta la fuente de la ruta a medida que se avanza, pero acá
+    // se usa la geometría COMPLETA: los índices de las instrucciones son sobre
+    // ella, y mezclarlos con la recortada rotula el tramo equivocado.
+    gl.labelCurrentStreet(calle, puntos.slice(desde, Math.max(desde + 2, hasta + 1)));
   }
 
   /**

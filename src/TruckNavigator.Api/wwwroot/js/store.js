@@ -22,7 +22,16 @@ const defaults = {
    * Arranca encendido: es la informacion por la que existe este producto. Se
    * puede apagar porque a veces hace falta ver la calle limpia.
    */
-  truckLayers: true
+  truckLayers: true,
+
+  /**
+   * Mapa de zonas peligrosas.
+   *
+   * Arranca APAGADO, al reves que las capas de camion, y es a proposito: es un
+   * dato de la comunidad y no oficial, cubre area en vez de marcar puntos, y no
+   * es lo que uno necesita para manejar. Que aparezca solo si se lo pide.
+   */
+  riskZones: false
 };
 
 function readPrefs() {

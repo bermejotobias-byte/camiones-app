@@ -6,7 +6,7 @@
  * manana se cambia de biblioteca de mapas, se reescribe este archivo y nada mas.
  */
 
-import { installTruckLayers, setTruckLayersVisible, setTruckHeight, refreshLayerColors } from './layers.js';
+import { installTruckLayers, setTruckLayersVisible, setRiskZonesVisible, setTruckHeight, refreshLayerColors } from './layers.js';
 import { registerPmtilesProtocol, buildBasemapStyle } from './basemap.js';
 import { currentApiBase } from './api.js';
 
@@ -347,8 +347,8 @@ function gpsElement() {
    mentir sobre lo que dice la ley.
 --------------------------------------------------------------------------- */
 
-const ROUTE_LAYERS = ['route-halo', 'route-line', 'route-access'];
-const ROUTE_SOURCES = ['route', 'route-access'];
+const ROUTE_LAYERS = ['route-halo', 'route-line', 'route-access', 'calle-actual'];
+const ROUTE_SOURCES = ['route', 'route-access', 'calle-actual'];
 
 export function clearRoute() {
   if (!map) return;
@@ -384,13 +384,21 @@ export function drawRoute(route, accessLegs = []) {
     data: { type: 'Feature', geometry: { type: 'LineString', coordinates } }
   });
 
+  // DEBAJO de los nombres de calle, no encima.
+  //
+  // Sin esto la ruta —17 px entre el halo y la linea— tapa justamente el nombre
+  // de la calle por la que se va, que es el dato que el conductor mas necesita
+  // durante el viaje. La ruta se sigue viendo igual: es una linea gruesa y de
+  // color, y el texto encima lleva halo.
+  const antesDeNombres = map.getLayer('calles-nombre') ? 'calles-nombre' : undefined;
+
   map.addLayer({
     id: 'route-halo',
     type: 'line',
     source: 'route',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: { 'line-color': token('--route-halo'), 'line-width': 11, 'line-opacity': .9 }
-  });
+  }, antesDeNombres);
 
   map.addLayer({
     id: 'route-line',
@@ -398,7 +406,7 @@ export function drawRoute(route, accessLegs = []) {
     source: 'route',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: { 'line-color': token('--route'), 'line-width': 6 }
-  });
+  }, antesDeNombres);
 
   // Los tramos de acceso vienen como rangos de indices sobre la geometria.
   const segments = accessLegs
@@ -424,7 +432,7 @@ export function drawRoute(route, accessLegs = []) {
         'line-width': 6,
         'line-dasharray': [1.4, 1.1]
       }
-    });
+    }, antesDeNombres);
   }
 
   fitTo(coordinates);
@@ -618,6 +626,88 @@ export function trimRoute(coordinates, fromIndex, snappedPoint) {
   });
 }
 
+/* ---------------------------------------------------------------------------
+   El nombre de la calle por la que se va
+
+   Manejando, el dato que mas se necesita del mapa es por que calle se esta
+   yendo — y era lo que peor se veia: el mapa base rotula en 11 px y solo desde
+   el zoom 15, y encima la ruta le pasaba por arriba tapandolo.
+
+   Se dibuja como una capa propia sobre el tramo que se esta recorriendo, en
+   verde y grande. Verde porque es el color que el proyecto reservo para "la
+   calle por la que vas" (ver la skill de producto), y porque lo separa de un
+   golpe de los nombres grises del mapa base.
+
+   No alcanza con agrandar el rotulo del mapa base: ese texto sale de los tiles
+   y no sabe cual de todas las calles es la que uno esta tomando. Este si, porque
+   sale del motor de guiado.
+--------------------------------------------------------------------------- */
+
+/**
+ * Rotula el tramo que se esta recorriendo con el nombre de su calle.
+ *
+ * @param {string|null} name  Nombre de la calle, o null para borrar el rotulo.
+ * @param {Array<[number, number]>} coordinates  Geometria del tramo actual.
+ */
+export function labelCurrentStreet(name, coordinates) {
+  if (!map) return;
+
+  const vacio = { type: 'FeatureCollection', features: [] };
+
+  const datos = (name && coordinates?.length > 1)
+    ? {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          properties: { name },
+          geometry: { type: 'LineString', coordinates }
+        }]
+      }
+    : vacio;
+
+  if (!map.getSource('calle-actual')) {
+    // El estilo puede no estar listo todavia: agregar una fuente antes de eso
+    // tira "Style is not done loading", que se parece a un fallo de red.
+    if (!map.isStyleLoaded()) return;
+
+    map.addSource('calle-actual', { type: 'geojson', data: datos });
+
+    map.addLayer({
+      id: 'calle-actual',
+      type: 'symbol',
+      source: 'calle-actual',
+      layout: {
+        'symbol-placement': 'line',
+        'text-field': ['get', 'name'],
+        'text-font': ['NotoSans-Regular'],
+        // Tres veces el rotulo del mapa base, que va en 11 px. Es lo que hace
+        // que la calle que uno toma se distinga de las que no de un vistazo,
+        // que es todo lo que se puede pedir manejando.
+        'text-size': 33,
+        'text-letter-spacing': 0.02,
+        // Se repite cada tanto para que quede uno a la vista sin importar donde
+        // este la camara sobre el tramo.
+        'symbol-spacing': 420,
+        // Gana siempre: es el dato mas importante de la pantalla y no puede
+        // perder una colision contra el nombre de una calle que no se toma.
+        'text-allow-overlap': true,
+        'text-ignore-placement': true
+      },
+      paint: {
+        'text-color': token('--ok'),
+        // Halo grueso y oscuro: el texto va encima de la linea de la ruta, que
+        // es de color, y sin esto se pierde contra ella.
+        'text-halo-color': token('--surface'),
+        'text-halo-width': 2.6
+      }
+    });
+
+    return;
+  }
+
+  map.getSource('calle-actual').setData(datos);
+}
+
 export function resize() {
   map?.resize();
 }
@@ -630,6 +720,7 @@ export function resize() {
 --------------------------------------------------------------------------- */
 
 export const showTruckLayers = (visible) => setTruckLayersVisible(map, visible);
+export const showRiskZones = (visible) => setRiskZonesVisible(map, visible);
 export const useTruckHeight = (metres) => setTruckHeight(map, metres);
 export const refreshColors = () => refreshLayerColors(map);
 

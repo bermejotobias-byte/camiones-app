@@ -117,6 +117,12 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
   `['zoom']` afuera y el `match` por propiedad adentro de cada parada. Por eso
   `installTruckLayers` instala **cada capa en su propio try/catch**: antes un error en la
   primera se llevaba puestas a las otras cuatro sin dejar rastro. Ver AD-36.
+- **Mover bloques grandes de `layers.js` por rango de líneas se lleva puestas definiciones
+  que siguen en uso, y `node --check` NO lo detecta**: un `RIESGO.extrema` sin
+  `const RIESGO` es sintaxis válida y sólo revienta al ejecutar, adentro del teléfono,
+  donde el único rastro es una capa que no aparece. Pasó dos veces en la misma sesión
+  (`chapa`/`LADO`/`rectangulo`/`imagen`, y después `RIESGO`). Después de reorganizar un
+  archivo de `wwwroot/js`, buscar identificadores usados y nunca declarados.
 - **Al iterar el diseño del mapa en el navegador, el módulo ES queda cacheado**: se
   edita `layers.js`, se recarga, y sigue corriendo el código viejo — incluso con
   Ctrl+Shift+R. El síntoma es peor que molesto: **parece que el cambio no tuvo efecto**
@@ -217,24 +223,26 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
 - **El alias es único y no distingue mayúsculas**: el formato lo valida `DriverAlias` en el
   dominio, la unicidad la garantiza un índice único sobre `NormalizedAlias`. La consulta
   previa del endpoint es sólo para dar un mensaje claro, no es la garantía. Ver AD-18.
-- **Las zonas de riesgo cuentan robos A MANO ARMADA, no cantidad de robos.** Contar
-  cantidad mide **exposición** —cuánta gente pasa por ahí— y da vuelta el resultado: en
-  500 m, Palermo tiene 446 hechos con 26 armados (5,8%) y Villa Soldati 66 con 28 armados
-  (**42,4%**), así que por cantidad Soldati aparecía como *la zona más segura del cuadro*.
-  Son 5.551 hechos con `uso_arma = SI`, sin ponderaciones inventadas. Ver AD-36.
-- **El heatmap se alimenta con los hechos CRUDOS, nunca con la grilla.** Una capa `heatmap`
-  normaliza por densidad de puntos: con una grilla regular redibuja la grilla en forma de
-  lunares alineados, y agrandar el radio sólo da lunares más grandes. Los 5.551 puntos van
-  en **un solo MultiPoint** — la envoltura de 5.551 features pesa más que las coordenadas
-  (636 KB contra 180). La grilla sobrevive sólo como focos invisibles (`t="f"`) que
-  contestan el toque, porque un `heatmap` no responde a `queryRenderedFeatures`.
-- **La rampa de color arranca en densidad 0,35 y ése es el número que decide cuánto mapa
-  queda pintado.** Con 0,12 aparecía un fondo amarillo en toda la Ciudad y volvía la
-  sensación de que todo es igual de peligroso. Un hecho suelto no debe teñir nada.
-- **`docs/data-sources.md` §7 tiene el recorte y sus límites.** El más serio: el
-  subregistro no es parejo — en los barrios más precarios se denuncia menos, así que el
-  mapa **subestima justamente las zonas más duras**. La proporción armada es lo que
-  sobrevive a ese sesgo, y es la razón de usarla.
+- **Las zonas peligrosas salen de un mapa COMUNITARIO, no del dato oficial de delitos.**
+  Se intentó con el Mapa del Delito del GCBA y hubo que descartarlo: contar hechos mide
+  **dónde hay gente**, no dónde hay peligro (Palermo encabezaba la Ciudad), y como el
+  dataset cubre exactamente CABA, el mapa de calor terminaba dibujando **la silueta de la
+  Ciudad** — un manchón rojo con la forma del límite administrativo. **Cuando la cobertura
+  de una fuente coincide con una frontera, el mapa dibuja la frontera**, y ningún ajuste
+  de color lo arregla. Hoy son las 19 zonas del mapa colaborativo que tocan CABA: 8,8 km²,
+  el 4,3% de la Ciudad. Ver AD-36 y `data-sources.md` §7.
+- **Ese dato NO es oficial y NO tiene grados.** Autoría anónima, sin metodología ni fecha.
+  Hay dos estados —marcada y no marcada—, y **la app nunca dice "zona segura"**: que un
+  lugar no aparezca significa que nadie lo marcó. El toque lo aclara cada vez y no muestra
+  números: no son accionables manejando e invitan a una precisión que la fuente no tiene.
+- **Las zonas se prenden con su propio botón (`#risk`) y arrancan APAGADAS**, aparte de las
+  capas de camión. Son datos de otra naturaleza: los gálibos dicen por dónde puede pasar
+  el vehículo, esto es un juicio de la comunidad sobre dónde no conviene parar.
+- **El heatmap se alimenta con PUNTOS, nunca con una grilla.** Normaliza por densidad de
+  puntos: con una grilla regular la redibuja como lunares alineados, y agrandar el radio
+  sólo da lunares más grandes. El script rellena cada zona con puntos cada 60 m y los
+  publica en **un solo MultiPoint** — la envoltura de miles de features pesa más que las
+  coordenadas. El difuminado además evita prometer un borde exacto que este dato no tiene.
 - **Fuera de CABA el mapa calla y ese silencio miente (L-11).** Ninguna capa propia existe
   pasando la General Paz o el Riachuelo, y la app no lo dice: Dock Sud se ve igual que un
   barrio sin registros. Sube de prioridad cuando se sume el AMBA.
