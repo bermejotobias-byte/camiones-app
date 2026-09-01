@@ -22,9 +22,9 @@ ruta, no como advertencia posterior. Fuente regulatoria: Ley 2148, art. 9.10.1
 Objetivo declarado: *"El GPS de los camioneros de Buenos Aires"*. No sólo un
 navegador: perfil, historial, gamificación, comunidad.
 
-**Rama de trabajo:** `cuentas-de-usuario`, empujada a `origin` el 01/09/2026 con
-el trabajo hasta `b5bacd4`. **`main` quedó en `a587041`**: la rama está 13 commits
-adelante y todavía no se fusionó.
+**Rama de trabajo:** `cuentas-de-usuario`, al día con `origin` desde el
+01/09/2026. **`main` quedó en `a587041`**: la rama está bastante adelante y
+todavía no se fusionó.
 
 **Hay dos remotos.** `origin` es `bermejotobias-byte/camiones-app` y es el que se
 usa; `hermano` es `bermejolautaro/camiones-app`, con su propia rama
