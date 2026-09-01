@@ -210,8 +210,15 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
   del mapa base viene entera en el tile, así que hay largo de sobra. La capa `calle-actual`
   filtra por nombre sobre `base`/`roads` y **no tiene fuente propia** — por eso está en
   `ROUTE_LAYERS` pero no en `ROUTE_SOURCES`: borrar esa fuente se lleva el mapa entero.
-  Y por lo mismo el rótulo va en **2×** y no en los 3× que pedía el brainstorm: en 33 px
-  no se ve **nada**. Ver AD-37.
+  Y por lo mismo el rótulo va en **1,5×** y no en los 3× que pedía el brainstorm: los tiles
+  parten las avenidas en tramos de una cuadra, y cuanto más grande el texto en menos entra
+  — en 33 px no se dibuja **nada**.
+- **La colisión del rótulo verde va ACTIVADA.** Con `text-allow-overlap: true` MapLibre deja
+  de comparar los símbolos **incluso dentro de la misma capa**, y como los tiles traen la
+  avenida partida en varios tramos, el mismo nombre se encimaba consigo mismo sobre las
+  cuadras cortas, distinto según el zoom. La prioridad sobre los nombres grises se consigue
+  por el **orden de la capa** —`calle-actual` antes de `calles-nombre`—, no por
+  allow-overlap. Ver AD-37.
 - **La ruta se dibuja DEBAJO de `calles-nombre`.** Sin el `beforeId`, los 17 px del halo
   más la línea tapan justo el nombre de la calle por la que se va, que es el dato que más
   se necesita manejando.

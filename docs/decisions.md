@@ -1895,16 +1895,34 @@ sigue su curva.
 El precio es que si dos calles distantes comparten nombre se rotulan las dos. En
 el entorno visible eso prácticamente no pasa.
 
-### Por qué no son 3× sino 2×
+### Por qué no son 3× sino 1,5×
 
 El mapa base rotula en 11 px, así que 3× serían 33. **En 33 px el texto no entra
-en el largo visible de la calle y MapLibre no dibuja nada** — se probó, y la
-diferencia entre 33 y 18 era que con 33 no se veía absolutamente nada.
+en el largo del tramo y MapLibre no dibuja nada** — se probó, y la diferencia
+entre 33 y 18 era que con 33 no se veía absolutamente nada.
 
-Queda en `interpolate` de 20 a 28 px según el zoom: entre **1,8× y 2,5×**. Es
-menos de lo pedido y se cumple el objetivo igual, porque el contraste real lo dan
-tres cosas a la vez: el tamaño, **el verde** contra el gris de las demás, y que
-gana toda colisión (`text-allow-overlap`). Más grande se vería menos, no más.
+Queda en `interpolate` de 15 a 19 px según el zoom: entre **1,4× y 1,7×**. El
+motivo va adelante del gusto: **los tiles fragmentan las avenidas en pedazos de
+una cuadra**, y en el zoom de navegación —16,5— una cuadra son unos 79 px
+mientras que "Avenida 9 de Julio" en 22 px mide 200. Cuanto más grande, en menos
+tramos entra y menos veces aparece.
+
+Es menos de lo pedido y el objetivo se cumple igual, porque el contraste real lo
+dan tres cosas a la vez: el tamaño, **el verde** contra el gris de las demás, y
+la prioridad de colisión.
+
+### Que no se encime consigo mismo
+
+La primera versión usaba `text-allow-overlap: true` para ganarle a los nombres
+grises. Eso trae un efecto que no es obvio: **MapLibre deja de comparar los
+símbolos también dentro de la misma capa**, y como los tiles traen la avenida
+partida en varios tramos, el mismo nombre se dibujaba encimado sobre las cuadras
+cortas — de forma distinta según el zoom.
+
+La colisión va **activada**. La prioridad sobre los demás nombres se consigue por
+el **orden de la capa**: MapLibre resuelve las colisiones en el orden en que
+dibuja, así que `calle-actual` va antes de `calles-nombre`, ve el lugar libre
+primero y el nombre gris cede.
 
 ### Consecuencias
 

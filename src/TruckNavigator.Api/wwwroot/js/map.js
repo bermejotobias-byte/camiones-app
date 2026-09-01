@@ -694,26 +694,43 @@ export function labelCurrentStreet(name) {
         'symbol-placement': 'line',
         'text-field': ['coalesce', ['get', 'name:es'], ['get', 'name']],
         'text-font': ['NotoSans-Regular'],
-        // El mapa base rotula en 11 px. Esto va de 20 a 28 segun el zoom, o sea
-        // entre 1,8x y 2,5x — no los 3x que pedia el brainstorm, y a proposito:
-        // en 33 px el texto no entra en el largo visible de la calle y MapLibre
-        // no dibuja NADA. Mas grande se ve menos, no mas.
-        'text-size': ['interpolate', ['linear'], ['zoom'], 14, 20, 17, 28],
+        // El mapa base rotula en 11 px. Esto va de 15 a 19 segun el zoom — entre
+        // 1,4x y 1,7x, bastante menos que los 3x que pedia el brainstorm, y hay
+        // un motivo duro adelante del gusto:
+        //
+        // con `symbol-placement: line` MapLibre no dibuja el texto si no entra a
+        // lo largo del tramo, y los tiles fragmentan las avenidas en pedazos de
+        // una cuadra. En el zoom de navegacion —16,5— una cuadra son unos 79 px
+        // y "Avenida 9 de Julio" en 22 px mide 200: no se dibujaba NADA. Cuanto
+        // mas grande, menos veces aparece.
+        //
+        // El contraste no lo hace el tamaño solo: lo hacen el verde contra el
+        // gris de las demas y la prioridad de colision.
+        'text-size': ['interpolate', ['linear'], ['zoom'], 14, 15, 17, 19],
         'text-letter-spacing': 0.02,
-        'symbol-spacing': 260,
-        // Gana siempre: es el dato mas importante de la pantalla y no puede
-        // perder una colision contra el nombre de una calle que no se toma.
-        'text-allow-overlap': true,
-        'text-ignore-placement': true
+        // Espaciado holgado entre repeticiones. Con 260 px el mismo nombre
+        // aparecia varias veces en una cuadra y las repeticiones se encimaban.
+        'symbol-spacing': 500,
+        // Colision ACTIVADA, y esto es lo que evita que el rotulo choque consigo
+        // mismo. Con `allow-overlap: true` MapLibre no compara los simbolos ni
+        // dentro de la misma capa: las repeticiones se pisaban entre si sobre
+        // las cuadras cortas, y el resultado dependia del zoom.
+        //
+        // La prioridad sobre los demas nombres no se consigue asi, sino por el
+        // ORDEN DE LA CAPA: MapLibre resuelve las colisiones en el orden en que
+        // se dibujan, y esta va antes que `calles-nombre` — ve el lugar libre
+        // primero y el nombre gris cede.
+        'text-allow-overlap': false,
+        'text-padding': 6
       },
       paint: {
         'text-color': token('--ok'),
         // Halo grueso: el texto pasa por encima de la linea de la ruta, que es
         // de color, y sin esto se pierde contra ella.
         'text-halo-color': token('--surface'),
-        'text-halo-width': 2.8
+        'text-halo-width': 2.6
       }
-    });
+    }, map.getLayer('calles-nombre') ? 'calles-nombre' : undefined);
   }
 
   map.setFilter('calle-actual', name
