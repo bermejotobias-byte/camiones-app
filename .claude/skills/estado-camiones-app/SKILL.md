@@ -181,9 +181,17 @@ bind a `0.0.0.0:5080`— también son esperados.
   aparato en la mano. Falta el caso que motivó no usar `Compass` de MAUI: el
   teléfono **parado en un soporte de parabrisas** (AD-30). Ahí es donde el eje
   cambia, y ahí es donde se sabrá si el trabajo extra valió la pena.
-- **La app en el teléfono, salvo lo que reportó el usuario.** Las zonas de riesgo
-  (01/09/2026) se verificaron **en el navegador, no en el APK**: el teléfono no
-  estaba conectado.
+- **La app en el teléfono, salvo lo que reportó el usuario.**
+- **Las zonas de riesgo, los radares y el rediseño de los símbolos del mapa** se
+  verificaron **en el navegador, no en el APK** — el teléfono no estaba conectado
+  el 01/09/2026. **Es lo primero a chequear la próxima vez que se enchufe**, y no
+  es trámite: en el WebView de Android el mapa de calor pasa por la GPU del
+  teléfono, no por la de la máquina de desarrollo.
+- **El pedido de las zonas era estético y se resolvió por el lado del dato.** El
+  usuario pidió inspirarse en el mapa de Google Maps que compartió, y el trabajo
+  se fue a la metodología —qué contar, cómo normalizar— antes que al aspecto. El
+  resultado quedó aprobado, pero la lección aplica a lo que venga: **cuando el
+  pedido es visual, la referencia visual manda.**
 
 **Ya no es cierto que el mapa no se pueda ver.** Esta skill decía que el panel de
 navegador no componía frames y que las capas estaban "servidas pero no vistas".

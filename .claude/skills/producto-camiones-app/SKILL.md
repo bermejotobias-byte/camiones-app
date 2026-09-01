@@ -98,7 +98,7 @@ pantalla de fuentes, leyenda achicada, iconos, mobile-first, modo día y noche.
 | ⬜ | **3 llamadas de emergencia** a contactos que elige el usuario | v1 |
 | ⬜ | **Compartir el viaje en tiempo real** por WhatsApp | v1 |
 | ⬜ | **S.O.S. rápido dentro del reporte de siniestro**: al marcar un accidente grave, un aviso emergente para llegar al 911 en un toque | v2 |
-| 🔍 | **Zonas peligrosas de CABA** — investigar `mapa.seguridadciudad.gob.ar`: si el dato es descargable, con qué licencia y con qué frecuencia se actualiza | v1 + v2 |
+| ✅ 🔎 | **Zonas peligrosas de CABA** — resuelto con el **Mapa del Delito del GCBA** (CC-BY, un archivo por año, 133.203 hechos de 2025). Cuenta **robos a mano armada**, no cantidad de robos: contar cantidad mide cuánta gente circula y ponía a Palermo primero y a Villa Soldati como la más segura. Mapa de calor sobre los hechos crudos (AD-36). **Falta verlo en el APK** | v1 + v2 · 01/09/2026 |
 
 ### Fase 4 · Información para camiones — 🔨 **reabierta por el v2**
 
@@ -106,9 +106,9 @@ pantalla de fuentes, leyenda achicada, iconos, mobile-first, modo día y noche.
 |---|---|---|
 | ✅ | Red de Tránsito Pesado, gálibos y pasos a nivel | v1 · AD-25 |
 | ✅ | Mapa base propio, minimalista, día y noche | v1 · AD-26 |
-| ⬜ | **Avenidas aptas para tránsito pesado con el nombre destacado**, aunque no sean parte de la ruta | v1 |
-| 🔍 | **Radares de control de velocidad** — hace falta una fuente. Sin dato oficial, no se inventa | v2 |
-| 🔍 💬 | **Radares de control de peso.** El documento dice "INVESTIGAR". Además propone que el usuario avise si están parando, lo cual lo convierte en mitad dato y mitad reporte comunitario | v2 |
+| ✅ | **Avenidas aptas para tránsito pesado con el nombre destacado**, aunque no sean parte de la ruta | v1 · capa `red-nombre` |
+| ✅ | **Radares de control de velocidad** — resuelto con dato oficial: 129 cinemómetros del GCBA (CC-BY). Las otras 95 cámaras del dataset son de analítica de video y quedaron afuera | v2 · 01/09/2026 |
+| ❌ 💬 | **Radares de control de peso.** Investigado sin resultado: **no existe fuente** — cero balanzas en CABA, ni dataset oficial ni OSM (L-9). Sólo queda como reporte comunitario | v2 · cerrado 31/08/2026 |
 | ⬜ 💬 | **Lugares de interés valorados por usuarios**, que además confirmen si son aptos para tránsito pesado (y eso da puntos). Se cruza con los 78 POIs que ya existen, donde la aptitud está indeclarada en 75 (L-6) | v2 |
 | ⬜ | **Modo reparto**: hasta 10 direcciones con la ruta óptima desde el origen | v1 |
 
@@ -174,12 +174,15 @@ Del v1 y el v2, más lo ya implementado:
 La regla que gobierna el proyecto es **donde falta el dato, se dice que falta**.
 Estos ítems del v2 la tocan de lleno:
 
-| Ítem | Qué hay que averiguar |
+**Tres de los cuatro se resolvieron el 31/08 y el 01/09/2026.** Quedan acá con su
+resultado porque el que falta se decide igual que se decidieron éstos.
+
+| Ítem | Resultado |
 |---|---|
-| Zonas peligrosas | Si `mapa.seguridadciudad.gob.ar` publica el dato de forma descargable, bajo qué licencia y cada cuánto se actualiza |
-| Radares de velocidad | Si existe una fuente oficial. Si no, sólo queda el reporte comunitario, **etiquetado como tal** |
-| Radares de peso | Ídem, y el documento ya dice "investigar". Puede que no exista y quede sólo como reporte |
-| Aptitud de POIs | Hoy indeclarada en 75 de 78 (L-6). El v2 propone que la completen los usuarios: eso es un dato de comunidad, **no un dato oficial**, y tiene que verse distinto |
+| Zonas peligrosas | ✅ **Mapa del Delito del GCBA**, CC-BY, un archivo por año, con coordenadas. `mapa.seguridadciudad.gob.ar` no hizo falta |
+| Radares de velocidad | ✅ **Dato oficial del GCBA**, CC-BY-2.5-AR: 129 cinemómetros. OSM tiene 176 y no se sabe cuál está más al día — se eligió el oficial por tener organismo, licencia y cadencia declarada |
+| Radares de peso | ❌ **No existe fuente.** Cero balanzas en CABA, ni oficial ni en OSM; los puestos son de Vialidad sobre rutas. Sólo queda como reporte comunitario (L-9) |
+| Aptitud de POIs | ⬜ **Pendiente.** Hoy indeclarada en 75 de 78 (L-6). El v2 propone que la completen los usuarios: eso es un dato de comunidad, **no oficial**, y tiene que verse distinto |
 
 **Un dato aportado por usuarios nunca se muestra igual que uno oficial.** Es lo
 que hace defendible al producto frente a Waze y Google Maps.
