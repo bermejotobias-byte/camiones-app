@@ -39,7 +39,8 @@ commit todavía no está empujado.**
 | `docs/architecture.md` | Estructura y proyectos |
 | `docs/routing.md`, `docs/restrictions.md`, `docs/pois.md`, `docs/deploy.md` | Por tema |
 | `PLAN.md` | Especificación original del MVP |
-| Escritorio del usuario | `PUNTOS A TRABAJAR EN LA APLICACIÓN GPS CAMIONES.docx` — los 33 requisitos |
+| **skill `producto-camiones-app`** | **El alcance completo**: los dos brainstorms unificados y asignados a fase |
+| Escritorio del usuario | `PUNTOS A TRABAJAR…docx` (33 requisitos, 22/08) y `ideas camionero app v2.docx` (31/08). Están **abiertos en Word**: para leerlos hay que copiarlos antes, si no el archivo está bloqueado |
 
 **Las AD-17 a AD-34 son del trabajo reciente.** Las cinco últimas, del 25–26/08/2026:
 
@@ -55,18 +56,28 @@ commit todavía no está empujado.**
 
 ## 3. Roadmap y estado
 
-Prioridad declarada por el usuario:
-**navegación → usabilidad → seguridad → información para camiones → experiencia → gamificación**
+**El alcance completo vive en la skill `producto-camiones-app`**, que unifica los
+dos brainstorms del usuario y asigna cada ítem a una fase. Acá va sólo el estado.
+
+Prioridad declarada:
+**navegación → usabilidad → seguridad → info para camiones → reportes de comunidad
+→ experiencia y gamificación**
 
 | Fase | Estado |
 |---|---|
 | **0 · Cimientos** | ✅ Completa — cuentas, camiones por usuario, viajes, mudanza del frontend |
-| **1 · Navegación** | ⚠️ Probada en el teléfono parado; **sin probar manejando** |
+| **1 · Navegación** | 🔨 Probada en el teléfono parado; **sin probar manejando**. El v2 le suma legibilidad de calles, vibración y rutas alternativas |
 | **2 · Usabilidad** | ✅ Completa — salió adelantada dentro de la mudanza del frontend |
-| **3 · Seguridad** | ❌ Pendiente — pánico con 3 contactos, compartir viaje por WhatsApp |
-| **4 · Info para camiones** | ✅ Completa — capas de camión y mapa base propio |
-| **5 · Experiencia** | ❌ Pendiente — avatares, cofres, reportes, chat |
-| **Transversal** | ❌ i18n (español, portugués, guaraní, inglés) |
+| **3 · Seguridad** | ⬜ Sólo está el 911. Faltan 3 contactos, compartir viaje, S.O.S. en el reporte y las zonas peligrosas |
+| **4 · Info para camiones** | 🔨 **Reabierta por el v2** — estaban las capas y el mapa base; ahora suma radares, POIs valorados, avenidas destacadas y modo reparto |
+| **5 · Reportes de comunidad** | ⬜ **Fase nueva del v2** — reportar y confirmar siniestros, radares y retenes. Es un sistema, no una función |
+| **6 · Experiencia y gamificación** | ⬜ Avatares, cofres, chat, bonos y **cinco juegos arcade** |
+| **Transversal** | ⬜ i18n (español, portugués, guaraní, inglés) · clave de firma de distribución |
+
+**El 31/08/2026 el usuario sumó un segundo brainstorm** (*"IDEAS PARA TBF 2.0"*)
+que agranda el proyecto: abre la fase de reportes de comunidad, reabre la 4 y
+convierte la de experiencia en algo mucho más grande de lo que parecía. Antes de
+planificar, leer `producto-camiones-app`.
 
 ### Commits de la rama, en orden
 
@@ -103,12 +114,32 @@ modificado en cada `git status`; **no commitearlo**.
 **Distinción crítica.** Mucho está probado a fondo; una franja específica no se
 pudo probar y hay que decirlo cada vez.
 
+### Verificado en el teléfono el 31/08/2026 — barrido completo
+
+Con la app instalada de cero y el log limpio, sin un solo error:
+
+| Qué | Evidencia |
+|---|---|
+| Conecta sin dirección escrita a mano | `fijada a mano: False`, 84 ms |
+| Interfaz | `interfaz cargada`, **cero errores de JavaScript** |
+| Crashes nativos | ninguno |
+| Brújula | `rot_vec registrado=True`, `declinacion=-10.3` (correcta para CABA) |
+| GPS | permiso OK, última conocida + alta precisión, un solo ciclo de registro |
+| Actualizar sin desinstalar | `adb install -r` → `Success` (AD-35) |
+| Viajes abiertos colgados | 0 de 28 |
+
+Confirmado además por el usuario tocando: botón *Salir*, arrastre del mapa, zoom
+con + y −, y las cruces de origen y destino.
+
+**`Token expired` en el log del backend NO es un bug**: el cliente pide un
+`refresh`, reintenta una vez y sólo cierra sesión si eso falla, con guarda contra
+bucles. Los otros dos avisos del backend —SMTP sin configurar y el *override* del
+bind a `0.0.0.0:5080`— también son esperados.
+
 ### Verificado en el teléfono el 26/08/2026
 
 - **La app entra y conecta.** Costó una noche: ver AD-33, cuatro fallas
   encadenadas que la dejaban inutilizable con una dirección mal escrita.
-- **La brújula anda** con el teléfono en la mano: dial, punto cardinal y cono
-  sobre la ubicación. Reportado por el usuario.
 - **El ruteo desde el teléfono funciona end-to-end**: GraphHopper sirvió cinco
   rutas de camión con el custom model completo, en 7–78 ms.
 
@@ -238,6 +269,13 @@ fallas de la costura nativa-web costaran tanto**: MAUI no instala
 `WebChromeClient`, y sin uno Android descarta los mensajes de consola en
 silencio. Ver AD-31.
 
+**Verificado andando el 28/08/2026** en el Xiaomi de prueba. La sospecha de que
+MIUI filtraba los logs de terceros —que quedó anotada un día en la
+documentación— **era falsa**: el 26/08 la app no pasaba de la pantalla de
+conexión, así que no llegaba a ejecutarse ninguna línea que logueara. Ausencia de
+salida no era ausencia de puente. Lo que lo descartó fue reproducir con el log
+limpio (`logcat -c`, `am force-stop`, `am start`), no razonar mejor.
+
 **Y no diagnostiques con `Debug.WriteLine`**: lleva `[Conditional("DEBUG")]`, el
 compilador borra las llamadas en Release y los mensajes desaparecen justo en el
 APK que se instala en el teléfono. Va `Android.Util.Log`.
@@ -300,6 +338,22 @@ Tres secciones sirven, y conviene mirarlas en este orden:
   se sirve y se empaqueta es idéntico con o sin ellos. Ver AD-32. Cubren
   `navigation.js`, que es puro; los módulos que tocan el DOM quedan afuera porque
   necesitarían un DOM simulado, o sea una dependencia.
+- **El SDK de Android puede perder la plataforma que el proyecto necesita.** El
+  28/08/2026 el build murió con `XA5207: no se encuentra android.jar para el nivel
+  API 36`: en `%LOCALAPPDATA%\Android\Sdk\platforms` sólo quedaba `android-37.0`,
+  porque una actualización del SDK Manager reemplazó la 36. **No retargetear el
+  proyecto para esquivarlo** —`targetSdk` cambia el comportamiento del servicio en
+  primer plano y sus permisos (AD-24), y el workload instalado es el de la 36—. Se
+  reinstala la que falta:
+
+  ```powershell
+  dotnet build src/TruckNavigator.Mobile -t:InstallAndroidDependencies -f net10.0-android `
+    -p:AndroidSdkDirectory="$env:LOCALAPPDATA\Android\Sdk" -p:AcceptAndroidSDKLicenses=True
+  ```
+
+  Tarda ~30 s. No hay `sdkmanager` en `cmdline-tools/latest/bin`, así que este es
+  el camino.
+
 - **PowerShell 5.1**, sin `&&` ni operadores modernos.
 - **`$PSScriptRoot` viene vacío dentro del bloque `param()`** → una ruta relativa
   con `..` se ancla en la raíz del disco y el script escribe en `C:\src\...`
@@ -382,13 +436,31 @@ lo correcto.
 - **Cuenta de prueba en desarrollo**: `demo@camiones.test` / `camion2026`, sembrada
   por `DevUserSeed` sólo en `Development`. Mail confirmado y perfil completo
   (alias `demo`): entra directo al mapa sin buscar el enlace en el log.
-- IP del usuario al 26/08/2026: `192.168.100.106` (el 25/08 era `192.168.1.78` y
-  el 24/08 `192.168.100.106` otra vez — **cambia de red en red y volvió a cambiar
-  a mitad de una sesión de pruebas, verificarla siempre**, con
-  `Get-NetIPAddress -AddressFamily IPv4`). La app deja corregirla desde
-  *Configurar servidor* en el teléfono, y `network_security_config.xml` ya
-  permite HTTP en claro a cualquier dirección, así que cambiarla **no obliga a
-  recompilar**. Si el APK quedó con la IP vieja, se arregla desde el teléfono.
+- **La IP de la máquina cambia todo el tiempo. Verificarla SIEMPRE**, es lo
+  primero de cada sesión:
+
+  ```powershell
+  (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -eq 'Dhcp' }).IPAddress
+  ```
+
+  Historial medido: `192.168.100.106` (24/08) → `192.168.1.78` (25/08) →
+  `192.168.100.106` (26/08, a mitad de una sesión de pruebas) → `192.168.1.52`
+  (28/08). La app deja corregirla desde *Configurar servidor*, y
+  `network_security_config.xml` permite HTTP en claro a cualquier dirección, así
+  que **no obliga a recompilar** — pero recompilar con `-ApiUrl` es más cómodo y
+  se instala solo.
+
+- **La regla de firewall `TruckNavigator API 5080 (dev)` está limitada a una
+  subred**, y el 28/08 seguía apuntando a `192.168.100.0/24` estando la máquina en
+  `192.168.1.x`. **Aun así el teléfono llegaba**, así que no dar por hecho que
+  bloquea: medirlo con `toybox nc` antes de perseguir ese fantasma.
+  Cambiar la regla es configuración de seguridad del sistema: pedírselo al
+  usuario, no hacerlo.
+
+- **Con el teléfono por USB hay un camino que no depende de la red ni del
+  firewall**: `adb reverse tcp:5080 tcp:5080` y configurar la app con
+  `http://127.0.0.1:5080`. Sirve para probar de escritorio; para manejar hace
+  falta la IP de red.
 - **`adb` está en `%LOCALAPPDATA%\Android\Sdk\platform-tools`**, no en el SDK de
   Visual Studio. `build-apk.ps1 -Push` busca en ambos desde el 25/08/2026.
 - **El túnel de `demo-up.ps1`: si el hostname no resuelve, reabrirlo.** Confirmado

@@ -1385,26 +1385,31 @@ en el código.
 | `Cascara` | el puente nativo: configuración, posiciones, brújula, errores al evaluar JavaScript |
 | `Brujula` | cada rumbo calculado, con la inclinación y la declinación aplicada |
 
-### ⚠ Sin verificar en el equipo de prueba — 26/08/2026
+### ✅ Verificado en el equipo de prueba — 28/08/2026
 
-**Esto todavía no se comprobó que funcione.** En el Xiaomi de prueba
-(`24117RN76L`, HyperOS) el APK de Release corrió con un `Log.Info` incondicional
-en el arranque de `ConnectAsync` y **no apareció ni una línea** bajo ninguna de
-las tres etiquetas. Lo medido, para que la próxima sesión no repita el camino:
+**Funciona, y funciona bien.** En el Xiaomi de prueba (`24117RN76L`, HyperOS) el
+APK de Release escribe las tres etiquetas y `adb logcat` las entrega:
 
-- El proceso de la app produjo **24 líneas de logcat, todas del framework de
-  Android/MIUI**. Ninguna del runtime de .NET ni de nuestro código.
-- **No es un filtro de etiquetas**: escribir a mano
-  `adb shell log -p i -t Cascara "..."` sí aparece.
-- **No es que el código no se ejecute**: la pantalla muestra el error de conexión,
-  que sale de la misma función, dos líneas después del log.
-- `log.tag` global está en `M`, un valor que no es de los estándar
-  (`V D I W E F S`). Sin confirmar que sea la causa.
+```
+Cascara : conectando a http://192.168.1.52:5080 (compilada: http://192.168.100.106:5080, fijada a mano: True)
+Cascara : resultado: alcanzable=True motivo=ninguno
+Web     : interfaz cargada · https://0.0.0.1/  [app.js:36]
+Brujula : rumbo=23.4 plano=False confiable=True declinacion=-10.3
+```
 
-La sospecha abierta es que **MIUI descarta los logs de aplicaciones de terceros**
-—las líneas de prueba pasaron porque `shell` es privilegiado—, pero no está
-demostrado. Hasta que lo esté, **no dar por sentado que el log alcanza para
-diagnosticar en este equipo**, y dejar siempre un camino visible en pantalla.
+**La sospecha de que MIUI filtraba los logs de terceros era falsa**, y quedó
+anotada un día como si fuera plausible. La explicación real es más simple: el
+26/08 la app **nunca pasaba de la pantalla de conexión**, así que no llegaba a
+ejecutarse ninguna línea de las que loguean. Ausencia de salida no era ausencia
+de puente.
+
+Vale como advertencia sobre el método: **una hipótesis que explica los datos no
+es una causa**, y anotarla como sospecha en la documentación le da más peso del
+que merece. Lo que la descartó fue reproducir con el log limpio, no razonar
+mejor.
+
+El `Web` trae además archivo y línea de origen (`[app.js:36]`), que es la mitad
+del valor.
 
 ---
 
@@ -1607,3 +1612,183 @@ Medido con `document.elementFromPoint` sobre una grilla: **29 de 36 sondas sobre
 el área del mapa llegan al canvas**, y las 7 que no son exactamente donde están
 los botones. Es una comprobación barata y vale la pena repetirla cada vez que se
 toca esa capa.
+
+### Y el arreglo trajo su propio error: la hoja se referencia por id
+
+La primera versión de la regla decía `.map-overlay > .sheet { pointer-events:
+auto }`. **`sheetAs()` le reemplaza la clase a ese mismo elemento** según el
+estado: `sheet` para buscar y planificar, `nav-bar` durante el viaje. Con el
+selector por clase, en modo viaje la barra dejaba de coincidir, heredaba el
+`none` del contenedor y **el botón "Salir" no respondía**.
+
+La consecuencia no es cosmética: el viaje abierto vive en el servidor y sobrevive
+a cerrar la app (AD-27), así que **quedaba imposible de cerrar desde la
+aplicación**. Cada reapertura volvía a la pantalla de viaje con el único botón que
+podía sacarte de ahí sin responder.
+
+Va por **`#sheet`**, que no cambia nunca. Reproducido y medido:
+
+| Selector | `pointer-events` de la barra | del botón |
+|---|---|---|
+| `.sheet` (roto) | `none` | `none` |
+| `#sheet` | `auto` | `auto` |
+
+La lección: **un selector CSS que depende de una clase que el código reescribe es
+una bomba de tiempo**, y el síntoma aparece lejos —en otra pantalla, en otro
+estado— de donde está la causa.
+
+---
+
+## AD-35 · El APK se firma con una clave estable, fuera del repositorio
+
+Instalar una versión nueva sobre la anterior fallaba con
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE: signatures do not match`. La única salida
+era desinstalar, y eso borra la sesión y los ajustes del teléfono **en cada
+versión**. Sobre un ciclo de prueba que ya es lento —compilar, instalar, abrir,
+loguearse, reconfigurar el servidor— ese costo se paga entero cada vez.
+
+### Por qué pasaba
+
+El proyecto no declaraba ninguna clave, así que .NET Android firmaba con la de
+depuración que genera sola. **Esa clave se regeneró** en algún momento entre el
+26 y el 28 de agosto de 2026: el `debug.keystore` que quedó en
+`%LOCALAPPDATA%\Xamarin\Mono for Android` es del 20/08, anterior a la app
+instalada, y aun así la firma del APK nuevo no coincidía.
+
+Android no permite actualizar una app con una firma distinta, y hace bien: es lo
+que impide que cualquiera publique una "actualización" de una aplicación ajena.
+
+### Lo que se hizo
+
+`build-apk.ps1` crea la clave la primera vez —con `keytool`, RSA 2048, validez
+larga— y a partir de ahí firma siempre con la misma. La ruta, el alias y la
+contraseña son parámetros, así que una clave de distribución se pasa sin tocar el
+script.
+
+**La clave vive fuera del repositorio**, en
+`%LOCALAPPDATA%\TruckNavigator\firma-desarrollo.keystore`, para que no pueda
+commitearse por accidente. `.gitignore` bloquea además `*.keystore` y `*.jks`
+como red de seguridad.
+
+El script imprime la **huella SHA-256** de la firma al terminar. Si cambia entre
+dos compilaciones, el teléfono va a rechazar la actualización; conviene enterarse
+ahí y no al instalar.
+
+### Lo que esto NO es
+
+**No es una clave de distribución.** Es de desarrollo, con una contraseña
+conocida y escrita en el script, y su único propósito es que la firma no cambie
+entre compilaciones. Publicar la app pide una clave propia, generada aparte,
+**con copia de respaldo**: si se pierde, esa aplicación no se puede volver a
+actualizar nunca más, ni siquiera por su autor.
+
+Se puede pasar por parámetro o por la variable de entorno
+`TRUCKNAVIGATOR_KEYSTORE_PASS`, sin cambiar el código.
+
+### La primera instalación después de este cambio todavía duele
+
+El teléfono tiene instalada una app firmada con la clave vieja, así que hay que
+desinstalarla una última vez. **De ahí en adelante las actualizaciones entran
+sin desinstalar.**
+
+---
+
+## AD-36 · Las zonas de riesgo se dibujan por acumulación, no por celda
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+El pedido era mostrar zonas peligrosas "con una escala de color", sin recargar el
+mapa, tomando como referencia un mapa comunitario de Google My Maps.
+
+El dato disponible es el **Mapa del Delito del GCBA** (CC-BY): 133.203 hechos
+de 2025 con coordenadas. Filtrado a robos y hurtos de vehículos quedan 54.475,
+agregados por `data/fetch-zonas-riesgo.ps1` en una grilla de 250 m. Ver la
+sección 7 de `data-sources.md`.
+
+### Decisión
+
+**1. Sólo se publica lo que duplica la media de la Ciudad.**
+
+En 2025 el **92% de las celdas de CABA registró al menos un hecho**. Pintar todo
+lo que tiene delito es pintar la Ciudad entera, y un mapa donde todo está pintado
+no destaca nada. Se publican 413 de 3.005 celdas, clasificadas en múltiplos de la
+media —x2, x3, x5— porque esa unidad se explica sola: "el triple que el promedio
+de la Ciudad" no necesita saber estadística.
+
+**2. Se dibuja como mancha por acumulación, no como la grilla del cálculo.**
+
+Cada celda es un círculo difuminado de ~450 m de radio con **opacidad 0,13**. Los
+círculos se superponen y el color **se suma**: donde hay un racimo de celdas
+calientes la mancha se oscurece sola, y una celda aislada casi no se nota. Esa
+suma **es** la escala, y aparece sin que ningún corte decida dónde empieza un foco.
+
+Es cómo funciona el mapa comunitario que sirvió de referencia: sus 403 polígonos
+son todos del mismo rojo al 62%, y la gradación que uno percibe sale del
+solapamiento. Se adoptó el mecanismo, no los polígonos.
+
+**3. Un solo color.**
+
+Con manchas superpuestas, tres colores distintos se promedian en tonos que no
+corresponden a ningún nivel de la leyenda: el naranja que uno ve puede ser una
+zona naranja o la mezcla de una amarilla con una roja, y no hay forma de saberlo.
+El nivel de la celda modula la **opacidad**, no el tono.
+
+El color es naranja (`#e8590c`) y no el rojo del nivel extremo: un rojo oscuro al
+13% sobre el mapa de noche prácticamente no existe, y subirlo para que se vea lo
+hace saturar de día. El naranja tiene luminancia intermedia y se lee sobre los dos
+fondos sin cambiar de valor.
+
+**4. El triángulo sólo en las 21 celdas extremas**, con `icon-padding: 28` para
+que de cada racimo sobreviva uno. Es la única señal del mapa que no es un disco:
+la forma separa antes que el color, y una zona no es comparable con un gálibo, un
+paso a nivel o un radar, que son puntos concretos de la calle.
+
+### Por qué no las dos alternativas obvias
+
+**Pintar las celdas tal cual** —relleno translúcido, sin borde, esperando que las
+vecinas se fundan— deja un tablero de ajedrez: cada celda se recorta nítida contra
+la de al lado y el damero tapa los nombres de las calles. Y hay un problema de
+fondo antes que estético: **el cuadrado de 250 m es una unidad de cálculo, no un
+hecho del territorio**. Dibujarlo afirma que el riesgo cambia al cruzar una línea
+recta que en la calle no existe.
+
+**Una capa `heatmap`** empapela el mapa de lunares alineados. El heatmap normaliza
+por densidad de *puntos* y esta fuente ya viene agregada en grilla regular, así que
+el patrón de la grilla reaparece sin importar el radio: agrandarlo sólo da lunares
+más grandes. Es la herramienta equivocada para un dato que ya está contado por
+celda.
+
+### Consecuencias
+
+- El radio (450 m) tiene que ser **casi el doble** de la separación entre celdas
+  (250 m). Con 250 m cada celda dibuja su propio lunar; con 350 se funden pero
+  quedan agujeros oscuros donde falta una celda por no llegar al corte, y esos
+  huecos parecen un defecto del dibujo. Recién con ~450 m el solape los cubre.
+- Como un toque cae dentro de muchas manchas a la vez, `featureAt` devuelve **la
+  de más hechos**, no la primera en orden de dibujo. Sin eso el número que aparece
+  no es el del foco que uno está mirando.
+- El silencio del mapa **no es un certificado de seguridad**, y eso es una deuda
+  abierta fuera de CABA: ver L-11 en `data-sources.md`.
+
+### Dos trampas de MapLibre que costaron esta iteración
+
+**Una capa `circle` sólo dibuja geometrías de tipo punto.** Con polígonos no
+dibuja nada y no emite ningún error. Una capa `symbol`, en cambio, sí acepta
+polígonos y coloca el símbolo en el centroide — así que el triángulo aparecía y la
+mancha no, sobre la misma fuente. Por eso `zonas-riesgo.geojson` publica el
+**centro** de cada celda y no su cuadrado.
+
+**`['zoom']` sólo se admite en el nivel superior de un `step` o un `interpolate`.**
+Envuelto en una multiplicación, MapLibre rechaza la capa entera con
+*"zoom expression may only be used as input to a top-level step or interpolate
+expression"* — y lo hace por el evento `error` del mapa, **no por excepción**, así
+que ningún `try/catch` lo ve y el síntoma es que la capa simplemente no aparece.
+La forma correcta es el `interpolate` sobre `['zoom']` afuera y el `match` por
+propiedad adentro de cada parada.
+
+Esa falla muda motivó además envolver **cada** instalación de capa por separado en
+`installTruckLayers`: antes iban sueltas y un error en la primera se llevaba
+puestas a las otras cuatro sin dejar rastro en la consola.

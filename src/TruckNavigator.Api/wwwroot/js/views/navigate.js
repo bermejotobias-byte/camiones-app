@@ -104,9 +104,71 @@ export function navigateView(host, { openDrawer, go }) {
       updateLayerButton();
       locate({ silent: true });
     },
-    onTap: () => hideSuggestions(),
+    onTap: (feature) => { hideSuggestions(); explicarSimbolo(feature); },
     onLongPress: (point) => setPointFromMap(point)
   });
+
+  /**
+   * Tocar un simbolo del mapa dice, en palabras, que es.
+   *
+   * Un icono chico no puede explicarse solo, y una leyenda fija ocupa pantalla y
+   * nadie la lee. Es lo que hacen Maps y Waze: el mapa muestra el simbolo, el
+   * toque lo explica.
+   */
+  function explicarSimbolo(feature) {
+    if (!feature) return;
+
+    const p = feature.properties ?? {};
+
+    if (feature.layer?.id === 'altura-senal') {
+      const altura = Number(p.metres).toFixed(2).replace('.', ',');
+      const camion = selectedTruck();
+      const donde = p.name ? ` en ${p.name}` : '';
+
+      if (camion && p.metres < camion.heightMeters) {
+        toastError(`Altura máxima ${altura} m${donde}. No pasás: tu camión mide ${camion.heightMeters} m.`);
+      } else {
+        toast(`Puente con altura máxima de ${altura} m${donde}.`, 'info');
+      }
+
+      return;
+    }
+
+    if (feature.layer?.id === 'paso-senal') {
+      const barrera = {
+        no: 'sin barrera',
+        yes: 'con barrera', full: 'con barrera completa',
+        half: 'con media barrera', double_half: 'con doble media barrera'
+      }[p.barrier];
+
+      toast(`Paso a nivel ${barrera ?? '— la fuente no dice si tiene barrera'}.`, 'info');
+      return;
+    }
+
+    if (feature.layer?.id === 'radar-punto') {
+      toast(`Radar de velocidad · ${p.ubicacion}`, 'info');
+      return;
+    }
+
+    if (feature.layer?.id === 'zona-riesgo' || feature.layer?.id === 'zona-riesgo-senal') {
+      const nivel = { alta: 'alta', 'muy-alta': 'muy alta', extrema: 'extrema' }[p.nivel] ?? p.nivel;
+      const veces = String(p.veces).replace('.', ',');
+      const barrio = p.barrio ? `${p.barrio} · ` : '';
+
+      // Se dice el numero crudo y contra que se compara. "Zona peligrosa" a
+      // secas no se puede discutir ni verificar; "87 robos denunciados, el
+      // quintuple del promedio" si — y deja claro que es un dato de denuncias
+      // de un anio, no un veredicto sobre el barrio.
+      const vehiculos = p.automotor > 0 ? ` ${p.automotor} fueron de vehículos.` : '';
+
+      toast(
+        `${barrio}zona de riesgo ${nivel}: ${p.hechos} robos denunciados en ${p.anio}, ` +
+        `${veces} veces el promedio de la Ciudad.${vehiculos}`,
+        p.nivel === 'alta' ? 'info' : 'warn',
+        7000
+      );
+    }
+  }
 
   wire(host, {
     '#menu': openDrawer,

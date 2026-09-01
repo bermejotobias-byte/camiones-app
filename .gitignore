@@ -26,3 +26,9 @@ routing/tools/
 
 ## Mapa base vectorial: lo genera data/build-basemap.ps1, pesa decenas de MB
 routing/*.pmtiles
+
+## Claves de firma: NUNCA en el repositorio.
+## La de desarrollo vive en %LOCALAPPDATA%\TruckNavigator y la crea build-apk.ps1.
+## Estas reglas son una red por si alguna termina copiada acá por error.
+*.keystore
+*.jks

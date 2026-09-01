@@ -78,10 +78,20 @@ function Invoke-Overpass {
             # El query va como campo "data" de un formulario. Mandarlo como cuerpo
             # crudo hace que Overpass conteste 406: no es que el query este mal,
             # es que no reconoce el envoltorio.
-            return Invoke-RestMethod -Uri $Endpoint -Method Post `
+            #
+            # NO se usa Invoke-RestMethod: cuando la respuesta no declara charset
+            # —y Overpass no lo declara— PowerShell 5.1 la decodifica como
+            # ISO-8859-1. Los nombres en UTF-8 quedan doblemente codificados y en
+            # el mapa se lee "Avenida San MartÃ­n" y "RAÃšL R. ALFONSÃN". Se leen
+            # los bytes crudos y se decodifican como UTF-8 a mano.
+            $respuesta = Invoke-WebRequest -Uri $Endpoint -Method Post `
                 -Body @{ data = $Query } `
                 -UserAgent 'TruckNavigator-CABA/0.1 (generador de capas)' `
-                -TimeoutSec 300
+                -TimeoutSec 300 -UseBasicParsing
+
+            $bytes = $respuesta.RawContentStream.ToArray()
+
+            return [System.Text.Encoding]::UTF8.GetString($bytes) | ConvertFrom-Json
         }
         catch {
             # Overpass devuelve 429 cuando no hay slot libre. Es lo normal si se

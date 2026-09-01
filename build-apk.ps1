@@ -34,7 +34,27 @@ param(
     [switch]$Push,
     [string]$ApiUrl,
     [ValidateSet('Debug', 'Release')]
-    [string]$Configuration = 'Release'
+    [string]$Configuration = 'Release',
+
+    # --- Firma ------------------------------------------------------------
+    #
+    # Los valores por defecto son de DESARROLLO. Su unico proposito es que la
+    # firma no cambie entre compilaciones, para que el telefono acepte
+    # actualizar la app en vez de exigir desinstalarla.
+    #
+    # NO sirven para distribuir. Para eso hay que generar una clave propia,
+    # pasarla por estos parametros, guardarla fuera del repositorio y tener una
+    # copia: si se pierde, no se puede volver a publicar una actualizacion de
+    # esa aplicacion nunca mas.
+    #
+    # La clave vive fuera del repositorio a proposito, para que no pueda
+    # commitearse por accidente.
+    [string]$Keystore = "$env:LOCALAPPDATA\TruckNavigator\firma-desarrollo.keystore",
+    [string]$KeyAlias = 'trucknavigator',
+    [string]$KeystorePassword = $(
+        if ($env:TRUCKNAVIGATOR_KEYSTORE_PASS) { $env:TRUCKNAVIGATOR_KEYSTORE_PASS }
+        else { 'camiones-dev' }
+    )
 )
 
 $ErrorActionPreference = 'Stop'
@@ -78,12 +98,60 @@ if ($microsoftJdk) {
     Write-Host "JDK: $env:JAVA_HOME" -ForegroundColor DarkGray
 }
 
+# --- Clave de firma estable -------------------------------------------------
+#
+# Sin esto, .NET Android firma con una clave de depuracion que genera solo. Esa
+# clave puede regenerarse —y se regenero— dejando un APK que Android rechaza con
+# INSTALL_FAILED_UPDATE_INCOMPATIBLE, porque no permite actualizar una app con
+# una firma distinta a la instalada. La unica salida entonces es desinstalar,
+# perdiendo la sesion y los ajustes del telefono en CADA version nueva.
+
+$keytool = Join-Path $env:JAVA_HOME 'bin\keytool.exe'
+
+if (-not (Test-Path $keytool)) {
+    $keytool = (Get-Command keytool -ErrorAction SilentlyContinue).Source
+}
+
+if (-not $keytool) {
+    throw 'No se encontro keytool. Viene con el JDK; revisa que este instalado el OpenJDK 21.'
+}
+
+if (-not (Test-Path $Keystore)) {
+    $carpeta = Split-Path $Keystore -Parent
+
+    if ($carpeta -and -not (Test-Path $carpeta)) {
+        New-Item -ItemType Directory -Force $carpeta | Out-Null
+    }
+
+    Write-Host "Creando la clave de firma en $Keystore ..." -ForegroundColor Cyan
+
+    & $keytool -genkeypair -noprompt `
+        -keystore $Keystore `
+        -alias $KeyAlias `
+        -keyalg RSA -keysize 2048 -validity 10000 `
+        -storepass $KeystorePassword -keypass $KeystorePassword `
+        -dname 'CN=TruckNavigator Dev, O=TruckNavigator, C=AR' 2>&1 | Out-Null
+
+    if (-not (Test-Path $Keystore)) {
+        throw "No se pudo crear la clave de firma en $Keystore."
+    }
+
+    Write-Host 'Clave creada.' -ForegroundColor Green
+    Write-Host 'Guardala: si se pierde, el telefono deja de poder actualizar la app.' -ForegroundColor Yellow
+}
+
 Write-Host 'Limpiando artefactos previos ...' -ForegroundColor Cyan
 Remove-Item "$project/obj" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item "$project/bin" -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "Compilando $Configuration ..." -ForegroundColor Cyan
-dotnet build $project -f net10.0-android -c $Configuration -p:AndroidPackageFormat=apk --nologo
+dotnet build $project -f net10.0-android -c $Configuration -p:AndroidPackageFormat=apk `
+    -p:AndroidKeyStore=true `
+    "-p:AndroidSigningKeyStore=$Keystore" `
+    "-p:AndroidSigningStorePass=$KeystorePassword" `
+    "-p:AndroidSigningKeyAlias=$KeyAlias" `
+    "-p:AndroidSigningKeyPass=$KeystorePassword" `
+    --nologo
 
 if ($LASTEXITCODE -ne 0) {
     throw 'Falló la compilación.'
@@ -94,6 +162,25 @@ Copy-Item $built 'NavegadorCamiones.apk' -Force
 
 $size = [math]::Round((Get-Item 'NavegadorCamiones.apk').Length / 1MB, 1)
 Write-Host "APK listo: NavegadorCamiones.apk ($size MB)" -ForegroundColor Green
+
+# La huella de la firma, para poder comprobar de un vistazo que no cambio. Si
+# cambia entre dos compilaciones, el telefono va a rechazar la actualizacion y
+# conviene saberlo aca y no al instalar.
+$apksigner = Get-ChildItem "$env:LOCALAPPDATA\Android\Sdk\build-tools" -Directory -ErrorAction SilentlyContinue |
+    Sort-Object Name -Descending |
+    ForEach-Object { Join-Path $_.FullName 'apksigner.bat' } |
+    Where-Object { Test-Path $_ } |
+    Select-Object -First 1
+
+if ($apksigner) {
+    $huella = & $apksigner verify --print-certs 'NavegadorCamiones.apk' 2>&1 |
+        Select-String 'SHA-256 digest' |
+        Select-Object -First 1
+
+    if ($huella) {
+        Write-Host "Firma: $(($huella.Line -split ':')[-1].Trim())" -ForegroundColor DarkGray
+    }
+}
 
 if (-not $Push) {
     return
@@ -124,12 +211,36 @@ if (-not $devices) {
     return
 }
 
-# Se intenta la instalación directa; si el teléfono la restringe, se deja el
+# Se intenta la instalación directa; si el teléfono la rechaza, se deja el
 # archivo en Descargas para instalarlo a mano.
-& $adb install -r 'NavegadorCamiones.apk'
+#
+# El motivo del rechazo se MUESTRA, no se resume. Antes este bloque decía
+# siempre "la instalación directa está restringida", pasara lo que pasara: eso
+# escondió un INSTALL_FAILED_UPDATE_INCOMPATIBLE —firma distinta— detrás de una
+# explicación equivocada, y costó una noche de buscar en el lugar incorrecto.
+$salida = & $adb install -r 'NavegadorCamiones.apk' 2>&1
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host 'La instalación directa está restringida; copiando a Descargas ...' -ForegroundColor Yellow
+    $motivo = ($salida | Select-String 'INSTALL_FAILED_\w+' -AllMatches).Matches.Value |
+        Select-Object -First 1
+
+    if (-not $motivo) { $motivo = 'motivo desconocido' }
+
+    Write-Warning "adb no pudo instalar: $motivo"
+    $salida | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+
+    switch ($motivo) {
+        'INSTALL_FAILED_UPDATE_INCOMPATIBLE' {
+            Write-Host 'La firma no coincide con la app instalada. Hay que desinstalarla una vez:' -ForegroundColor Yellow
+            Write-Host '  adb uninstall ar.com.trucknavigator.caba' -ForegroundColor Yellow
+        }
+        'INSTALL_FAILED_USER_RESTRICTED' {
+            Write-Host 'El teléfono bloqueó la instalación. Suele ser "Instalar vía USB" apagado' -ForegroundColor Yellow
+            Write-Host 'en Opciones de desarrollador, o la pantalla bloqueada.' -ForegroundColor Yellow
+        }
+    }
+
+    Write-Host 'Copiando a Descargas para instalarlo a mano ...' -ForegroundColor Cyan
     & $adb push 'NavegadorCamiones.apk' /sdcard/Download/NavegadorCamiones.apk
     Write-Host 'Instalalo desde el gestor de archivos del teléfono.' -ForegroundColor Green
 }

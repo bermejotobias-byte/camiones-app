@@ -412,9 +412,14 @@ button { font-family: inherit; font-size: inherit; }
 .map-top,
 .map-side { pointer-events: none; }
 
+/* La hoja se referencia por ID y no por clase: `sheetAs()` le REEMPLAZA la clase
+   segun el estado —`sheet` para buscar y planificar, `nav-bar` durante el
+   viaje—. Con un selector por clase, la barra del viaje dejaba de coincidir,
+   heredaba el `none` del contenedor y el boton "Salir" no respondia: el viaje
+   quedaba imposible de cerrar desde la app. El id no cambia nunca. */
 .map-top > *,
 .map-side > *,
-.map-overlay > .sheet { pointer-events: auto; }
+.map-overlay > #sheet { pointer-events: auto; }
 
 /* El espaciador que empuja el SOS contra el borde no es un control. */
 .map-top .grow { pointer-events: none; }

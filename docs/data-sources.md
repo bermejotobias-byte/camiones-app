@@ -317,3 +317,181 @@ a un servidor: adentro de un camión, una descarga más es una cosa más que pue
 fallar — y sin glifos MapLibre no dibuja ni una letra.
 
 **Para actualizar:** volver a correr el script. Protomaps republica a diario.
+
+---
+
+## Radares de velocidad — Buenos Aires Data
+
+**Dataset:** [Cámaras fijas de control vehicular](https://data.buenosaires.gob.ar/dataset/camaras-fijas-control-vehicular)
+
+| | |
+|---|---|
+| Organismo | Dirección General Cuerpo de Agentes de Control de Tránsito y Seguridad Vial |
+| Licencia | **CC-BY-2.5-AR** (confirmada por la API del portal) |
+| Actualización | cada seis meses · última publicación: 23/07/2025 |
+| Formatos | CSV, XLSX, SHP |
+| Registros | **224**, las 224 dentro de CABA |
+
+El dataset trae **dos tipos** en el campo `tipo_de_fiscalizador`, y sólo uno es un
+radar de velocidad:
+
+| Tipo | Cantidad | Qué es |
+|---|---|---|
+| **Cinemómetro** | **129** | mide velocidad |
+| Analítica de video | 95 | semáforo en rojo, celular, cinturón |
+
+`data/fetch-radares-velocidad.ps1` se queda **sólo con los cinemómetros**. Marcar
+los otros como radares sería decirle al camionero que hay un control de velocidad
+donde no lo hay.
+
+### Contraste con OpenStreetMap
+
+Medido contra Overpass el 31/08/2026, dentro del límite administrativo de CABA:
+
+| Fuente | Radares de velocidad |
+|---|---|
+| Dataset oficial | 129 cinemómetros |
+| OSM `highway=speed_camera` | **176** |
+
+**OSM tiene más que el listado oficial**, y no se sabe cuál está más al día. Se
+eligió el oficial porque tiene organismo responsable, licencia y cadencia
+declarada. OSM queda como control, no como fuente.
+
+### Trampas del archivo
+
+- Viene en **Latin-1**, no UTF-8. Decodificarlo con la página de códigos de la
+  máquina convierte "MARÍA" en "MAR?A" y cambia de equipo en equipo: el script lo
+  decodifica byte a byte, que es exacto para los acentos del castellano.
+- Separador **punto y coma**, decimales con **coma**.
+- El encabezado `ubicación` lleva tilde: el script declara los nombres de columna
+  a mano en vez de depender de que ese carácter sobreviva.
+
+---
+
+## L-9 · No hay dato de balanzas de pesaje para CABA
+
+**Investigado el 31/08/2026, sin resultado.** El brainstorm v2 pedía radares de
+control de peso y el propio documento decía "investigar". Lo que se encontró:
+
+- **Ningún dataset abierto con ubicaciones**, ni en Buenos Aires Data, ni en el
+  portal nacional de transporte, ni en el de la Provincia.
+- Los puestos de control de pesos y dimensiones son de **Vialidad Nacional y
+  provincial, sobre rutas** — Santiago del Estero, Salta, Tucumán, Corrientes,
+  Misiones, Chaco, Santa Fe, Córdoba, Buenos Aires y Mendoza. Ninguno en la
+  Ciudad.
+- **En OSM: cero balanzas dentro de CABA.** En todo el AMBA hay **dos**, ambas
+  fuera de la Ciudad y sobre el corredor de Panamericana
+  (`-34,2469 / -58,9661` y `-34,4211 / -58,5714`), sin nombre ni operador.
+
+**Conclusión:** para una aplicación de CABA no hay dato que mostrar. La otra mitad
+de la idea —que el usuario avise si están parando— es un reporte de comunidad, y
+como tal tiene que verse distinto de un dato oficial.
+
+---
+
+## 7. Zonas de riesgo — Mapa del Delito del GCBA
+
+**Dataset:** [Delitos](https://data.buenosaires.gob.ar/dataset/delitos)
+
+| | |
+|---|---|
+| Organismo | Ministerio de Justicia y Seguridad del GCBA |
+| Licencia | **CC-BY** (confirmada por la API del portal) |
+| Cobertura | un archivo por año, de 2016 a **2025** |
+| Formatos | CSV y XLSX |
+| Registros 2025 | **133.203**, todos dentro de CABA |
+| Sin coordenada | 2.782 (2,1%) |
+
+Lo genera `data/fetch-zonas-riesgo.ps1` a `wwwroot/data/zonas-riesgo.geojson`.
+
+### Qué hechos entran, y por qué ésos
+
+De los seis tipos del dataset se usan dos cosas y se descartan cuatro:
+
+| Tipo / subtipo | 2025 | ¿Entra? | Por qué |
+|---|---:|---|---|
+| Robo (todos los subtipos) | 50.069 | **sí** | hay fuerza o violencia: es lo que amenaza a alguien parado en la calle |
+| Hurto automotor | 4.539 | **sí** | le roban el vehículo |
+| Hurto (resto) | 45.102 | no | carterismo y descuidos; no cambia por dónde conviene pasar con un camión |
+| Lesiones dolosas | 11.544 | no | violencia interpersonal, buena parte en ámbito privado |
+| Amenazas | 10.111 | no | ídem |
+| Homicidios dolosos | 78 | no | ídem |
+| Vialidad (siniestros) | 11.760 | no | son siniestros de tránsito, otro fenómeno: serían otra capa |
+
+Quedan **54.475 hechos ubicados**. El recorte es discutible y por eso está escrito:
+quien lo quiera cambiar tiene que poder ver qué se decidió y con qué números.
+
+### Cómo se arma la escala
+
+Grilla de 250 m. Cada celda se compara contra la densidad media de la Ciudad
+—54.475 hechos sobre 203,99 km², o sea **267 hechos/km²**, 16,7 por celda— y se
+publica **sólo si duplica esa media**.
+
+Ese corte no es cosmético. En 2025, **3.005 de las 3.248 celdas de CABA (92%)
+registraron al menos un hecho**: pintar todo lo que tiene delito es pintar la
+Ciudad entera y no informar nada. La información está en los extremos.
+
+| Nivel | Corte | Desde | Celdas |
+|---|---|---:|---:|
+| alta | x2 a x3 la media | 34 hechos | 266 |
+| muy alta | x3 a x5 | 51 hechos | 126 |
+| extrema | x5 o más | 84 hechos | 21 |
+
+**413 celdas**, 25,8 km², el 12,7% de la Ciudad. La escala se expresa en múltiplos
+de la media y no en cuantiles porque así se explica sola: "el triple que el
+promedio de la Ciudad" se entiende sin saber estadística.
+
+Control de cordura: las celdas más calientes caen en Constitución (274 hechos),
+Retiro, Flores, Liniers, San Nicolás y Balvanera. Los barrios con más hechos son
+Palermo (4.126), Flores (3.355) y Balvanera (3.045).
+
+### Contraste con el mapa comunitario de "Zonas Peligrosas"
+
+Se cruzó contra un mapa colaborativo de Google My Maps que circula entre
+repartidores ([mid `1ZVh-1tRfDFTc4O1eITKjEkASCXFQExtL`](https://www.google.com/maps/d/u/0/viewer?mid=1ZVh-1tRfDFTc4O1eITKjEkASCXFQExtL)),
+usado como referencia. Medido el 01/09/2026:
+
+| | |
+|---|---|
+| Polígonos totales | 403, de todo el país |
+| **Dentro de CABA** | **19** |
+| En el resto del AMBA | 172 |
+| Fuera del AMBA | 212 |
+
+- **No tiene escala de color.** Los 403 polígonos usan el mismo rojo `#A52714` al
+  62% de opacidad. La gradación que se percibe sale del **solapamiento**, no del
+  dato — y esa observación es la que se adoptó para dibujar esta capa.
+- De las 19 zonas que caen en CABA, **8 superan la media de la Ciudad** y la
+  mediana es **x0,9** — o sea, la mitad apunta a lugares de riesgo promedio. La más
+  intensa llega a **x2,0**, mientras el dato oficial identifica celdas de **x16**.
+
+**No es una mala fuente: es otra cosa.** Está hecho para repartidores en moto de
+todo el AMBA, y su valor está mayormente **fuera** de CABA, donde el dataset del
+GCBA no llega. Se tomó su **estética** y no sus polígonos: son de autoría anónima,
+sin metodología, sin fecha y sin licencia declarada.
+
+### L-10 · Lo que este dato no dice
+
+- **Que no haya mancha NO significa que ahí no pase nada.** Significa que esa celda
+  no llega al doble de la media. El 92% de la Ciudad registró algún hecho.
+- Son hechos **denunciados**. El delito no denunciado no está, y la propensión a
+  denunciar no es igual en toda la Ciudad.
+- Es **densidad absoluta**, sin normalizar por cuánta gente circula. Una celda del
+  microcentro tiene más hechos en parte porque pasa más gente. Para decidir dónde
+  parar un camión igual sirve: importa qué tan probable es que pase algo ahí, no
+  la tasa per cápita.
+- **Sólo CABA.** El dataset es del Gobierno de la Ciudad y no cubre el conurbano.
+  Ver L-11.
+- Es el año **2025** completo. No hay dato de 2026 publicado.
+
+### L-11 · Fuera de CABA el mapa calla, y ese silencio se lee como seguridad
+
+**Detectado el 01/09/2026, sin resolver.** Ninguna de las capas propias —zonas de
+riesgo, Red de Tránsito Pesado, gálibos, pasos a nivel, radares— existe fuera del
+límite de la Ciudad, y **la app no lo dice**. En pantalla, Dock Sud e Isla Maciel
+se ven idénticos a un barrio sin registros: limpios.
+
+Para un camionero eso es exactamente al revés de la verdad, y contradice la regla
+del proyecto: donde falta el dato, se dice que falta. El arreglo es un aviso
+cuando el mapa sale del área cubierta. Queda pendiente, y su prioridad sube cuando
+se sume el AMBA, porque hasta entonces todo el conurbano es zona muda.

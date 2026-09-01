@@ -39,6 +39,8 @@ Solución: `TruckNavigator.slnx`.
 cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª vez baja ~450 MB)
 .\data\build-basemap.ps1                       # mapa base vectorial del AMBA (53 MB, no se versiona)
 .\data\fetch-caba-map-layers.ps1               # Red, gálibos y pasos a nivel (sí se versionan)
+.\data\fetch-radares-velocidad.ps1             # Radares de velocidad, dato oficial del GCBA
+.\data\fetch-zonas-riesgo.ps1                  # Zonas de riesgo, del Mapa del Delito del GCBA
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 131 tests (.NET)
 node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
@@ -54,6 +56,14 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
   application was built"*. El script limpia `obj/` y `bin/` antes de compilar, que es lo que
   lo evita. Usá `-ApiUrl` para fijar el backend en vez de editar
   `TruckNavigatorApi.DefaultBaseUrl` a mano.
+- **El APK se firma con una clave estable que vive FUERA del repo**, en
+  `%LOCALAPPDATA%\TruckNavigator\firma-desarrollo.keystore`. La crea `build-apk.ps1` la
+  primera vez. Sin ella, .NET Android firma con una clave de depuración que **se regenera
+  sola**, y entonces Android rechaza la actualización con
+  `INSTALL_FAILED_UPDATE_INCOMPATIBLE`: hay que desinstalar y se pierden la sesión y los
+  ajustes en cada versión. **Es una clave de desarrollo, no de distribución**: para publicar
+  va una propia, pasada por parámetro y **con copia de respaldo** — si se pierde, esa app no
+  se puede volver a actualizar nunca. El script imprime la huella SHA-256 al terminar. Ver AD-35.
 - **Los artefactos pesados de `routing/` no están en el repo**: el JAR de GraphHopper (45 MB),
   `argentina-latest.osm.pbf` (407 MB) y `graph-cache/` los baja y construye
   `run-graphhopper.ps1` en el primer arranque. Tampoco está el APK compilado.
@@ -84,6 +94,27 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
   OSM a `wwwroot/data/*.geojson`. Ningún proveedor de tiles trae `hgv`, `maxheight` ni pasos a
   nivel. `maxheight=default` NO es una altura y queda afuera; barrera sin declarar NO es "sin
   barrera". Ver AD-25.
+- **Un ícono del mapa no puede ser un emoji.** Los glifos vendorizados llegan hasta el
+  carácter 511: cualquier cosa por encima —una cámara 📷 está en U+1F4F7— **no se dibuja, sin
+  error**. Los íconos van como imagen (`map.addImage` sobre un canvas), y con colores
+  **fijos**, porque una imagen se registra una vez y no se repinta al cambiar entre día y
+  noche: tiene que leerse en los dos. Ver los radares en `layers.js`.
+- **Una capa `circle` de MapLibre sólo dibuja puntos.** Con geometrías `Polygon` no
+  dibuja nada y **no emite ningún error**. Una capa `symbol` sí las acepta y ubica el
+  símbolo en el centroide, así que sobre la misma fuente el ícono aparecía y la mancha
+  no. Por eso `zonas-riesgo.geojson` publica el **centro** de cada celda, no su cuadrado.
+- **`['zoom']` va sólo en el nivel superior de un `step` o un `interpolate`.** Envuelto
+  en una multiplicación, MapLibre **rechaza la capa entera** — y lo hace por el evento
+  `error` del mapa, **no por excepción**, así que ningún `try/catch` lo ve y el síntoma
+  es que la capa no aparece, sin una línea en la consola. Va el `interpolate` sobre
+  `['zoom']` afuera y el `match` por propiedad adentro de cada parada. Por eso
+  `installTruckLayers` instala **cada capa en su propio try/catch**: antes un error en la
+  primera se llevaba puestas a las otras cuatro sin dejar rastro. Ver AD-36.
+- **Al iterar el diseño del mapa en el navegador, el módulo ES queda cacheado**: se
+  edita `layers.js`, se recarga, y sigue corriendo el código viejo — incluso con
+  Ctrl+Shift+R. El síntoma es peor que molesto: **parece que el cambio no tuvo efecto**
+  y uno calibra a ciegas contra una versión que ya no existe. Para verificar de verdad,
+  `import('/js/layers.js?v=' + Date.now())` fuerza una instancia nueva.
 - **Sin `glyphs` MapLibre no dibuja texto**: las fuentes están vendorizadas en `wwwroot/fonts`.
   Y ASP.NET Core no sirve `.geojson` ni `.pbf` salvo que se declaren sus tipos MIME: dan 404
   con el archivo en su lugar.
@@ -147,6 +178,11 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
   visible que lo explique. `none` en los contenedores (`.map-overlay`, `.map-top`,
   `.map-side`, y el espaciador `.grow`), `auto` sólo en los controles concretos. **Cada
   control que se agregue a la columna agranda la zona muerta si esto se rompe.** Ver AD-34.
+- **La hoja inferior se referencia por `#sheet`, nunca por `.sheet`**: `sheetAs()` le
+  **reemplaza la clase** según el estado (`sheet` para buscar, `nav-bar` durante el viaje).
+  Un selector por clase deja de coincidir en modo viaje, la barra hereda
+  `pointer-events: none` y **el botón "Salir" no responde: el viaje queda imposible de
+  cerrar desde la app**. El id no cambia nunca. Ver AD-34.
 - **Fuera del viaje la cámara no se inclina ni gira, y el zoom es del usuario.** Los gestos
   de rotación e inclinación están apagados en `createMap`: en un teléfono salen sin querer y
   dejan el mapa torcido sin forma evidente de enderezarlo. `flyTo` **no cambia el zoom**
@@ -174,10 +210,24 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
 - **El alias es único y no distingue mayúsculas**: el formato lo valida `DriverAlias` en el
   dominio, la unicidad la garantiza un índice único sobre `NormalizedAlias`. La consulta
   previa del endpoint es sólo para dar un mensaje claro, no es la garantía. Ver AD-18.
+- **Las zonas de riesgo se dibujan por ACUMULACIÓN, y sólo se publica lo que duplica la
+  media de la Ciudad.** En 2025 el **92% de las celdas de CABA tuvo algún hecho**: pintar
+  todo lo que tiene delito es pintar la Ciudad entera y no informar nada. Se dibujan como
+  círculos difuminados de 450 m —casi el doble de los 250 m que separan las celdas— con
+  opacidad 0,13 y **un solo color**: donde hay un racimo el color se suma y el foco se
+  oscurece solo. Con tres colores las mezclas dan tonos que no corresponden a ningún nivel
+  de la leyenda. Ver AD-36.
+- **`docs/data-sources.md` §7 tiene el recorte de delitos y por qué.** Entran robo y hurto
+  automotor; quedan afuera hurto común, lesiones, amenazas, homicidios y siniestros viales.
+  Es discutible a propósito y por eso está escrito con los números al lado.
+- **Fuera de CABA el mapa calla y ese silencio miente (L-11).** Ninguna capa propia existe
+  pasando la General Paz o el Riachuelo, y la app no lo dice: Dock Sud se ve igual que un
+  barrio sin registros. Sube de prioridad cuando se sume el AMBA.
 - **No inventar datos ni normas.** Donde falta información se dejó explícito y documentado:
   la capa oficial del GCBA no está publicada (L-1), no se modelan restricciones horarias
   porque no se encontró norma general confirmada (L-2), playas de camiones y auxilio pesado
-  casi no tienen fuente (L-5), la aptitud para camión está indeclarada en 75 de 78 POIs (L-6).
+  casi no tienen fuente (L-5), la aptitud para camión está indeclarada en 75 de 78 POIs (L-6),
+  no hay dato de balanzas (L-9), y el mapa no avisa cuándo salió del área cubierta (L-11).
   Ver `docs/data-sources.md`. Si hace falta un dato que no existe, decilo — no lo rellenes.
 - **`docker-compose.yml` de la raíz no se usa en el MVP**: es PostGIS preparado para la
   siguiente iteración. El MVP corre sobre SQLite (AD-06 en `docs/decisions.md`).

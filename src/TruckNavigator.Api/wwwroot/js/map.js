@@ -115,7 +115,11 @@ export function createMap(container, handlers = {}) {
     }
   });
 
-  map.on('click', () => handlers.onTap?.());
+  // El toque lleva ademas que hay debajo del dedo, si hay algo nuestro. Un
+  // icono chico en un mapa no puede explicarse solo: tocarlo tiene que decir en
+  // palabras que es. Sin esto, cada simbolo obliga a aprenderse una leyenda que
+  // no existe.
+  map.on('click', (event) => handlers.onTap?.(featureAt(event.point)));
 
   // Con estilo vectorial, cambiar de estilo vuelve a disparar 'load'. Las capas
   // de camion se reinstalan solas porque installTruckLayers es idempotente.
@@ -638,9 +642,29 @@ export const refreshColors = () => refreshLayerColors(map);
 export function featureAt(point) {
   if (!map) return null;
 
-  const found = map.queryRenderedFeatures(point, {
-    layers: ['altura-fondo', 'paso-punto'].filter((id) => map.getLayer(id))
-  });
+  // El orden de esta lista ES la prioridad, y no es cosmetico: una zona de
+  // riesgo cubre 250 m por lado, asi que cualquier toque adentro de una tambien
+  // le pega a la zona. Si ganara la zona, un puente bajo parado encima de ella
+  // dejaria de poder consultarse. Primero lo puntual, la zona al final.
+  const orden = ['altura-senal', 'paso-senal', 'radar-punto', 'zona-riesgo-senal', 'zona-riesgo'];
 
-  return found.length ? found[0] : null;
+  for (const id of orden) {
+    if (!map.getLayer(id)) continue;
+
+    const found = map.queryRenderedFeatures(point, { layers: [id] });
+    if (!found.length) continue;
+
+    // Las manchas de riesgo tienen 450 m de radio y se superponen de a varias,
+    // asi que un toque cae adentro de un monton a la vez. Sin esto contestaria
+    // la primera en orden de dibujo —una cualquiera— y el numero que aparece no
+    // seria el del foco que uno esta viendo. Contesta la peor.
+    if (id === 'zona-riesgo') {
+      return found.reduce((peor, f) =>
+        (f.properties?.hechos ?? 0) > (peor.properties?.hechos ?? 0) ? f : peor);
+    }
+
+    return found[0];
+  }
+
+  return null;
 }
