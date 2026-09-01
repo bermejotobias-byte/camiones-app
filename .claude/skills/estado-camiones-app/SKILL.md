@@ -92,15 +92,29 @@ planificar, leer `producto-camiones-app`.
 53f8914  Arreglos del puente entre la cascara y la web, encontrados probando en el telefono
 1710102  Capas de camion en el mapa: la Red, los galibos y los sapitos
 257600e  Mapa base propio en PMTiles: minimalista, con dia y noche
-53c4a5e  Actualiza la skill: Fase 4 cerrada y comandos de datos
-029794e  Brujula del magnetometro, camara cenital fija, y una app que ya no queda varada
+a4eda3d  Actualiza la skill: Fase 4 cerrada y comandos de datos
+5fb0ef3  Brujula del magnetometro, camara cenital fija, y una app que ya no queda varada
+a587041  Actualiza la skill: el checkpoint y que config-truck.yml no se commitea
+1b5cd5a  Zonas de riesgo y radares en el mapa, simbolos que se entienden, y un APK que se puede actualizar
 ```
 
-**`029794e` es el checkpoint del 26/08/2026** y junta dos bloques: el trabajo que
-había quedado sin commitear (AD-27 a AD-29 — viaje abierto en el servidor,
-proveedor combinado de ubicación, cuenta de prueba sembrada) y el de esa sesión
-(AD-30 a AD-34). Comparten archivos, así que separarlos no habría dado un corte
-honesto.
+**`1b5cd5a` es el checkpoint del 01/09/2026.** Cubre:
+
+- **Zonas de riesgo** desde el Mapa del Delito del GCBA (AD-36, `data-sources.md` §7).
+  413 celdas de 3.005 — sólo lo que duplica la media de la Ciudad. Dibujadas por
+  acumulación de círculos difuminados, no como la grilla del cálculo.
+- **Radares de velocidad**, dato oficial, sólo los 129 cinemómetros.
+- **Rediseño de los símbolos del mapa**: chapas con señales reconocibles, y de un
+  racimo sobrevive el peor gálibo, no uno cualquiera.
+- **Firma estable del APK** (AD-35): se puede actualizar sin desinstalar.
+- **Encoding de Overpass** arreglado: se acabó el `RAÚL R. A` con basura.
+- L-9, L-10 y L-11 documentadas.
+
+**`5fb0ef3` es el checkpoint anterior, del 26/08/2026** —la skill lo llamaba
+`029794e`, hash que ya no existe— y junta dos bloques: el trabajo que había
+quedado sin commitear (AD-27 a AD-29 — viaje abierto en el servidor, proveedor
+combinado de ubicación, cuenta de prueba sembrada) y el de esa sesión (AD-30 a
+AD-34). Comparten archivos, así que separarlos no habría dado un corte honesto.
 
 **`routing/config-truck.yml` quedó deliberadamente fuera del commit**: el árbol de
 trabajo apunta a `argentina-latest.osm.pbf` porque el recorte del AMBA no está en
@@ -166,10 +180,34 @@ bind a `0.0.0.0:5080`— también son esperados.
   aparato en la mano. Falta el caso que motivó no usar `Compass` de MAUI: el
   teléfono **parado en un soporte de parabrisas** (AD-30). Ahí es donde el eje
   cambia, y ahí es donde se sabrá si el trabajo extra valió la pena.
-- **El mapa renderizado.** El panel de navegador de las sesiones no compone
-  frames → el mapa nunca carga tiles → nada que dependa de él se puede ver.
-  Las capas de camión están servidas y empaquetadas pero **no vistas**.
-- **La app en el teléfono, salvo lo que reportó el usuario.**
+- **La app en el teléfono, salvo lo que reportó el usuario.** Las zonas de riesgo
+  (01/09/2026) se verificaron **en el navegador, no en el APK**: el teléfono no
+  estaba conectado.
+
+**Ya no es cierto que el mapa no se pueda ver.** Esta skill decía que el panel de
+navegador no componía frames y que las capas estaban "servidas pero no vistas".
+El 01/09/2026 el mapa renderizó, cargó tiles y se pudo iterar el diseño a fuerza
+de capturas. **Dos cuidados** al hacerlo:
+
+- El mapa tarda en componer: una captura tomada enseguida sale a medio dibujar y
+  se lee como "el cambio no funcionó". Esperar y volver a capturar.
+- El **módulo ES queda cacheado** aunque se edite el archivo y se haga
+  Ctrl+Shift+R. Se calibra a ciegas contra código que ya no existe. Para
+  verificar de verdad: `import('/js/layers.js?v=' + Date.now())`.
+
+Para inspeccionar el estado real del mapa desde la consola, el objeto no está
+expuesto; se captura parcheando el prototipo:
+
+```js
+const orig = maplibregl.Map.prototype.setPaintProperty;
+maplibregl.Map.prototype.setPaintProperty = function (...a) { window.__map = this; return orig.apply(this, a); };
+(await import('/js/map.js')).refreshColors();   // dispara la captura
+maplibregl.Map.prototype.setPaintProperty = orig;
+```
+
+Con `window.__map` se puede leer `getStyle().layers`, escuchar `map.on('error')`
+—que es por donde MapLibre reporta los estilos inválidos, **no por excepción**— y
+probar valores en vivo con `setPaintProperty` sin recompilar nada.
 
 ### Lección que se pagó cinco veces
 
@@ -494,9 +532,17 @@ el día/noche del fondo y **L-4** — ya no se depende de `tile.openstreetmap.or
 **Después:** Fase 3 (seguridad: pánico con 3 contactos, compartir viaje), modo
 reparto, Fase 5 (comunidad y gamificación), i18n.
 
-**Sin fuente y por lo tanto sin hacer:** las *zonas peligrosas* no tienen dato
-oficial publicable. La única vía honesta es construirlas con reportes de la
-comunidad, **siempre etiquetadas como tales**. No inventar.
+**Las zonas peligrosas YA tienen fuente oficial y están hechas** (01/09/2026).
+Esta skill decía que no la había: era falso. El **Mapa del Delito del GCBA** es
+CC-BY, trae 133.203 hechos de 2025 con coordenadas y se publica por año. Ver
+AD-36 y `data-sources.md` §7.
+
+**Lo que sí falta es cobertura fuera de CABA (L-11).** Ninguna capa propia existe
+pasando la General Paz o el Riachuelo, y la app **no lo dice**: Dock Sud se ve
+igual que un barrio sin registros. Es la regla del proyecto incumplida por
+omisión, y sube de prioridad cuando se sume el AMBA — que el usuario confirmó
+como objetivo, con la información en recopilación y **explícitamente para más
+adelante**.
 
 ---
 
@@ -516,9 +562,19 @@ Si hace falta un dato que no existe: **decirlo, no rellenarlo.**
 ## 10. Comandos de datos y mapa
 
 ```powershell
-.\data\build-basemap.ps1           # mapa base del AMBA (53 MB) -> routing/amba.pmtiles
-.\data\fetch-caba-map-layers.ps1   # Red, gálibos y sapitos -> wwwroot/data/*.geojson
+.\data\build-basemap.ps1             # mapa base del AMBA (53 MB) -> routing/amba.pmtiles
+.\data\fetch-caba-map-layers.ps1     # Red, gálibos y sapitos -> wwwroot/data/*.geojson
+.\data\fetch-radares-velocidad.ps1   # 129 cinemómetros, dato oficial del GCBA
+.\data\fetch-zonas-riesgo.ps1        # zonas de riesgo, del Mapa del Delito del GCBA
 ```
+
+Los dos últimos salen de **Buenos Aires Data**, no de OSM: otras licencias, otras
+cadencias, y por eso viven en scripts propios. `fetch-zonas-riesgo.ps1` acepta
+`-Anio` y `-LadoMetros`, y reusa la descarga si ya está en el temporal.
+
+**El encoding cambia según el portal y hay que verificarlo, no suponerlo.** El CSV
+de cámaras viene en **Latin-1**; el de delitos, en **UTF-8**; Overpass no declara
+charset y PowerShell 5.1 lo asume ISO-8859-1. Cada uno costó su tanda de mojibake.
 
 El **mapa base no se versiona ni entra en el APK** y se sirve bajo `/tiles`; si
 falta, el mapa cae al raster de OSM con un aviso en consola. Las **capas de
