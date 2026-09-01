@@ -210,16 +210,24 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
 - **El alias es único y no distingue mayúsculas**: el formato lo valida `DriverAlias` en el
   dominio, la unicidad la garantiza un índice único sobre `NormalizedAlias`. La consulta
   previa del endpoint es sólo para dar un mensaje claro, no es la garantía. Ver AD-18.
-- **Las zonas de riesgo se dibujan por ACUMULACIÓN, y sólo se publica lo que duplica la
-  media de la Ciudad.** En 2025 el **92% de las celdas de CABA tuvo algún hecho**: pintar
-  todo lo que tiene delito es pintar la Ciudad entera y no informar nada. Se dibujan como
-  círculos difuminados de 450 m —casi el doble de los 250 m que separan las celdas— con
-  opacidad 0,13 y **un solo color**: donde hay un racimo el color se suma y el foco se
-  oscurece solo. Con tres colores las mezclas dan tonos que no corresponden a ningún nivel
-  de la leyenda. Ver AD-36.
-- **`docs/data-sources.md` §7 tiene el recorte de delitos y por qué.** Entran robo y hurto
-  automotor; quedan afuera hurto común, lesiones, amenazas, homicidios y siniestros viales.
-  Es discutible a propósito y por eso está escrito con los números al lado.
+- **Las zonas de riesgo cuentan robos A MANO ARMADA, no cantidad de robos.** Contar
+  cantidad mide **exposición** —cuánta gente pasa por ahí— y da vuelta el resultado: en
+  500 m, Palermo tiene 446 hechos con 26 armados (5,8%) y Villa Soldati 66 con 28 armados
+  (**42,4%**), así que por cantidad Soldati aparecía como *la zona más segura del cuadro*.
+  Son 5.551 hechos con `uso_arma = SI`, sin ponderaciones inventadas. Ver AD-36.
+- **El heatmap se alimenta con los hechos CRUDOS, nunca con la grilla.** Una capa `heatmap`
+  normaliza por densidad de puntos: con una grilla regular redibuja la grilla en forma de
+  lunares alineados, y agrandar el radio sólo da lunares más grandes. Los 5.551 puntos van
+  en **un solo MultiPoint** — la envoltura de 5.551 features pesa más que las coordenadas
+  (636 KB contra 180). La grilla sobrevive sólo como focos invisibles (`t="f"`) que
+  contestan el toque, porque un `heatmap` no responde a `queryRenderedFeatures`.
+- **La rampa de color arranca en densidad 0,35 y ése es el número que decide cuánto mapa
+  queda pintado.** Con 0,12 aparecía un fondo amarillo en toda la Ciudad y volvía la
+  sensación de que todo es igual de peligroso. Un hecho suelto no debe teñir nada.
+- **`docs/data-sources.md` §7 tiene el recorte y sus límites.** El más serio: el
+  subregistro no es parejo — en los barrios más precarios se denuncia menos, así que el
+  mapa **subestima justamente las zonas más duras**. La proporción armada es lo que
+  sobrevive a ese sesgo, y es la razón de usarla.
 - **Fuera de CABA el mapa calla y ese silencio miente (L-11).** Ninguna capa propia existe
   pasando la General Paz o el Riachuelo, y la app no lo dice: Dock Sud se ve igual que un
   barrio sin registros. Sube de prioridad cuando se sume el AMBA.

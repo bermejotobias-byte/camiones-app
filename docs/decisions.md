@@ -1693,7 +1693,7 @@ sin desinstalar.**
 
 ---
 
-## AD-36 · Las zonas de riesgo se dibujan por acumulación, no por celda
+## AD-36 · Se cuentan robos a mano armada, y se dibujan como calor sobre los hechos
 
 **Fecha:** 01/09/2026
 **Estado:** aceptada
@@ -1703,92 +1703,113 @@ sin desinstalar.**
 El pedido era mostrar zonas peligrosas "con una escala de color", sin recargar el
 mapa, tomando como referencia un mapa comunitario de Google My Maps.
 
-El dato disponible es el **Mapa del Delito del GCBA** (CC-BY): 133.203 hechos
-de 2025 con coordenadas. Filtrado a robos y hurtos de vehículos quedan 54.475,
-agregados por `data/fetch-zonas-riesgo.ps1` en una grilla de 250 m. Ver la
-sección 7 de `data-sources.md`.
+El dato disponible es el **Mapa del Delito del GCBA** (CC-BY): 133.203 hechos de
+2025 con coordenadas. Ver la sección 7 de `data-sources.md`.
 
-### Decisión
+### Decisión 1: contar robos A MANO ARMADA, no cantidad de robos
 
-**1. Sólo se publica lo que duplica la media de la Ciudad.**
+La primera versión contaba todos los robos por igual. **Estaba mal**, y no por
+poco: contar cantidad mide *exposición* —cuánta gente pasa por ahí— y no peligro.
+Medido en 2025, en 500 m a la redonda:
 
-En 2025 el **92% de las celdas de CABA registró al menos un hecho**. Pintar todo
-lo que tiene delito es pintar la Ciudad entera, y un mapa donde todo está pintado
-no destaca nada. Se publican 413 de 3.005 celdas, clasificadas en múltiplos de la
-media —x2, x3, x5— porque esa unidad se explica sola: "el triple que el promedio
-de la Ciudad" no necesita saber estadística.
+| Zona | Hechos | Con arma | % |
+|---|---:|---:|---:|
+| Villa 21-24 (Barracas) | 336 | **121** | 36,0% |
+| Villa 1-11-14 (Bajo Flores) | 559 | **69** | 12,3% |
+| Villa Soldati | 66 | **28** | 42,4% |
+| Palermo (Plaza Serrano) | 446 | 26 | 5,8% |
+| Palermo (Av. Santa Fe) | 425 | **18** | 4,2% |
 
-**2. Se dibuja como mancha por acumulación, no como la grilla del cálculo.**
+Por cantidad, Palermo encabeza la Ciudad y **Villa Soldati aparece como la zona
+más segura del cuadro** — un resultado que se contradice con cualquiera que
+maneje por la Ciudad. Por robos con arma el orden se da vuelta. En Villa Soldati
+uno de cada tres robos es a mano armada; en Palermo, uno de cada dieciséis.
 
-Cada celda es un círculo difuminado de ~450 m de radio con **opacidad 0,13**. Los
-círculos se superponen y el color **se suma**: donde hay un racimo de celdas
-calientes la mancha se oscurece sola, y una celda aislada casi no se nota. Esa
-suma **es** la escala, y aparece sin que ningún corte decida dónde empieza un foco.
+Se cuentan los **5.551 hechos con `uso_arma = SI`**, sin ponderaciones
+inventadas: un hecho con arma cuenta, uno sin arma no. El criterio es nítido y se
+puede discutir mirando el número.
 
-Es cómo funciona el mapa comunitario que sirvió de referencia: sus 403 polígonos
-son todos del mismo rojo al 62%, y la gradación que uno percibe sale del
-solapamiento. Se adoptó el mecanismo, no los polígonos.
+Como efecto secundario, arregla lo otro que estaba mal: son diez veces menos
+hechos y mucho más concentrados, así que **el mapa deja de estar pintado de punta
+a punta**. Antes, con 413 celdas sobre 3.005, la lectura era "toda la Ciudad es
+peligrosa" — que no informa nada.
 
-**3. Un solo color.**
+**Lo que esto NO arregla** es el subregistro, y hay que decirlo: en los barrios
+más precarios se denuncia menos, así que el mapa subestima las zonas más duras.
+Villa Soldati registra 66 hechos donde Palermo registra 446. La *proporción*
+armada es lo que sobrevive a ese sesgo, y es la razón de usarla.
 
-Con manchas superpuestas, tres colores distintos se promedian en tonos que no
-corresponden a ningún nivel de la leyenda: el naranja que uno ve puede ser una
-zona naranja o la mezcla de una amarilla con una roja, y no hay forma de saberlo.
-El nivel de la celda modula la **opacidad**, no el tono.
+### Decisión 2: mapa de calor sobre los hechos crudos
 
-El color es naranja (`#e8590c`) y no el rojo del nivel extremo: un rojo oscuro al
-13% sobre el mapa de noche prácticamente no existe, y subirlo para que se vea lo
-hace saturar de día. El naranja tiene luminancia intermedia y se lee sobre los dos
-fondos sin cambiar de valor.
+Los 5.551 puntos van **crudos, en un solo MultiPoint**, y el `heatmap` de
+MapLibre los dibuja. La grilla sobrevive sólo como **focos invisibles** (`t="f"`,
+celdas de 300 m que duplican la media): son los que contestan al tocar el mapa y
+los que llevan el triángulo, porque una capa `heatmap` no responde a
+`queryRenderedFeatures`.
 
-**4. El triángulo sólo en las 21 celdas extremas**, con `icon-padding: 28` para
-que de cada racimo sobreviva uno. Es la única señal del mapa que no es un disco:
-la forma separa antes que el color, y una zona no es comparable con un gálibo, un
-paso a nivel o un radar, que son puntos concretos de la calle.
+Costó tres intentos llegar acá, y los tres enseñaron algo:
 
-### Por qué no las dos alternativas obvias
+1. **Pintar las celdas de la grilla**, con relleno translúcido y sin borde,
+   esperando que las vecinas se fundieran. Quedó un tablero de ajedrez. Y antes
+   que estético el problema es de fondo: el cuadrado de 300 m es una unidad de
+   **cálculo**, no un hecho del territorio, y dibujarlo afirma que el riesgo
+   cambia al cruzar una línea recta que en la calle no existe.
+2. **Un `heatmap` alimentado con esa misma grilla.** Empapeló el mapa de lunares
+   alineados: el heatmap normaliza por densidad de *puntos*, y con una grilla
+   regular redibuja la grilla sin importar el radio — agrandarlo sólo daba
+   lunares más grandes.
+3. **Círculos difuminados por celda**, con opacidad baja y acumulación de
+   solapes. Funcionaba, y de ahí salió el efecto — es cómo está hecho el mapa
+   comunitario de referencia, cuyos 403 polígonos son todos del mismo rojo al
+   62% y cuya gradación sale del solapamiento. Pero seguía atado a la grilla.
 
-**Pintar las celdas tal cual** —relleno translúcido, sin borde, esperando que las
-vecinas se fundan— deja un tablero de ajedrez: cada celda se recorta nítida contra
-la de al lado y el damero tapa los nombres de las calles. Y hay un problema de
-fondo antes que estético: **el cuadrado de 250 m es una unidad de cálculo, no un
-hecho del territorio**. Dibujarlo afirma que el riesgo cambia al cruzar una línea
-recta que en la calle no existe.
+La conclusión es que el `heatmap` no estaba mal: estaba **mal alimentado**. Con
+los hechos uno por uno hace exactamente lo que se le pide.
 
-**Una capa `heatmap`** empapela el mapa de lunares alineados. El heatmap normaliza
-por densidad de *puntos* y esta fuente ya viene agregada en grilla regular, así que
-el patrón de la grilla reaparece sin importar el radio: agrandarlo sólo da lunares
-más grandes. Es la herramienta equivocada para un dato que ya está contado por
-celda.
+### Calibración, y por qué estos números
+
+- **Radio**: de ~280 m en zoom 11 a ~150 m en zoom 17. NO son metros constantes, a
+  propósito: de lejos hace falta suavizar más o los 5.551 puntos sueltos quedan
+  en un puntillismo donde no se distingue ningún foco; de cerca conviene ser fiel
+  al lugar donde ocurrió cada hecho.
+- **Intensidad baja** (0,35 a 0,9). Con 1,4 en zoom 12 la Ciudad entera saturaba
+  en rojo.
+- **La rampa de color arranca recién en densidad 0,35**, y ése es el número que
+  decide cuánto mapa queda pintado: un hecho suelto no alcanza para teñir nada,
+  hacen falta varios coincidiendo. Con el corte en 0,12 aparecía un fondo
+  amarillo por toda la Ciudad y volvía la sensación de que todo es igual de
+  peligroso — justo lo que esta capa tiene que evitar.
 
 ### Consecuencias
 
-- El radio (450 m) tiene que ser **casi el doble** de la separación entre celdas
-  (250 m). Con 250 m cada celda dibuja su propio lunar; con 350 se funden pero
-  quedan agujeros oscuros donde falta una celda por no llegar al corte, y esos
-  huecos parecen un defecto del dibujo. Recién con ~450 m el solape los cubre.
-- Como un toque cae dentro de muchas manchas a la vez, `featureAt` devuelve **la
-  de más hechos**, no la primera en orden de dibujo. Sin eso el número que aparece
-  no es el del foco que uno está mirando.
-- El silencio del mapa **no es un certificado de seguridad**, y eso es una deuda
-  abierta fuera de CABA: ver L-11 en `data-sources.md`.
+- El toque lo contesta la capa invisible de focos. Dice el número crudo, qué se
+  contó y contra qué se compara: *"BARRACAS · zona de riesgo extrema: 77 robos a
+  mano armada denunciados en 2025, 31,4 veces el promedio de la Ciudad. 16 entre
+  las 22 y las 6."* Decir **"a mano armada"** y no "robos" a secas no es un
+  detalle: es la diferencia entre este mapa y uno que marca Palermo como lo peor
+  de la Ciudad por tener mucha gente en la calle.
+- El archivo publica los hechos como **un MultiPoint y no como 5.551 features**:
+  la envoltura de cada Feature pesa más que la coordenada que contiene, y la
+  diferencia es de 636 KB a 180.
+- El silencio del mapa **no es un certificado de seguridad**, y fuera de CABA eso
+  es una deuda abierta: ver L-11 en `data-sources.md`.
 
-### Dos trampas de MapLibre que costaron esta iteración
+### Tres trampas de MapLibre que costaron estas iteraciones
 
 **Una capa `circle` sólo dibuja geometrías de tipo punto.** Con polígonos no
 dibuja nada y no emite ningún error. Una capa `symbol`, en cambio, sí acepta
 polígonos y coloca el símbolo en el centroide — así que el triángulo aparecía y la
-mancha no, sobre la misma fuente. Por eso `zonas-riesgo.geojson` publica el
-**centro** de cada celda y no su cuadrado.
+mancha no, sobre la misma fuente.
 
 **`['zoom']` sólo se admite en el nivel superior de un `step` o un `interpolate`.**
 Envuelto en una multiplicación, MapLibre rechaza la capa entera con
 *"zoom expression may only be used as input to a top-level step or interpolate
 expression"* — y lo hace por el evento `error` del mapa, **no por excepción**, así
 que ningún `try/catch` lo ve y el síntoma es que la capa simplemente no aparece.
-La forma correcta es el `interpolate` sobre `['zoom']` afuera y el `match` por
-propiedad adentro de cada parada.
 
-Esa falla muda motivó además envolver **cada** instalación de capa por separado en
+Esa falla muda motivó envolver **cada** instalación de capa por separado en
 `installTruckLayers`: antes iban sueltas y un error en la primera se llevaba
 puestas a las otras cuatro sin dejar rastro en la consola.
+
+**El `heatmap` es para nubes de puntos, no para datos ya agregados.** Si la fuente
+viene en grilla, el heatmap la redibuja.

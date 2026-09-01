@@ -7,58 +7,64 @@
     de Justicia y Seguridad del GCBA. Licencia CC-BY. Un archivo por anio, con
     latitud y longitud por hecho. El de 2025 trae 133.203 registros.
 
-    QUE HECHOS ENTRAN, Y POR QUE ESOS
+    QUE SE CUENTA: ROBOS A MANO ARMADA, NO CANTIDAD DE ROBOS
 
-    De los seis tipos del dataset se usan dos cosas y se descartan cuatro:
+    Esta es la decision central del archivo y reemplaza a la anterior, que
+    contaba todos los robos por igual. Contar cantidad mide EXPOSICION —cuanta
+    gente pasa por ahi— y no peligro, y el resultado se lee al reves de la
+    realidad. Medido en 2025, en un radio de 500 m:
 
-        Robo               50.069   ENTRA  hay fuerza o violencia: es lo que
-                                           amenaza a alguien parado en la calle
-        Hurto automotor     4.539   ENTRA  le roban el vehiculo
-        Hurto (resto)      45.102   queda afuera: carterismo y descuidos, no
-                                    cambia por donde conviene pasar con un camion
-        Lesiones           11.544   queda afuera: violencia interpersonal, buena
-        Amenazas           10.111   parte en ambito privado
-        Homicidios             78   queda afuera por lo mismo
-        Vialidad           11.760   queda afuera: son siniestros de transito, otro
-                                    fenomeno. Serian una capa distinta, no esta.
+        Villa 21-24 (Barracas)   336 hechos   121 con arma   36,0%
+        Villa 1-11-14 (Flores)   559 hechos    69 con arma   12,3%
+        Villa Soldati             66 hechos    28 con arma   42,4%
+        Palermo (Plaza Serrano)  446 hechos    26 con arma    5,8%
+        Palermo (Av. Santa Fe)   425 hechos    18 con arma    4,2%
 
-    Quedan 54.475 hechos ubicados. El criterio esta explicito aca arriba a
-    proposito: es un recorte discutible y quien lo quiera cambiar tiene que poder
-    ver que se decidio y con que numeros.
+    Por cantidad, Palermo encabeza la Ciudad y Villa Soldati aparece como la zona
+    MAS SEGURA del cuadro. Por robos con arma el orden se da vuelta y coincide con
+    lo que cualquiera que maneje por la Ciudad sabe. En Villa Soldati uno de cada
+    tres robos es a mano armada; en Palermo, uno de cada dieciseis.
 
-    COMO SE ARMA LA ESCALA
+    Para un camionero la diferencia no es academica: un arrebato de celular en una
+    esquina concurrida no le cambia la ruta, y un asalto armado si.
 
-    Grilla de 250 m. Cada celda se compara contra la densidad media de la Ciudad
-    —hechos totales sobre los 204 km2 de CABA— y se emite SOLO si duplica esa
-    media. Ese corte no es cosmetico: en 2025 el 92% de las celdas de la Ciudad
-    registro al menos un hecho, asi que pintar todo lo que tiene delito es pintar
-    CABA entera de rojo y no informar nada. La informacion esta en los extremos.
+    Se cuentan los 5.551 robos con `uso_arma = SI`. Sin ponderaciones inventadas:
+    un hecho con arma cuenta, uno sin arma no. El criterio es nitido y se puede
+    discutir mirando el numero.
 
-        x2 a x3 la media    alta
-        x3 a x5             muy alta
-        x5 o mas            extrema
+    Los robos armados ademas son mas nocturnos que el resto —33,5% entre las 22 y
+    las 6, contra 24,5% del total—, que es justo cuando un camion queda parado.
 
-    Expresar el nivel en multiplos de la media —y no en cuantiles— es lo que hace
-    que la leyenda se explique sola: "el triple que el promedio de la ciudad" se
-    entiende sin saber estadistica.
+    QUE EMITE EL ARCHIVO
+
+    Dos clases de objeto, distinguidas por la propiedad `t`:
+
+      t = "h"   los 5.551 hechos, uno por punto, sin agregar. Son los que
+                alimentan el mapa de calor. Van crudos y no en grilla porque una
+                capa `heatmap` normaliza por densidad de PUNTOS: alimentada con
+                una grilla regular redibuja la grilla en forma de lunares
+                alineados, sin importar el radio. Ver AD-36.
+      t = "f"   los focos: celdas de 300 m que al menos duplican la densidad
+                media de robos armados de la Ciudad. No se dibujan — son las que
+                contestan al tocar el mapa y las que llevan el triangulo.
 
     LO QUE ESTE DATO NO DICE
 
-    - Que no haya zona pintada NO significa que ahi no pase nada: significa que
-      no llega al doble de la media. La leyenda de la app tiene que decirlo.
-    - Son hechos DENUNCIADOS. El delito no denunciado no esta, y la propension a
-      denunciar no es igual en toda la Ciudad.
-    - Es densidad absoluta, sin normalizar por cuanta gente circula. Una celda de
-      microcentro tiene mas hechos en parte porque pasa mas gente. Para decidir
-      donde parar un camion eso igual sirve: lo que importa es que tan probable
-      es que pase algo ahi, no la tasa per capita.
-    - Solo CABA. El dataset es del Gobierno de la Ciudad y no cubre el conurbano.
+    - Son hechos DENUNCIADOS, y la propension a denunciar no es igual en toda la
+      Ciudad. En los barrios mas precarios se denuncia menos, asi que el mapa
+      SUBESTIMA justamente las zonas mas duras. Villa Soldati registra 66 hechos
+      en 500 m contra 446 de Palermo: eso no es que sea mas tranquila, es que ahi
+      no se denuncia. La proporcion armada (42% contra 6%) es lo que sobrevive a
+      ese sesgo, y es la razon de usarla.
+    - Que no haya calor NO significa que ahi no pase nada.
+    - Solo CABA: el dataset es del Gobierno de la Ciudad y no cubre el conurbano.
 
 .PARAMETER Anio
     Anio del dataset. 2025 es el ultimo completo publicado.
 
 .PARAMETER LadoMetros
-    Lado de la celda. 250 m son unas dos manzanas por lado.
+    Lado de la celda de los focos. Con 300 m la media es 2,45 hechos por celda;
+    achicarla mas deja conteos de uno o dos, donde el ruido manda.
 
 .EXAMPLE
     .\data\fetch-zonas-riesgo.ps1
@@ -66,7 +72,7 @@
 [CmdletBinding()]
 param(
     [int] $Anio = 2025,
-    [int] $LadoMetros = 250,
+    [int] $LadoMetros = 300,
     [string] $OutputDirectory
 )
 
@@ -111,7 +117,7 @@ $encabezado = $lineas[0].Split(',') | ForEach-Object { $_.Trim('"') }
 $col = @{}
 for ($i = 0; $i -lt $encabezado.Count; $i++) { $col[$encabezado[$i]] = $i }
 
-foreach ($obligatoria in 'tipo', 'subtipo', 'latitud', 'longitud', 'barrio', 'franja') {
+foreach ($obligatoria in 'tipo', 'subtipo', 'latitud', 'longitud', 'barrio', 'franja', 'uso_arma') {
     if (-not $col.ContainsKey($obligatoria)) {
         throw "El dataset no trae la columna '$obligatoria'. Cambio el formato: revisar la fuente antes de seguir."
     }
@@ -122,10 +128,10 @@ foreach ($obligatoria in 'tipo', 'subtipo', 'latitud', 'longitud', 'barrio', 'fr
 $metrosPorGradoLat = 110574.0
 $metrosPorGradoLng = 111320.0 * [math]::Cos(-34.61 * [math]::PI / 180.0)
 
+$hechos = New-Object System.Collections.ArrayList
 $celdas = @{}
-$total = 0
+$robosTotales = 0
 $sinCoordenada = 0
-$descartados = 0
 
 foreach ($linea in $lineas[1..($lineas.Count - 1)]) {
     if ([string]::IsNullOrWhiteSpace($linea)) { continue }
@@ -134,16 +140,13 @@ foreach ($linea in $lineas[1..($lineas.Count - 1)]) {
     $tipo = $f[$col['tipo']].Trim('"')
     $subtipo = $f[$col['subtipo']].Trim('"')
 
-    # Robo (cualquier subtipo) mas el hurto de vehiculos. Ver el encabezado.
-    $esAutomotor = $subtipo -like '*automotor*'
-    if (-not ($tipo -eq 'Robo' -or $esAutomotor)) { $descartados++; continue }
+    # Robo (cualquier subtipo) mas el hurto de vehiculos.
+    if (-not ($tipo -eq 'Robo' -or $subtipo -like '*automotor*')) { continue }
 
     $lat = 0.0; $lng = 0.0
     $okLat = [double]::TryParse($f[$col['latitud']].Trim('"'), [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref] $lat)
     $okLng = [double]::TryParse($f[$col['longitud']].Trim('"'), [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref] $lng)
 
-    # El 2% de los registros viene sin ubicar. Se cuentan y se informan: son
-    # hechos que existieron y que este mapa no puede mostrar.
     if (-not $okLat -or -not $okLng -or $lat -eq 0 -or $lng -eq 0) { $sinCoordenada++; continue }
 
     # Control de cordura. Si un punto cae fuera de la Ciudad, algo se leyo mal.
@@ -151,7 +154,18 @@ foreach ($linea in $lineas[1..($lineas.Count - 1)]) {
         $sinCoordenada++; continue
     }
 
-    $total++
+    $robosTotales++
+
+    # A partir de aca, SOLO los que llevaron arma. Ver el encabezado.
+    if ($f[$col['uso_arma']].Trim('"') -ne 'SI') { continue }
+
+    # Cinco decimales son ~1,1 m: mas precision de la que tiene el dato y mucha
+    # mas de la que necesita un mapa de calor. Sobre 5.500 puntos, el redondeo
+    # decide buena parte del peso del archivo.
+    [void] $hechos.Add(@(
+        [math]::Round($lng, 5),
+        [math]::Round($lat, 5)
+    ))
 
     $cx = [math]::Floor($lng * $metrosPorGradoLng / $LadoMetros)
     $cy = [math]::Floor($lat * $metrosPorGradoLat / $LadoMetros)
@@ -159,14 +173,12 @@ foreach ($linea in $lineas[1..($lineas.Count - 1)]) {
 
     if (-not $celdas.ContainsKey($clave)) {
         $celdas[$clave] = [pscustomobject] @{
-            cx = $cx; cy = $cy; hechos = 0; automotor = 0; noche = 0
-            barrios = @{}
+            cx = $cx; cy = $cy; armados = 0; noche = 0; barrios = @{}
         }
     }
 
     $celda = $celdas[$clave]
-    $celda.hechos++
-    if ($esAutomotor) { $celda.automotor++ }
+    $celda.armados++
 
     # Franja horaria: el dataset la da como hora entera 0..23. Se cuenta como
     # nocturno de 22 a 5 inclusive, que es cuando el camion suele estar parado.
@@ -179,72 +191,76 @@ foreach ($linea in $lineas[1..($lineas.Count - 1)]) {
 }
 
 $areaCelda = [math]::Pow($LadoMetros / 1000.0, 2)
-$densidadMedia = $total / $superficieCaba
+$densidadMedia = $hechos.Count / $superficieCaba
 $mediaPorCelda = $densidadMedia * $areaCelda
 
 Write-Host ""
-Write-Host "Hechos considerados (robo + hurto automotor): $total" -ForegroundColor DarkGray
-Write-Host "  descartados por tipo:            $descartados" -ForegroundColor DarkGray
+Write-Host "Robos y hurtos de vehiculos ubicados: $robosTotales" -ForegroundColor DarkGray
+Write-Host ("  de esos, A MANO ARMADA:          {0}  ({1:N1}%)" -f $hechos.Count, ($hechos.Count / $robosTotales * 100)) -ForegroundColor Yellow
 Write-Host "  sin coordenada utilizable:       $sinCoordenada" -ForegroundColor DarkYellow
-Write-Host ("  densidad media de CABA:          {0:N0} hechos/km2 = {1:N1} por celda de {2} m" -f $densidadMedia, $mediaPorCelda, $LadoMetros) -ForegroundColor DarkGray
-Write-Host "  celdas con al menos un hecho:    $($celdas.Count)" -ForegroundColor DarkGray
+Write-Host ("  densidad media de CABA:          {0:N1} armados/km2 = {1:N2} por celda de {2} m" -f $densidadMedia, $mediaPorCelda, $LadoMetros) -ForegroundColor DarkGray
+Write-Host "  celdas con al menos un armado:   $($celdas.Count)" -ForegroundColor DarkGray
 
-# Los cortes. Ver el encabezado: en multiplos de la media, no en cuantiles.
+# Los cortes, en multiplos de la media. Expresarlos asi —y no en cuantiles— es lo
+# que hace que la leyenda se explique sola: "el triple que el promedio de la
+# Ciudad" se entiende sin saber estadistica.
 $corteAlta    = $mediaPorCelda * 2
 $corteMuyAlta = $mediaPorCelda * 3
 $corteExtrema = $mediaPorCelda * 5
 
 $features = New-Object System.Collections.ArrayList
+
+# Los hechos crudos van en UN SOLO objeto MultiPoint, no en 5.551 features.
+#
+# MapLibre expande un MultiPoint y el mapa de calor cuenta cada punto por
+# separado, que es exactamente lo que hace falta. La diferencia es de peso: cada
+# Feature arrastra su `type`, su `properties` y su `geometry`, y esa envoltura
+# pesa mas que la coordenada que contiene — 636 KB contra unos 90.
+[void] $features.Add([ordered] @{
+    type       = 'Feature'
+    properties = [ordered] @{ t = 'h' }
+    geometry   = [ordered] @{ type = 'MultiPoint'; coordinates = $hechos }
+})
+
 $porNivel = @{ alta = 0; 'muy-alta' = 0; extrema = 0 }
 
 foreach ($celda in $celdas.Values) {
-    if ($celda.hechos -lt $corteAlta) { continue }
+    if ($celda.armados -lt $corteAlta) { continue }
 
-    $nivel = if ($celda.hechos -ge $corteExtrema) { 'extrema' }
-             elseif ($celda.hechos -ge $corteMuyAlta) { 'muy-alta' }
+    $nivel = if ($celda.armados -ge $corteExtrema) { 'extrema' }
+             elseif ($celda.armados -ge $corteMuyAlta) { 'muy-alta' }
              else { 'alta' }
 
     $porNivel[$nivel]++
 
-    # CENTRO de la celda, no su cuadrado.
-    #
-    # La app dibuja cada celda como un circulo difuminado que se funde con sus
-    # vecinos, y una capa `circle` de MapLibre solo dibuja geometrias de tipo
-    # punto: con un poligono no dibuja nada y tampoco avisa. Ademas el cuadrado
-    # de 250 m es una unidad de calculo, no un hecho del territorio, asi que
-    # publicarlo invitaba a dibujarlo.
-    $centroLng = [math]::Round(($celda.cx + 0.5) * $LadoMetros / $metrosPorGradoLng, 6)
-    $centroLat = [math]::Round(($celda.cy + 0.5) * $LadoMetros / $metrosPorGradoLat, 6)
+    $centroLng = [math]::Round(($celda.cx + 0.5) * $LadoMetros / $metrosPorGradoLng, 5)
+    $centroLat = [math]::Round(($celda.cy + 0.5) * $LadoMetros / $metrosPorGradoLat, 5)
 
     $barrio = ($celda.barrios.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1).Key
 
     [void] $features.Add([ordered] @{
         type       = 'Feature'
         properties = [ordered] @{
-            nivel     = $nivel
-            hechos    = $celda.hechos
-            veces     = [math]::Round($celda.hechos / $mediaPorCelda, 1)
-            automotor = $celda.automotor
-            noche     = $celda.noche
-            barrio    = $barrio
-            # El anio se repite en cada celda aunque ya este en la cabecera del
-            # documento. Son 4 KB bien gastados: la app arma el texto del toque
-            # con las propiedades de la feature y sin esto tendria que llevar el
-            # anio escrito en el codigo, que es como se termina mostrando una
-            # fecha vieja durante meses sin que nadie lo note.
-            anio      = $Anio
+            t       = 'f'
+            nivel   = $nivel
+            armados = $celda.armados
+            veces   = [math]::Round($celda.armados / $mediaPorCelda, 1)
+            noche   = $celda.noche
+            barrio  = $barrio
+            # El anio se repite en cada foco aunque ya este en la cabecera del
+            # documento. La app arma el texto del toque con las propiedades de la
+            # feature, y sin esto tendria el anio escrito en el codigo, que es
+            # como se termina mostrando una fecha vieja durante meses.
+            anio    = $Anio
         }
-        geometry   = [ordered] @{
-            type        = 'Point'
-            coordinates = @($centroLng, $centroLat)
-        }
+        geometry   = [ordered] @{ type = 'Point'; coordinates = @($centroLng, $centroLat) }
     })
 }
 
 $documento = [ordered] @{
     type        = 'FeatureCollection'
     name        = 'zonas-riesgo'
-    description = "Celdas de $LadoMetros m donde los robos y hurtos de vehiculos denunciados en $Anio superan el doble de la densidad media de la Ciudad. Que una celda no aparezca no significa que no haya hechos: significa que no llega a ese doble."
+    description = "Robos a mano armada denunciados en $Anio. Los objetos con t='h' son los hechos, uno por punto, y alimentan el mapa de calor; los que tienen t='f' son focos agregados en celdas de $LadoMetros m que al menos duplican la densidad media de la Ciudad. Se cuentan robos CON ARMA y no cantidad de robos: la cantidad mide cuanta gente circula, no peligro."
     attribution = "Buenos Aires Data - Mapa del Delito $Anio (CC-BY), Ministerio de Justicia y Seguridad del GCBA"
     source      = 'https://data.buenosaires.gob.ar/dataset/delitos'
     anio        = $Anio
@@ -252,11 +268,12 @@ $documento = [ordered] @{
     # Se guardan los numeros con los que se armo la escala: sin ellos las
     # propiedades "veces" y "nivel" no se pueden auditar ni reproducir.
     baseline    = [ordered] @{
-        hechos            = $total
-        sinCoordenada     = $sinCoordenada
-        superficieKm2     = $superficieCaba
-        densidadMediaKm2  = [math]::Round($densidadMedia, 1)
-        mediaPorCelda     = [math]::Round($mediaPorCelda, 2)
+        robosTotales     = $robosTotales
+        armados          = $hechos.Count
+        sinCoordenada    = $sinCoordenada
+        superficieKm2    = $superficieCaba
+        densidadMediaKm2 = [math]::Round($densidadMedia, 1)
+        mediaPorCelda    = [math]::Round($mediaPorCelda, 2)
     }
     generatedOn = (Get-Date).ToString('yyyy-MM-dd')
     features    = $features
@@ -266,9 +283,12 @@ $destino = Join-Path $OutputDirectory 'zonas-riesgo.geojson'
 $documento | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $destino -Encoding UTF8
 
 $peso = [math]::Round((Get-Item $destino).Length / 1KB, 1)
+$focos = $porNivel['alta'] + $porNivel['muy-alta'] + $porNivel['extrema']
 
 Write-Host ""
-Write-Host ("Zonas de riesgo: {0} celdas -> {1} ({2} KB)" -f $features.Count, $destino, $peso) -ForegroundColor Green
-Write-Host ("  alta (x2 a x3):      {0,4}   desde {1:N0} hechos" -f $porNivel['alta'], [math]::Ceiling($corteAlta)) -ForegroundColor DarkGray
-Write-Host ("  muy alta (x3 a x5):  {0,4}   desde {1:N0} hechos" -f $porNivel['muy-alta'], [math]::Ceiling($corteMuyAlta)) -ForegroundColor DarkGray
-Write-Host ("  extrema (x5 o mas):  {0,4}   desde {1:N0} hechos" -f $porNivel['extrema'], [math]::Ceiling($corteExtrema)) -ForegroundColor DarkGray
+Write-Host ("Zonas de riesgo -> {0} ({1} KB)" -f $destino, $peso) -ForegroundColor Green
+Write-Host ("  hechos para el mapa de calor: {0}" -f $hechos.Count) -ForegroundColor DarkGray
+Write-Host ("  focos consultables:           {0}" -f $focos) -ForegroundColor DarkGray
+Write-Host ("     alta (x2 a x3):      {0,4}   desde {1:N0} armados" -f $porNivel['alta'], [math]::Ceiling($corteAlta)) -ForegroundColor DarkGray
+Write-Host ("     muy alta (x3 a x5):  {0,4}   desde {1:N0} armados" -f $porNivel['muy-alta'], [math]::Ceiling($corteMuyAlta)) -ForegroundColor DarkGray
+Write-Host ("     extrema (x5 o mas):  {0,4}   desde {1:N0} armados" -f $porNivel['extrema'], [math]::Ceiling($corteExtrema)) -ForegroundColor DarkGray

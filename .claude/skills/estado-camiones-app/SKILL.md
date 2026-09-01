@@ -101,8 +101,9 @@ a587041  Actualiza la skill: el checkpoint y que config-truck.yml no se commitea
 **`1b5cd5a` es el checkpoint del 01/09/2026.** Cubre:
 
 - **Zonas de riesgo** desde el Mapa del Delito del GCBA (AD-36, `data-sources.md` §7).
-  413 celdas de 3.005 — sólo lo que duplica la media de la Ciudad. Dibujadas por
-  acumulación de círculos difuminados, no como la grilla del cálculo.
+  Cuentan **robos a mano armada**, no cantidad de robos: contar cantidad mide cuánta
+  gente circula y daba vuelta el resultado —Palermo primero, Villa Soldati como "la
+  más segura"—. Mapa de calor sobre los 5.551 hechos crudos.
 - **Radares de velocidad**, dato oficial, sólo los 129 cinemómetros.
 - **Rediseño de los símbolos del mapa**: chapas con señales reconocibles, y de un
   racimo sobrevive el peor gálibo, no uno cualquiera.

@@ -155,15 +155,19 @@ export function navigateView(host, { openDrawer, go }) {
       const veces = String(p.veces).replace('.', ',');
       const barrio = p.barrio ? `${p.barrio} · ` : '';
 
-      // Se dice el numero crudo y contra que se compara. "Zona peligrosa" a
-      // secas no se puede discutir ni verificar; "87 robos denunciados, el
-      // quintuple del promedio" si — y deja claro que es un dato de denuncias
-      // de un anio, no un veredicto sobre el barrio.
-      const vehiculos = p.automotor > 0 ? ` ${p.automotor} fueron de vehículos.` : '';
+      // Se dice el numero crudo, que se conto y contra que se compara. "Zona
+      // peligrosa" a secas no se puede discutir ni verificar; "77 robos a mano
+      // armada, 31 veces el promedio" si — y deja claro que es un dato de
+      // denuncias de un anio, no un veredicto sobre el barrio.
+      //
+      // Decir "A MANO ARMADA" y no "robos" a secas no es un detalle: es la
+      // diferencia entre este mapa y uno que marca Palermo como lo peor de la
+      // Ciudad por tener mucha gente en la calle.
+      const deNoche = p.noche > 0 ? ` ${p.noche} entre las 22 y las 6.` : '';
 
       toast(
-        `${barrio}zona de riesgo ${nivel}: ${p.hechos} robos denunciados en ${p.anio}, ` +
-        `${veces} veces el promedio de la Ciudad.${vehiculos}`,
+        `${barrio}zona de riesgo ${nivel}: ${p.armados} robos a mano armada ` +
+        `denunciados en ${p.anio}, ${veces} veces el promedio de la Ciudad.${deNoche}`,
         p.nivel === 'alta' ? 'info' : 'warn',
         7000
       );

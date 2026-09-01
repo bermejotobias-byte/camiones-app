@@ -33,7 +33,7 @@ const LAYER_IDS = [
   // sacar del medio para leer el mapa. No llevan control propio a proposito —
   // cada boton nuevo en la columna lateral agranda la franja que se come el
   // arrastre del mapa, y esto no vale ese precio.
-  'zona-riesgo', 'zona-riesgo-senal'
+  'zona-riesgo-calor', 'zona-riesgo', 'zona-riesgo-senal'
 ];
 
 const token = (name) =>
@@ -119,49 +119,66 @@ export async function installTruckLayers(map) {
 /* ---------------------------------------------------------------------------
    Zonas de riesgo
 
-   Dato oficial: Mapa del Delito del GCBA (CC-BY), robos y hurtos de vehiculos
-   denunciados, agregados en celdas de 250 m por `data/fetch-zonas-riesgo.ps1`.
+   Dato oficial: Mapa del Delito del GCBA (CC-BY). Lo genera
+   `data/fetch-zonas-riesgo.ps1`.
 
-   La decision que manda acá es CUANTO NO se dibuja. En 2025 el 92% de la Ciudad
-   registro al menos un hecho: pintar todo lo que tiene delito es pintar CABA
-   entera y no decir nada. Solo se emiten las celdas que duplican la densidad
-   media de la Ciudad —413 de 3.005—, y la escala se expresa en multiplos de esa
-   media, que es lo que hace que se explique sola: "el triple que el promedio".
+   SE CUENTAN ROBOS A MANO ARMADA, NO CANTIDAD DE ROBOS.
 
-   Y por eso mismo el silencio del mapa NO es un certificado de seguridad. Que no
-   haya sombreado significa "no llega al doble de la media", no "acá no pasa
-   nada". Tocar la zona lo dice con todas las letras.
+   Es la decision que manda acá, y reemplaza a la primera version, que contaba
+   todos los robos por igual. Contar cantidad mide EXPOSICION —cuanta gente pasa
+   por ahi— y no peligro, y asi el mapa terminaba diciendo lo contrario de la
+   realidad. Medido en 2025, en 500 m a la redonda:
 
-   Se dibuja como MANCHA DIFUMINADA y no como los cuadrados de la grilla. Costo
-   dos intentos fallidos llegar acá, y los dos enseñaron algo:
+       Villa 21-24 (Barracas)   336 hechos   121 con arma   36,0%
+       Villa Soldati             66 hechos    28 con arma   42,4%
+       Palermo (Plaza Serrano)  446 hechos    26 con arma    5,8%
+       Palermo (Av. Santa Fe)   425 hechos    18 con arma    4,2%
 
-   1. Pintar las celdas tal cual, con relleno translucido y sin borde, esperando
-      que las vecinas se fundieran. Quedo un tablero de ajedrez: cada celda se
-      recortaba nitida contra la de al lado y el damero tapaba los nombres de las
-      calles. El cuadrado de 250 m es una unidad de CALCULO, no un hecho del
-      territorio; dibujarlo afirma que el riesgo cambia al cruzar una linea recta
-      que en la calle no existe.
-   2. Una capa `heatmap`. Empapelo el mapa de lunares alineados. El heatmap
-      normaliza por densidad de PUNTOS y esta fuente ya viene agregada en grilla
-      regular, asi que el patron de la grilla reaparece sin importar el radio:
-      agrandarlo solo daba lunares mas grandes. Es la herramienta equivocada para
-      un dato que ya esta contado por celda.
+   Por cantidad, Palermo encabeza la Ciudad y Villa Soldati aparece como la zona
+   MAS SEGURA del cuadro. Por robos con arma el orden se da vuelta. Para un
+   camionero la diferencia no es academica: un arrebato en una esquina concurrida
+   no le cambia la ruta y un asalto armado si.
 
-   Lo que funciona son circulos difuminados de radio mayor que la separacion
-   entre celdas, con opacidad baja. Se funden entre si y el color se ACUMULA
-   donde hay varias celdas calientes pegadas — esa suma es la escala, y aparece
-   sola sin ningun corte artificial que decida donde empieza un foco.
+   Y de paso se arregla lo otro: los armados son 5.551 contra 54.475 —diez veces
+   menos y mucho mas concentrados—, asi que el mapa deja de estar pintado de
+   punta a punta.
 
-   Ademas `circle` si responde a queryRenderedFeatures, cosa que `heatmap` no
-   hace: la misma capa que se ve es la que contesta el toque.
+   EL SILENCIO DEL MAPA NO ES UN CERTIFICADO DE SEGURIDAD. Que no haya calor
+   significa que ahi no se denunciaron robos armados, no que no pase nada — y el
+   subregistro no es parejo: en los barrios mas precarios se denuncia menos, asi
+   que el mapa subestima justamente las zonas mas duras. La proporcion armada es
+   lo que sobrevive a ese sesgo, y es la razon de usarla.
+
+   COMO SE DIBUJA: mapa de calor sobre los hechos CRUDOS.
+
+   Costo tres intentos llegar acá, y los tres enseñaron algo:
+
+   1. Pintar las celdas de la grilla, con relleno translucido y sin borde,
+      esperando que las vecinas se fundieran. Quedo un tablero de ajedrez. Y
+      antes que estetico el problema es de fondo: el cuadrado de 300 m es una
+      unidad de CALCULO, no un hecho del territorio, y dibujarlo afirma que el
+      riesgo cambia al cruzar una linea recta que en la calle no existe.
+   2. Un `heatmap` alimentado con esa misma grilla. Empapelo el mapa de lunares
+      alineados: el heatmap normaliza por densidad de PUNTOS, y con una grilla
+      regular redibuja la grilla sin importar el radio.
+   3. Circulos difuminados por celda, con opacidad baja y acumulacion. Funcionaba
+      —de ahi salio el efecto— pero seguia atado a la grilla.
+
+   Lo que corresponde es alimentar el `heatmap` con los hechos uno por uno, que
+   es para lo que esta hecho: los 5.551 puntos vienen crudos en un MultiPoint y
+   el calor sale de donde estan de verdad, sin ninguna grilla atras.
+
+   La grilla sobrevive solo como FOCOS invisibles (`t = "f"`): son los que
+   contestan al tocar el mapa y los que llevan el triangulo, porque una capa
+   `heatmap` no responde a queryRenderedFeatures.
 --------------------------------------------------------------------------- */
 
 /**
- * Rampa de la escala. Fija, como el resto de las señales.
+ * Colores de la escala de calor. Fijos, como el resto de las señales.
  *
- * Va de ambar a rojo y no de verde a rojo a proposito: no hay ningun nivel
- * "seguro" que justifique un verde. Todo lo que se dibuja aqui ya duplica la
- * media de la Ciudad.
+ * Va de amarillo a rojo y no de verde a rojo a proposito: no hay ningun nivel
+ * "seguro" que justifique un verde. Donde no hay dato no se pinta nada, que es
+ * distinto de pintar de verde.
  */
 const RIESGO = {
   alta:       '#f2b705',
@@ -170,104 +187,107 @@ const RIESGO = {
 };
 
 /**
- * Radio de la mancha, en pixeles, para que represente siempre los mismos metros.
+ * Radio del calor, en pixeles, para que represente siempre los mismos metros.
  *
- * Se declara en pixeles de pantalla, asi que dejarlo fijo haria que la mancha
- * cubra cada vez menos terreno al acercarse — el foco pareceria encogerse cuando
- * no cambio nada. Se compensa doblandolo en cada nivel de zoom, que es como
- * funciona la escala del mapa.
+ * `heatmap-radius` se declara en pixeles de pantalla, asi que dejarlo fijo haria
+ * que la mancha cubra cada vez menos terreno al acercarse: el foco pareceria
+ * encogerse cuando no cambio nada. Se compensa doblandolo en cada nivel de zoom,
+ * que es como funciona la escala del mapa.
  *
- * A la latitud de Buenos Aires un pixel son unos 63 m en zoom 11 y 1 m en zoom
- * 17: estos valores mantienen el radio en unos 450 m.
+ * A diferencia de la version por celdas, aca NO hace falta que supere ninguna
+ * separacion: los hechos estan donde ocurrieron y no hay grilla que disimular.
  *
- * Ese numero es casi el DOBLE de la separacion entre celdas, y no sobra. Con
- * 250 m cada celda dibujaba su propio lunar; con 350 se fundian pero quedaban
- * agujeros oscuros donde faltaba una celda por no llegar al corte, y en pantalla
- * esos huecos parecian manchas o un defecto del dibujo. Recien con ~450 m el
- * solape los cubre y la zona se lee como una sola mancha continua.
+ * Pero el radio NO representa los mismos metros en todo el rango, y es a
+ * proposito. Va de unos 280 m en zoom 11 a unos 150 m en zoom 17: de lejos hace
+ * falta suavizar mas para que se lea el patron —si no, con 5.551 puntos sueltos
+ * el mapa queda en un puntillismo donde no se distingue ningun foco— y de cerca
+ * conviene ser mas fiel al lugar donde ocurrio cada hecho.
  */
-const radioMancha = ['interpolate', ['exponential', 2], ['zoom'], 11, 7, 17, 450];
+const radioCalor = ['interpolate', ['linear'], ['zoom'], 11, 9, 13, 24, 15, 60, 17, 150];
 
 function addRiskZoneLayers(map) {
   if (!map.getSource('zonas') || map.getLayer('zona-riesgo')) return;
 
   registrarIconos(map);
 
-  // Debajo de las etiquetas del mapa base: el sombreado no puede tapar los
-  // nombres de las calles, que es lo que el conductor necesita para ubicarse.
+  // Debajo de las etiquetas del mapa base: el calor no puede tapar los nombres
+  // de las calles, que es lo que el conductor necesita para ubicarse.
   const primerTexto = map.getStyle().layers.find((capa) => capa.type === 'symbol')?.id;
 
+  map.addLayer({
+    id: 'zona-riesgo-calor',
+    type: 'heatmap',
+    source: 'zonas',
+    filter: ['==', ['get', 't'], 'h'],
+    paint: {
+      // Todos los hechos pesan igual: cada uno es un robo a mano armada. La
+      // seleccion ya se hizo al elegir QUE contar, y ponderar de nuevo aca seria
+      // apilar una escala arriba de otra.
+      'heatmap-weight': 1,
+      'heatmap-radius': radioCalor,
+      // Sube con el zoom para compensar que el radio crece: sin esto la misma
+      // cantidad de hechos se reparte sobre mas pixeles y el color se lava. Los
+      // valores son bajos porque el radio ya es generoso — con 1,4 en zoom 12 la
+      // Ciudad entera saturaba en rojo.
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 11, 0.35, 14, 0.5, 17, 0.9],
+      // Rampa de calor. El primer tramo llega hasta 0,35 y arranca casi
+      // transparente, y eso es lo que decide cuanto mapa queda pintado: un hecho
+      // suelto no alcanza para teñir nada, hace falta que varios coincidan. Con
+      // el corte en 0,12 aparecia un fondo amarillo por toda la Ciudad y volvia
+      // la sensacion de que todo es igual de peligroso, que es justo lo que esta
+      // capa tiene que evitar.
+      'heatmap-color': [
+        'interpolate', ['linear'], ['heatmap-density'],
+        0,    'rgba(0,0,0,0)',
+        0.35, 'rgba(242,183,5,0.07)',
+        0.55, 'rgba(242,183,5,0.34)',
+        0.70, 'rgba(232,89,12,0.56)',
+        0.86, 'rgba(201,42,42,0.74)',
+        1,    'rgba(140,16,16,0.90)'
+      ],
+      // Se destiñe al acercarse: de lejos el patron es la informacion, de cerca
+      // la informacion es la calle y el calor tiene que dejarla ver.
+      'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0.95, 15, 0.8, 18, 0.55]
+    }
+  }, primerTexto);
+
+  // Invisible y a proposito: es la que contesta el toque. Una capa `heatmap` no
+  // devuelve nada en queryRenderedFeatures, asi que sin esto el calor no podria
+  // decir cuantos hechos hay ni de que anio son. Opacidad cero, no
+  // `visibility: none` — una capa oculta tampoco se consulta.
+  //
+  // El radio es el del foco —celda de 300 m, o sea 150 de centro a borde— mas un
+  // margen: el toque tiene que enganchar el foco que uno ve, no exigir punteria.
   map.addLayer({
     id: 'zona-riesgo',
     type: 'circle',
     source: 'zonas',
+    filter: ['==', ['get', 't'], 'f'],
     paint: {
-      'circle-radius': radioMancha,
-      // Desvanece el borde a lo largo de casi todo el radio: no queda ningun
-      // contorno duro, que es lo que delataba la grilla. En 1 exacto el color se
-      // diluye tanto que hace falta subir la opacidad para verlo, y entonces
-      // vuelve a saturar donde las manchas se pisan; 0,75 deja un nucleo con
-      // cuerpo y un borde que igual se apaga sin linea.
-      'circle-blur': 0.75,
-      // UN SOLO COLOR, no tres. Con las manchas superpuestas, tres colores
-      // distintos se promedian en tonos sucios que no corresponden a ningun
-      // nivel de la leyenda: el naranja que uno ve puede ser una zona naranja o
-      // la mezcla de una amarilla con una roja, y no hay forma de saberlo.
-      // Naranja y no el rojo del nivel extremo: un rojo oscuro al 10% sobre el
-      // mapa de noche practicamente no existe, y subirlo para que se vea lo hace
-      // saturar de dia. El naranja tiene luminancia intermedia y es el unico de
-      // la rampa que se lee sobre los dos fondos sin cambiar de valor.
-      'circle-color': RIESGO['muy-alta'],
-      // Opacidad BAJA, y ahi esta el truco. Con manchas de 450 m y celdas cada
-      // 250 m, cada punto de la pantalla queda cubierto por varios circulos a la
-      // vez: una celda sola casi no se nota —que es lo correcto, una celda
-      // aislada es señal debil— y donde hay un racimo el color se acumula solo.
-      // Esa suma ES la escala, y aparece sin que ningun corte decida donde
-      // empieza el foco. Es como esta hecho el mapa comunitario que sirvio de
-      // referencia: ahi se lee una gradacion aunque todos sus poligonos sean del
-      // mismo color, y es por superposicion.
-      //
-      // El numero se calibro mirando Constitucion, que es el foco mas intenso de
-      // la Ciudad: si ahi se leen los nombres de las calles, en el resto tambien.
-      // 0,05 no llegaba a verse y 0,18 tapaba la cartografia.
-      //
-      // El nivel de la celda modula esa opacidad base para que una celda extrema
-      // suelta pese mas que una alta suelta.
-      //
-      // OJO CON LA FORMA de esta expresion: el `interpolate` sobre ['zoom'] va
-      // en el nivel superior, con el `match` por nivel adentro de cada parada, y
-      // no al reves. MapLibre solo acepta ['zoom'] en el tope de la propiedad;
-      // envuelto en una multiplicacion tira "zoom expressions may only be used
-      // as a top-level expression" y RECHAZA LA CAPA ENTERA. Como el error se
-      // pierde, el sintoma es que la capa simplemente no aparece.
-      'circle-opacity': [
-        'interpolate', ['linear'], ['zoom'],
-        11, ['*', ['match', ['get', 'nivel'], 'extrema', 2.2, 'muy-alta', 1.5, 1], 0.145],
-        15, ['*', ['match', ['get', 'nivel'], 'extrema', 2.2, 'muy-alta', 1.5, 1], 0.13],
-        18, ['*', ['match', ['get', 'nivel'], 'extrema', 2.2, 'muy-alta', 1.5, 1], 0.09]
-      ],
+      'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 11, 3.2, 17, 200],
+      'circle-opacity': 0,
       'circle-pitch-alignment': 'map'
     }
   }, primerTexto);
 
-  // El triangulo solo en las 21 celdas extremas. Ponerlo en las 413 seria
-  // volver a cargar el mapa, que es lo que la mancha evita.
+  // El triangulo solo en los focos extremos. Ponerlo en los 332 seria volver a
+  // cargar el mapa, que es lo que el calor evita.
   map.addLayer({
     id: 'zona-riesgo-senal',
     type: 'symbol',
     source: 'zonas',
     minzoom: 12,
-    filter: ['==', ['get', 'nivel'], 'extrema'],
+    filter: ['all', ['==', ['get', 't'], 'f'], ['==', ['get', 'nivel'], 'extrema']],
     layout: {
       'icon-image': 'senal-riesgo',
       'icon-size': tamanoSenal,
-      // Las celdas extremas vienen en racimo —Constitucion tiene varias
-      // pegadas— y sin esto salen tres triangulos identicos a un centimetro uno
+      // Los focos extremos vienen en racimo —Villa Soldati tiene seis celdas
+      // pegadas— y sin esto salen seis triangulos identicos a un centimetro uno
       // del otro. El padding grande deja uno por foco, y el orden por cantidad
-      // de hechos garantiza que el que sobrevive sea el peor del racimo.
+      // garantiza que el que sobrevive sea el peor del racimo.
       'icon-allow-overlap': false,
       'icon-padding': 28,
-      'symbol-sort-key': ['-', 0, ['get', 'hechos']]
+      'symbol-sort-key': ['-', 0, ['get', 'armados']]
     }
   });
 }

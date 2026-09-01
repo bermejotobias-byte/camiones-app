@@ -404,46 +404,79 @@ como tal tiene que verse distinto de un dato oficial.
 
 Lo genera `data/fetch-zonas-riesgo.ps1` a `wwwroot/data/zonas-riesgo.geojson`.
 
-### Qué hechos entran, y por qué ésos
+### Qué se cuenta: robos a mano armada, no cantidad de robos
 
-De los seis tipos del dataset se usan dos cosas y se descartan cuatro:
+**Ésta es la decisión central, y reemplaza a la primera versión**, que contaba
+todos los robos por igual.
 
-| Tipo / subtipo | 2025 | ¿Entra? | Por qué |
-|---|---:|---|---|
-| Robo (todos los subtipos) | 50.069 | **sí** | hay fuerza o violencia: es lo que amenaza a alguien parado en la calle |
-| Hurto automotor | 4.539 | **sí** | le roban el vehículo |
-| Hurto (resto) | 45.102 | no | carterismo y descuidos; no cambia por dónde conviene pasar con un camión |
-| Lesiones dolosas | 11.544 | no | violencia interpersonal, buena parte en ámbito privado |
-| Amenazas | 10.111 | no | ídem |
-| Homicidios dolosos | 78 | no | ídem |
-| Vialidad (siniestros) | 11.760 | no | son siniestros de tránsito, otro fenómeno: serían otra capa |
+Contar cantidad mide **exposición** —cuánta gente pasa por ahí— y no peligro. El
+resultado se leía al revés de la realidad. Medido en 2025, en 500 m a la redonda:
 
-Quedan **54.475 hechos ubicados**. El recorte es discutible y por eso está escrito:
-quien lo quiera cambiar tiene que poder ver qué se decidió y con qué números.
+| Zona | Hechos | Con arma | % |
+|---|---:|---:|---:|
+| Villa 21-24 (Barracas) | 336 | **121** | 36,0% |
+| Villa 1-11-14 (Bajo Flores) | 559 | **69** | 12,3% |
+| Villa Soldati | 66 | **28** | 42,4% |
+| Palermo (Plaza Serrano) | 446 | 26 | 5,8% |
+| Palermo (Av. Santa Fe) | 425 | **18** | 4,2% |
+
+Por cantidad, Palermo encabeza la Ciudad y **Villa Soldati aparece como la zona
+más segura del cuadro**. Por robos con arma el orden se da vuelta.
+
+Lo mismo por barrio: en Villa Soldati **uno de cada tres robos es a mano armada**
+(30,9%); en Palermo, uno de cada dieciséis (6,3%).
+
+| Barrio | Hechos | Con arma | % |
+|---|---:|---:|---:|
+| Palermo | 4.126 | 260 | 6,3% |
+| Caballito | 2.613 | 121 | 4,6% |
+| Almagro | 2.247 | 102 | 4,5% |
+| Villa Soldati | 1.579 | 488 | **30,9%** |
+| Villa Lugano | 1.979 | 486 | **24,6%** |
+| Nueva Pompeya | 1.201 | 238 | **19,8%** |
+| Barracas | 2.274 | 442 | **19,4%** |
+| La Boca | 1.095 | 187 | **17,1%** |
+
+Para un camionero la diferencia no es académica: un arrebato en una esquina
+concurrida no le cambia la ruta, y un asalto armado sí.
+
+**Se cuentan los 5.551 robos con `uso_arma = SI`.** Sin ponderaciones inventadas:
+un hecho con arma cuenta, uno sin arma no. Se descartan los mismos cuatro tipos
+que antes —hurto común, lesiones, amenazas, homicidios y siniestros viales— por
+las mismas razones.
+
+Los robos armados además son **más nocturnos** que el resto: 33,5% entre las 22 y
+las 6, contra 24,5% del total. Que es justo cuando un camión queda parado.
 
 ### Cómo se arma la escala
 
-Grilla de 250 m. Cada celda se compara contra la densidad media de la Ciudad
-—54.475 hechos sobre 203,99 km², o sea **267 hechos/km²**, 16,7 por celda— y se
-publica **sólo si duplica esa media**.
+El archivo publica **dos clases de objeto**, distinguidas por la propiedad `t`:
 
-Ese corte no es cosmético. En 2025, **3.005 de las 3.248 celdas de CABA (92%)
-registraron al menos un hecho**: pintar todo lo que tiene delito es pintar la
-Ciudad entera y no informar nada. La información está en los extremos.
+| `t` | Qué es | Cuántos | Para qué |
+|---|---|---:|---|
+| `"h"` | los hechos, uno por punto, en un solo MultiPoint | 5.551 | alimentan el mapa de calor |
+| `"f"` | focos: celdas de 300 m que duplican la media | 332 | contestan el toque y llevan el triángulo |
+
+Los hechos van **crudos y no agregados** porque una capa `heatmap` normaliza por
+densidad de *puntos*: alimentada con una grilla regular redibuja la grilla en
+forma de lunares alineados, sin importar el radio. Ver AD-36.
+
+Los focos se comparan contra la densidad media de robos armados de la Ciudad
+—5.551 sobre 203,99 km², o sea **27,2/km²**, 2,45 por celda de 300 m:
 
 | Nivel | Corte | Desde | Celdas |
 |---|---|---:|---:|
-| alta | x2 a x3 la media | 34 hechos | 266 |
-| muy alta | x3 a x5 | 51 hechos | 126 |
-| extrema | x5 o más | 84 hechos | 21 |
+| alta | x2 a x3 la media | 5 armados | 186 |
+| muy alta | x3 a x5 | 8 armados | 92 |
+| extrema | x5 o más | 13 armados | 54 |
 
-**413 celdas**, 25,8 km², el 12,7% de la Ciudad. La escala se expresa en múltiplos
-de la media y no en cuantiles porque así se explica sola: "el triple que el
-promedio de la Ciudad" se entiende sin saber estadística.
+El foco más intenso es **Villa 21-24 (Barracas): 77 robos armados en una celda de
+300 m, 31 veces la media de la Ciudad.**
 
-Control de cordura: las celdas más calientes caen en Constitución (274 hechos),
-Retiro, Flores, Liniers, San Nicolás y Balvanera. Los barrios con más hechos son
-Palermo (4.126), Flores (3.355) y Balvanera (3.045).
+La escala se expresa en múltiplos de la media y no en cuantiles porque así se
+explica sola: "el triple que el promedio de la Ciudad" se entiende sin saber
+estadística.
+
 
 ### Contraste con el mapa comunitario de "Zonas Peligrosas"
 
@@ -472,17 +505,23 @@ sin metodología, sin fecha y sin licencia declarada.
 
 ### L-10 · Lo que este dato no dice
 
-- **Que no haya mancha NO significa que ahí no pase nada.** Significa que esa celda
-  no llega al doble de la media. El 92% de la Ciudad registró algún hecho.
-- Son hechos **denunciados**. El delito no denunciado no está, y la propensión a
-  denunciar no es igual en toda la Ciudad.
-- Es **densidad absoluta**, sin normalizar por cuánta gente circula. Una celda del
-  microcentro tiene más hechos en parte porque pasa más gente. Para decidir dónde
-  parar un camión igual sirve: importa qué tan probable es que pase algo ahí, no
-  la tasa per cápita.
+- **Que no haya calor NO significa que ahí no pase nada.** Significa que ahí no se
+  denunciaron robos a mano armada.
+- **El subregistro no es parejo, y ésta es la limitación más seria.** Son hechos
+  *denunciados*, y en los barrios más precarios se denuncia menos: el mapa
+  **subestima justamente las zonas más duras**. Villa Soldati registra 66 hechos
+  en 500 m contra los 446 de Palermo — eso no es que sea más tranquila. La
+  **proporción** armada (42% contra 6%) es lo que sobrevive a ese sesgo, y es la
+  razón de usarla en vez de la cantidad.
+- **No está normalizado por cuánta gente circula.** Contar robos armados corrige
+  la mayor parte de la distorsión —un lugar concurrido genera muchos arrebatos y
+  pocos asaltos— pero no toda: una avenida transitada sigue teniendo más hechos de
+  los que tendría vacía.
 - **Sólo CABA.** El dataset es del Gobierno de la Ciudad y no cubre el conurbano.
   Ver L-11.
 - Es el año **2025** completo. No hay dato de 2026 publicado.
+- El 90% de los robos —los que no llevaron arma— **no se muestran**. Un tirón de
+  mercadería sin arma existe y acá no aparece.
 
 ### L-11 · Fuera de CABA el mapa calla, y ese silencio se lee como seguridad
 
