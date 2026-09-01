@@ -224,6 +224,17 @@ export const api = {
   route: (truckId, origin, destination) =>
     post('/api/routes', { truckId, origin, destination }),
 
+  /**
+   * Reparto: el servidor decide en qué orden visitar las paradas.
+   *
+   * `stops` va en el orden en que las cargó el usuario y la respuesta trae
+   * `stopOrder` con los índices sobre ESA lista, no las paradas reordenadas: así
+   * la app puede decir "tu parada 3 se visita quinta" y el usuario reconoce sus
+   * propias direcciones.
+   */
+  delivery: (truckId, origin, stops) =>
+    post('/api/routes/delivery', { truckId, origin, stops }),
+
   // viajes
   startTrip: (data) => post('/api/trips', data),
 

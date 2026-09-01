@@ -110,7 +110,7 @@ pantalla de fuentes, leyenda achicada, iconos, mobile-first, modo día y noche.
 | ✅ | **Radares de control de velocidad** — resuelto con dato oficial: 129 cinemómetros del GCBA (CC-BY). Las otras 95 cámaras del dataset son de analítica de video y quedaron afuera | v2 · 01/09/2026 |
 | ❌ 💬 | **Radares de control de peso.** Investigado sin resultado: **no existe fuente** — cero balanzas en CABA, ni dataset oficial ni OSM (L-9). Sólo queda como reporte comunitario | v2 · cerrado 31/08/2026 |
 | ⬜ 💬 | **Lugares de interés valorados por usuarios**, que además confirmen si son aptos para tránsito pesado (y eso da puntos). Se cruza con los 78 POIs que ya existen, donde la aptitud está indeclarada en 75 (L-6) | v2 |
-| ⬜ | **Modo reparto**: hasta 10 direcciones con la ruta óptima desde el origen | v1 |
+| ✅ | **Modo reparto**: hasta 10 paradas, ordenadas con distancias **reales** de ruta (no en línea recta: en CABA la ruta real llega a 1,67× la recta). Vecino más cercano + 2-opt en el dominio, 14 tests. 1,2 s para 9 paradas. Marcadores numerados en el mapa y en la lista con el mismo número. **Falta probarlo manejando** (AD-41) | v1 · 01/09/2026 |
 
 ### Fase 5 · Reportes de la comunidad — ⬜ **nueva, sale del v2**
 

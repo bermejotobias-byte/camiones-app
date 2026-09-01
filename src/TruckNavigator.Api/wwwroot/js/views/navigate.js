@@ -35,7 +35,11 @@ export function navigateView(host, { openDrawer, go }) {
   let route = null;
   let routeOptions = [];      // la recomendada y sus alternativas, ya ordenadas
   let chosenRoute = 0;        // cuál de todas se está mirando
-  let stage = 'search';       // 'search' | 'route' | 'navigation'
+  let stage = 'search';       // 'search' | 'route' | 'delivery' | 'navigation'
+
+  // --- modo reparto ---
+  let stops = [];             // paradas como las cargó el usuario
+  let deliveryOrder = null;   // índices sobre `stops`, en el orden de visita
   let editing = 'destination';
 
   // --- estado de la navegacion en curso ---
@@ -326,6 +330,7 @@ export function navigateView(host, { openDrawer, go }) {
   function drawSheet() {
     if (stage === 'navigation') return drawNavigation();
     if (stage === 'route') return drawRoute();
+    if (stage === 'delivery') return drawDelivery();
     drawSearch();
   }
 
@@ -376,6 +381,10 @@ export function navigateView(host, { openDrawer, go }) {
         Calcular ruta
       </button>
 
+      <button class="btn btn-ghost btn-block" id="delivery-mode">
+        Modo reparto · hasta 10 paradas
+      </button>
+
       <p class="hint" style="text-align:center">
         Mantené apretado el mapa para fijar un punto.
       </p>
@@ -389,7 +398,156 @@ export function navigateView(host, { openDrawer, go }) {
       '#origin@focus': () => { editing = 'origin'; },
       '#destination@focus': () => { editing = 'destination'; },
       '#clear-origin': () => clearPoint('origin'),
-      '#clear-destination': () => clearPoint('destination')
+      '#clear-destination': () => clearPoint('destination'),
+      '#delivery-mode': () => entrarEnReparto()
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+     Modo reparto
+
+     Hasta diez paradas, y el servidor decide en qué orden conviene visitarlas.
+     El orden NO es el que uno carga: se calcula con distancias reales de ruta
+     —no en línea recta— porque en una ciudad con un río y autopistas la ruta
+     real llega a ser 1,67 veces la recta, y ahí el orden cambia. Ver AD-41.
+  ------------------------------------------------------------------------ */
+
+  function entrarEnReparto() {
+    stage = 'delivery';
+
+    // El destino de un viaje simple pasa a ser la primera parada: si uno ya lo
+    // había cargado, perderlo al cambiar de modo es tirarle el trabajo.
+    if (destination && !stops.length) {
+      stops = [destination];
+      destination = null;
+      gl.setDestination(null);
+    }
+
+    editing = 'stop';
+    deliveryOrder = null;
+    drawSheet();
+  }
+
+  function salirDelReparto() {
+    stage = 'search';
+    stops = [];
+    deliveryOrder = null;
+    editing = 'destination';
+
+    gl.setDeliveryStops([]);
+    gl.clearRoute();
+    drawSheet();
+  }
+
+  /** Las paradas en el orden en que se visitan, o como se cargaron si no se calculó. */
+  const paradasEnOrden = () =>
+    deliveryOrder ? deliveryOrder.map((i) => stops[i]) : stops;
+
+  function drawDelivery() {
+    const truck = selectedTruck();
+    const orden = paradasEnOrden();
+    const lleno = stops.length >= 10;
+
+    render(sheetAs('sheet'), html`
+      <div class="sheet-grab"></div>
+
+      <div class="row-between">
+        <b style="font-size:15px">Reparto</b>
+        <button class="fab" id="close-delivery" aria-label="Salir del reparto">${raw(icon('close', 20))}</button>
+      </div>
+
+      <div class="waypoint">
+        <span class="dot dot-a"></span>
+        <input id="origin" placeholder="Origen" autocomplete="off"
+               value="${origin?.label ?? ''}">
+      </div>
+
+      ${orden.length ? raw(`<ol class="stop-list">${orden.map((parada, i) => `
+        <li>
+          <span class="stop-number">${i + 1}</span>
+          <span class="stop-label truncate">${escapeText(parada.label ?? 'Parada')}</span>
+          <button class="waypoint-clear" data-quitar="${stops.indexOf(parada)}"
+                  type="button" aria-label="Quitar esta parada">${icon('close', 16)}</button>
+        </li>`).join('')}</ol>`) : raw(`
+        <p class="hint">Agregá las paradas del día. El orden lo resolvemos nosotros.</p>
+      `)}
+
+      ${raw(lleno
+        ? '<p class="hint">Llegaste a las 10 paradas.</p>'
+        : `<div class="waypoint">
+             <span class="dot dot-b"></span>
+             <input id="new-stop" placeholder="Agregar parada" autocomplete="off" value="">
+           </div>`)}
+
+      <div id="suggestions"></div>
+
+      ${deliveryOrder ? raw(`
+        <div class="stack-sm">
+          <div class="network-bar"><i style="width:${Math.round(route.heavyNetworkSharePercent)}%"></i></div>
+          <p class="hint">
+            <b class="num">${formatDistance(route.distanceMeters)}</b> ·
+            <b class="num">${formatDuration(route.durationSeconds)}</b> ·
+            <b style="color:var(--brand-ink)">${Math.round(route.heavyNetworkSharePercent)}%</b> por la Red
+          </p>
+        </div>`) : ''}
+
+      <button class="btn btn-primary btn-block" id="calc-delivery"
+              ${stops.length && origin && truck ? '' : 'disabled'}>
+        ${deliveryOrder ? 'Recalcular reparto' : 'Calcular reparto'}
+      </button>
+    `);
+
+    wire(sheet(), {
+      '#close-delivery': () => salirDelReparto(),
+      '#calc-delivery': (event) => calcularReparto(event.currentTarget),
+      '#origin@input': onInput('origin'),
+      '#origin@focus': () => { editing = 'origin'; },
+      '#new-stop@input': onInput('stop'),
+      '#new-stop@focus': () => { editing = 'stop'; }
+    });
+
+    for (const boton of qa(sheet(), '[data-quitar]')) {
+      boton.addEventListener('click', () => quitarParada(Number(boton.dataset.quitar)));
+    }
+  }
+
+  function quitarParada(index) {
+    if (!Number.isInteger(index) || index < 0 || index >= stops.length) return;
+
+    stops.splice(index, 1);
+
+    // El orden calculado apunta a los índices viejos: sacar una parada lo
+    // invalida entero. Mostrarlo igual haría que los números de la lista y los
+    // del mapa dejaran de corresponderse con la ruta dibujada.
+    deliveryOrder = null;
+
+    gl.setDeliveryStops(stops);
+    gl.clearRoute();
+    drawSheet();
+  }
+
+  async function calcularReparto(button) {
+    const truck = selectedTruck();
+    if (!truck || !origin || !stops.length) return;
+
+    await withBusy(button, 'Ordenando paradas', async () => {
+      try {
+        const resultado = await api.delivery(
+          truck.id,
+          { latitude: origin.lat, longitude: origin.lng },
+          stops.map((p) => ({ latitude: p.lat, longitude: p.lng })));
+
+        route = resultado.route;
+        deliveryOrder = resultado.stopOrder;
+
+        gl.drawRoute(route, route.accessLegs ?? []);
+        gl.setDeliveryStops(paradasEnOrden());
+        drawSheet();
+
+        toastOk(`${stops.length} paradas ordenadas.`);
+      } catch (error) {
+        toastError(error.message);
+      }
     });
   }
 
@@ -754,6 +912,21 @@ export function navigateView(host, { openDrawer, go }) {
   ------------------------------------------------------------------------ */
 
   function setPoint(which, point) {
+    if (which === 'stop') {
+      // Una parada más del reparto. El orden calculado deja de valer: sus
+      // índices son sobre la lista anterior.
+      if (stops.length < 10) stops.push(point);
+
+      deliveryOrder = null;
+      gl.setDeliveryStops(stops);
+      gl.clearRoute();
+
+      hideSuggestions();
+      drawSheet();
+      gl.flyTo(point);
+      return;
+    }
+
     if (which === 'origin') {
       origin = point;
       gl.setOrigin(point);

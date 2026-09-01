@@ -442,6 +442,16 @@ button { font-family: inherit; font-size: inherit; }
 .pin-origin { background: var(--origin); }
 .pin-destination { background: var(--destination); }
 
+/* Paradas de un reparto. Un poco más grandes que el pin común porque llevan un
+   número adentro que hay que poder leer de reojo, y en la marca del producto
+   para que se distingan del origen y el destino de un viaje simple. */
+.pin-stop {
+  width: 30px; height: 30px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: 13px;
+}
+
 .pin-gps {
   width: 18px; height: 18px;
   background: var(--brand);
@@ -781,6 +791,42 @@ button { font-family: inherit; font-size: inherit; }
   gap: 14px;
   flex-wrap: wrap;
 }
+
+/* Paradas de un reparto.
+
+   Se numeran en el orden en que se visitan, y ese número es el mismo que lleva
+   el marcador en el mapa: son las dos mitades de la misma información y tienen
+   que poder cruzarse de un vistazo. */
+.stop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stop-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--surface-2, rgba(255,255,255,.03));
+}
+
+.stop-number {
+  flex: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--brand-ink);
+  display: grid;
+  place-items: center;
+  font: 800 12px/1 var(--ui);
+}
+
+.stop-label { flex: 1; min-width: 0; font-size: 14px; }
 
 /* Alternativas de ruta.
 

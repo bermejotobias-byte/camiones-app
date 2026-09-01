@@ -262,6 +262,43 @@ function place(kind, coords, className, label) {
 export const setOrigin = (coords) => place('origin', coords, 'pin-origin', 'A');
 export const setDestination = (coords) => place('destination', coords, 'pin-destination', 'B');
 
+/**
+ * Las paradas de un reparto, numeradas en el orden de visita.
+ *
+ * @param {Array<{lat:number, lng:number}>} paradas
+ *   Ya en el orden en que se visitan. El numero que se dibuja es la posicion en
+ *   esta lista, empezando por 1.
+ *
+ * Van como marcadores y no como una capa de simbolos porque tienen que
+ * distinguirse del resto del mapa aunque haya galibos y radares encima: un
+ * marcador se dibuja sobre todo el canvas y no compite por lugar.
+ *
+ * OJO al estilarlos: MapLibre le pone `position: absolute` al elemento y lo ubica
+ * por `transform`. Declarar `position: relative` en `.pin` lo sacaria del mapa —
+ * y con un solo marcador la posicion coincide igual, asi que no se nota hasta
+ * que hay dos.
+ */
+export function setDeliveryStops(paradas) {
+  if (!map) return;
+
+  for (const marcador of deliveryMarkers) {
+    marcador.remove();
+  }
+
+  deliveryMarkers = [];
+
+  for (const [i, parada] of (paradas ?? []).entries()) {
+    if (!Number.isFinite(parada?.lat) || !Number.isFinite(parada?.lng)) continue;
+
+    deliveryMarkers.push(
+      new maplibregl.Marker({ element: pinElement('pin-stop', String(i + 1)) })
+        .setLngLat([parada.lng, parada.lat])
+        .addTo(map));
+  }
+}
+
+let deliveryMarkers = [];
+
 /* ---------------------------------------------------------------------------
    Donde estoy y hacia donde miro
 

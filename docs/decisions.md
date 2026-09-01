@@ -2156,3 +2156,86 @@ prohibidos, cuánto tarda y cuánto va por la Red. El tiempo no va primero. La
 elegida se marca con borde y fondo, no sólo con color de texto: se mira de reojo
 y tiene que distinguirse sin leer.
 
+## AD-41 · El orden del reparto se calcula con distancias reales, no en línea recta
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+El brainstorm v1 pedía *"modo reparto: hasta 10 direcciones con la ruta óptima
+desde el origen"*. Es el problema del viajante, y **GraphHopper self-hosted no
+trae optimizador** — el de ellos es del servicio pago. Así que el orden lo
+resolvemos nosotros.
+
+### La pregunta era con qué distancias ordenar
+
+Para ordenar N paradas hace falta saber lo que cuesta ir de cada una a cada otra.
+Hay dos caminos: distancia en línea recta, que es gratis, o consultarle cada par
+al motor de ruteo. **Medido sobre diez paradas de CABA:**
+
+| | |
+|---|---|
+| Matriz real (90 pares) | **2,7 s** secuencial · 30 ms por consulta |
+| Ruta real vs línea recta | **1,27×** en promedio, hasta **1,67×** |
+| Penalidad de ordenar por línea recta | **0,0%** en ese caso |
+
+La línea recta acertó el orden en la prueba. **Pero no había razón para
+arriesgarse:** los peores pares —La Boca a Constitución, Retiro al Obelisco— se
+apartan 1,67×, y ahí el orden puede cambiar. Un río, una autopista sin bajada o
+un puñado de calles de un solo sentido bastan.
+
+Con paralelismo de 8, el endpoint completo tarda **1,2 s para nueve paradas**.
+
+### El algoritmo
+
+`DeliveryOrder` vive en el dominio y es código puro: vecino más cercano para
+arrancar, y **2-opt** para deshacer los cruces que ése deja. Con diez paradas
+converge en dos o tres pasadas.
+
+Detalles que no son obvios:
+
+- **La matriz no tiene por qué ser simétrica.** Ir y volver entre dos puntos
+  puede costar distinto: calles de un solo sentido, una autopista con bajada de
+  un solo lado. El algoritmo no lo supone.
+- **Un par sin ruta vale infinito y no tumba el reparto.** La parada sigue
+  existiendo y el orden se resuelve con lo que se sabe. Perder una parada en
+  silencio es la peor forma de fallar acá: el camión vuelve al depósito con un
+  bulto y nadie se entera hasta el final del día.
+- **Hay un tope de pasadas de 2-opt y un piso de mejora de medio metro.** Sin el
+  piso, la aritmética de punto flotante encuentra mejoras de una millonésima para
+  siempre; un GPS colgado calculando un reparto es peor que uno que da una vuelta
+  de más.
+- **Cada consulta de la matriz lleva el custom model del camión.** Sin eso el
+  orden se calcularía con distancias de auto, que es exactamente el error que
+  este producto existe para no cometer.
+
+### La ruta final es una sola consulta
+
+Con todos los puntos en el orden elegido, no pegando tramos sueltos: así la
+geometría, las instrucciones y la evaluación de restricciones salen de la ruta de
+verdad.
+
+### Se devuelven índices, no la lista reordenada
+
+`stopOrder` son los índices sobre las paradas **tal como las cargó el usuario**.
+Con la lista ya ordenada esa correspondencia se pierde y el usuario no reconoce
+sus propias direcciones: la app tiene que poder decir *"tu parada 3 se visita
+quinta"*.
+
+### En la pantalla
+
+Las paradas se numeran en la lista **y en el mapa con el mismo número**: son las
+dos mitades de la misma información y tienen que poder cruzarse de un vistazo.
+
+Agregar o quitar una parada **invalida el orden calculado** y borra la ruta. Sus
+índices son sobre la lista anterior, así que mostrarlo igual haría que los
+números de la lista y los del mapa dejaran de corresponderse con lo dibujado.
+
+### Una trampa de la plantilla
+
+El markup se arma con `html\`\`` que **escapa por defecto**, y lo anidado va con
+`raw()`. Un `html\`\`` adentro de otro `html\`\`` se escapa y **el usuario ve las
+etiquetas como texto** — pasó con el campo de agregar parada. Todo bloque
+condicional que devuelva marcado va envuelto en `raw`.
+

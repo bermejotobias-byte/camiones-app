@@ -21,7 +21,7 @@ OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
-| `tests/TruckNavigator.UnitTests` | 113 tests: 65 de dominio + 20 de la direccion del backend + 17 de la politica de reintentos + 11 del orden de las rutas alternativas. Los dos ultimos grupos enlazan archivos de Mobile, que no depende de MAUI a proposito |
+| `tests/TruckNavigator.UnitTests` | 127 tests: 65 de dominio + 20 de la direccion del backend + 17 de la politica de reintentos + 11 del orden de rutas alternativas + 14 del orden del reparto. Los dos ultimos grupos enlazan archivos de Mobile, que no depende de MAUI a proposito |
 | `tests/TruckNavigator.IntegrationTests` | 46 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 35 sobre datasets, perfiles, camiones, viajes y SQLite |
 
 Solución: `TruckNavigator.slnx`.
@@ -42,7 +42,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-radares-velocidad.ps1             # Radares de velocidad, dato oficial del GCBA
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 159 tests (.NET)
+dotnet test                                    # 173 tests (.NET)
 node --test "tests/web/*.test.mjs"             # 45 tests: guiado + avisos de ruta
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
@@ -213,6 +213,19 @@ node --test "tests/web/*.test.mjs"             # 45 tests: guiado + avisos de ru
   raíz conserva la forma de siempre para que la app ya instalada en el teléfono siga
   funcionando. En tramos cortos y directos no hay alternativas y el selector no aparece:
   con `max_share_factor: 0.7`, dos rutas que comparten el 90% no son dos opciones.
+- **El modo reparto ordena las paradas con distancias REALES, no en línea recta.** El
+  optimizador de GraphHopper es del servicio pago, así que el orden lo resuelve
+  `DeliveryOrder` (dominio, 14 tests): vecino más cercano + 2-opt. Medido en CABA, la ruta
+  real es **1,27× la recta en promedio y hasta 1,67×**; la matriz cuesta 2,7 s secuencial y
+  el endpoint completo **1,2 s con paralelismo de 8**. Cada consulta lleva el custom model
+  del camión — sin eso el orden se calcularía con distancias de auto. Ver AD-41.
+- **Un par sin ruta vale infinito y NO tumba el reparto.** Perder una parada en silencio es
+  la peor forma de fallar ahí: el camión vuelve al depósito con un bulto y nadie se entera
+  hasta el final del día. Por lo mismo, `stopOrder` devuelve **índices** sobre la lista que
+  cargó el usuario y no las paradas reordenadas.
+- **`html\`\`` escapa por defecto y lo anidado va con `raw()`.** Un `html\`\`` adentro de otro
+  `html\`\`` se escapa y **el usuario ve las etiquetas como texto** — pasó con el campo de
+  agregar parada. Todo bloque condicional que devuelva marcado va envuelto en `raw`.
 - **La navegación depende de `sign` e `interval`** de GraphHopper: el `Kind` de la maniobra y
   el punto donde ocurre. El parser los descartaba y no se notaba, porque la ruta se dibuja
   igual. Si se tocan las instrucciones, los tests de `NavigationInstructionsTests` lo cubren.
