@@ -523,3 +523,98 @@ export function call(number) {
 
   window.location.href = `tel:${number}`;
 }
+
+/* ---------------------------------------------------------------------------
+   Libreta de contactos
+
+   El selector lo dibuja ANDROID, no nosotros: la app pide "elegí un contacto",
+   el sistema muestra la agenda y devuelve unicamente el que se toco. Por eso
+   NO hace falta el permiso READ_CONTACTS, que da acceso a la agenda entera y
+   aparece declarado en la ficha de la tienda. Ver AD-42.
+--------------------------------------------------------------------------- */
+
+/**
+ * El pedido en curso, o null.
+ *
+ * Uno solo: dos selectores abiertos a la vez no tienen sentido y Android
+ * tampoco los da. Si llega un segundo pedido mientras el primero sigue abierto
+ * se devuelve LA MISMA promesa, en vez de abrir otra pantalla encima.
+ */
+let contactWaiter = null;
+
+/**
+ * Si se puede elegir de la agenda.
+ *
+ * En el navegador no hay libreta, asi que quien ofrezca el boton tiene que
+ * mirar esto antes: un boton que no puede funcionar es peor que su ausencia.
+ */
+export const canPickContact = isNative;
+
+/**
+ * Abre la libreta del telefono para elegir un contacto.
+ *
+ * El numero vuelve **tal como esta en la agenda**, con sus espacios, guiones o
+ * prefijos: normalizarlo seria inventar reglas (0, 15, +54 9) que este puente
+ * no tiene por que conocer. Quien lo guarde decide que hacer con eso.
+ *
+ * @returns {Promise<{name: string, phone: string} | null>} el contacto elegido,
+ *   o `null` si la persona salio sin elegir. **Cancelar no es un error**: es
+ *   una respuesta, y quien llama tiene que poder distinguirla de un fallo.
+ * @throws {Error} si la agenda no se pudo abrir o el contacto no tenia numero.
+ */
+export function pickContact() {
+  if (!isNative) {
+    return Promise.reject(
+      new Error('La libreta de contactos sólo está disponible en la aplicación del teléfono.'));
+  }
+
+  if (contactWaiter) {
+    return contactWaiter.promise;
+  }
+
+  const waiter = {};
+
+  waiter.promise = new Promise((resolve, reject) => {
+    waiter.resolve = resolve;
+    waiter.reject = reject;
+  });
+
+  contactWaiter = waiter;
+  send({ action: 'pickContact' });
+
+  return waiter.promise;
+}
+
+/**
+ * La cascara entrega el contacto elegido.
+ *
+ * No lleva temporizador a proposito: la persona puede tardar lo que quiera
+ * buscando en su agenda, y una promesa que vence sola mientras el selector
+ * sigue abierto en pantalla dejaria el resultado sin destino. A cambio, **la
+ * cascara tiene que contestar siempre** —haya elegido, cancelado o fallado—,
+ * que es lo que garantiza que esto no quede esperando para siempre.
+ */
+window.TN_contactPicked = (name, phone) => {
+  const waiter = contactWaiter;
+  contactWaiter = null;
+
+  waiter?.resolve({ name: name || '', phone: phone || '' });
+};
+
+/**
+ * La cascara avisa que no hubo contacto.
+ *
+ * Sin motivo es que la persona salio sin elegir, y eso resuelve a `null`. Con
+ * motivo es una falla —no hay app de agenda, el contacto no tenia telefono— y
+ * ahi si corresponde un error, porque hay algo que contarle al usuario.
+ */
+window.TN_contactCancelled = (reason) => {
+  const waiter = contactWaiter;
+  contactWaiter = null;
+
+  if (reason) {
+    waiter?.reject(new Error(reason));
+  } else {
+    waiter?.resolve(null);
+  }
+};

@@ -8,7 +8,7 @@
  */
 
 import { api, isSignedIn, signOut, setApiBase } from './api.js';
-import { initPlatform, call } from './platform.js';
+import { initPlatform, call, pickContact, canPickContact } from './platform.js';
 import { prefs, state, setState, applyTheme, savePrefs } from './store.js';
 import { html, raw, icon, wire, q, render, toastError } from './ui.js';
 
@@ -235,6 +235,13 @@ function emergencyView(host, { go }) {
           WhatsApp se agregan en la próxima etapa. Por ahora el botón hace lo único
           que no puede fallar: llamar.
         </p>
+
+        ${canPickContact ? raw(`
+          <button class="btn btn-ghost btn-block" id="try-contact">
+            Probar: elegir de la agenda
+          </button>
+          <p class="hint" id="contact-result"></p>
+        `) : ''}
       </div>
     </div>
   `;
@@ -243,8 +250,34 @@ function emergencyView(host, { go }) {
     '#back': () => go('mapa'),
     // Adentro del WebView un `tel:` no abre el discador solo: lo resuelve la
     // cascara nativa por el puente.
-    '#call-911': () => call('911')
+    '#call-911': () => call('911'),
+    '#try-contact': () => probarAgenda(host)
   });
+}
+
+/**
+ * Prueba el puente con la libreta de contactos.
+ *
+ * Es un banco de pruebas y no una funcion: no guarda nada ni llama a nadie. El
+ * puente nativo se construyo antes que la pantalla que lo va a usar —los tres
+ * contactos de emergencia y compartir viaje—, y un puente de la costura
+ * nativa-web que no se toca en el telefono es exactamente lo que este proyecto
+ * ya pago cinco veces. Esto existe para poder tocarlo.
+ *
+ * Se borra cuando llegue la pantalla de verdad.
+ */
+async function probarAgenda(host) {
+  const salida = q(host, '#contact-result');
+
+  try {
+    const contacto = await pickContact();
+
+    salida.textContent = contacto
+      ? `Elegiste ${contacto.name || 'sin nombre'} — ${contacto.phone}`
+      : 'Saliste sin elegir.';
+  } catch (error) {
+    salida.textContent = `No se pudo: ${error.message}`;
+  }
 }
 
 function settingsView(host, { go }) {

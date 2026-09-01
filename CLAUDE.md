@@ -43,7 +43,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 173 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 45 tests: guiado + avisos de ruta
+node --test "tests/web/*.test.mjs"             # 55 tests: guiado, avisos de ruta y agenda
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -174,6 +174,16 @@ node --test "tests/web/*.test.mjs"             # 45 tests: guiado + avisos de ru
   lleva `[Conditional("DEBUG")]`, así que el compilador borra las llamadas en Release, o sea
   que los mensajes desaparecen justo en el APK que se instala en el teléfono. Va
   `Android.Util.Log`. Ver AD-31.
+- **El selector de contactos NO pide `READ_CONTACTS`, y no hay que agregárselo.** Va
+  por `ACTION_PICK` sobre `Phone.ContentUri`: el sistema dibuja la agenda y devuelve
+  sólo el contacto tocado, con permiso temporal para ese registro. `READ_CONTACTS`
+  daría la libreta entera **y queda declarado en la ficha de la tienda**, que es de
+  los permisos que más frenan una instalación. Los nombres de columna son
+  asimétricos y hay que **buscarlos, no suponerlos**: `Phone.Number` cuelga directo
+  de `Phone` y `DisplayName` de su `InterfaceConsts` — la primera versión no
+  compiló por eso. El resultado vuelve por `MainActivity.OnActivityResult`, no por
+  donde se pidió, y la suscripción se suelta al primer resultado porque la Activity
+  vive más que la página. **Cancelar resuelve `null`; sólo un fallo rechaza.** Ver AD-42.
 - **`confirm()` y `alert()` no existen adentro de la app Android**: el WebView no dibuja
   diálogos de JavaScript sin un `WebChromeClient` que los atienda, y MAUI no instala
   ninguno — `confirm()` devuelve `false` sin mostrar nada y el botón parece no responder.

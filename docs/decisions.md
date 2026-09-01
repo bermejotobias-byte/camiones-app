@@ -2239,3 +2239,102 @@ El markup se arma con `html\`\`` que **escapa por defecto**, y lo anidado va con
 etiquetas como texto** — pasó con el campo de agregar parada. Todo bloque
 condicional que devuelva marcado va envuelto en `raw`.
 
+
+---
+
+## AD-42 · El selector de contactos se pide prestado a Android, sin permiso de agenda
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+Los tres contactos de emergencia y compartir el viaje por WhatsApp —los dos
+ítems que quedan de la Fase 3— necesitan lo mismo: que la persona elija a alguien
+de su libreta. La fase se pospuso, pero **el puente se construyó igual**, y a
+propósito: es la pieza que las dos comparten, vive en la costura entre la cáscara
+nativa y la web, y ahí el proyecto ya se lastimó cinco veces. Hacerlo aislado,
+con su propia verificación, sale más barato que descubrirlo metido adentro de una
+pantalla grande.
+
+### La decisión: `ACTION_PICK`, no `READ_CONTACTS`
+
+Hay dos formas de llegar a un contacto en Android, y la diferencia no es técnica
+sino de qué le pedimos al usuario:
+
+| | `READ_CONTACTS` | `ACTION_PICK` (elegida) |
+|---|---|---|
+| Qué se pide | acceso a **toda la agenda**, siempre | nada |
+| Quién dibuja la lista | nosotros | **el sistema** |
+| Qué vuelve | lo que consultemos | sólo el contacto que se tocó |
+| En la ficha de la tienda | queda declarado | no aparece |
+
+Con `ACTION_PICK` la app lanza un Intent, **Android** muestra la agenda, y de
+vuelta llega un URI que apunta a ese único registro con permiso de lectura
+temporal. La app nunca ve el resto de la libreta.
+
+El permiso no se pide porque **no hace falta**, y un permiso que no hace falta es
+un permiso que no se pide: en la pantalla de instalación, "acceder a tus
+contactos" es de los que más frenan a la gente.
+
+Se consulta `Phone.ContentUri` y no `Contacts.ContentUri`: aquél lista los
+**números**, así que alguien con tres líneas elige cuál, y lo que vuelve ya es el
+número. Con el segundo volvería el contacto y habría que resolver sus teléfonos
+aparte — lo que sí necesita el permiso.
+
+**Los nombres de las columnas hay que buscarlos, no suponerlos.** Son asimétricos:
+`Phone.Number` cuelga directo de `Phone`, y `DisplayName` de su `InterfaceConsts`.
+Verificado contra el `Mono.Android.xml` del pack 36, después de que la primera
+versión no compilara.
+
+### Cancelar no es fallar
+
+Es la decisión que más se nota usando la app. Salir de la agenda sin elegir es
+una **respuesta**, no un error: quien lo hizo no necesita ver un cartel rojo. No
+poder abrir la agenda sí lo es. Por eso el puente tiene dos vueltas distintas:
+
+- `TN_contactPicked(nombre, numero)` → resuelve el contacto.
+- `TN_contactCancelled(motivo)` → **sin** motivo resuelve `null`; **con** motivo
+  rechaza con ese texto.
+
+Si las dos viajaran iguales, la app le mentiría a una de las dos personas.
+
+### El número viaja tal como está en la agenda
+
+Sin normalizar. Las reglas argentinas —el 0 de larga distancia, el 15, el `+54 9`—
+son de verdad y merecen sus propios tests, pero **no son de este puente**, y
+además no valen fuera del país. Quien guarde el dato decide qué hacer con él.
+
+`Phone.NormalizedNumber` trae además el formato internacional que va a necesitar
+compartir viaje. No se lee hoy porque **viene nulo si el contacto se cargó sin
+país**, y nadie lo usa todavía.
+
+### La promesa siempre termina
+
+No hay temporizador: la persona puede tardar lo que quiera buscando en su agenda,
+y una promesa que vence sola mientras el selector sigue abierto dejaría el
+resultado sin destino. A cambio, **la cáscara contesta en todas las ramas** —
+eligió, canceló, falló, no había Activity, no hay app de agenda. Una rama muda
+dejaría el pedido colgado para siempre.
+
+Un pedido por vez: si llega un segundo mientras el primero sigue abierto, se
+devuelve **la misma promesa** en vez de apilar selectores.
+
+### El resultado vuelve por otra puerta
+
+Abrir el selector es un viaje de ida y vuelta por **afuera** de la aplicación: se
+lanza el Intent, Android dibuja lo suyo, y la respuesta llega a
+`MainActivity.OnActivityResult` — no a donde se pidió. `AppPage` no es una
+Activity y no puede sobrescribirlo, así que `MainActivity` expone un evento y la
+página se suscribe **sólo mientras hay un pedido en curso**: la Activity vive más
+que la página, y un manejador olvidado se la lleva puesta.
+
+### Verificación
+
+10 tests de JS sobre la mitad de este lado —que la promesa siempre termine, y que
+termine distinto según lo que pasó—, que suben el total web a 55. La mitad nativa
+sólo se puede probar en el teléfono, y se probó ahí.
+
+Mientras no exista la pantalla de los tres contactos, el único disparador es un
+botón de prueba en la pantalla de Emergencia, marcado como tal en el código.
+**Se borra cuando llegue la pantalla de verdad.**

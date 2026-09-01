@@ -333,6 +333,10 @@ public partial class AppPage : ContentPage
 
                     MainThread.BeginInvokeOnMainThread(() => Dial(number));
                     break;
+
+                case "pickContact":
+                    MainThread.BeginInvokeOnMainThread(PickContact);
+                    break;
             }
         }
         catch (JsonException)
@@ -759,8 +763,168 @@ public partial class AppPage : ContentPage
         {
             // Si no hay discador —una tablet sin telefonia— no tiene sentido
             // tumbar la app en medio de una emergencia.
-            System.Diagnostics.Debug.WriteLine($"No se pudo abrir el discador: {ex.Message}");
+            //
+            // Va por Note y no por Debug.WriteLine: aquel lleva
+            // [Conditional("DEBUG")] y el compilador lo borra en Release, o sea
+            // que el rastro desaparecia justo en el APK que se instala. Ver AD-31.
+            Note($"no se pudo abrir el discador ({ex.GetType().Name})", error: true);
         }
+    }
+
+    /* --------------------------------------------------------------------
+       Libreta de contactos
+    -------------------------------------------------------------------- */
+
+#if ANDROID
+    /// <summary>Codigo propio para reconocer la vuelta del selector de contactos.</summary>
+    private const int PickContactRequest = 0x7C01;
+#endif
+
+    /// <summary>
+    /// Abre la agenda del telefono para que la persona elija un contacto.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>No pide el permiso READ_CONTACTS, y no debe pedirlo.</b> El selector lo
+    /// dibuja Android: la app lanza un Intent, el sistema muestra la agenda, y de
+    /// vuelta llega un URI que apunta solo al contacto que se toco, con permiso
+    /// de lectura temporal para ese registro. READ_CONTACTS daria acceso a la
+    /// libreta entera —incluso sin que nadie elija nada— y queda declarado en la
+    /// ficha de la tienda. Para lo que hace falta aca, sobra.
+    /// </para>
+    /// <para>
+    /// Se consulta <c>Phone.ContentUri</c> y no <c>Contacts.ContentUri</c>: aquel
+    /// lista los NUMEROS, asi que alguien con tres lineas elige cual, y lo que
+    /// vuelve ya es el numero. Con el segundo volveria el contacto y habria que
+    /// resolver sus telefonos aparte, lo que si necesita el permiso.
+    /// </para>
+    /// <para>
+    /// <b>Siempre contesta</b>, haya elegido, cancelado o fallado: del otro lado
+    /// hay una promesa esperando sin temporizador, y una rama muda la dejaria
+    /// colgada para siempre. Ver AD-42.
+    /// </para>
+    /// </remarks>
+    private void PickContact()
+    {
+#if ANDROID
+        try
+        {
+            var activity = Platform.CurrentActivity;
+
+            if (activity is null)
+            {
+                ContactFailed("La aplicación no está en pantalla.");
+                return;
+            }
+
+            var intent = new Android.Content.Intent(
+                Android.Content.Intent.ActionPick,
+                Android.Provider.ContactsContract.CommonDataKinds.Phone.ContentUri);
+
+            // Suscribirse recien ahora y soltar al primer resultado: la Activity
+            // vive mas que esta pagina, y un manejador olvidado se la lleva
+            // puesta. Fuera de un pedido en curso no queda nada escuchando.
+            MainActivity.ActivityResult += OnPickContactResult;
+
+            activity.StartActivityForResult(intent, PickContactRequest);
+        }
+        catch (Exception ex)
+        {
+            // Un telefono sin aplicacion de agenda tira ActivityNotFound. Es raro
+            // pero posible, y el usuario tiene que enterarse en vez de ver un
+            // boton que no hace nada.
+            MainActivity.ActivityResult -= OnPickContactResult;
+            ContactFailed($"No se pudo abrir la agenda ({ex.GetType().Name}).");
+        }
+#else
+        ContactFailed("La libreta de contactos sólo está disponible en Android.");
+#endif
+    }
+
+#if ANDROID
+    private void OnPickContactResult(int requestCode, Android.App.Result result, Android.Content.Intent? data)
+    {
+        if (requestCode != PickContactRequest)
+        {
+            return;
+        }
+
+        MainActivity.ActivityResult -= OnPickContactResult;
+
+        // Salir sin elegir es una respuesta valida y no una falla: viaja sin
+        // motivo, y del otro lado resuelve en null en vez de tirar un error.
+        if (result != Android.App.Result.Ok || data?.Data is null)
+        {
+            ContactFailed(null);
+            return;
+        }
+
+        try
+        {
+            var resolver = Android.App.Application.Context.ContentResolver;
+
+            using var cursor = resolver?.Query(
+                data.Data,
+                // Los dos nombres son asimetricos y hay que buscarlos, no
+                // suponerlos: Number cuelga directo de Phone y DisplayName de su
+                // InterfaceConsts. Verificado contra Mono.Android.xml del pack 36.
+                //
+                // Phone.NormalizedNumber trae ademas el numero en formato
+                // internacional, que es lo que va a necesitar compartir viaje por
+                // WhatsApp. No se lee aca porque viene nulo si el contacto se
+                // cargo sin pais, y hoy nadie lo usa.
+                [
+                    Android.Provider.ContactsContract.CommonDataKinds.Phone.Number,
+                    Android.Provider.ContactsContract.CommonDataKinds.Phone.InterfaceConsts.DisplayName
+                ],
+                null, null, null);
+
+            if (cursor is null || !cursor.MoveToFirst())
+            {
+                ContactFailed("No se pudo leer el contacto.");
+                return;
+            }
+
+            var phone = cursor.GetString(0);
+            var name = cursor.GetString(1);
+
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                ContactFailed("Ese contacto no tiene un número de teléfono.");
+                return;
+            }
+
+            // El numero viaja tal cual esta en la agenda. Normalizarlo aca seria
+            // inventar reglas —el 0 de larga distancia, el 15, el +54 9— que este
+            // puente no tiene por que conocer y que ademas no valen fuera del pais.
+            Note($"contacto elegido ({phone.Length} digitos con formato)");
+
+            _ = RunScriptAsync($"window.TN_contactPicked({Json(name)},{Json(phone)})");
+        }
+        catch (Exception ex)
+        {
+            ContactFailed($"No se pudo leer el contacto ({ex.GetType().Name}).");
+        }
+    }
+#endif
+
+    /// <summary>
+    /// Cierra el pedido sin contacto. Sin motivo es que la persona cancelo.
+    /// </summary>
+    private void ContactFailed(string? reason)
+    {
+        if (reason is not null)
+        {
+            Note($"contacto: {reason}", error: true);
+        }
+
+        // El null va escrito y no por Json(reason): ese metodo convierte null en
+        // cadena vacia, que del otro lado tambien se lee como "cancelo" pero por
+        // accidente. Decirlo explicito evita que un cambio en Json rompa esto en
+        // silencio y a distancia.
+        var motivo = reason is null ? "null" : Json(reason);
+
+        _ = RunScriptAsync($"window.TN_contactCancelled({motivo})");
     }
 
     /* --------------------------------------------------------------------
