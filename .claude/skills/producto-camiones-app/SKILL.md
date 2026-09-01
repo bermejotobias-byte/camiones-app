@@ -78,7 +78,7 @@ Lo que falta para cerrarla, y lo que el v2 le agrega:
 | | Ítem | Origen |
 |---|---|---|
 | 🔨 | **Probar manejando.** Nunca se hizo. Es la tesis del producto | — |
-| 🔨 | **El nombre de la calle por la que vas, legible durante el viaje.** Hecho: la ruta pasó a dibujarse **debajo** de los rótulos, y el tramo que se recorre lleva su nombre en verde a **33 px — 3× los 11 px** del mapa base, siguiendo la curva de la calle. **Falta verlo manejando** | v2 · estética · 01/09/2026 |
+| ✅ | **El nombre de la calle por la que vas, legible durante el viaje.** La ruta pasó a dibujarse **debajo** de los rótulos, y la calle que se recorre se rotula en verde a 20–28 px contra los 11 px del mapa base. Va **2×** y no 3×: en 33 px el texto no entra en el largo de la calle y MapLibre no dibuja nada. Se rotula sobre el mapa base, no sobre el tramo de la ruta, porque los tramos entre maniobras miden 29–90 m. **Falta verlo manejando** (AD-37) | v2 · estética · 01/09/2026 |
 | ⬜ | **Vibrar ante cada eventualidad**: doblar, gálibo, accidente, radar | v2 |
 | ⬜ | **Alternativas de ruta** cuando la recomendada está deshabilitada | v2 |
 | ✅ | **Reintento al conectar.** 3 intentos con espera creciente, y sólo se reintenta lo que puede resolverse solo — una dirección mal escrita falla igual las tres veces. Peor caso ~22 s, con el cartel diciendo en qué intento va. Apéndice de AD-33 | defecto medido · 01/09/2026 |

@@ -1846,3 +1846,75 @@ grande de un archivo de `wwwroot/js`.
 
 ---
 
+## AD-37 · El nombre de la calle por la que vas se rotula sobre el mapa base
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+El brainstorm v2 lo pedía así: *"el nombre de la calle por la que vas, legible
+durante el viaje; debe verse 3× más grande que las calles que no se toman, y en
+verde"*. Y anotaba el defecto: **hoy lo tapa la línea de la ruta**.
+
+### Las dos partes del problema
+
+**1. La ruta tapaba los rótulos.** `drawRoute` agregaba sus capas sin `beforeId`,
+o sea al final del estilo, y los 17 px entre el halo y la línea pasaban por
+encima del nombre. Ahora se insertan **antes de `calles-nombre`**. La ruta se
+sigue viendo igual —es una línea gruesa y de color— y el texto encima lleva halo.
+
+**2. Ninguna calle estaba destacada.** Para eso hay que saber cuál se está
+tomando, y eso sólo lo sabe el motor de guiado: `advance()` devuelve `step` con
+su `streetName`.
+
+### Decisión: rotular sobre la geometría del mapa base, filtrando por nombre
+
+La capa `calle-actual` va sobre la misma fuente que usa el mapa base para
+rotular calles (`base` / `source-layer: roads`), con un filtro por nombre que se
+actualiza en cada latido del GPS.
+
+**El primer intento fue dibujar el tramo de la ruta, y no funciona.** Los tramos
+entre maniobras son cortísimos — medidos sobre una ruta real del centro:
+
+| Calle | Largo |
+|---|---:|
+| Avenida Corrientes | 50 m |
+| Avenida 9 de Julio | **29 m** |
+| Carlos Pellegrini | 69 m |
+| Lavalle | 91 m |
+| Avenida 9 de Julio | 2.192 m |
+| Constitución | 83 m |
+
+`symbol-placement: line` **no dibuja nada si el texto no entra a lo largo de la
+línea**. A zoom 16, 29 m son 15 px y "Avenida 9 de Julio" necesita unos 300: el
+rótulo no aparecía casi nunca, y cuando aparecía era por casualidad. La calle del
+mapa base, en cambio, viene entera en el tile: hay largo de sobra y el texto
+sigue su curva.
+
+El precio es que si dos calles distantes comparten nombre se rotulan las dos. En
+el entorno visible eso prácticamente no pasa.
+
+### Por qué no son 3× sino 2×
+
+El mapa base rotula en 11 px, así que 3× serían 33. **En 33 px el texto no entra
+en el largo visible de la calle y MapLibre no dibuja nada** — se probó, y la
+diferencia entre 33 y 18 era que con 33 no se veía absolutamente nada.
+
+Queda en `interpolate` de 20 a 28 px según el zoom: entre **1,8× y 2,5×**. Es
+menos de lo pedido y se cumple el objetivo igual, porque el contraste real lo dan
+tres cosas a la vez: el tamaño, **el verde** contra el gris de las demás, y que
+gana toda colisión (`text-allow-overlap`). Más grande se vería menos, no más.
+
+### Consecuencias
+
+- La capa se borra al limpiar la ruta, pero **su fuente no**: es la del mapa
+  base, y borrarla se llevaría puesto el mapa entero. Por eso `calle-actual` está
+  en `ROUTE_LAYERS` y no en `ROUTE_SOURCES`.
+- Si el mapa base cae al raster de OSM (falta `amba.pmtiles`), no existe la
+  fuente `base` y la función sale sin hacer nada, en vez de tirar.
+- El alta reintenta con `once('idle')` si el estilo no terminó de cargar. Sin eso
+  la capa no se crea nunca y el nombre no aparece **en todo el viaje**, de forma
+  intermitente según quién conteste primero — el mismo defecto que ya tenía
+  cubierto `drawRoute`.
+

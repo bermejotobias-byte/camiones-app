@@ -989,30 +989,14 @@ export function navigateView(host, { openDrawer, go }) {
   }
 
   /**
-   * Escribe sobre el mapa el nombre de la calle por la que se va.
+   * Escribe en verde, sobre el mapa, el nombre de la calle por la que se va.
    *
-   * Se toma el tramo de la instrucción que se está recorriendo —del punto donde
-   * empieza al donde empieza la siguiente— y se rotula esa porción de la ruta.
-   * Es lo que permite que el nombre siga la curva de la calle en vez de flotar
-   * en un cartel, que es como lo muestran Waze y Maps.
+   * El mapa se encarga de encontrarla y rotularla; acá sólo se le dice cuál es.
+   * El dato sale del motor de guiado, que es el único que sabe cuál de todas
+   * las calles a la vista es la que se está tomando.
    */
   function rotularCalleActual() {
-    const paso = navState?.step;
-    const calle = paso?.streetName;
-
-    if (!calle || !route?.geometry?.coordinates) {
-      gl.labelCurrentStreet(null, null);
-      return;
-    }
-
-    const puntos = route.geometry.coordinates;
-    const desde = Math.max(0, Math.min(paso.fromPointIndex ?? 0, puntos.length - 1));
-    const hasta = navState.next?.fromPointIndex ?? puntos.length - 1;
-
-    // `trimRoute` recorta la fuente de la ruta a medida que se avanza, pero acá
-    // se usa la geometría COMPLETA: los índices de las instrucciones son sobre
-    // ella, y mezclarlos con la recortada rotula el tramo equivocado.
-    gl.labelCurrentStreet(calle, puntos.slice(desde, Math.max(desde + 2, hasta + 1)));
+    gl.labelCurrentStreet(navState?.step?.streetName ?? null);
   }
 
   /**

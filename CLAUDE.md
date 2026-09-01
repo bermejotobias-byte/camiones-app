@@ -203,6 +203,18 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
   con `easeTo` desde `enterNavigationMode`, que no pasa por esos manejadores, así que
   apagarlos no la rompe. Los botones + / − se esconden durante el viaje porque la cámara
   sigue al vehículo y deshace cualquier zoom manual. Ver AD-34.
+- **El nombre de la calle por la que vas se rotula sobre el MAPA BASE, no sobre el tramo
+  de la ruta.** Los tramos entre maniobras son cortísimos —29 m, 69 m, 91 m en una ruta
+  real del centro— y `symbol-placement: line` **no dibuja nada si el texto no entra a lo
+  largo de la línea**: a zoom 16, 29 m son 15 px y el nombre necesita unos 300. La calle
+  del mapa base viene entera en el tile, así que hay largo de sobra. La capa `calle-actual`
+  filtra por nombre sobre `base`/`roads` y **no tiene fuente propia** — por eso está en
+  `ROUTE_LAYERS` pero no en `ROUTE_SOURCES`: borrar esa fuente se lleva el mapa entero.
+  Y por lo mismo el rótulo va en **2×** y no en los 3× que pedía el brainstorm: en 33 px
+  no se ve **nada**. Ver AD-37.
+- **La ruta se dibuja DEBAJO de `calles-nombre`.** Sin el `beforeId`, los 17 px del halo
+  más la línea tapan justo el nombre de la calle por la que se va, que es el dato que más
+  se necesita manejando.
 - **El mapa se dibuja después de que el estilo cargue**: `drawRoute` reintenta con `once("idle")`
   si `isStyleLoaded()` es falso. Sin eso la ruta no aparece, de forma intermitente.
 - **SQLite no ordena por `DateTimeOffset`**: los instantes se guardan como ticks UTC con un
