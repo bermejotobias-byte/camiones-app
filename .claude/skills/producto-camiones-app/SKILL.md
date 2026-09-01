@@ -79,7 +79,7 @@ Lo que falta para cerrarla, y lo que el v2 le agrega:
 |---|---|---|
 | 🔨 | **Probar manejando.** Nunca se hizo. Es la tesis del producto | — |
 | ✅ | **El nombre de la calle por la que vas, legible durante el viaje.** La ruta pasó a dibujarse **debajo** de los rótulos, y la calle que se recorre se rotula en verde a 15–19 px contra los 11 px del mapa base. Va **1,5×** y no 3×: los tiles parten las avenidas en tramos de una cuadra y cuanto más grande el texto, en menos entra — en 33 px no se dibuja nada. Se rotula sobre el mapa base, no sobre el tramo de la ruta, porque los tramos entre maniobras miden 29–90 m. **Falta verlo manejando** (AD-37) | v2 · estética · 01/09/2026 |
-| ⬜ | **Vibrar ante cada eventualidad**: doblar, gálibo, accidente, radar | v2 |
+| ✅ | **Vibrar ante cada eventualidad**: doblar, gálibo, paso a nivel y radar, **cada uno con su patrón** — si todos vibraran igual habría que mirar la pantalla, que es lo que la vibración evita. Los gálibos sólo si este camión no pasa. Accidentes quedan para la Fase 5. **Falta sentirlo manejando** (AD-39) | v2 · 01/09/2026 |
 | ⬜ | **Alternativas de ruta** cuando la recomendada está deshabilitada | v2 |
 | ✅ | **Reintento al conectar.** 3 intentos con espera creciente, y sólo se reintenta lo que puede resolverse solo — una dirección mal escrita falla igual las tres veces. Peor caso ~22 s, con el cartel diciendo en qué intento va. Apéndice de AD-33 | defecto medido · 01/09/2026 |
 | ✅ | Perspectiva en primera persona al arrancar | v1 · AD-34 |

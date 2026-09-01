@@ -300,6 +300,27 @@ public partial class AppPage : ContentPage
                     MainThread.BeginInvokeOnMainThread(async () => await SpeakAsync(phrase));
                     break;
 
+                case "vibrate":
+                    if (root.TryGetProperty("pattern", out var pattern) &&
+                        pattern.ValueKind == JsonValueKind.Array)
+                    {
+                        var millis = new List<long>();
+
+                        foreach (var tramo in pattern.EnumerateArray())
+                        {
+                            if (tramo.TryGetInt64(out var ms) && ms is > 0 and < 3000)
+                            {
+                                millis.Add(ms);
+                            }
+                        }
+
+                        if (millis.Count > 0)
+                        {
+                            MainThread.BeginInvokeOnMainThread(() => Vibrate(millis));
+                        }
+                    }
+                    break;
+
                 case "keepAwake":
                     var awake = root.TryGetProperty("on", out var keep) && keep.GetBoolean();
                     MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = awake);
@@ -331,6 +352,75 @@ public partial class AppPage : ContentPage
     /// siquiera entra al <c>catch</c>: aparece como crash nativo y no como error
     /// manejado (ver AD-15).
     /// </remarks>
+    /// <summary>
+    /// Hace vibrar el telefono con un patron de duraciones alternadas.
+    /// </summary>
+    /// <param name="millis">
+    /// Vibracion, silencio, vibracion... en milisegundos, igual que
+    /// <c>navigator.vibrate</c>. El primer valor es la primera vibracion.
+    /// </param>
+    /// <remarks>
+    /// <b>No se usa <c>Vibration.Default.Vibrate</c> de MAUI</b>: sólo acepta una
+    /// duracion suelta, y sin patrones todos los avisos se sienten igual. Que un
+    /// galibo por el que no pasas se distinga de un radar SIN mirar la pantalla
+    /// es la razon de ser de esto; con un unico zumbido no se distingue nada y
+    /// hay que mirar igual.
+    ///
+    /// Por eso va contra el <c>Vibrator</c> de Android, que si acepta formas de
+    /// onda. En Android 8 y posteriores hay que pasar por <c>VibrationEffect</c>:
+    /// el <c>Vibrate(long[])</c> viejo esta obsoleto y en algunos equipos no hace
+    /// nada.
+    /// </remarks>
+    private void Vibrate(List<long> millis)
+    {
+#if ANDROID
+        try
+        {
+            var contexto = Android.App.Application.Context;
+
+            // Android 12+ expone el vibrador a traves del VibratorManager. En las
+            // versiones anteriores hay que pedir el servicio directo, y el
+            // manager ni siquiera existe.
+            Android.OS.Vibrator? vibrador;
+
+            if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.S)
+            {
+                var manager = (Android.OS.VibratorManager?)
+                    contexto.GetSystemService(Android.Content.Context.VibratorManagerService);
+
+                vibrador = manager?.DefaultVibrator;
+            }
+            else
+            {
+                vibrador = (Android.OS.Vibrator?)
+                    contexto.GetSystemService(Android.Content.Context.VibratorService);
+            }
+
+            if (vibrador is null || !vibrador.HasVibrator)
+            {
+                return;
+            }
+
+            // La forma de onda arranca vibrando, asi que el primer tramo tiene
+            // que ser una espera de cero: si no, el patron sale invertido y todos
+            // los avisos empiezan con un silencio del largo de su primer pulso.
+            var onda = new long[millis.Count + 1];
+            onda[0] = 0;
+            millis.CopyTo(onda, 1);
+
+            // -1 es "no repetir". Un aviso que se repite solo no se puede callar
+            // desde la cabina.
+            vibrador.Vibrate(Android.OS.VibrationEffect.CreateWaveform(onda, -1));
+        }
+        catch (Exception ex)
+        {
+            // Un telefono sin vibrador, o uno que no deja usarlo, no puede tumbar
+            // la navegacion: el aviso hablado y el visual siguen su curso.
+            Note($"no se pudo vibrar ({ex.GetType().Name})", error: true);
+        }
+#endif
+    }
+
     private async Task RunScriptAsync(string script)
     {
         try

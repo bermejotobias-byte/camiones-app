@@ -1996,3 +1996,86 @@ Al dibujarla apareció una regla de proporción que no es obvia: **el morro tien
 que ser más alto que el diámetro del lente**. Con el lente más grande que la
 punta, el círculo se sale del cuerpo y el dibujo deja de leerse como una cámara.
 
+## AD-39 · La vibración avisa lo que la vista no puede mirar
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Por qué
+
+Manejando no se mira la pantalla, y la voz se pierde con la ventanilla baja, la
+radio o el motor de un camión. La vibración llega igual: es el único canal que no
+compite con el ruido de la cabina.
+
+### Un patrón distinto por tipo de aviso
+
+Ésta es la decisión que hace que sirva. **Si todo vibrara igual, lo único que se
+sabría es "algo pasa" y habría que mirar la pantalla** — que es justo lo que la
+vibración vino a evitar. Con patrones distintos se aprenden en dos viajes.
+
+| Aviso | Patrón (ms) | Por qué |
+|---|---|---|
+| Maniobra | `70` | Un toque corto: es el más frecuente |
+| Gálibo que no pasa | `140·90·140·90·140` | Tres golpes largos, el más insistente: es el único que anticipa un choque |
+| Radar | `50·90·50` | Dos toques secos, como un parpadeo |
+| Paso a nivel | `110·110·110` | Dos golpes medios, más pesados que el radar |
+
+**No se usa `Vibration.Default.Vibrate` de MAUI**: sólo acepta una duración
+suelta. Va contra el `Vibrator` de Android con `VibrationEffect.CreateWaveform`,
+que sí acepta formas de onda. En Android 12+ el vibrador se pide por
+`VibratorManager`; antes, por el servicio directo.
+
+La forma de onda **arranca vibrando**, así que el primer tramo tiene que ser una
+espera de cero: sin eso el patrón sale invertido y todos los avisos empiezan con
+un silencio del largo de su primer pulso.
+
+### Se vibra en un solo umbral de maniobra
+
+Las maniobras se anuncian a 800, 300 y 80 m. **Vibra sólo en el último.** Vibrar
+en los tres convierte cada giro en tres sacudones desde 800 m antes, y a esa
+altura uno deja de prestarles atención — que es lo que la vibración no se puede
+permitir.
+
+### Los avisos de lo que hay sobre la ruta
+
+Los gálibos, los pasos a nivel y los radares estaban en el mapa desde hace rato,
+pero manejando no se miran. `alertsAlongRoute` los cruza contra la ruta y
+`pendingRouteAlert` decide cuál toca.
+
+**El cálculo se hace una vez, al preparar la ruta.** Cruzar cada posición contra
+685 gálibos, 312 pasos a nivel y 129 radares una vez por segundo es trabajo de
+sobra para un teléfono que además está dibujando el mapa. Hacerlo al principio
+deja una lista corta y ordenada, y después avisar es comparar dos números.
+
+**Corredor de 30 m.** Más ancho empieza a levantar la calle paralela y la
+colectora — y avisar de un puente por el que uno no va a pasar es peor que no
+avisar, porque enseña a desconfiar del aviso. Más angosto se pierden cosas por el
+error de la propia geometría de OSM.
+
+**De los gálibos, sólo los que este camión no pasa.** Un puente de 5 m no le
+importa a nadie que quepa debajo, y avisarlo gasta la atención que hace falta
+para el que sí importa. Sin altura declarada del camión no se avisa ninguno: no
+se puede decir "no pasás" sin saber cuánto mide.
+
+Se avisa **al cruzar** los 200 m, no por estar debajo: con "estar debajo" el
+aviso saltaría en cada latido del GPS durante doscientos metros. Es la misma
+regla que ya tenían las maniobras.
+
+### Los datasets se guardan al descargarlos
+
+`layers.js` expone `truckDataset(key)`. No alcanza con `querySourceFeatures`:
+ése devuelve **lo que hay dibujado en pantalla**, o sea lo que uno ya está
+viendo — no lo que viene más adelante en el camino, que es justo lo que hay que
+avisar.
+
+### Un bug que encontró un test
+
+`Number(null)` es **0**, no `NaN`. Un gálibo sin altura declarada pasaba el
+filtro de `Number.isFinite` y se habría avisado como *"puente de 0,00 m, no
+pasás"* — con vibración de peligro incluida. Va con `Number.parseFloat`, que sí
+da `NaN`.
+
+El generador hoy descarta los gálibos sin altura, pero el motor no puede depender
+de eso: es exactamente la clase de dato faltante que la regla de la casa manda
+tratar como faltante.
+

@@ -6,7 +6,7 @@
  * manana se cambia de biblioteca de mapas, se reescribe este archivo y nada mas.
  */
 
-import { installTruckLayers, setTruckLayersVisible, setRiskZonesVisible, setCrossingsVisible, setTruckHeight, refreshLayerColors } from './layers.js';
+import { installTruckLayers, setTruckLayersVisible, setRiskZonesVisible, setCrossingsVisible, setTruckHeight, refreshLayerColors, truckDataset } from './layers.js';
 import { registerPmtilesProtocol, buildBasemapStyle } from './basemap.js';
 import { currentApiBase } from './api.js';
 
@@ -758,6 +758,13 @@ export function resize() {
 
 export const showTruckLayers = (visible) => setTruckLayersVisible(map, visible);
 export const showRiskZones = (visible) => setRiskZonesVisible(map, visible);
+
+/** Los datasets de camion, para que el motor de avisos los cruce con la ruta. */
+export const datasets = () => ({
+  galibos: truckDataset('alturas'),
+  pasos: truckDataset('pasos'),
+  radares: truckDataset('radares')
+});
 export const useTruckHeight = (metres) => setTruckHeight(map, metres);
 export const refreshColors = () => refreshLayerColors(map);
 

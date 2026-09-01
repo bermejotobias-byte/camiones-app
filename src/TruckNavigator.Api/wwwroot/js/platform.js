@@ -425,6 +425,59 @@ export function speak(text) {
 export const canSpeak = () => isNative || 'speechSynthesis' in window;
 
 /* ---------------------------------------------------------------------------
+   Vibracion
+
+   Manejando no se mira la pantalla, y la voz se pierde con la ventanilla baja,
+   la radio o el motor de un camion. La vibracion llega igual: es el unico canal
+   que no compite con el ruido de la cabina.
+
+   Los patrones son DISTINTOS por tipo de aviso a proposito. Si todo vibra igual,
+   lo unico que se sabe es "algo pasa" y hay que mirar la pantalla — que es
+   justamente lo que la vibracion venia a evitar. Con patrones distintos se
+   aprenden en dos viajes y despues no hace falta mirar.
+
+   Las duraciones van en milisegundos y alternan vibracion y silencio, igual que
+   `navigator.vibrate`. El primer numero es la primera vibracion.
+--------------------------------------------------------------------------- */
+
+export const VIBRACION = {
+  /** Una maniobra que se viene. Un toque corto: es lo mas frecuente. */
+  maniobra: [70],
+
+  /**
+   * Un galibo por el que este camion NO pasa.
+   *
+   * Tres golpes largos, el patron mas insistente de todos: es el unico aviso
+   * que anticipa un choque, y tiene que distinguirse aunque uno lo haya sentido
+   * una sola vez antes.
+   */
+  galibo: [140, 90, 140, 90, 140],
+
+  /** Radar de velocidad. Dos toques secos, como un parpadeo. */
+  radar: [50, 90, 50],
+
+  /** Paso a nivel. Dos golpes medios, mas pesados que el radar. */
+  paso: [110, 110, 110]
+};
+
+/**
+ * Hace vibrar el telefono con uno de los patrones de <see cref="VIBRACION"/>.
+ *
+ * En el navegador usa la Vibration API, que en escritorio no hace nada y no
+ * falla: no hace falta preguntar si existe antes de llamarla.
+ */
+export function vibrate(pattern) {
+  if (!Array.isArray(pattern) || pattern.length === 0) return;
+
+  if (isNative) {
+    send({ action: 'vibrate', pattern });
+    return;
+  }
+
+  navigator.vibrate?.(pattern);
+}
+
+/* ---------------------------------------------------------------------------
    Pantalla
 
    Un GPS que deja apagar la pantalla a mitad de una maniobra no sirve.

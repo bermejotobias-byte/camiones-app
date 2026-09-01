@@ -385,6 +385,15 @@ export function shouldReroute(state, lastRerouteAt, now = Date.now()) {
 const ANNOUNCE_AT = [800, 300, 80];
 
 /**
+ * El umbral en el que ademas de hablar se vibra.
+ *
+ * Uno solo, el ultimo. Vibrar en los tres convierte cada maniobra en tres
+ * sacudones desde ochocientos metros antes, y a esa altura uno deja de
+ * prestarles atencion — que es justo lo que la vibracion no se puede permitir.
+ */
+export const ANNOUNCE_VIBRATE_AT = ANNOUNCE_AT[ANNOUNCE_AT.length - 1];
+
+/**
  * Que aviso corresponde, si corresponde alguno.
  *
  * <b>Se avisa al CRUZAR el umbral, no por estar debajo de el.</b> La diferencia
@@ -508,3 +517,174 @@ function roundDistance(meters) {
 }
 
 const lowerFirst = (text) => text.charAt(0).toLowerCase() + text.slice(1);
+
+/* ---------------------------------------------------------------------------
+   Avisos de lo que hay SOBRE la ruta
+
+   Los galibos, los pasos a nivel y los radares estan en el mapa desde hace rato,
+   pero manejando no se miran: la vista va a la calle. Estos avisos los convierten
+   en algo que llega sin mirar — una vibracion con su patron, y una frase.
+
+   El calculo se hace UNA VEZ, al preparar la ruta, y no en cada latido del GPS.
+   Cruzar cada posicion contra 129 radares, 312 pasos a nivel y 685 galibos una
+   vez por segundo es trabajo de sobra para un telefono que ademas esta dibujando
+   el mapa; hacerlo al principio deja una lista corta y ordenada por distancia,
+   y despues avisar es comparar dos numeros.
+--------------------------------------------------------------------------- */
+
+/**
+ * A que distancia de la ruta tiene que estar algo para que cuente como "sobre
+ * la ruta".
+ *
+ * Treinta metros. Mas ancho empieza a levantar lo de la calle paralela y lo de
+ * la colectora —avisar de un puente por el que uno no va a pasar es peor que no
+ * avisar, porque enseña a desconfiar del aviso—. Mas angosto se pierden cosas
+ * por el error de la propia geometria de OpenStreetMap.
+ */
+const ALERT_CORRIDOR_METERS = 30;
+
+/** A que distancia se avisa. Uno solo: no es una maniobra, es algo que esta ahi. */
+const ALERT_AT_METERS = 200;
+
+/**
+ * Busca sobre la ruta lo que hay que avisar, ordenado por cuando aparece.
+ *
+ * @param prepared      lo que devuelve prepareRoute
+ * @param features      { galibos, pasos, radares }, cada uno un GeoJSON de puntos
+ * @param truckHeight   altura del camion, en metros, o null si no se sabe
+ */
+export function alertsAlongRoute(prepared, features = {}, truckHeight = null) {
+  if (!prepared?.points?.length) return [];
+
+  const alerts = [];
+
+  const agregar = (tipo, geojson, decidir) => {
+    for (const feature of geojson?.features ?? []) {
+      const coords = feature.geometry?.coordinates;
+      if (!Array.isArray(coords) || coords.length < 2) continue;
+
+      const sobre = locateOnRoute(prepared, coords[1], coords[0]);
+      if (!sobre) continue;
+
+      const aviso = decidir(feature.properties ?? {});
+      if (!aviso) continue;
+
+      alerts.push({ tipo, at: sobre.at, ...aviso });
+    }
+  };
+
+  // Galibos: SOLO los que este camion no pasa. Un puente de 5 m no le importa a
+  // nadie que quepa debajo, y avisarlo gasta la atencion que hace falta para el
+  // que si importa. Sin altura declarada del camion no se avisa ninguno: no se
+  // puede decir "no pasas" sin saber cuanto mide.
+  agregar('galibo', features.galibos, (p) => {
+    // parseFloat y NO Number: `Number(null)` es 0, asi que un galibo sin altura
+    // declarada pasaba el filtro y se avisaba como "puente de 0,00 m, no pasas".
+    // El generador hoy descarta los que no traen altura, pero esto no puede
+    // depender de eso — es exactamente la clase de dato faltante que la regla de
+    // la casa dice que hay que tratar como faltante.
+    const metres = Number.parseFloat(p.metres);
+
+    if (!Number.isFinite(metres) || !Number.isFinite(truckHeight)) return null;
+    if (metres >= truckHeight) return null;
+
+    return { metres, name: p.name ?? null };
+  });
+
+  // Pasos a nivel: todos. No dependen del camion y cruzarlos siempre pide bajar
+  // la velocidad.
+  agregar('paso', features.pasos, (p) => ({ barrier: p.barrier ?? null }));
+
+  // Radares: todos.
+  agregar('radar', features.radares, (p) => ({ ubicacion: p.ubicacion ?? null }));
+
+  return alerts.sort((a, b) => a.at - b.at);
+}
+
+/**
+ * Donde cae un punto sobre la ruta, si es que cae.
+ *
+ * Devuelve la distancia acumulada desde el arranque, que es la misma unidad con
+ * la que el motor mide el avance: asi "cuanto falta para el puente" es una resta.
+ */
+function locateOnRoute(prepared, lat, lng) {
+  const { points, cumulative, projector } = prepared;
+  const target = projector.toLocal(lat, lng);
+
+  let best = null;
+
+  for (let i = 1; i < points.length; i++) {
+    const projected = projectOnSegment(target, points[i - 1], points[i]);
+
+    if (projected.distance > ALERT_CORRIDOR_METERS) continue;
+    if (best && projected.distance >= best.distance) continue;
+
+    const largo = Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+
+    best = {
+      distance: projected.distance,
+      at: cumulative[i - 1] + projected.t * largo
+    };
+  }
+
+  return best;
+}
+
+/**
+ * Que aviso de ruta corresponde ahora, si corresponde alguno.
+ *
+ * Se avisa al CRUZAR el umbral, igual que las maniobras: si el criterio fuera
+ * "estar a menos de 200 m", un aviso saltaria en cada latido del GPS durante
+ * doscientos metros.
+ *
+ * @param alerts    lo que devolvio alertsAlongRoute
+ * @param travelled metros recorridos ahora
+ * @param before    metros recorridos en el latido anterior, o null si es el primero
+ * @param yaAvisados Set con las claves de los avisos ya dados
+ */
+export function pendingRouteAlert(alerts, travelled, before, yaAvisados) {
+  if (!alerts?.length || before === null || before === undefined) return null;
+
+  for (let i = 0; i < alerts.length; i++) {
+    const alert = alerts[i];
+    const key = `${alert.tipo}:${i}`;
+
+    if (yaAvisados.has(key)) continue;
+
+    // Ya pasamos de largo: se marca como dado para no acumular basura y para que
+    // no salte si el GPS retrocede un metro.
+    if (travelled > alert.at) {
+      yaAvisados.add(key);
+      continue;
+    }
+
+    const faltabaAntes = alert.at - before;
+    const faltaAhora = alert.at - travelled;
+
+    if (faltabaAntes > ALERT_AT_METERS && faltaAhora <= ALERT_AT_METERS) {
+      return { ...alert, key, meters: Math.round(faltaAhora) };
+    }
+  }
+
+  return null;
+}
+
+/** La frase del aviso, para decirla en voz alta. */
+export function speakableAlert(alert) {
+  if (!alert) return null;
+
+  if (alert.tipo === 'galibo') {
+    const altura = alert.metres.toFixed(2).replace('.', ',');
+    return `Atención: puente de ${altura} metros. Tu camión no pasa.`;
+  }
+
+  if (alert.tipo === 'paso') {
+    return 'Paso a nivel adelante.';
+  }
+
+  if (alert.tipo === 'radar') {
+    return 'Radar de velocidad adelante.';
+  }
+
+  return null;
+}

@@ -13,11 +13,13 @@
 
 import { api } from '../api.js';
 import {
-  getPosition, watchPosition, watchHeading, speak, keepScreenAwake, onTrackingFailed
+  getPosition, watchPosition, watchHeading, speak, keepScreenAwake, onTrackingFailed,
+  vibrate, VIBRACION
 } from '../platform.js';
 import {
   prepareRoute, advance, shouldReroute, pendingAnnouncement,
-  speakableInstruction, maneuverArrow
+  speakableInstruction, maneuverArrow, ANNOUNCE_VIBRATE_AT,
+  alertsAlongRoute, pendingRouteAlert, speakableAlert
 } from '../navigation.js';
 import * as gl from '../map.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
@@ -38,7 +40,9 @@ export function navigateView(host, { openDrawer, go }) {
   let prepared = null;        // ruta preparada por el motor
   let navState = null;        // ultimo estado calculado
   let previousNav = null;     // el anterior, para saber que umbral se cruzo
-  let announced = new Set();  // avisos ya dichos
+  let announced = new Set();  // avisos de maniobra ya dichos
+  let routeAlerts = [];       // galibos, pasos a nivel y radares sobre la ruta
+  let alerted = new Set();    // avisos de ruta ya dados
   let stopWatching = null;    // corta el seguimiento del GPS
   let rerouting = false;
   let lastRerouteAt = null;
@@ -899,6 +903,13 @@ export function navigateView(host, { openDrawer, go }) {
   function startNavigating() {
     prepared = prepareRoute(route);
 
+    // Lo que hay sobre el camino se calcula UNA vez, acá, y no en cada latido
+    // del GPS: cruzar la posición contra 685 gálibos, 312 pasos a nivel y 129
+    // radares una vez por segundo es trabajo de sobra para un teléfono que
+    // además está dibujando el mapa.
+    routeAlerts = alertsAlongRoute(prepared, gl.datasets(), selectedTruck()?.heightMeters ?? null);
+    alerted = new Set();
+
     navState = null;
     previousNav = null;
     announced = new Set();
@@ -936,6 +947,8 @@ export function navigateView(host, { openDrawer, go }) {
     clearOverlay();
 
     prepared = null;
+    routeAlerts = [];
+    alerted = new Set();
     navState = null;
     previousNav = null;
     announced = new Set();
@@ -966,7 +979,17 @@ export function navigateView(host, { openDrawer, go }) {
     if (announcement) {
       announced.add(announcement.key);
       speak(speakableInstruction(navState.next, navState.distanceToManeuver));
+
+      // Vibra sólo en el último aviso, el de 80 m, y no en los tres. Vibrar en
+      // cada umbral convierte la maniobra en tres sacudones desde 800 m antes,
+      // y a esa altura uno deja de prestarles atención — que es justo lo que la
+      // vibración no se puede permitir.
+      if (announcement.meters === ANNOUNCE_VIBRATE_AT) {
+        vibrate(VIBRACION.maniobra);
+      }
     }
+
+    avisarLoQueViene();
 
     // El primer fix cambia la forma de la pantalla —del cartel de "buscando" al
     // bloque de maniobra—, asi que se rehace entera. Los demas latidos solo
@@ -985,6 +1008,36 @@ export function navigateView(host, { openDrawer, go }) {
 
     if (shouldReroute(navState, lastRerouteAt)) {
       await reroute(fix);
+    }
+  }
+
+  /**
+   * Avisa de lo que viene sobre el camino: un puente que no da, un paso a nivel
+   * o un radar.
+   *
+   * Cada tipo vibra distinto. Si todo vibrara igual, lo único que se sabría es
+   * "algo pasa" y habría que mirar la pantalla — que es justo lo que la
+   * vibración vino a evitar.
+   */
+  function avisarLoQueViene() {
+    if (!navState) return;
+
+    const alerta = pendingRouteAlert(
+      routeAlerts, navState.travelledMeters, previousNav?.travelledMeters ?? null, alerted);
+
+    if (!alerta) return;
+
+    alerted.add(alerta.key);
+
+    vibrate(VIBRACION[alerta.tipo] ?? VIBRACION.maniobra);
+
+    const frase = speakableAlert(alerta);
+    if (frase) speak(frase);
+
+    // Además del sonido y la vibración, queda escrito: si el teléfono está en
+    // silencio o el motor tapó la voz, el aviso tiene que poder leerse.
+    if (alerta.tipo === 'galibo') {
+      toastError(`Puente de ${alerta.metres.toFixed(2).replace('.', ',')} m a ${alerta.meters} m. No pasás.`);
     }
   }
 
@@ -1061,6 +1114,11 @@ export function navigateView(host, { openDrawer, go }) {
 
       route = fresh;
       prepared = prepareRoute(fresh);
+
+      // La ruta nueva pasa por otro lado: lo que había sobre la anterior no
+      // sirve, y las claves de los avisos ya dados apuntan a otros índices.
+      routeAlerts = alertsAlongRoute(prepared, gl.datasets(), selectedTruck()?.heightMeters ?? null);
+      alerted = new Set();
 
       // El estado arranca de cero: los indices de la ruta vieja no significan
       // nada sobre la nueva, y los avisos ya dichos son de otras maniobras.

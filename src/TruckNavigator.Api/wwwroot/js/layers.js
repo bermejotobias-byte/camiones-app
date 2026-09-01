@@ -60,6 +60,18 @@ const token = (name) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 /**
+ * Los datasets tal como se descargaron, para quien necesite leerlos.
+ *
+ * El motor de avisos cruza la ruta entera contra los galibos, los pasos a nivel
+ * y los radares, y eso no se puede hacer con `querySourceFeatures`: ese devuelve
+ * lo que hay dibujado en pantalla, o sea lo que uno ya esta viendo — no lo que
+ * viene mas adelante en el camino, que es justo lo que hay que avisar.
+ */
+const descargados = {};
+
+export const truckDataset = (key) => descargados[key] ?? null;
+
+/**
  * Altura del camion elegido, en metros.
  *
  * Se guarda para poder pintar cada galibo segun el riesgo que representa PARA
@@ -110,6 +122,12 @@ export async function installTruckLayers(map) {
   for (const dataset of datasets) {
     if (!dataset) continue;
     map.addSource(dataset.key, { type: 'geojson', data: dataset.data });
+
+    // Se guarda ademas del alta en el mapa: el motor de avisos necesita cruzar
+    // la ruta contra estos puntos, y `querySourceFeatures` solo devuelve lo que
+    // hay dibujado en pantalla — serviria para lo que se ve, no para lo que
+    // viene mas adelante en el camino, que es justo lo que hay que avisar.
+    descargados[dataset.key] = dataset.data;
   }
 
   // Cada capa se instala por separado y con su propia red. Antes iban sueltas y

@@ -40,10 +40,10 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\build-basemap.ps1                       # mapa base vectorial del AMBA (53 MB, no se versiona)
 .\data\fetch-caba-map-layers.ps1               # Red, gálibos y pasos a nivel (sí se versionan)
 .\data\fetch-radares-velocidad.ps1             # Radares de velocidad, dato oficial del GCBA
-.\data\fetch-zonas-riesgo.ps1                  # Zonas de riesgo, del Mapa del Delito del GCBA
+.\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 148 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
+node --test "tests/web/*.test.mjs"             # 45 tests: guiado + avisos de ruta
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -184,6 +184,24 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
   vista que cerrar. La ruta de esa respuesta puede venir nula —motor caído, camión borrado—
   y aun así hay que dejar cerrar el viaje. Salir del viaje tiene que apagar la navegación:
   si no, el servicio de GPS de Android sigue vivo con su notificación. Ver AD-27.
+- **Cada aviso vibra con SU patrón, y eso es lo que lo hace útil.** Si todo vibrara igual,
+  lo único que se sabría es "algo pasa" y habría que mirar la pantalla — que es justo lo
+  que la vibración vino a evitar. Están en `VIBRACION` (`platform.js`). **No se usa
+  `Vibration.Default` de MAUI**: sólo acepta una duración suelta. Va contra el `Vibrator`
+  de Android con `VibrationEffect.CreateWaveform`, y la onda **arranca vibrando**, así que
+  el primer tramo debe ser una espera de cero o el patrón sale invertido. Ver AD-39.
+- **Los avisos de ruta se calculan UNA vez, al preparar la ruta.** Cruzar cada posición
+  contra 685 gálibos, 312 pasos a nivel y 129 radares una vez por segundo es trabajo de
+  sobra para un teléfono que además dibuja el mapa. `alertsAlongRoute` deja una lista corta
+  y ordenada; después avisar es comparar dos números. El corredor es de **30 m**: más ancho
+  levanta la calle paralela, y avisar de un puente por el que no vas a pasar **enseña a
+  desconfiar del aviso**.
+- **`querySourceFeatures` NO sirve para los avisos**: devuelve lo que está dibujado en
+  pantalla, o sea lo que ya estás viendo — no lo que viene más adelante, que es lo que hay
+  que avisar. Por eso `layers.js` guarda los datasets al descargarlos (`truckDataset`).
+- **`Number(null)` es 0, no `NaN`.** Un gálibo sin altura declarada pasaba el filtro de
+  `Number.isFinite` y se habría avisado como *"puente de 0,00 m, no pasás"*, con vibración
+  de peligro. Va `Number.parseFloat`. Lo encontró un test, no el teléfono.
 - **La navegación depende de `sign` e `interval`** de GraphHopper: el `Kind` de la maniobra y
   el punto donde ocurre. El parser los descartaba y no se notaba, porque la ruta se dibuja
   igual. Si se tocan las instrucciones, los tests de `NavigationInstructionsTests` lo cubren.
