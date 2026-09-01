@@ -26,9 +26,25 @@ const SOURCES = {
  */
 const LAYER_IDS = [
   'red-linea', 'red-nombre',
-  'altura-senal',
-  'paso-senal'
+  'altura-senal'
 ];
+
+/**
+ * Los pasos a nivel dependen de DOS cosas a la vez, y por eso no estan en
+ * `LAYER_IDS`: del boton de capas de camion, como el resto, y ademas de que haya
+ * un viaje en curso. Se guardan los dos estados por separado porque cada uno
+ * llega por su lado y ninguno sabe del otro; si el bucle generico los tocara,
+ * prender las capas de camion los haria aparecer fuera del viaje.
+ */
+let truckLayersOn = true;
+let navigating = false;
+
+function aplicarPasos(map) {
+  if (!map?.getLayer('paso-senal')) return;
+
+  map.setLayoutProperty('paso-senal', 'visibility',
+    truckLayersOn && navigating ? 'visible' : 'none');
+}
 
 /**
  * Las capas de zonas peligrosas, que se prenden y apagan APARTE.
@@ -429,24 +445,43 @@ function rectangulo(ctx, x, y, ancho, alto, radio) {
 function senalGalibo(anillo) {
   const { canvas, ctx, c } = chapa(anillo);
 
+  // EL MISMO DIBUJO que el boton de capas de camion, que usa `icon('bridge')`
+  // de ui.js: `M3 8h18 · M5 8v10 · M19 8v10 · M9 18v-5a3 3 0 0 1 6 0v5`.
+  //
+  // Que el boton que prende los galibos y la señal que aparece en el mapa sean
+  // el mismo puente no es un detalle estetico: es lo que hace que uno entienda
+  // sin leer nada que ese boton controla estas señales. Antes eran dos puentes
+  // distintos, dibujados cada uno por su lado.
+  //
+  // Se traduce del viewBox de 24 al lienzo de la chapa. La escala y el centro se
+  // calculan aca para que el dibujo siga al tamaño de la chapa si cambia.
+  const escala = 1.05;
+  const px = (x) => c + (x - 12) * escala;
+  const py = (y) => c + (y - 13) * escala;
+
   ctx.strokeStyle = SENAL.tinta;
-  ctx.lineCap = 'butt';
-
-  // El arco del puente, con sus dos patas.
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(c, c + 2, 8.5, Math.PI, 2 * Math.PI);
-  ctx.stroke();
+  ctx.lineWidth = 2.2 * escala;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
 
   ctx.beginPath();
-  ctx.moveTo(c - 8.5, c + 2); ctx.lineTo(c - 8.5, c + 8);
-  ctx.moveTo(c + 8.5, c + 2); ctx.lineTo(c + 8.5, c + 8);
-  ctx.stroke();
 
-  // La calzada por debajo: es lo que convierte el arco en "paso bajo puente".
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(c - 12, c + 10.5); ctx.lineTo(c + 12, c + 10.5);
+  // El tablero.
+  ctx.moveTo(px(3), py(8));
+  ctx.lineTo(px(21), py(8));
+
+  // Los dos pilares.
+  ctx.moveTo(px(5), py(8));
+  ctx.lineTo(px(5), py(18));
+  ctx.moveTo(px(19), py(8));
+  ctx.lineTo(px(19), py(18));
+
+  // El vano: sube, media vuelta y baja. Es el `a3 3 0 0 1 6 0` del path.
+  ctx.moveTo(px(9), py(18));
+  ctx.lineTo(px(9), py(13));
+  ctx.arc(px(12), py(13), 3 * escala, Math.PI, 0);
+  ctx.lineTo(px(15), py(18));
+
   ctx.stroke();
 
   return imagen({ canvas, ctx });
@@ -473,13 +508,56 @@ function senalPaso(anillo) {
 function senalRadar() {
   const { canvas, ctx, c } = chapa(SENAL.info);
 
+  // Camara de vigilancia de cuerpo largo, la silueta que todo el mundo reconoce
+  // como "te estan filmando": carcasa inclinada, lente al frente y brazo a la
+  // pared. La anterior era una camara de fotos —cuerpo chato con visor arriba—,
+  // que se lee como "sacar una foto" y no como un control de velocidad.
+  //
+  // Va dibujada a mano y no como emoji: los glifos vendorizados llegan hasta el
+  // caracter 511 y una camara (U+1F4F7) no se dibujaria, sin dar error.
   ctx.fillStyle = SENAL.tinta;
-  rectangulo(ctx, c - 10, c - 5, 20, 13, 3);
-  rectangulo(ctx, c - 4, c - 8, 7, 4, 1);
+  ctx.strokeStyle = SENAL.tinta;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'butt';
+
+  // El soporte, de atras hacia adelante: base contra la pared, brazo y pivote.
+  ctx.beginPath();
+  ctx.moveTo(c + 9.5, c + 2.5);
+  ctx.quadraticCurveTo(c + 13.5, c + 7, c + 9.5, c + 11.5);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(c + 1, c + 7);
+  ctx.lineTo(c + 10, c + 7);
+  ctx.stroke();
 
   ctx.beginPath();
-  ctx.arc(c, c + 1.5, 4, 0, Math.PI * 2);
+  ctx.arc(c + 0.5, c + 7, 2.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // El cuerpo: bloque alargado que baja hacia el morro, donde va el lente. El
+  // morro tiene que ser MAS ALTO que el diametro del lente — con el lente mas
+  // grande que la punta, el circulo se sale del cuerpo y el dibujo deja de
+  // leerse como una camara.
+  ctx.beginPath();
+  ctx.moveTo(c - 13, c - 4);       // morro, arriba
+  ctx.lineTo(c + 5, c - 10);       // cola, arriba
+  ctx.lineTo(c + 9, c - 2.5);      // cola, abajo
+  ctx.lineTo(c - 10, c + 4.5);     // morro, abajo
+  ctx.closePath();
+  ctx.fill();
+
+  // El lente, sobre la punta: hueco claro con la pupila oscura adentro.
+  ctx.beginPath();
+  ctx.arc(c - 10.6, c + 0.2, 3.4, 0, Math.PI * 2);
   ctx.fillStyle = SENAL.chapa;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(c - 10.6, c + 0.2, 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = SENAL.tinta;
   ctx.fill();
 
   return imagen({ canvas, ctx });
@@ -540,9 +618,10 @@ function registrarIconos(map) {
     'senal-galibo-no-pasa': () => senalGalibo(SENAL.peligro),
     'senal-galibo-justo':   () => senalGalibo(SENAL.atencion),
     'senal-galibo-pasa':    () => senalGalibo(SENAL.neutro),
-    'senal-paso-sin-barrera': () => senalPaso(SENAL.peligro),
-    'senal-paso-con-barrera': () => senalPaso(SENAL.atencion),
-    'senal-paso-sin-dato':    () => senalPaso(SENAL.neutro),
+    // Uno solo, en pizarra. El color del anillo dice de que FAMILIA es la señal,
+    // no que tan grave es: la gravedad de un paso a nivel no depende del camion
+    // y el tipo de barrera es un dato que se lee al tocarlo.
+    'senal-paso': () => senalPaso(SENAL.neutro),
     'senal-radar': senalRadar,
     'senal-riesgo': senalRiesgo
   };
@@ -747,32 +826,39 @@ function addCrossingLayers(map) {
     type: 'symbol',
     source: 'pasos',
     minzoom: 13,
+    // ARRANCA APAGADA: los 312 pasos a nivel de la Ciudad sólo se muestran
+    // durante el viaje. Ver setCrossingsVisible.
     layout: {
-      // Sin barrera es lo peligroso. "null" es que la fuente no lo dice, y eso
-      // NO es lo mismo que no tener barrera: va en neutro, no en rojo.
-      'icon-image': [
-        'match',
-        ['coalesce', ['get', 'barrier'], 'desconocido'],
-        'no', 'senal-paso-sin-barrera',
-        ['full', 'half', 'double_half', 'yes'], 'senal-paso-con-barrera',
-        'senal-paso-sin-dato'
-      ],
+      visibility: 'none',
+
+      // UN SOLO ICONO, sin escala de color, y esto es una correccion de fondo.
+      //
+      // Antes habia tres —rojo sin barrera, ambar con barrera, pizarra sin
+      // dato— y el rojo significaba algo distinto que en el resto del mapa. En
+      // los galibos, rojo es "tu camion NO PASA". Un paso a nivel en rojo se lee
+      // igual, cuando en realidad decia "no tiene barrera": el mismo color con
+      // dos significados, en la pantalla que se mira de reojo manejando.
+      //
+      // El tipo de barrera es un dato, no un veredicto sobre si se puede pasar.
+      // Va en palabras al tocar la señal, no en el color.
+      'icon-image': 'senal-paso',
       'icon-size': tamanoSenal,
       'icon-allow-overlap': false,
-      'icon-padding': 2,
-
-      // Mismo criterio que en los galibos: al chocar gana el mas peligroso. Un
-      // paso sin barrera es lo que hay que ver; uno con barrera completa avisa
-      // solo cuando bajan las barreras.
-      'symbol-sort-key': [
-        'match',
-        ['coalesce', ['get', 'barrier'], 'desconocido'],
-        'no', 0,
-        ['full', 'half', 'double_half', 'yes'], 2,
-        1
-      ]
+      'icon-padding': 2
     }
   });
+}
+
+/**
+ * Avisa que arranco o termino un viaje.
+ *
+ * Los pasos a nivel se muestran SOLO durante el viaje. Son 312 en la Ciudad y
+ * fuera del viaje no cambian ninguna decision: llenan de chapas la pantalla en
+ * la que uno esta armando la ruta, que es justo cuando necesita verla limpia.
+ */
+export function setCrossingsVisible(map, visible) {
+  navigating = visible;
+  aplicarPasos(map);
 }
 
 /* ---------------------------------------------------------------------------
@@ -799,11 +885,16 @@ export function setTruckHeight(map, metres) {
 export function setTruckLayersVisible(map, visible) {
   if (!map) return;
 
+  truckLayersOn = visible;
+
   for (const id of LAYER_IDS) {
     if (map.getLayer(id)) {
       map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
     }
   }
+
+  // Los pasos a nivel van aparte: ademas del boton, necesitan que haya viaje.
+  aplicarPasos(map);
 }
 
 /** Vuelve a leer los colores del tema. Se llama al cambiar entre dia y noche. */

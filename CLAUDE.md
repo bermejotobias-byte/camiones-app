@@ -101,6 +101,18 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
   OSM a `wwwroot/data/*.geojson`. Ningún proveedor de tiles trae `hgv`, `maxheight` ni pasos a
   nivel. `maxheight=default` NO es una altura y queda afuera; barrera sin declarar NO es "sin
   barrera". Ver AD-25.
+- **El color de una señal codifica UNA sola dimensión: cuánto te afecta a vos y a tu
+  camión.** Los pasos a nivel se pintaban rojo/ámbar/pizarra según el tipo de barrera, y
+  eso choca con el rojo de los gálibos, que significa **"tu camión no pasa"**. El mismo
+  color con dos significados, en la pantalla que se mira de reojo. Hoy hay una sola chapa
+  en pizarra y el tipo de barrera se lee al tocarla. Ver AD-38.
+- **Los pasos a nivel se muestran SÓLO durante el viaje**, y por eso `paso-senal` **no está
+  en `LAYER_IDS`**: depende del botón de capas *y* de que haya viaje, y el bucle genérico lo
+  prendía fuera del viaje. Son 312 y afuera del viaje sólo tapan el mapa donde se arma la
+  ruta. **No se filtran por tamaño del camión porque el dato no existe**: OSM trae `barrier`,
+  `name` y `osm`, ninguna dimensión.
+- **El gálibo del mapa usa el mismo dibujo que el botón de capas** (`icon('bridge')`). Antes
+  eran dos puentes distintos y no se entendía que ese botón controlara esas señales.
 - **Un ícono del mapa no puede ser un emoji.** Los glifos vendorizados llegan hasta el
   carácter 511: cualquier cosa por encima —una cámara 📷 está en U+1F4F7— **no se dibuja, sin
   error**. Los íconos van como imagen (`map.addImage` sobre un canvas), y con colores

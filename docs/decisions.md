@@ -1936,3 +1936,63 @@ primero y el nombre gris cede.
   intermitente según quién conteste primero — el mismo defecto que ya tenía
   cubierto `drawRoute`.
 
+## AD-38 · Los pasos a nivel se muestran sólo durante el viaje, y sin escala de color
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### El color decía dos cosas distintas
+
+Los pasos a nivel se dibujaban con tres chapas según el tipo de barrera: **roja**
+sin barrera, ámbar con barrera, pizarra sin dato.
+
+El problema lo señaló el usuario, y es de fondo: **en el resto del mapa el rojo
+significa "tu camión no pasa"** — es lo que dice un gálibo rojo. Un paso a nivel
+en rojo se lee igual, cuando en realidad decía "no tiene barrera". El mismo color
+con dos significados, en la pantalla que se mira de reojo manejando.
+
+Ahora hay **una sola chapa**, en pizarra. El tipo de barrera es un **dato**, no un
+veredicto sobre si se puede pasar, y va en palabras al tocar la señal:
+*"Paso a nivel sin barrera"*, *"con media barrera"*, o *"— la fuente no dice si
+tiene barrera"*.
+
+La distinción vale más allá de este caso: **el color de una señal debería
+codificar una sola dimensión en todo el producto.** Acá esa dimensión es "cuánto
+te afecta a vos y a tu camión", y el tipo de barrera no es eso.
+
+### Sólo durante el viaje
+
+Son **312 en la Ciudad** y fuera del viaje no cambian ninguna decisión: llenan de
+chapas la pantalla en la que uno está armando la ruta, que es justo cuando
+necesita verla limpia. Aparecen al entrar en modo navegación y desaparecen al
+salir.
+
+**No se filtró por tamaño del camión, que era el pedido original, porque el dato
+no existe.** Los pasos a nivel de OpenStreetMap traen `barrier`, `name` y `osm` —
+ninguna dimensión. No hay forma de saber si un semirremolque queda varado sobre
+las vías, y calcularlo sería inventarlo.
+
+### Consecuencias
+
+- `paso-senal` **sale de `LAYER_IDS`**: depende de dos cosas a la vez —el botón de
+  capas de camión y que haya viaje— y el bucle genérico lo prendía fuera del
+  viaje. Los dos estados se guardan por separado en `layers.js` porque cada uno
+  llega por su lado y ninguno sabe del otro.
+- Quedan tres imágenes menos que registrar: `senal-paso-sin-barrera`,
+  `senal-paso-con-barrera` y `senal-paso-sin-dato` se reemplazan por `senal-paso`.
+
+### Dos íconos más, en la misma tanda
+
+**El gálibo pasa a ser el mismo puente del botón de capas** (`icon('bridge')` de
+`ui.js`). Antes eran dos puentes distintos, dibujados cada uno por su lado: uno en
+el botón y otro en el mapa. Que sean el mismo es lo que hace entender sin leer
+nada que ese botón controla estas señales.
+
+**El radar pasa de cámara de fotos a cámara de vigilancia**: cuerpo alargado
+inclinado, lente en el morro y brazo a la pared. La anterior —cuerpo chato con
+visor arriba— se lee como "sacar una foto" y no como un control de velocidad.
+
+Al dibujarla apareció una regla de proporción que no es obvia: **el morro tiene
+que ser más alto que el diámetro del lente**. Con el lente más grande que la
+punta, el círculo se sale del cuerpo y el dibujo deja de leerse como una cámara.
+

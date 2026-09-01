@@ -6,7 +6,7 @@
  * manana se cambia de biblioteca de mapas, se reescribe este archivo y nada mas.
  */
 
-import { installTruckLayers, setTruckLayersVisible, setRiskZonesVisible, setTruckHeight, refreshLayerColors } from './layers.js';
+import { installTruckLayers, setTruckLayersVisible, setRiskZonesVisible, setCrossingsVisible, setTruckHeight, refreshLayerColors } from './layers.js';
 import { registerPmtilesProtocol, buildBasemapStyle } from './basemap.js';
 import { currentApiBase } from './api.js';
 
@@ -537,6 +537,11 @@ export function enterNavigationMode(from) {
   if (!map) return;
   navigating = true;
 
+  // Los pasos a nivel aparecen recien ahora. Son 312 en la Ciudad y fuera del
+  // viaje no cambian ninguna decision: solo llenan de chapas la pantalla en la
+  // que uno esta armando la ruta.
+  setCrossingsVisible(map, true);
+
   // El punto de la ubicacion propia le deja el lugar a la flecha del vehiculo.
   // Si no, quedan dos marcadores encima del mismo punto y el de la ubicacion
   // ademas congelado en la ultima vez que se toco "Mi ubicacion".
@@ -556,6 +561,8 @@ export function enterNavigationMode(from) {
 export function exitNavigationMode() {
   if (!map) return;
   navigating = false;
+
+  setCrossingsVisible(map, false);
 
   vehicleMarker?.remove();
   vehicleMarker = null;
