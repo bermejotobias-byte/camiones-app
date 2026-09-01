@@ -81,7 +81,7 @@ Lo que falta para cerrarla, y lo que el v2 le agrega:
 | ⬜ | **El nombre de la calle por la que vas, legible durante el viaje.** Hoy lo tapa la línea de la ruta. Debe verse **3× más grande** que las calles que no se toman, y en verde | v2 · estética |
 | ⬜ | **Vibrar ante cada eventualidad**: doblar, gálibo, accidente, radar | v2 |
 | ⬜ | **Alternativas de ruta** cuando la recomendada está deshabilitada | v2 |
-| ⬜ | **Reintento al conectar.** Hoy un solo intento de 6 s: al volver a abrir la app falla y a la segunda anda | defecto medido |
+| ✅ | **Reintento al conectar.** 3 intentos con espera creciente, y sólo se reintenta lo que puede resolverse solo — una dirección mal escrita falla igual las tres veces. Peor caso ~22 s, con el cartel diciendo en qué intento va. Apéndice de AD-33 | defecto medido · 01/09/2026 |
 | ✅ | Perspectiva en primera persona al arrancar | v1 · AD-34 |
 | ✅ | Notificación con la pantalla bloqueada y el GPS en uso | v1 · AD-24 |
 

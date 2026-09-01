@@ -1533,6 +1533,47 @@ validarse al escribirlo, y tiene que tener una forma de deshacerse sin conocer
 el valor original.** Si además le gana a la configuración de fábrica, sobrevive a
 la reinstalación, que es lo último que le queda a alguien cuando algo no anda.
 
+### Apéndice (01/09/2026) · El arranque insiste tres veces, no una
+
+Quedaba un defecto medido en la misma pantalla: **la app hacía un solo intento** y
+fallaba al abrirla, pero a la segunda andaba. El motivo es que al abrir la app la
+red del teléfono suele no estar lista todavía —la WiFi reconecta al salir de
+suspensión— y ese único intento agarraba el hueco. Medio segundo de red dormida
+terminaba en la pantalla de "no se pudo contactar al servidor".
+
+Eso es peor que una molestia: manda al usuario a **tocar una dirección que estaba
+bien**, que es exactamente como se rompen las que funcionaban.
+
+Ahora hay **3 intentos**, con la política en `ConnectionRetry` — que no depende de
+MAUI, igual que `BackendAddress`, y por eso se testea (17 casos):
+
+| | Espera antes | Tiempo de respuesta |
+|---|---|---|
+| Intento 1 | 0 | 4 s |
+| Intento 2 | 1,2 s | 7 s |
+| Intento 3 | 2,5 s | 7 s |
+
+- **El primero sale sin esperar**: con la red sana el backend contesta en
+  milisegundos, y meter una demora ahí sería castigar el caso normal para cubrir
+  el excepcional. Su espera es corta por lo mismo: si no llegó en 4 s, conviene
+  reintentar antes que seguir esperando.
+- **Peor caso ~22 s**, y hay un test que lo fija en 30. Pasado ese rato la app
+  parece colgada aunque el cartel diga lo que está haciendo, y lo que el usuario
+  necesita es llegar a la pantalla de configurar servidor.
+- **No todas las fallas se reintentan.** Una dirección mal escrita va a fallar
+  igual las tres veces: `HealthCheck` ahora trae `Retriable`, y sólo reintenta lo
+  que puede resolverse solo — timeouts, conexión rechazada, y los 502/503/504 de
+  un intermediario que todavía no llegó al backend (el túnel Cloudflare recién
+  levantado es el caso típico).
+- **La pantalla dice qué está pasando** (*"Sin respuesta. Reintentando… (2 de 3)"*).
+  Una espera silenciosa de veinte segundos no se distingue de una app colgada. El
+  primer intento **no** anuncia reintentos: en el caso normal dura milisegundos y
+  decir "1 de 3" sólo sembraría la duda de que algo anda mal.
+- El auto-rescate con la dirección de fábrica se queda con **un** intento, con la
+  espera larga: la dirección guardada ya se llevó sus tres, encadenar otra tanda
+  pasaría del medio minuto, y para entonces la red ya tuvo todo ese tiempo para
+  levantar.
+
 ---
 
 ## AD-34 · Fuera del viaje la cámara es cenital y fija; la perspectiva es del viaje

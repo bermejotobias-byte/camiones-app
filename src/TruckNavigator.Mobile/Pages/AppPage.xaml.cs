@@ -111,7 +111,17 @@ public partial class AppPage : ContentPage
              $"(compilada: {TruckNavigatorApi.DefaultBaseUrl}, " +
              $"fijada a mano: {TruckNavigatorApi.IsPinned})");
 
-        var check = await _api.CheckAsync();
+        // Insiste, no se rinde al primer intento. Al abrir la app la red del
+        // telefono suele no estar lista todavia —la WiFi reconecta al salir de
+        // suspension— y con un solo intento eso terminaba en la pantalla de
+        // "no se pudo contactar": el usuario cerraba, abria de nuevo y andaba.
+        //
+        // El progreso se informa en pantalla porque una espera silenciosa de
+        // veinte segundos no se distingue de una app colgada.
+        var progreso = new Progress<int>(intento =>
+            ShowStartup(ConnectionRetry.Describe(intento, TruckNavigatorApi.BaseUrl), showSetup: false));
+
+        var check = await _api.ConnectAsync(progress: progreso);
 
         Note($"resultado: alcanzable={check.Reachable} motivo={check.Problem ?? "ninguno"}");
 
@@ -129,7 +139,12 @@ public partial class AppPage : ContentPage
                 $"Probando con {TruckNavigatorApi.DefaultBaseUrl}…",
                 showSetup: false);
 
-            var fallback = await _api.CheckAsync(TruckNavigatorApi.DefaultBaseUrl);
+            // Un solo intento, y con la espera larga del segundo. Aca no se
+            // reintenta tres veces mas: la direccion guardada ya se llevo sus
+            // tres, y encadenar otra tanda pasaria del medio minuto mirando un
+            // cartel. Ademas la red ya tuvo todo ese tiempo para levantar, que
+            // era el motivo de reintentar.
+            var fallback = await _api.CheckAsync(TruckNavigatorApi.DefaultBaseUrl, attempt: 2);
 
             Note($"rescate con la de fabrica: alcanzable={fallback.Reachable}");
 

@@ -21,7 +21,7 @@ OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
-| `tests/TruckNavigator.UnitTests` | 85 tests: 65 de dominio + 20 de la direccion del backend, que se enlaza desde Mobile |
+| `tests/TruckNavigator.UnitTests` | 102 tests: 65 de dominio + 20 de la direccion del backend + 17 de la politica de reintentos. Los dos ultimos grupos enlazan archivos de Mobile, que no depende de MAUI a proposito |
 | `tests/TruckNavigator.IntegrationTests` | 46 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 35 sobre datasets, perfiles, camiones, viajes y SQLite |
 
 Solución: `TruckNavigator.slnx`.
@@ -42,7 +42,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-radares-velocidad.ps1             # Radares de velocidad, dato oficial del GCBA
 .\data\fetch-zonas-riesgo.ps1                  # Zonas de riesgo, del Mapa del Delito del GCBA
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 131 tests (.NET)
+dotnet test                                    # 148 tests (.NET)
 node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
@@ -67,6 +67,13 @@ node --test "tests/web/*.test.mjs"             # 28 tests del motor de guiado
 - **Los artefactos pesados de `routing/` no están en el repo**: el JAR de GraphHopper (45 MB),
   `argentina-latest.osm.pbf` (407 MB) y `graph-cache/` los baja y construye
   `run-graphhopper.ps1` en el primer arranque. Tampoco está el APK compilado.
+- **El arranque insiste 3 veces antes de rendirse, y no reintenta cualquier falla.** Con
+  un solo intento la app fallaba al abrirla y andaba a la segunda: al abrir, la red del
+  teléfono suele no estar lista y ese intento agarra el hueco. La política vive en
+  `ConnectionRetry` —sin dependencias de MAUI, con 17 tests— y `HealthCheck.Retriable`
+  decide qué se reintenta: una dirección mal escrita falla igual las tres veces y cortar
+  ahí evita 20 segundos de espera inútil. Peor caso ~22 s, con el cartel diciendo en qué
+  intento va. Ver el apéndice de AD-33.
 - **Un valor que el usuario escribe y la app guarda se valida AL ESCRIBIRLO, y tiene que
   poder deshacerse sin conocer el valor original.** Una dirección de servidor sin `http://`
   dejó la app muerta: se guardaba sin validar, `HttpClient` tiraba antes de salir a la red,
