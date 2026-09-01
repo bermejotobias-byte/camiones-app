@@ -307,6 +307,44 @@ public sealed record GeoJsonLineString(IReadOnlyList<double[]> Coordinates)
     public string Type => "LineString";
 }
 
+/// <summary>Un reparto: origen y hasta diez paradas, en cualquier orden.</summary>
+public sealed class DeliveryRequest
+{
+    [Required]
+    public Guid TruckId { get; set; }
+
+    [Required]
+    public CoordinateDto? Origin { get; set; }
+
+    /// <summary>
+    /// Las paradas tal como las cargo el usuario. El orden que llega NO importa:
+    /// justamente lo que hace este endpoint es decidir en cual conviene.
+    /// </summary>
+    [Required]
+    [MinLength(1, ErrorMessage = "Un reparto necesita al menos una parada.")]
+    [MaxLength(10, ErrorMessage = "Un reparto admite hasta 10 paradas.")]
+    public List<CoordinateDto> Stops { get; set; } = [];
+
+    public DateTimeOffset? DepartureTime { get; set; }
+}
+
+/// <summary>
+/// La ruta del reparto y en que orden quedaron las paradas.
+/// </summary>
+/// <param name="StopOrder">
+/// Indices de las paradas <b>tal como las envio el cliente</b>, en el orden de
+/// visita. Se devuelven los indices y no las paradas reordenadas para que la app
+/// pueda decir "tu parada 3 se visita quinta": con la lista ya ordenada esa
+/// correspondencia se pierde y el usuario no reconoce sus propias direcciones.
+/// </param>
+public sealed record DeliveryResponse(
+    RouteResponse Route,
+    IReadOnlyList<int> StopOrder)
+{
+    public static DeliveryResponse From(DeliveryRoute delivery, string truckName, string attribution) =>
+        new(RouteResponse.From(delivery.Route, truckName, attribution), delivery.StopOrder);
+}
+
 
 /// <summary>
 /// El perfil del camionero tal como lo consume la app.

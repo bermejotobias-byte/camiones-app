@@ -37,7 +37,7 @@ public sealed class GraphHopperRouteCalculator(
         DateTimeOffset departure,
         CancellationToken cancellationToken = default)
     {
-        var rutas = await RequestAsync(truck, origin, destination, departure, alternativas: false, cancellationToken);
+        var rutas = await RequestAsync(truck, [origin, destination], departure, alternativas:false, cancellationToken);
 
         return rutas[0];
     }
@@ -49,7 +49,7 @@ public sealed class GraphHopperRouteCalculator(
         DateTimeOffset departure,
         CancellationToken cancellationToken = default)
     {
-        var rutas = await RequestAsync(truck, origin, destination, departure, alternativas: true, cancellationToken);
+        var rutas = await RequestAsync(truck, [origin, destination], departure, alternativas:true, cancellationToken);
 
         // Se ordenan por lo que le conviene a un camion, NO por tiempo: el orden
         // que devuelve el motor es por peso, y ahi una ruta que obliga a salir de
@@ -65,10 +65,177 @@ public sealed class GraphHopperRouteCalculator(
         return ordenadas;
     }
 
-    private async Task<IReadOnlyList<TruckRoute>> RequestAsync(
+    public async Task<DeliveryRoute> CalculateDeliveryAsync(
         TruckProfile truck,
         GeoPoint origin,
-        GeoPoint destination,
+        IReadOnlyList<GeoPoint> stops,
+        DateTimeOffset departure,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(truck);
+        ArgumentNullException.ThrowIfNull(stops);
+
+        if (stops.Count == 0)
+        {
+            throw new RoutingException("Un reparto necesita al menos una parada.");
+        }
+
+        if (stops.Count > DeliveryOrder.MaxStops)
+        {
+            throw new RoutingException(
+                $"Un reparto admite hasta {DeliveryOrder.MaxStops} paradas y llegaron {stops.Count}.");
+        }
+
+        // El indice 0 es el origen; las paradas van del 1 en adelante.
+        var puntos = new List<GeoPoint>(stops.Count + 1) { origin };
+        puntos.AddRange(stops);
+
+        var costos = await BuildCostMatrixAsync(truck, puntos, departure, cancellationToken);
+        var orden = DeliveryOrder.Solve(costos);
+
+        // Una sola consulta con todos los puntos en el orden elegido: asi la
+        // geometria, las instrucciones y la evaluacion de restricciones salen de
+        // la ruta de verdad y no de pegar tramos sueltos.
+        var recorrido = orden.Select(i => puntos[i]).ToList();
+        var ruta = await RequestAsync(truck, recorrido, departure, alternativas: false, cancellationToken);
+
+        // Se devuelven los indices de las PARADAS, sin el origen y numerados como
+        // los cargo el usuario.
+        var ordenDeParadas = orden.Skip(1).Select(i => i - 1).ToList();
+
+        logger.LogDebug(
+            "Reparto de {Paradas} paradas para {TruckName}: orden {Orden}",
+            stops.Count, truck.Name, string.Join(" → ", ordenDeParadas));
+
+        return new DeliveryRoute(ruta[0], ordenDeParadas);
+    }
+
+    /// <summary>
+    /// Cuanto cuesta ir de cada punto a cada otro, en metros de ruta real.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Son N x (N-1) consultas: 90 para diez paradas. Van <b>en paralelo y con
+    /// tope</b>: secuenciales medimos 2,7 s, que es demasiado para una pantalla
+    /// que espera, y sin tope se le tiran noventa consultas de golpe a un motor
+    /// que corre en la misma maquina.
+    /// </para>
+    /// <para>
+    /// Cada consulta lleva el custom model del camion —si no, el orden se
+    /// calcularia con distancias de auto— y pide <c>calc_points: false</c>: la
+    /// geometria de los tramos no se usa para nada y es la mayor parte de la
+    /// respuesta.
+    /// </para>
+    /// </remarks>
+    private async Task<double[][]> BuildCostMatrixAsync(
+        TruckProfile truck,
+        IReadOnlyList<GeoPoint> puntos,
+        DateTimeOffset departure,
+        CancellationToken cancellationToken)
+    {
+        var n = puntos.Count;
+        var customModel = routingPolicy.BuildCustomModel(truck, departure);
+        var costos = new double[n][];
+
+        for (var i = 0; i < n; i++)
+        {
+            costos[i] = new double[n];
+        }
+
+        var pares = new List<(int From, int To)>(n * (n - 1));
+
+        for (var i = 0; i < n; i++)
+        {
+            for (var j = 0; j < n; j++)
+            {
+                if (i != j) pares.Add((i, j));
+            }
+        }
+
+        using var limite = new SemaphoreSlim(MatrixParallelism);
+
+        var consultas = pares.Select(async par =>
+        {
+            await limite.WaitAsync(cancellationToken);
+
+            try
+            {
+                costos[par.From][par.To] =
+                    await LegDistanceAsync(puntos[par.From], puntos[par.To], customModel, cancellationToken);
+            }
+            finally
+            {
+                limite.Release();
+            }
+        });
+
+        await Task.WhenAll(consultas);
+
+        return costos;
+    }
+
+    /// <summary>Metros de ruta entre dos puntos, o infinito si no hay camino.</summary>
+    private async Task<double> LegDistanceAsync(
+        GeoPoint from,
+        GeoPoint to,
+        object customModel,
+        CancellationToken cancellationToken)
+    {
+        var payload = JsonSerializer.SerializeToNode(new
+        {
+            points = new[]
+            {
+                new[] { from.Longitude, from.Latitude },
+                new[] { to.Longitude, to.Latitude }
+            },
+            profile = _options.Profile,
+            points_encoded = false,
+            instructions = false,
+            calc_points = false,
+            custom_model = customModel
+        }, SerializerOptions)!.AsObject();
+
+        payload["ch.disable"] = true;
+
+        try
+        {
+            using var response = await httpClient.PostAsJsonAsync("route", payload, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // Un par sin ruta no puede tumbar el reparto entero: la parada
+                // sigue existiendo y el orden se resuelve con lo que se sabe.
+                return double.PositiveInfinity;
+            }
+
+            var document = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+
+            return document.TryGetProperty("paths", out var paths) && paths.GetArrayLength() > 0
+                ? paths[0].GetProperty("distance").GetDouble()
+                : double.PositiveInfinity;
+        }
+        catch (HttpRequestException)
+        {
+            return double.PositiveInfinity;
+        }
+    }
+
+    /// <summary>
+    /// Cuantas consultas de matriz van a la vez.
+    /// </summary>
+    /// <remarks>
+    /// Ocho. El motor corre en la misma maquina que la API, asi que abrir noventa
+    /// consultas de golpe le saca CPU al propio servidor y no acelera nada.
+    /// </remarks>
+    private const int MatrixParallelism = 8;
+
+    /// <param name="waypoints">
+    /// Todos los puntos por los que pasa la ruta, en orden. Dos para una ruta
+    /// comun; los que hagan falta para un reparto.
+    /// </param>
+    private async Task<IReadOnlyList<TruckRoute>> RequestAsync(
+        TruckProfile truck,
+        IReadOnlyList<GeoPoint> waypoints,
         DateTimeOffset departure,
         bool alternativas,
         CancellationToken cancellationToken)
@@ -79,11 +246,7 @@ public sealed class GraphHopperRouteCalculator(
 
         var request = new
         {
-            points = new[]
-            {
-                new[] { origin.Longitude, origin.Latitude },
-                new[] { destination.Longitude, destination.Latitude }
-            },
+            points = waypoints.Select(p => new[] { p.Longitude, p.Latitude }).ToArray(),
             profile = _options.Profile,
             ch_disable = true,
             points_encoded = false,

@@ -963,6 +963,59 @@ app.MapPost("/api/routes", async (
 .WithTags("Routing")
 .WithSummary("Calcula una ruta compatible con el camion indicado, con alternativas.");
 
+// ------------------------------------------------------------------- reparto
+
+app.MapPost("/api/routes/delivery", async (
+    DeliveryRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    ITruckRouteCalculator calculator,
+    CancellationToken ct) =>
+{
+    if (Validate(request) is { } problem)
+    {
+        return problem;
+    }
+
+    var truck = await FindUsableTruckAsync(db, request.TruckId, CurrentUserId(principal), ct);
+
+    if (truck is null)
+    {
+        return Results.Problem(
+            title: "Camion inexistente",
+            detail: $"No existe un perfil de camion con id {request.TruckId}.",
+            statusCode: StatusCodes.Status404NotFound);
+    }
+
+    try
+    {
+        var delivery = await calculator.CalculateDeliveryAsync(
+            truck,
+            new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude),
+            request.Stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)).ToList(),
+            request.DepartureTime ?? DateTimeOffset.Now,
+            ct);
+
+        return Results.Ok(DeliveryResponse.From(delivery, truck.Name, Attribution));
+    }
+    catch (RoutingException ex)
+    {
+        return Results.Problem(
+            title: "No se pudo armar el reparto",
+            detail: ex.Message,
+            statusCode: StatusCodes.Status422UnprocessableEntity);
+    }
+    catch (HttpRequestException ex)
+    {
+        return Results.Problem(
+            title: "Motor de ruteo no disponible",
+            detail: $"No se pudo contactar a GraphHopper: {ex.Message}",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+})
+.WithTags("Routing")
+.WithSummary("Ordena hasta 10 paradas y calcula la ruta que las recorre.");
+
 app.Run();
 
 /// <summary>

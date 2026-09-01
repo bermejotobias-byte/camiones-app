@@ -57,6 +57,23 @@ public sealed record TruckRoute(
     IReadOnlyList<RouteRestrictionNote> AccessLegs,
     double HeavyNetworkSharePercent);
 
+/// <summary>
+/// Un reparto: la ruta completa y en que orden quedaron las paradas.
+/// </summary>
+/// <param name="Route">La ruta que pasa por todas las paradas, en el orden calculado.</param>
+/// <param name="StopOrder">
+/// Los indices de las paradas <b>tal como las cargo el usuario</b>, en el orden
+/// en que conviene visitarlas. No incluye el origen.
+///
+/// Se devuelven los indices y no las paradas reordenadas porque la app necesita
+/// poder decir "tu parada 3 va a visitarse quinta": si se devolviera la lista ya
+/// ordenada, esa correspondencia se pierde y el usuario no reconoce sus propias
+/// direcciones.
+/// </param>
+public sealed record DeliveryRoute(
+    TruckRoute Route,
+    IReadOnlyList<int> StopOrder);
+
 public interface ITruckRouteCalculator
 {
     Task<TruckRoute> CalculateAsync(
@@ -87,6 +104,27 @@ public interface ITruckRouteCalculator
         TruckProfile truck,
         GeoPoint origin,
         GeoPoint destination,
+        DateTimeOffset departure,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Arma un reparto: decide en que orden visitar las paradas y calcula la ruta
+    /// que pasa por todas.
+    /// </summary>
+    /// <param name="stops">
+    /// Las paradas, en el orden en que las cargo el usuario. Hasta
+    /// <see cref="DeliveryOrder.MaxStops"/>.
+    /// </param>
+    /// <remarks>
+    /// El orden sale de <see cref="DeliveryOrder"/> sobre una matriz de costos
+    /// REALES —cada par consultado al motor con el custom model de este camion—,
+    /// no de distancias en linea recta. En una ciudad con un rio y autopistas la
+    /// ruta real llega a ser 1,67 veces la recta, y ahi el orden cambia.
+    /// </remarks>
+    Task<DeliveryRoute> CalculateDeliveryAsync(
+        TruckProfile truck,
+        GeoPoint origin,
+        IReadOnlyList<GeoPoint> stops,
         DateTimeOffset departure,
         CancellationToken cancellationToken = default);
 }
