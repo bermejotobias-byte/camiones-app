@@ -179,7 +179,7 @@ resultado porque el que falta se decide igual que se decidieron éstos.
 
 | Ítem | Resultado |
 |---|---|
-| Zonas peligrosas | ✅ **Mapa del Delito del GCBA**, CC-BY, un archivo por año, con coordenadas. `mapa.seguridadciudad.gob.ar` no hizo falta |
+| Zonas peligrosas | ✅ **Mapa colaborativo del AMBA**, no oficial y sin grados: 19 zonas que tocan CABA. El **Mapa del Delito del GCBA** se probó y **se descartó** — contar hechos mide dónde hay gente, y como el dataset cubre exactamente CABA el mapa de calor dibujaba la silueta de la Ciudad. `mapa.seguridadciudad.gob.ar` no hizo falta |
 | Radares de velocidad | ✅ **Dato oficial del GCBA**, CC-BY-2.5-AR: 129 cinemómetros. OSM tiene 176 y no se sabe cuál está más al día — se eligió el oficial por tener organismo, licencia y cadencia declarada |
 | Radares de peso | ❌ **No existe fuente.** Cero balanzas en CABA, ni oficial ni en OSM; los puestos son de Vialidad sobre rutas. Sólo queda como reporte comunitario (L-9) |
 | Aptitud de POIs | ⬜ **Pendiente.** Hoy indeclarada en 75 de 78 (L-6). El v2 propone que la completen los usuarios: eso es un dato de comunidad, **no oficial**, y tiene que verse distinto |

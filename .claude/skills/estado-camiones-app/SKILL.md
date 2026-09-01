@@ -22,8 +22,14 @@ ruta, no como advertencia posterior. Fuente regulatoria: Ley 2148, art. 9.10.1
 Objetivo declarado: *"El GPS de los camioneros de Buenos Aires"*. No sólo un
 navegador: perfil, historial, gamificación, comunidad.
 
-**Rama de trabajo:** `cuentas-de-usuario` (12 commits sobre `main`). **El último
-commit todavía no está empujado.**
+**Rama de trabajo:** `cuentas-de-usuario`, empujada a `origin` el 01/09/2026 con
+el trabajo hasta `b5bacd4`. **`main` quedó en `a587041`**: la rama está 13 commits
+adelante y todavía no se fusionó.
+
+**Hay dos remotos.** `origin` es `bermejotobias-byte/camiones-app` y es el que se
+usa; `hermano` es `bermejolautaro/camiones-app`, con su propia rama
+`cuentas-de-usuario` en otra punta. **No empujar a `hermano`** sin que el usuario
+lo pida.
 
 ---
 
@@ -34,23 +40,30 @@ commit todavía no está empujado.**
 | Documento | Qué tiene |
 |---|---|
 | `CLAUDE.md` | Convenciones, comandos, **trampas que ya costaron tiempo** |
-| `docs/decisions.md` | **34 decisiones arquitectónicas (AD-01…AD-34)** con su porqué |
-| `docs/data-sources.md` | Fuentes, licencias y limitaciones **L-1…L-8** (L-4 ya resuelta) |
+| `docs/decisions.md` | **41 decisiones arquitectónicas (AD-01…AD-41)** con su porqué |
+| `docs/data-sources.md` | Fuentes, licencias y limitaciones **L-1…L-11** (L-4 ya resuelta) |
 | `docs/architecture.md` | Estructura y proyectos |
 | `docs/routing.md`, `docs/restrictions.md`, `docs/pois.md`, `docs/deploy.md` | Por tema |
 | `PLAN.md` | Especificación original del MVP |
 | **skill `producto-camiones-app`** | **El alcance completo**: los dos brainstorms unificados y asignados a fase |
 | Escritorio del usuario | `PUNTOS A TRABAJAR…docx` (33 requisitos, 22/08) y `ideas camionero app v2.docx` (31/08). Están **abiertos en Word**: para leerlos hay que copiarlos antes, si no el archivo está bloqueado |
 
-**Las AD-17 a AD-34 son del trabajo reciente.** Las cinco últimas, del 25–26/08/2026:
+**Las AD-17 a AD-41 son del trabajo reciente.** Las seis últimas, del 01/09/2026:
 
 | AD | Qué resuelve | Por qué importa releerla |
 |---|---|---|
-| **AD-30** | Brújula del magnetómetro | Por qué NO se usa `Compass` de MAUI: se degenera con el teléfono en un soporte |
-| **AD-31** | Consola del WebView y diagnósticos a logcat | `Debug.WriteLine` se **borra en Release**: los diagnósticos no existían en el APK |
-| **AD-32** | 28 tests de JS con el runner de Node | Cero dependencias; no contradice AD-21 |
-| **AD-33** | Una dirección mal escrita dejaba la app **inutilizable** | Cuatro fallas encadenadas; la lección se generaliza a cualquier valor persistido |
-| **AD-34** | Cámara cenital fija fuera del viaje, zoom con botones | Incluye la capa de botones comiéndose los toques del mapa |
+| **AD-36** | Zonas peligrosas del mapa **comunitario**, no del oficial | Cuando la cobertura de una fuente coincide con una frontera, el mapa dibuja la frontera |
+| **AD-37** | El nombre de la calle se rotula sobre el **mapa base** | Los tramos entre maniobras miden 29–90 m: no entra el texto. Y la colisión va **activada** |
+| **AD-38** | Pasos a nivel sólo durante el viaje y sin escala de color | El color codifica una sola dimensión: cuánto te afecta a vos y a tu camión |
+| **AD-39** | Vibración con **un patrón por tipo de aviso** | Si todo vibrara igual habría que mirar la pantalla, que es lo que la vibración evita |
+| **AD-40** | Alternativas ordenadas por restricciones, no por tiempo | La tolerancia de 60 s no es un detalle: sin ella la Red nunca desempata |
+| **AD-41** | El orden del reparto con distancias **reales** | En CABA la ruta real llega a 1,67× la recta; un par sin ruta vale infinito y no tumba el reparto |
+
+Las cinco anteriores, del 25–26/08/2026, siguen valiendo: **AD-30** (brújula del
+magnetómetro — por qué NO se usa `Compass` de MAUI), **AD-31** (`Debug.WriteLine`
+se borra en Release), **AD-32** (tests de JS sin dependencias), **AD-33** (una
+dirección mal escrita dejaba la app inutilizable) y **AD-34** (cámara cenital fija
+fuera del viaje).
 
 ---
 
@@ -66,10 +79,10 @@ Prioridad declarada:
 | Fase | Estado |
 |---|---|
 | **0 · Cimientos** | ✅ Completa — cuentas, camiones por usuario, viajes, mudanza del frontend |
-| **1 · Navegación** | 🔨 Probada en el teléfono parado; **sin probar manejando**. El v2 le suma legibilidad de calles, vibración y rutas alternativas |
+| **1 · Navegación** | 🔨 **Todo lo construible está hecho** — guiado, voz, GPS en segundo plano, brújula, nombre verde de la calle, vibración por patrón, alternativas de ruta y reintento al conectar. Falta lo único que no se puede hacer acá: **manejar** |
 | **2 · Usabilidad** | ✅ Completa — salió adelantada dentro de la mudanza del frontend |
-| **3 · Seguridad** | ⬜ Sólo está el 911. Faltan 3 contactos, compartir viaje, S.O.S. en el reporte y las zonas peligrosas |
-| **4 · Info para camiones** | 🔨 **Reabierta por el v2** — estaban las capas y el mapa base; ahora suma radares, POIs valorados, avenidas destacadas y modo reparto |
+| **3 · Seguridad** | 🔨 Están el 911 y las zonas peligrosas. Faltan **3 contactos**, **compartir viaje** y el S.O.S. dentro del reporte |
+| **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto** hechos. Queda sólo **POIs valorados por usuarios**, que necesita conversación |
 | **5 · Reportes de comunidad** | ⬜ **Fase nueva del v2** — reportar y confirmar siniestros, radares y retenes. Es un sistema, no una función |
 | **6 · Experiencia y gamificación** | ⬜ Avatares, cofres, chat, bonos y **cinco juegos arcade** |
 | **Transversal** | ⬜ i18n (español, portugués, guaraní, inglés) · clave de firma de distribución |
@@ -94,28 +107,45 @@ planificar, leer `producto-camiones-app`.
 257600e  Mapa base propio en PMTiles: minimalista, con dia y noche
 a4eda3d  Actualiza la skill: Fase 4 cerrada y comandos de datos
 5fb0ef3  Brujula del magnetometro, camara cenital fija, y una app que ya no queda varada
-a587041  Actualiza la skill: el checkpoint y que config-truck.yml no se commitea
+a587041  Actualiza la skill: el checkpoint y que config-truck.yml no se commitea   <- main
 1b5cd5a  Zonas de riesgo y radares en el mapa, simbolos que se entienden, y un APK que se puede actualizar
+145caec  Actualiza la skill: checkpoint 1b5cd5a, y dos cosas que decia y ya son falsas
+1b631dc  Las zonas de riesgo cuentan robos a mano armada, y vuelven a ser un mapa de calor
+5b7d0d6  Actualiza el roadmap: la Fase 4 estaba mas cerrada de lo que decia
+9363092  El arranque insiste tres veces antes de rendirse, no una
+82fc732  Las zonas peligrosas salen del mapa comunitario, con boton propio y sin numeros
+0dea657  El nombre de la calle por la que vas: en verde, y ya no lo tapa la ruta
+d19d650  El nombre verde se achica y deja de encimarse consigo mismo
+727912d  Los sapitos solo durante el viaje y sin escala de color; el galibo usa el puente del boton
+17c8417  Vibracion: un patron distinto por aviso, y avisos de lo que hay sobre la ruta
+954dd28  Alternativas de ruta, ordenadas por restricciones y no por tiempo
+907d5ed  Modo reparto: el backend ordena hasta 10 paradas por distancia real
+b5bacd4  Modo reparto: la interfaz, con paradas numeradas en la lista y en el mapa
 ```
 
-**`1b5cd5a` es el checkpoint del 01/09/2026.** Cubre:
+**`b5bacd4` es la punta del 01/09/2026**, y con ella **cierra todo lo construible
+de la Fase 1**. Los nueve commits desde `9363092` cubren:
 
-- **Zonas de riesgo** desde el Mapa del Delito del GCBA (AD-36, `data-sources.md` §7).
-  Cuentan **robos a mano armada**, no cantidad de robos: contar cantidad mide cuánta
-  gente circula y daba vuelta el resultado —Palermo primero, Villa Soldati como "la
-  más segura"—. Mapa de calor sobre los 5.551 hechos crudos.
-- **Radares de velocidad**, dato oficial, sólo los 129 cinemómetros.
-- **Rediseño de los símbolos del mapa**: chapas con señales reconocibles, y de un
-  racimo sobrevive el peor gálibo, no uno cualquiera.
-- **Firma estable del APK** (AD-35): se puede actualizar sin desinstalar.
-- **Encoding de Overpass** arreglado: se acabó el `RAÚL R. A` con basura.
-- L-9, L-10 y L-11 documentadas.
+- **Reintento al conectar** (apéndice de AD-33): 3 intentos, y sólo se reintenta
+  lo que puede resolverse solo.
+- **Zonas peligrosas rehechas desde el mapa comunitario** (AD-36). Ver abajo: el
+  intento con el dato oficial **se descartó**.
+- **Nombre de la calle en verde** sobre el mapa base, a 1,5× (AD-37).
+- **Pasos a nivel sólo en viaje, sin escala de color**; gálibo con el puente del
+  botón; radar como cámara de vigilancia (AD-38).
+- **Vibración con un patrón por aviso** y avisos precalculados sobre la ruta (AD-39).
+- **Alternativas de ruta** ordenadas por restricciones (AD-40).
+- **Modo reparto**, backend e interfaz (AD-41).
 
-**`5fb0ef3` es el checkpoint anterior, del 26/08/2026** —la skill lo llamaba
-`029794e`, hash que ya no existe— y junta dos bloques: el trabajo que había
-quedado sin commitear (AD-27 a AD-29 — viaje abierto en el servidor, proveedor
-combinado de ubicación, cuenta de prueba sembrada) y el de esa sesión (AD-30 a
-AD-34). Comparten archivos, así que separarlos no habría dado un corte honesto.
+**`1b5cd5a` fue el checkpoint anterior**: radares de velocidad (129 cinemómetros
+oficiales), rediseño de los símbolos del mapa, **firma estable del APK** (AD-35) y
+el encoding de Overpass. Trajo también una versión de las zonas de riesgo desde el
+**Mapa del Delito del GCBA** que **ya no existe**: se descartó en `82fc732` y la
+skill no debe volver a citarla como la fuente vigente.
+
+**`5fb0ef3` es el checkpoint del 26/08/2026** —la skill lo llamaba `029794e`, hash
+que ya no existe— y junta el trabajo que había quedado sin commitear (AD-27 a
+AD-29) con el de esa sesión (AD-30 a AD-34).
 
 **`routing/config-truck.yml` quedó deliberadamente fuera del commit**: el árbol de
 trabajo apunta a `argentina-latest.osm.pbf` porque el recorte del AMBA no está en
@@ -128,6 +158,23 @@ modificado en cada `git status`; **no commitearlo**.
 
 **Distinción crítica.** Mucho está probado a fondo; una franja específica no se
 pudo probar y hay que decirlo cada vez.
+
+### Verificado en el teléfono el 01/09/2026
+
+APK de Release instalado con `adb install -r` (30,2 MB) sobre la versión anterior,
+sin desinstalar:
+
+| Qué | Evidencia |
+|---|---|
+| Arranque y conexión | `resultado: alcanzable=True motivo=ninguno` |
+| Errores de JavaScript y crashes | **ninguno** |
+| Zonas de riesgo, radares y símbolos rediseñados | vistos en el APK, no sólo en el navegador |
+
+**Lo que quedó sin ver en el teléfono de esa tanda**: el modo reparto, el selector
+de alternativas y los pasos a nivel entrando y saliendo del viaje. Se verificaron
+end-to-end **en el navegador** — reparto con cuatro paradas reordenadas a
+Caseros → Corrientes 5500 → Rivadavia 11000 → Cabildo 2000, con sus marcadores
+numerados — pero no se tocaron en el APK.
 
 ### Verificado en el teléfono el 31/08/2026 — barrido completo
 
@@ -165,33 +212,47 @@ bind a `0.0.0.0:5080`— también son esperados.
   de GraphHopper (**4 m de error en 26 km**); robusto a ±30 m de ruido; detección
   de desvío 0→1→2→3 strikes con enfriamiento; avisos de 35 apelotonados a 26 con
   220 m de separación mínima.
-- **Backend completo**: 85 tests de dominio y utilidades + 46 de integración (11 contra
+- **Backend completo**: **127 tests unitarios + 46 de integración** (11 contra
   GraphHopper real). Flujos end-to-end por HTTP: alta, verificación, login,
-  perfil, alias único, camiones, propiedad, viajes, acreditación de km.
+  perfil, alias único, camiones, propiedad, viajes, acreditación de km. Los
+  unitarios incluyen 17 de la política de reintentos, 11 del orden de rutas
+  alternativas y 14 del orden del reparto; **los tres últimos grupos enlazan
+  archivos de Mobile**, que a propósito no depende de MAUI.
+- **45 tests de JS** (`node --test`), que cubren el motor de guiado y los avisos
+  de ruta. Fue un test —y no el teléfono— el que encontró que `Number(null)` es 0
+  y no `NaN`, con lo que un gálibo sin altura declarada se habría avisado como
+  *"puente de 0,00 m, no pasás"*.
 - **Datos del mapa**: medidos contra Overpass el 24/08/2026, dentro del límite
   administrativo de CABA.
 
 ### NO verificado
 
-- **Navegación manejando.** Nunca se probó en movimiento. Pendiente para cerrar
-  Fase 1: que la flecha siga al camión, que hable en los giros, que el servicio
-  sobreviva a apagar la pantalla.
+- **Navegación manejando.** Nunca se probó en movimiento, y a esta altura es
+  **lo único que falta para cerrar la Fase 1**: que la flecha siga al camión, que
+  hable en los giros, que el servicio sobreviva a apagar la pantalla, que el
+  nombre verde se lea a velocidad, y que el **modo reparto** y el **selector de
+  alternativas** se usen con las manos ocupadas.
+- **La vibración nunca se sintió.** Compila, instala y no rompe nada, pero que el
+  teléfono efectivamente vibre y que los cuatro patrones se distingan sólo se
+  comprueba manejando (AD-39).
+- **El APK instalado apunta a una IP de la red de casa.** En la calle no va a
+  tener backend: hace falta `demo-up.ps1` y recompilar con esa URL de túnel, o
+  quedarse en la red de casa para la primera vuelta.
 - **La brújula en el soporte del camión.** El usuario la probó en el teléfono el
   26/08/2026 y reportó que **funciona** —dial, cardinal y cono—, pero con el
   aparato en la mano. Falta el caso que motivó no usar `Compass` de MAUI: el
   teléfono **parado en un soporte de parabrisas** (AD-30). Ahí es donde el eje
   cambia, y ahí es donde se sabrá si el trabajo extra valió la pena.
 - **La app en el teléfono, salvo lo que reportó el usuario.**
-- **Las zonas de riesgo, los radares y el rediseño de los símbolos del mapa** se
-  verificaron **en el navegador, no en el APK** — el teléfono no estaba conectado
-  el 01/09/2026. **Es lo primero a chequear la próxima vez que se enchufe**, y no
-  es trámite: en el WebView de Android el mapa de calor pasa por la GPU del
-  teléfono, no por la de la máquina de desarrollo.
-- **El pedido de las zonas era estético y se resolvió por el lado del dato.** El
-  usuario pidió inspirarse en el mapa de Google Maps que compartió, y el trabajo
-  se fue a la metodología —qué contar, cómo normalizar— antes que al aspecto. El
-  resultado quedó aprobado, pero la lección aplica a lo que venga: **cuando el
-  pedido es visual, la referencia visual manda.**
+- **El modo reparto, las alternativas y los pasos a nivel dentro y fuera del
+  viaje**, que quedaron probados en el navegador y no en el APK.
+
+**Cuando el pedido es visual, la referencia visual manda.** El usuario pidió dos
+veces inspirarse en un mapa que compartió, y las dos veces el trabajo se fue a la
+metodología del dato —qué contar, cómo normalizar— antes que al aspecto. Textual:
+*"tenías que orientarte más en lo visual del mapa de maps que en los datos de
+robo"*. Costó rehacer las zonas enteras. Es la lección más cara de la sesión del
+01/09/2026 y no es sobre zonas de riesgo: es sobre cómo leer un pedido.
 
 **Ya no es cierto que el mapa no se pueda ver.** Esta skill decía que el panel de
 navegador no componía frames y que las capas estaban "servidas pero no vistas".
@@ -367,7 +428,9 @@ Tres secciones sirven, y conviene mirarlas en este orden:
 - **Estética:** seria pero dopamínica. Resuelto como **dos intensidades**: el
   mapa es sobrio, la progresión trae el color. No es sólo estético — impide que
   lo gamificado se filtre a la pantalla que se mira manejando.
-- **Identidad de git del repo:** `bermejolautaro <tarolau97@hotmail.com>`.
+- **Identidad de git del repo:** `Tobias Bermejo <bermejotobias@gmail.com>`
+  (verificado el 01/09/2026 con `git config user.name`; esta skill decía
+  `bermejolautaro <tarolau97@hotmail.com>`, que es el dueño del remoto `hermano`).
 - **Convención de código:** nombres de tipo **en inglés**, comentarios y docs en
   español, **sin acentos dentro de los `.cs`**. Rutas de API en inglés.
 
@@ -379,7 +442,7 @@ Tres secciones sirven, y conviene mirarlas en este orden:
 
 - **Node 24.19 y npm 11.17 SÍ están instalados** (verificado el 26/08/2026; la
   nota anterior decía lo contrario y estaba vieja, y esa creencia costó no tener
-  tests sobre el motor de guiado). No hay Python. **Ya hay 28 tests de JS**:
+  tests sobre el motor de guiado). No hay Python. **Ya hay 45 tests de JS**:
   `node --test "tests/web/*.test.mjs"`, con el runner que trae Node, **sin una
   sola dependencia** — no hay `node_modules` ni `npm install`, y el `wwwroot` que
   se sirve y se empaqueta es idéntico con o sin ellos. Ver AD-32. Cubren
@@ -405,6 +468,19 @@ Tres secciones sirven, y conviene mirarlas en este orden:
 - **`$PSScriptRoot` viene vacío dentro del bloque `param()`** → una ruta relativa
   con `..` se ancla en la raíz del disco y el script escribe en `C:\src\...`
   informando éxito. Calcular la ruta en el cuerpo, con `$PSCommandPath`.
+- **`Select-Object -First N` corta el pipeline y MATA el proceso de arriba.** Se
+  usó para acortar la salida de `build-apk.ps1` y PowerShell abortó la compilación
+  a mitad de camino **saliendo con código 0**: parecía que había compilado, y se
+  instaló el APK viejo. Para recortar salida sin cortar el proceso va
+  `Out-String -Stream | Where-Object`, o `| Select-Object -First N` **después** de
+  que el comando terminó.
+- **PowerShell desenrolla los arrays anidados de un nivel.** `, $geometry.coordinates`
+  no preserva la anidación de un polígono, y el síntoma fue "ninguna zona toca
+  CABA" con el dato perfectamente bien. Escribir los casos aparte, y **poner un
+  control del instrumento**: `fetch-zonas-riesgo.ps1` prueba cuatro puntos de
+  coordenadas conocidas —Obelisco y Villa Soldati adentro, Avellaneda y Vicente
+  López afuera— y **tira excepción** si el límite no los clasifica bien. Sin ese
+  control, un filtro geográfico roto se ve igual que un dataset vacío.
 - **Archivos con CRLF.** Los regex de perl con `$` al final o `\n` multilínea
   **no matchean**. Usar `\r?$`, o reconstruir el archivo con `head`/`sed`.
 - **perl con acentos** rompe: `ó` son dos bytes y `(.)` matchea uno solo. Para
@@ -414,8 +490,11 @@ Tres secciones sirven, y conviene mirarlas en este orden:
 
 ### El navegador de la sesión
 
-- **No compone frames** → `map.on('load')` nunca dispara, no hay screenshots, los
-  clicks son poco confiables. Manejar la app por `javascript_tool`.
+- **Sí compone frames y sí hay capturas** — la nota anterior decía lo contrario y
+  quedó vieja. Pero `map.on('load')` puede no disparar y los clicks son poco
+  confiables: para flujos largos conviene manejar la app por `javascript_tool`.
+  Y el mapa **tarda en componer**: una captura tomada enseguida sale a medio
+  dibujar y se lee como "el cambio no funcionó". Esperar y volver a capturar.
 - **Cachea módulos ES agresivamente**, incluso con `no-cache`. Para probar un
   módulo recién editado, importarlo con `?f=<timestamp>`.
 - **Límite de 30 s por ejecución.** Partir los flujos largos.
@@ -469,7 +548,8 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 ```powershell
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
-dotnet test                              # 131 tests (.NET) + 28 de JS
+dotnet test                              # 173 tests (.NET)
+node --test "tests/web/*.test.mjs"       # 45 tests de JS
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
 ```
@@ -528,30 +608,47 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-**Inmediato:** cerrar Fase 1 probando en movimiento. Orden que más rápido
-descarta problemas: ¿carga la interfaz? → ¿el GPS ubica? → **¿el dial de la
-brújula marca bien con el teléfono en el soporte?** → ¿aparece la notificación al
-arrancar el viaje? → **¿avanza la flecha tras apagar la pantalla un minuto?** →
-¿habla en los giros?
+**Ya no hay nada de la Fase 1 que se pueda construir acá.** Lo único que queda es
+probarla en movimiento, y eso es del usuario. Orden que más rápido descarta
+problemas: ¿carga la interfaz? → ¿el GPS ubica? → **¿el dial de la brújula marca
+bien con el teléfono en el soporte?** → ¿aparece la notificación al arrancar el
+viaje? → **¿avanza la flecha tras apagar la pantalla un minuto?** → ¿habla en los
+giros? → **¿vibra, y se distingue el patrón del gálibo del de doblar?**
 
-**Fase 4 está cerrada.** El mapa base propio en PMTiles resolvió el minimalismo,
-el día/noche del fondo y **L-4** — ya no se depende de `tile.openstreetmap.org`
-(AD-26).
+Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
+`adb logcat -s Web Cascara Brujula`.
 
-**Después:** Fase 3 (seguridad: pánico con 3 contactos, compartir viaje), modo
-reparto, Fase 5 (comunidad y gamificación), i18n.
+**Acordado con el usuario el 01/09/2026**, después de un repaso del proyecto:
 
-**Las zonas peligrosas YA tienen fuente oficial y están hechas** (01/09/2026).
-Esta skill decía que no la había: era falso. El **Mapa del Delito del GCBA** es
-CC-BY, trae 133.203 hechos de 2025 con coordenadas y se publica por año. Ver
-AD-36 y `data-sources.md` §7.
+1. **L-11 — el aviso de que saliste de CABA.** Ninguna capa propia existe pasando
+   la General Paz o el Riachuelo y la app no lo dice: Dock Sud se ve igual que un
+   barrio sin registros. Es la regla de la casa incumplida por omisión, y mejora
+   la prueba en calle. ~30 min.
+2. **Fase 3 · los 3 contactos de emergencia.** Es lo que sigue en la prioridad
+   declarada y lo más limpio de arrancar: la pantalla de Emergencia **ya existe**
+   con un cartel que dice *"todavía en camino"* (`app.js`, `emergencyView`), y el
+   discador nativo ya funciona por el puente. Falta perfil + endpoint + pantalla.
+   **Cero acoplamiento con la navegación**: se puede construir sin esperar la
+   prueba en calle.
 
-**Lo que sí falta es cobertura fuera de CABA (L-11).** Ninguna capa propia existe
-pasando la General Paz o el Riachuelo, y la app **no lo dice**: Dock Sud se ve
-igual que un barrio sin registros. Es la regla del proyecto incumplida por
-omisión, y sube de prioridad cuando se sume el AMBA — que el usuario confirmó
-como objetivo, con la información en recopilación y **explícitamente para más
-adelante**.
+**Deliberadamente para después:**
+
+- **Compartir viaje por WhatsApp** — misma fase, pero necesita endpoint público de
+  seguimiento, tokens que venzan y decisiones de privacidad. Es un trabajo grande
+  disfrazado de botón.
+- **Fase 5 (reportes) y POIs valorados** — bloqueadas por decisiones del usuario,
+  no por código: cuánto dura un reporte, cuántas confirmaciones lo validan, qué
+  pasa con los falsos.
+- **Los cinco juegos** — proyecto aparte. Elegir uno, hacerlo bien, y recién ahí
+  ver.
+
+**Las zonas peligrosas están hechas, y NO salen del dato oficial.** Esta skill
+afirmó primero que no había fuente, después que era el Mapa del Delito del GCBA, y
+las dos veces se equivocó. Lo vigente: el **mapa colaborativo del AMBA**, 19 zonas
+que tocan CABA, 8,8 km², el 4,3% de la Ciudad. El dato oficial se probó y **se
+descartó**: contar hechos mide dónde hay gente —Palermo encabezaba la Ciudad— y
+como el dataset cubre exactamente CABA, el mapa de calor dibujaba la silueta del
+límite administrativo. Ver AD-36 y `data-sources.md` §7.
 
 ---
 
@@ -561,7 +658,7 @@ adelante**.
 
 Está en el código (`bool?` de tres estados para aptitud), en el generador de
 capas (`maxheight=default` no es una altura; barrera sin declarar no es barrera
-ausente), y en la documentación (L-1 a L-8). Es lo que hace auditable al sistema
+ausente), y en la documentación (L-1 a L-11). Es lo que hace auditable al sistema
 y defendible al producto frente a Waze y Google Maps.
 
 Si hace falta un dato que no existe: **decirlo, no rellenarlo.**
@@ -574,16 +671,25 @@ Si hace falta un dato que no existe: **decirlo, no rellenarlo.**
 .\data\build-basemap.ps1             # mapa base del AMBA (53 MB) -> routing/amba.pmtiles
 .\data\fetch-caba-map-layers.ps1     # Red, gálibos y sapitos -> wwwroot/data/*.geojson
 .\data\fetch-radares-velocidad.ps1   # 129 cinemómetros, dato oficial del GCBA
-.\data\fetch-zonas-riesgo.ps1        # zonas de riesgo, del Mapa del Delito del GCBA
+.\data\fetch-zonas-riesgo.ps1        # zonas peligrosas, del mapa comunitario del AMBA
 ```
 
-Los dos últimos salen de **Buenos Aires Data**, no de OSM: otras licencias, otras
-cadencias, y por eso viven en scripts propios. `fetch-zonas-riesgo.ps1` acepta
-`-Anio` y `-LadoMetros`, y reusa la descarga si ya está en el temporal.
+**Los radares salen de Buenos Aires Data** (oficial, CC-BY), no de OSM: otra
+licencia y otra cadencia, y por eso vive en un script propio. **Las zonas
+peligrosas salen del KML de un mapa colaborativo**, que no es oficial y no tiene
+grados: hay dos estados, marcada y no marcada, y **la app nunca dice "zona
+segura"** — que un lugar no aparezca significa que nadie lo marcó.
+
+**El heatmap se alimenta con PUNTOS, nunca con una grilla.** Normaliza por
+densidad de puntos: con una grilla regular la redibuja como lunares alineados, y
+agrandar el radio sólo da lunares más grandes. El script rellena cada zona con
+puntos cada 60 m y los publica en **un solo MultiPoint** — la envoltura de miles
+de features pesa más que las coordenadas.
 
 **El encoding cambia según el portal y hay que verificarlo, no suponerlo.** El CSV
-de cámaras viene en **Latin-1**; el de delitos, en **UTF-8**; Overpass no declara
-charset y PowerShell 5.1 lo asume ISO-8859-1. Cada uno costó su tanda de mojibake.
+de cámaras viene en **Latin-1**; los datasets del portal de delitos, en **UTF-8**;
+Overpass no declara charset y PowerShell 5.1 lo asume ISO-8859-1. Cada uno costó
+su tanda de mojibake.
 
 El **mapa base no se versiona ni entra en el APK** y se sirve bajo `/tiles`; si
 falta, el mapa cae al raster de OSM con un aviso en consola. Las **capas de
