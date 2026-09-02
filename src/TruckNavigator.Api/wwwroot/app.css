@@ -392,6 +392,19 @@ button { font-family: inherit; font-size: inherit; }
   flex-direction: column;
   pointer-events: none;
   padding: calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom));
+
+  /* El `gap` es lo que garantiza que los tres bloques —SOS, controles del mapa y
+     hoja— no se toquen NUNCA.
+
+     La separacion la daban los `margin-top: auto` de `.map-side` y de la hoja,
+     que reparten el espacio SOBRANTE. Con la hoja grande —cuatro paradas del
+     reparto alcanzan— no sobra nada, los margenes colapsan a cero y los tres
+     bloques quedan pegados: medido, 0 px entre el SOS y el zoom, y 0 px entre el
+     boton de ubicacion y la caja de busqueda.
+
+     Un `gap` no colapsa: se respeta aunque no haya espacio libre, y lo que cede
+     es la hoja, que para eso se encoge. Ver AD-44. */
+  gap: 16px;
 }
 
 /* ----------------------------------------------------------------------------

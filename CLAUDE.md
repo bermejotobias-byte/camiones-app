@@ -302,6 +302,12 @@ node --test "tests/web/*.test.mjs"             # 62 tests: guiado, avisos de rut
   visible que lo explique. `none` en los contenedores (`.map-overlay`, `.map-top`,
   `.map-side`, y el espaciador `.grow`), `auto` sólo en los controles concretos. **Cada
   control que se agregue a la columna agranda la zona muerta si esto se rompe.** Ver AD-34.
+- **Los bloques de la capa del mapa se separan con `gap`, NO con `margin: auto`.**
+  Un margen automático reparte el espacio **sobrante**: con la hoja grande no sobra
+  nada, colapsa a cero y el SOS, los controles del mapa y la caja de búsqueda
+  quedan **pegados** — medido, 0 px entre los tres. Con la hoja chica sobraba de
+  más y daba 56 y 70 px: nunca fue una separación, era un resto. `gap: 16px` en
+  `.map-overlay` no colapsa nunca. Ver AD-44.
 - **La hoja no puede ser `flex: none`, y `min-height: 0` es imprescindible.** Con
   `flex: none` no se encoge: al crecer el contenido —cinco paradas del reparto, el
   selector de alternativas— **la hoja entera terminaba 112 px por debajo del borde

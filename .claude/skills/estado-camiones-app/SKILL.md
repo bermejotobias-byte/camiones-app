@@ -498,6 +498,16 @@ Tres secciones sirven, y conviene mirarlas en este orden:
 - **Cachea módulos ES agresivamente**, incluso con `no-cache`. Para probar un
   módulo recién editado, importarlo con `?f=<timestamp>`.
 - **Límite de 30 s por ejecución.** Partir los flujos largos.
+- **No avanza las animaciones CSS con el panel oculto: quedan congeladas en su
+  primer frame.** Costó perseguir un desfase de 14 px que no existía: la hoja
+  tiene `animation: sheet-in`, que arranca en `translateY(14px)`, y al medir
+  aparecía siempre corrida hacia abajo. Anulando la animación caía exactamente
+  donde debía. **Antes de perseguir una diferencia de pocos píxeles, fijarse si el
+  elemento tiene animación de entrada.**
+- **Las coordenadas de un `screenshot` envejecen.** Un clic por coordenada tomada
+  de una captura anterior puede caer en el botón de al lado —pasó: cayó en
+  *Cancelar* en vez de *Guardar*, y pareció que el alta estaba rota—. Para
+  interactuar, `find` / `read_page` y clic **por `ref`**, que no se desplaza.
 
 ### Overpass
 

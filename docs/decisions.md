@@ -2602,9 +2602,39 @@ en 472 px y su `max-height` es 584, así que el tope no es el `max-height`.
 exige sacarle controles al mapa durante el reparto, y eso es una decisión de
 producto —no un ajuste de CSS— así que queda planteada y sin tomar.
 
+### Los tres bloques se separan con `gap`, no con márgenes automáticos
+
+Segundo síntoma del mismo problema, reportado aparte: *"los íconos se amontonan
+(el de SOS y el +), lo mismo con la caja de búsqueda y el punto que lleva a la
+geolocalización"*. Medido con cuatro paradas cargadas:
+
+```
+SOS:        10 → 58
+laterales:  58 → 330    ← separación 0
+hoja:      330 → 802    ← separación 0
+```
+
+**Cero píxeles.** Los tres bloques se tocaban.
+
+La separación la daban los `margin-top: auto` de `.map-side` y de la hoja, que
+reparten el espacio **sobrante**. Con la hoja grande no sobra nada, los márgenes
+automáticos colapsan a cero y todo queda pegado. Con la hoja chica sobraba de más
+y la separación era de 56 y 70 px: nunca fue una separación, era un resto.
+
+Va un `gap: 16px` en `.map-overlay`. **Un `gap` no colapsa**: se respeta aunque no
+haya espacio libre, y lo que cede es la hoja, que para eso se encoge.
+
 ### Verificación
 
 En viewport de teléfono (375×812), con el flujo real y no llamando funciones a
 mano: seis paradas cargadas por el buscador, y la vista de ruta con dos
 alternativas. En los dos casos la hoja termina dentro de la pantalla, el botón
 queda visible y el contenido scrollea.
+
+**Una trampa al medir:** la hoja aparecía 14 px más abajo de lo que le
+correspondía, y no era un defecto. `.sheet` tiene `animation: sheet-in`, que
+arranca en `translateY(14px)`, y **el navegador de la sesión no avanza las
+animaciones con el panel oculto**: quedan congeladas en su primer frame. Anulando
+la animación, la hoja cae exactamente en el borde del área útil. Antes de
+perseguir una diferencia de pocos píxeles, comprobar si el elemento tiene
+animación de entrada.
