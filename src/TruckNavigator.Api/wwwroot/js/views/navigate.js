@@ -492,16 +492,27 @@ export function navigateView(host, { openDrawer, go }) {
         </div>`) : ''}
 
       <div class="sheet-action">
-        <button class="btn btn-primary btn-block" id="calc-delivery"
-                ${stops.length && origin && truck ? '' : 'disabled'}>
-          ${deliveryOrder ? 'Recalcular reparto' : 'Calcular reparto'}
-        </button>
+        ${deliveryOrder ? raw(`
+          <button class="btn btn-primary btn-block" id="start-delivery">
+            Arrancar reparto
+          </button>
+          <button class="btn btn-ghost btn-block" id="calc-delivery"
+                  style="margin-top:8px">
+            Recalcular
+          </button>
+        `) : raw(`
+          <button class="btn btn-primary btn-block" id="calc-delivery"
+                  ${stops.length && origin && truck ? '' : 'disabled'}>
+            Calcular reparto
+          </button>
+        `)}
       </div>
     `);
 
     wire(sheet(), {
       '#close-delivery': () => salirDelReparto(),
       '#calc-delivery': (event) => calcularReparto(event.currentTarget),
+      '#start-delivery': (event) => startTrip(event.currentTarget),
       '#origin@input': onInput('origin'),
       '#origin@focus': () => { editing = 'origin'; },
       '#new-stop@input': onInput('stop'),
@@ -1041,14 +1052,30 @@ export function navigateView(host, { openDrawer, go }) {
   async function startTrip(button) {
     const truck = selectedTruck();
 
+    // Desde el reparto el viaje es el mismo, con una diferencia: el destino es la
+    // ULTIMA parada del orden calculado y las demas viajan como intermedias. Sin
+    // esto el servidor recalcularia una ruta directa y se perderian las paradas
+    // —el camion saldria a hacer el reparto por un camino que no es el que se le
+    // mostro—. Ver AD-45.
+    const enReparto = stage === 'delivery' && deliveryOrder;
+    const orden = enReparto ? paradasEnOrden() : null;
+
+    const destino = enReparto ? orden[orden.length - 1] : destination;
+    const intermedias = enReparto ? orden.slice(0, -1) : [];
+
     await withBusy(button, 'Arrancando', async () => {
       try {
         const started = await api.startTrip({
           truckId: truck.id,
           origin: { latitude: origin.lat, longitude: origin.lng },
-          destination: { latitude: destination.lat, longitude: destination.lng },
+          destination: { latitude: destino.lat, longitude: destino.lng },
           originLabel: origin.label,
-          destinationLabel: destination.label
+          destinationLabel: destino.label,
+
+          // Campo opcional: sin paradas el pedido queda igual que siempre.
+          ...(intermedias.length
+            ? { stops: intermedias.map((p) => ({ latitude: p.lat, longitude: p.lng })) }
+            : {})
         });
 
         // La ruta se guarda en el estado compartido, no solo en la variable de
@@ -1110,6 +1137,15 @@ export function navigateView(host, { openDrawer, go }) {
         setState({ activeTrip: null, activeRoute: null });
         stage = 'search';
         route = null;
+
+        // Tambien se limpia el reparto, si el viaje venia de uno. Sin esto las
+        // paradas quedaban en memoria y sus marcadores numerados en el mapa,
+        // mientras la hoja mostraba la busqueda vacia: puntos en la pantalla que
+        // ya no pertenecen a ningun viaje ni figuran en ninguna lista.
+        stops = [];
+        deliveryOrder = null;
+        gl.setDeliveryStops([]);
+
         gl.clearRoute();
         drawSheet();
 

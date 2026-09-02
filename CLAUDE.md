@@ -22,7 +22,7 @@ OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
 | `tests/TruckNavigator.UnitTests` | 147 tests: 65 de dominio + 20 de la direccion del backend + 17 de la politica de reintentos + 11 del orden de rutas alternativas + 14 del orden del reparto + 20 de los contactos de emergencia. El de reintentos y los dos del reparto y las alternativas enlazan archivos de Mobile, que no depende de MAUI a proposito |
-| `tests/TruckNavigator.IntegrationTests` | 52 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 41 sobre datasets, perfiles, camiones, viajes, contactos de emergencia y SQLite |
+| `tests/TruckNavigator.IntegrationTests` | 56 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 45 sobre datasets, perfiles, camiones, viajes, paradas del reparto, contactos de emergencia y SQLite |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -42,7 +42,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-radares-velocidad.ps1             # Radares de velocidad, dato oficial del GCBA
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 199 tests (.NET)
+dotnet test                                    # 203 tests (.NET)
 node --test "tests/web/*.test.mjs"             # 62 tests: guiado, avisos de ruta y agenda
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
@@ -235,6 +235,17 @@ node --test "tests/web/*.test.mjs"             # 62 tests: guiado, avisos de rut
   diálogos de JavaScript sin un `WebChromeClient` que los atienda, y MAUI no instala
   ninguno — `confirm()` devuelve `false` sin mostrar nada y el botón parece no responder.
   Para pedir una decisión va `askChoice`/`askConfirm` de `ui.js`. Ver AD-28.
+- **Un viaje guarda SUS PARADAS, porque `/api/trips/active` recalcula la ruta.**
+  El viaje abierto se recupera al abrir la app y el servidor vuelve a calcular; con
+  sólo origen y destino guardados, un **reparto de 31 km por tres paradas volvía
+  convertido en un tramo directo de 10 km** y el guiado mandaba al camión por donde
+  no correspondía — sin avisar, porque la ruta que muestra es válida, sólo que no es
+  la que se armó. `Trip.Stops` va como JSON, y el servidor **no las reordena**: el
+  orden se calculó al armar el reparto y se le mostró al usuario. `stops` es un
+  campo **opcional** de `StartTripRequest`, así que la app ya instalada sigue
+  andando. Ojo con el `defaultValue` de la migración: EF pone `""` y **deserializar
+  una cadena vacía tira excepción** — una fila así haría ilegible el historial
+  entero. Ver AD-45.
 - **El viaje en curso vive en el servidor, no en la pantalla**: sobrevive a cerrar la app.
   La app lo recupera con `GET /api/trips/active` al entrar; sin eso arranca creyendo que no
   hay viaje y el usuario se choca con un 409 al arrancar el siguiente, sin ningún viaje a la

@@ -42,6 +42,28 @@ public sealed class GraphHopperRouteCalculator(
         return rutas[0];
     }
 
+    public async Task<TruckRoute> CalculateThroughAsync(
+        TruckProfile truck,
+        IReadOnlyList<GeoPoint> waypoints,
+        DateTimeOffset departure,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(truck);
+        ArgumentNullException.ThrowIfNull(waypoints);
+
+        if (waypoints.Count < 2)
+        {
+            throw new RoutingException("Una ruta necesita al menos un origen y un destino.");
+        }
+
+        // Una sola consulta con todos los puntos: asi la geometria, las
+        // instrucciones y la evaluacion de restricciones salen de la ruta de
+        // verdad y no de pegar tramos calculados por separado.
+        var rutas = await RequestAsync(truck, waypoints, departure, alternativas: false, cancellationToken);
+
+        return rutas[0];
+    }
+
     public async Task<IReadOnlyList<TruckRoute>> CalculateAlternativesAsync(
         TruckProfile truck,
         GeoPoint origin,

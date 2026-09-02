@@ -48,6 +48,26 @@ public sealed class Trip
 
     public string? DestinationLabel { get; set; }
 
+    /// <summary>
+    /// Paradas INTERMEDIAS del viaje, en el orden en que se visitan. Vacia en un
+    /// viaje de un solo tramo.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Sin esto el reparto se pierde apenas se recupera el viaje.</b> El viaje
+    /// abierto vive en el servidor y sobrevive a cerrar la app (AD-27), y al
+    /// recuperarlo la ruta se vuelve a calcular. Con solo origen y destino
+    /// guardados, esa ruta salia DIRECTA: un reparto de 31 km por tres paradas
+    /// volvia convertido en un tramo de 10 km, y el guiado mandaba al camion por
+    /// donde no correspondia.
+    /// </para>
+    /// <para>
+    /// Se guardan las paradas y no la geometria de la ruta: la ruta se recalcula
+    /// —el trafico y el mapa cambian— pero por donde hay que pasar, no.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<TripStop> Stops { get; set; } = [];
+
     /// <summary>Distancia de la ruta calculada por el servidor, en metros.</summary>
     public double PlannedDistanceMeters { get; set; }
 
@@ -113,3 +133,12 @@ public sealed class Trip
         }
     }
 }
+
+/// <summary>
+/// Una parada intermedia de un viaje, con su etiqueta para el historial.
+/// </summary>
+/// <remarks>
+/// Tipo propio y no <c>GeoPoint</c> porque lleva la etiqueta: el historial tiene
+/// que poder decir "pasaste por Rivadavia 11000" y no un par de coordenadas.
+/// </remarks>
+public sealed record TripStop(double Latitude, double Longitude, string? Label);

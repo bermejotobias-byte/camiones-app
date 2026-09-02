@@ -787,14 +787,31 @@ trips.MapPost("/", async (
 
     var departure = request.DepartureTime ?? DateTimeOffset.Now;
 
+    // Las paradas intermedias son opcionales: sin ellas el viaje es de un tramo,
+    // como siempre. Con ellas —un reparto ya calculado— la ruta tiene que pasar
+    // por todas, y en ESE orden: el usuario ya lo vio en la pantalla.
+    var stops = request.Stops ?? [];
+
+    if (stops.Count > DeliveryOrder.MaxStops)
+    {
+        return Results.Problem(
+            title: "Demasiadas paradas",
+            detail: $"Un reparto admite hasta {DeliveryOrder.MaxStops} paradas y llegaron {stops.Count}.",
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
     try
     {
-        var route = await calculator.CalculateAsync(
-            truck,
-            new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude),
-            new GeoPoint(request.Destination!.Latitude, request.Destination.Longitude),
-            departure,
-            ct);
+        var origen = new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude);
+        var destino = new GeoPoint(request.Destination!.Latitude, request.Destination.Longitude);
+
+        var route = stops.Count == 0
+            ? await calculator.CalculateAsync(truck, origen, destino, departure, ct)
+            : await calculator.CalculateThroughAsync(
+                truck,
+                [origen, .. stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)), destino],
+                departure,
+                ct);
 
         var trip = new Trip
         {
@@ -811,6 +828,12 @@ trips.MapPost("/", async (
             DestinationLatitude = request.Destination.Latitude,
             DestinationLongitude = request.Destination.Longitude,
             DestinationLabel = Clean(request.DestinationLabel),
+
+            // Se guardan las paradas, no la geometria de la ruta: la ruta se
+            // recalcula al recuperar el viaje —el mapa y el trafico cambian— pero
+            // por donde hay que pasar, no. Sin esto un reparto vuelve convertido
+            // en un tramo directo. Ver AD-45.
+            Stops = [.. stops.Select(s => new TripStop(s.Latitude, s.Longitude, null))],
 
             PlannedDistanceMeters = route.DistanceMeters,
             PlannedDurationSeconds = route.DurationSeconds,
@@ -881,12 +904,20 @@ trips.MapGet("/active", async (
 
     try
     {
-        var route = await calculator.CalculateAsync(
-            truck,
-            new GeoPoint(trip.OriginLatitude, trip.OriginLongitude),
-            new GeoPoint(trip.DestinationLatitude, trip.DestinationLongitude),
-            DateTimeOffset.Now,
-            ct);
+        var origen = new GeoPoint(trip.OriginLatitude, trip.OriginLongitude);
+        var destino = new GeoPoint(trip.DestinationLatitude, trip.DestinationLongitude);
+
+        // La ruta se recalcula, pero POR DONDE hay que pasar sale del viaje
+        // guardado. Sin las paradas, recuperar un reparto devolvia una ruta
+        // directa —31 km por tres paradas se volvian 10 km de un tramo— y el
+        // guiado mandaba al camion por donde no correspondia. Ver AD-45.
+        var route = trip.Stops.Count == 0
+            ? await calculator.CalculateAsync(truck, origen, destino, DateTimeOffset.Now, ct)
+            : await calculator.CalculateThroughAsync(
+                truck,
+                [origen, .. trip.Stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)), destino],
+                DateTimeOffset.Now,
+                ct);
 
         return Results.Ok(new ActiveTripDto(
             TripDto.From(trip),

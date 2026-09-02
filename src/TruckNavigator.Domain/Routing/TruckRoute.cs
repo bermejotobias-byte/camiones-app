@@ -127,6 +127,27 @@ public interface ITruckRouteCalculator
         IReadOnlyList<GeoPoint> stops,
         DateTimeOffset departure,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Calcula la ruta que pasa por los puntos dados, EN ESE ORDEN.
+    /// </summary>
+    /// <param name="waypoints">
+    /// Al menos dos: el origen, las paradas intermedias y el destino.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// No reordena nada, y esa es la diferencia con
+    /// <see cref="CalculateDeliveryAsync"/>. Existe para arrancar el viaje de un
+    /// reparto que ya se calculo: el orden se le mostro al usuario en la pantalla,
+    /// y volver a optimizarlo podria devolver otro y mandarlo por donde no
+    /// esperaba. Ademas es una sola consulta al motor en vez de toda la matriz.
+    /// </para>
+    /// </remarks>
+    Task<TruckRoute> CalculateThroughAsync(
+        TruckProfile truck,
+        IReadOnlyList<GeoPoint> waypoints,
+        DateTimeOffset departure,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

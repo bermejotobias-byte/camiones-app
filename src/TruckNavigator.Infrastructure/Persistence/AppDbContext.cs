@@ -184,6 +184,31 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         trip.Ignore(t => t.Elapsed);
         trip.Ignore(t => t.IsOpen);
 
+        // Las paradas van como JSON en una columna, no en tabla propia: son de
+        // este viaje y no se consultan por separado nunca. Mismo criterio que los
+        // servicios de un punto de interes.
+        //
+        // El ValueComparer no es opcional: sin el, EF compara por referencia y un
+        // cambio en la lista pasa inadvertido porque la referencia sigue siendo la
+        // misma.
+        trip.Property(t => t.Stops)
+            .HasConversion(
+                stops => JsonSerializer.Serialize(stops, (JsonSerializerOptions?)null),
+
+                // El chequeo de vacio no sobra: EF puso "" como valor por defecto
+                // al crear la columna, y deserializar una cadena vacia TIRA
+                // excepcion. Una fila vieja asi haria ilegible el historial
+                // entero. La migracion ya quedo con "[]", esto es el cinturon.
+                json => string.IsNullOrWhiteSpace(json)
+                        ? new List<TripStop>()
+                        : JsonSerializer.Deserialize<List<TripStop>>(json, (JsonSerializerOptions?)null)
+                          ?? new List<TripStop>(),
+                new ValueComparer<IReadOnlyList<TripStop>>(
+                    (left, right) => left != null && right != null && left.SequenceEqual(right),
+                    list => list.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
+                    list => list.ToList()))
+            .HasColumnType("TEXT");
+
         // El viaje es historial de la persona: si se borra la cuenta, se va con ella.
         trip.HasOne<AppUser>()
             .WithMany()

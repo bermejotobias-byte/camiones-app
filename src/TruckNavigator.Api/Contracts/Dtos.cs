@@ -437,6 +437,25 @@ public sealed class StartTripRequest
     [StringLength(300)]
     public string? DestinationLabel { get; set; }
 
+    /// <summary>
+    /// Paradas INTERMEDIAS, en el orden en que se visitan. Opcional.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// El recorrido completo es <c>Origin</c> + estas paradas + <c>Destination</c>.
+    /// Sin ellas el viaje es de un tramo, como siempre: <b>es un campo opcional y
+    /// no un contrato nuevo</b>, asi que la app ya instalada en el telefono sigue
+    /// funcionando sin cambios.
+    /// </para>
+    /// <para>
+    /// Vienen <b>ya ordenadas</b> y el servidor NO las reordena. El orden se
+    /// calculo al armar el reparto y se le mostro al usuario en la pantalla:
+    /// volver a optimizarlo aca podria devolver otro y mandarlo por donde no
+    /// esperaba. Ver AD-45.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<CoordinateDto>? Stops { get; set; }
+
     public DateTimeOffset? DepartureTime { get; set; }
 }
 

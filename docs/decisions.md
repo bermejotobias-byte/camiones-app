@@ -2638,3 +2638,86 @@ animaciones con el panel oculto**: quedan congeladas en su primer frame. Anuland
 la animación, la hoja cae exactamente en el borde del área útil. Antes de
 perseguir una diferencia de pocos píxeles, comprobar si el elemento tiene
 animación de entrada.
+
+---
+
+## AD-45 · El reparto se puede arrancar, y sus paradas viven en el viaje
+
+**Fecha:** 02/09/2026
+**Estado:** aceptada
+
+### El defecto reportado
+
+*"Al añadir las direcciones en modo reparto siempre sigue el botón de calcular y
+no de iniciar viaje, para que se inicie el modo GPS."*
+
+Tenía razón y era un hueco de la funcionalidad, no un detalle: **el modo reparto
+calculaba la ruta, la dibujaba, y nunca ofrecía arrancar**. Se cargaban las
+paradas, se veía el orden óptimo, y de ahí no se salía. AD-41 dejó el reparto a
+mitad de camino.
+
+Ahora, con el reparto calculado, la acción principal pasa a ser **"Arrancar
+reparto"** y *Recalcular* queda como secundaria.
+
+### El defecto de fondo, que apareció al verificar
+
+Poner el botón no alcanzaba. Medido con tres paradas:
+
+```
+ruta del reparto:                31 km
+ruta al recuperar el viaje:    10,2 km   ← una directa al último punto
+```
+
+`POST /api/trips` calculaba con origen y destino nada más, y **`GET /api/trips/active`
+recalcula la ruta cada vez que la app recupera el viaje** — que es lo que hace al
+abrirse, a propósito, porque el viaje abierto vive en el servidor y sobrevive a
+cerrar la app (AD-27).
+
+Así que un reparto de 31 km por tres paradas **volvía convertido en un tramo
+directo de 10 km**, y el guiado mandaba al camión por donde no correspondía.
+
+**Es una falla de las que no avisan.** La app muestra una ruta perfectamente
+válida; sólo que no es la que el camionero armó, y las paradas que faltan no
+aparecen en ningún lado.
+
+### El viaje guarda sus paradas
+
+`Trip.Stops`, como JSON en una columna — son de ese viaje y no se consultan por
+separado nunca, mismo criterio que los servicios de un punto de interés.
+
+**Se guardan las paradas, no la geometría de la ruta.** La ruta se recalcula al
+recuperar el viaje —el mapa y el tráfico cambian— pero *por dónde hay que pasar*
+no cambia.
+
+Y el orden **no se reordena en el servidor**: `CalculateThroughAsync` pasa por los
+puntos tal como llegan. El orden se calculó al armar el reparto y se le mostró al
+usuario en la pantalla; volver a optimizarlo podría devolver otro y mandarlo por
+donde no esperaba.
+
+`Stops` es **un campo opcional de `StartTripRequest`, no un contrato nuevo**: sin
+él el viaje es de un tramo, como siempre, así que la app ya instalada en el
+teléfono sigue funcionando.
+
+### Dos trampas del camino
+
+**El valor por defecto de la columna.** EF generó la migración con
+`defaultValue: ""`, y **deserializar una cadena vacía tira excepción**. Una sola
+fila así haría ilegible el historial entero, no ese viaje. La migración quedó con
+`"[]"` y el conversor tolera el vacío igual: son datos que ya están en discos
+ajenos y no se pueden volver a escribir.
+
+**Al terminar el viaje también se limpian las paradas.** Antes se limpiaba la ruta
+pero no `stops` ni sus marcadores, así que quedaban puntos numerados en el mapa
+sin pertenecer a ningún viaje ni figurar en ninguna lista.
+
+### Verificación
+
+4 tests de integración sobre el esquema real —el orden que vuelve intacto, la
+lista vacía que no es `null`, la columna vacía que no rompe el historial, y el
+`ValueComparer` sin el cual un cambio en las paradas no se guardaría—. Total:
+**203 tests .NET**.
+
+End to end contra la API: el reparto da 31 km y al recuperar el viaje **sigue
+dando 31 km**. Y el viaje simple sin paradas responde 201 con 10,2 km al crear y
+al recuperar, que es la regresión que había que cuidar: son la mayoría de los
+viajes.
