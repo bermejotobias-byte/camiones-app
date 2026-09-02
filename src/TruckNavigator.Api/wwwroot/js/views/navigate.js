@@ -491,10 +491,12 @@ export function navigateView(host, { openDrawer, go }) {
           </p>
         </div>`) : ''}
 
-      <button class="btn btn-primary btn-block" id="calc-delivery"
-              ${stops.length && origin && truck ? '' : 'disabled'}>
-        ${deliveryOrder ? 'Recalcular reparto' : 'Calcular reparto'}
-      </button>
+      <div class="sheet-action">
+        <button class="btn btn-primary btn-block" id="calc-delivery"
+                ${stops.length && origin && truck ? '' : 'disabled'}>
+          ${deliveryOrder ? 'Recalcular reparto' : 'Calcular reparto'}
+        </button>
+      </div>
     `);
 
     wire(sheet(), {
@@ -645,7 +647,9 @@ export function navigateView(host, { openDrawer, go }) {
         </div>
       `)}
 
-      <button class="btn btn-primary btn-block" id="start">Arrancar viaje</button>
+      <div class="sheet-action">
+        <button class="btn btn-primary btn-block" id="start">Arrancar viaje</button>
+      </div>
     `);
 
     wire(sheet(), {

@@ -2533,3 +2533,78 @@ que sobrevive a cerrar y abrir la app —que es toda la razón por la que esto v
 en el servidor— y el defecto del `tel:`. Ninguno de los 199 tests lo habría
 encontrado: la app guardaba bien, listaba bien, y el botón de llamar no hacía
 nada.
+
+---
+
+## AD-44 · La hoja se encoge, y su acción principal va pegada abajo
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### El defecto
+
+Reportado desde el uso: *"al sumar más de 4 direcciones se pierde debajo y no se
+puede terminar de iniciar el viaje"*, y lo mismo con el selector de alternativas.
+
+Parecía un problema de scroll, y no lo era. Medido con seis paradas en un
+viewport de 812 px:
+
+```
+viewport: 812        hoja: top 340 → bottom 924     ← 112 px POR DEBAJO
+botón:    861 → 909  visible: false
+puedeScrollear: false                               ← el contenido CABE
+```
+
+**La hoja no desbordaba su contenido: desbordaba la pantalla.** `max-height: 72vh`
+y `overflow-y: auto` estaban puestos y funcionaban — el contenido entraba en la
+hoja. Lo que no entraba en la pantalla era la hoja entera, así que no había nada
+que scrollear y el botón quedaba fuera, inalcanzable.
+
+La causa: `.sheet` era `flex: none` dentro de `.map-overlay`, que es un flex
+column. Un item con `flex: none` **no se encoge**, así que al crecer el contenido
+la hoja empujaba hacia abajo y se salía.
+
+### El arreglo
+
+`flex: 0 1 auto` y **`min-height: 0`**. El segundo no es opcional: el mínimo por
+defecto de un item flex es el tamaño de su contenido, y sin anularlo el
+`flex-shrink` no puede achicar nada y el cambio no surte efecto.
+
+Con eso la hoja nunca se pasa del espacio disponible y su `overflow-y` empieza a
+servir para lo que estaba puesto.
+
+### Y la acción principal se pega abajo
+
+Que la hoja scrollee no alcanza. **El botón que cierra la tarea —calcular la
+ruta, arrancar el viaje, calcular el reparto— no puede estar del otro lado de un
+scroll**: es lo que la persona vino a hacer, y quedaba fuera de vista sin nada que
+indicara que había que scrollear.
+
+`.sheet-action` lo deja `sticky` contra el borde inferior. Dos detalles que se
+descubrieron mirando:
+
+- **El fondo no es decorativo.** Sin él, la lista se ve pasando a través del botón
+  al scrollear.
+- **`bottom` va negativo**, no cero. `bottom: 0` pega la barra al borde del área de
+  contenido, que queda 14 px arriba del borde real de la hoja por su `padding`, y
+  en esa franja se veía la lista pasar. Va `calc(-14px - var(--safe-bottom))`.
+
+### Lo que NO se hizo, y por qué
+
+Se evaluó ampliar la hoja en modo reparto. **No sirve**: medido, la hoja se limita
+en 472 px y su `max-height` es 584, así que el tope no es el `max-height`.
+
+```
+812 (viewport) − 48 (map-top) − 272 (map-side) − 20 (padding) = 472
+```
+
+**El límite son los botones del mapa**, que tampoco se encogen. Ampliar la hoja
+exige sacarle controles al mapa durante el reparto, y eso es una decisión de
+producto —no un ajuste de CSS— así que queda planteada y sin tomar.
+
+### Verificación
+
+En viewport de teléfono (375×812), con el flujo real y no llamando funciones a
+mano: seis paradas cargadas por el buscador, y la vista de ruta con dos
+alternativas. En los dos casos la hoja termina dentro de la pantalla, el botón
+queda visible y el contenido scrollea.

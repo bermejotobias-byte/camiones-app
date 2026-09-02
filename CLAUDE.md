@@ -302,6 +302,17 @@ node --test "tests/web/*.test.mjs"             # 62 tests: guiado, avisos de rut
   visible que lo explique. `none` en los contenedores (`.map-overlay`, `.map-top`,
   `.map-side`, y el espaciador `.grow`), `auto` sólo en los controles concretos. **Cada
   control que se agregue a la columna agranda la zona muerta si esto se rompe.** Ver AD-34.
+- **La hoja no puede ser `flex: none`, y `min-height: 0` es imprescindible.** Con
+  `flex: none` no se encoge: al crecer el contenido —cinco paradas del reparto, el
+  selector de alternativas— **la hoja entera terminaba 112 px por debajo del borde
+  de la pantalla**, con el botón afuera. Y no había scroll que ayudara, porque
+  `overflow-y: auto` funcionaba bien: el contenido **cabía** en la hoja, lo que no
+  cabía en la pantalla era la hoja. El `min-height: 0` va porque el mínimo por
+  defecto de un item flex es su contenido, y sin anularlo el `flex-shrink` no
+  achica nada. **Que la hoja scrollee tampoco alcanza**: la acción principal va en
+  `.sheet-action`, pegada abajo, con fondo (sin él se ve el contenido pasando a
+  través) y `bottom` **negativo** (con `0` queda 14 px arriba del borde real, por
+  el padding de la hoja, y ahí se ve pasar la lista). Ver AD-44.
 - **La hoja inferior se referencia por `#sheet`, nunca por `.sheet`**: `sheetAs()` le
   **reemplaza la clase** según el estado (`sheet` para buscar, `nav-bar` durante el viaje).
   Un selector por clase deja de coincidir en modo viaje, la barra hereda

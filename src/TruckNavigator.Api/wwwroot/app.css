@@ -669,8 +669,21 @@ button { font-family: inherit; font-size: inherit; }
    Hoja inferior — el patron principal de la pantalla de busqueda
    ========================================================================== */
 
+/* `flex: 0 1 auto` y no `flex: none`, y el `min-height: 0` es imprescindible.
+
+   Con `flex: none` la hoja NO se encoge, así que al crecer el contenido —cinco
+   paradas del reparto, o el selector de alternativas— la hoja entera terminaba
+   112 px POR DEBAJO del borde de la pantalla, con el botón de calcular afuera y
+   sin forma de llegar a él. Y no había scroll que ayudara: `overflow-y: auto`
+   estaba puesto, pero el contenido cabía en la hoja — lo que no cabía en la
+   pantalla era la hoja.
+
+   `min-height: 0` va porque el mínimo por defecto de un item flex es el tamaño
+   de su contenido: sin eso el `flex-shrink` no puede achicarla y el arreglo no
+   surte efecto. */
 .sheet {
-  flex: none;
+  flex: 0 1 auto;
+  min-height: 0;
   margin-top: auto;
   background: var(--surface);
   border: 1px solid var(--rule);
@@ -1215,3 +1228,34 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
 }
 
 .row-buttons .btn { flex: 1; }
+
+/* La accion principal de la hoja, pegada abajo.
+
+   El boton que cierra la tarea —calcular la ruta, arrancar el viaje, calcular el
+   reparto— no puede quedar del otro lado de un scroll: es lo que la persona vino
+   a hacer. Con la lista larga quedaba fuera de vista y habia que descubrir que
+   la hoja se scrolleaba.
+
+   El fondo NO es decorativo: sin el, el contenido se ve pasando a traves del
+   boton al scrollear. Y `bottom` va NEGATIVO porque `bottom: 0` pega la barra al
+   borde del area de contenido, que queda 14 px arriba del borde real de la hoja
+   por su padding — en esa franja se veia la lista pasar. */
+.sheet-action {
+  position: sticky;
+  bottom: calc(-14px - var(--safe-bottom));
+  z-index: 1;
+  background: var(--surface);
+  margin: 0 -14px calc(-14px - var(--safe-bottom));
+  padding: 10px 14px calc(14px + var(--safe-bottom));
+}
+
+/* Un velo que deja ver que hay mas contenido debajo del borde, en vez de un
+   corte seco que parece el final de la lista. */
+.sheet-action::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 100%;
+  height: 16px;
+  background: linear-gradient(to top, var(--surface), transparent);
+  pointer-events: none;
+}
