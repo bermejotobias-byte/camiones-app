@@ -1153,3 +1153,65 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
 
   .sheet { border-radius: var(--radius) var(--radius) 0 0; }
 }
+
+/* Contactos de emergencia.
+
+   La fila ENTERA llama, y por eso el nombre y el numero van adentro de un
+   <button> y no de un <div> con un boton chico al costado: esta pantalla se usa
+   con el pulso alterado, y un blanco de 44 px de alto perdona lo que uno de 24
+   no. La cruz de borrar queda aparte justamente para que no se toque sin
+   querer. */
+.contact-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.contact-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contact-call {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-2, rgba(255,255,255,.03));
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.contact-call:active { background: var(--surface-3, rgba(255,255,255,.07)); }
+
+.contact-name {
+  font-weight: 700;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* El numero se muestra tal como se guardo, con sus espacios y guiones: es como
+   la persona lo reconoce en su propia agenda. */
+.contact-phone {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.row-buttons .btn { flex: 1; }

@@ -166,3 +166,58 @@ test('sin cáscara no hay agenda, y se dice en vez de quedar esperando', async (
   // El entorno queda como estaba para no ensuciar a quien corra después.
   globalThis.window = otroWindow;
 });
+
+/* --------------------------------------------------------- listo para marcar */
+
+test('el número de la agenda queda marcable: sin espacios ni guiones', async () => {
+  const { forDialing } = await import(RUTA);
+
+  // Este es el bug que encontró el teléfono: el 911 marcaba y "11 4567-8900"
+  // no hacía nada. `tel:` es un URI y un espacio adentro no es válido, así que
+  // el Intent no resuelve — sin error, sin nada. Ver AD-43.
+  assert.equal(forDialing('11 4567-8900'), '1145678900');
+});
+
+test('conserva el + que abre un número internacional', async () => {
+  const { forDialing } = await import(RUTA);
+
+  assert.equal(forDialing('+54 9 11 5555-1234'), '+5491155551234');
+});
+
+test('descarta un + que no está al principio, porque ahí no significa nada', async () => {
+  const { forDialing } = await import(RUTA);
+
+  assert.equal(forDialing('11 4567+8900'), '1145678900');
+});
+
+test('conserva * y # de los códigos de servicio', async () => {
+  const { forDialing } = await import(RUTA);
+
+  assert.equal(forDialing('*111#'), '*111#');
+});
+
+test('saca paréntesis, puntos y barras', async () => {
+  const { forDialing } = await import(RUTA);
+
+  assert.equal(forDialing('(011) 4567.8900'), '01145678900');
+  assert.equal(forDialing('0800/333/1234'), '08003331234');
+});
+
+test('un número corto sigue funcionando', async () => {
+  const { forDialing } = await import(RUTA);
+
+  // El 911 andaba antes del arreglo y tiene que seguir andando: es lo único de
+  // esta pantalla que no puede fallar.
+  assert.equal(forDialing('911'), '911');
+});
+
+test('sin dígitos no devuelve nada, para no abrir el discador en blanco', async () => {
+  const { forDialing } = await import(RUTA);
+
+  // Un `tel:` vacío abre el discador sin número: parece que la app hizo algo
+  // cuando no hizo nada.
+  assert.equal(forDialing('llamar al taller'), '');
+  assert.equal(forDialing(''), '');
+  assert.equal(forDialing(null), '');
+  assert.equal(forDialing(undefined), '');
+});

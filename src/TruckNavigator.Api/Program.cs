@@ -377,6 +377,112 @@ profiles.MapGet("/alias-available", async (
 })
 .WithSummary("Consulta si un alias esta libre, para avisar mientras se escribe.");
 
+// ------------------------------------------------ contactos de emergencia
+//
+// Hasta tres personas a las que llamar de un toque. Cuelgan del grupo de perfil
+// porque son datos de la cuenta y ya exige sesion.
+//
+// Viven en el servidor y no en el telefono a proposito: un contacto de
+// emergencia que se pierde al reinstalar la app, o al cambiar de equipo, es un
+// contacto que no esta el dia que hace falta.
+
+profiles.MapGet("/emergency-contacts", async (
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    var contacts = await db.EmergencyContacts
+        .Where(c => c.OwnerId == userId)
+        .OrderBy(c => c.AddedAt)
+        .AsNoTracking()
+        .ToListAsync(ct);
+
+    return Results.Ok(contacts.Select(EmergencyContactDto.From));
+})
+.WithSummary("Los contactos de emergencia del camionero, en orden de carga.");
+
+profiles.MapPost("/emergency-contacts", async (
+    SaveEmergencyContactRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    var validation = EmergencyContactRules.Validate(request.Name, request.Phone);
+
+    if (!validation.IsValid)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["contacto"] = [validation.Error!]
+        });
+    }
+
+    var already = await db.EmergencyContacts.CountAsync(c => c.OwnerId == userId, ct);
+
+    if (already >= EmergencyContact.MaxPerDriver)
+    {
+        return Results.Problem(
+            title: "Ya tenes tres contactos",
+            detail: $"Se pueden guardar hasta {EmergencyContact.MaxPerDriver}. " +
+                    "Borra uno para agregar otro.",
+            statusCode: StatusCodes.Status409Conflict);
+    }
+
+    var contact = new EmergencyContact
+    {
+        OwnerId = userId,
+        Name = validation.Name!,
+        Phone = validation.Phone!
+    };
+
+    db.EmergencyContacts.Add(contact);
+    await db.SaveChangesAsync(ct);
+
+    return Results.Created(
+        $"/api/profile/emergency-contacts/{contact.Id}",
+        EmergencyContactDto.From(contact));
+})
+.WithSummary("Agrega un contacto de emergencia. Hasta tres por camionero.");
+
+profiles.MapDelete("/emergency-contacts/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    // El filtro por dueno va en la consulta y no despues: buscar por Id solo y
+    // comparar el dueno a continuacion deja la puerta abierta a borrar el
+    // contacto de otra persona si alguna vez se olvida la comparacion.
+    var contact = await db.EmergencyContacts
+        .FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == userId, ct);
+
+    if (contact is null)
+    {
+        return Results.NotFound();
+    }
+
+    db.EmergencyContacts.Remove(contact);
+    await db.SaveChangesAsync(ct);
+
+    return Results.NoContent();
+})
+.WithSummary("Borra un contacto de emergencia propio.");
+
 // ---------------------------------------------------------------- camiones
 //
 // Un camion pertenece a una cuenta. Las tres plantillas del catalogo no son de

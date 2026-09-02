@@ -10,7 +10,10 @@
 import { api, isSignedIn, signOut, setApiBase } from './api.js';
 import { initPlatform, call, pickContact, canPickContact } from './platform.js';
 import { prefs, state, setState, applyTheme, savePrefs } from './store.js';
-import { html, raw, icon, wire, q, render, toastError } from './ui.js';
+import {
+  html, raw, icon, wire, q, qa, render, toastError, toastOk,
+  askConfirm, withBusy, escapeHtml
+} from './ui.js';
 
 import { onboardingView } from './views/onboarding.js';
 import { authView } from './views/auth.js';
@@ -209,75 +212,209 @@ const avatarGlyph = (id) =>
 --------------------------------------------------------------------------- */
 
 /**
- * Emergencia.
+ * Emergencia: el 911 y hasta tres personas de confianza.
  *
- * Todavia sin los tres contactos ni el compartir viaje —eso es la Fase 3—, pero
- * el boton ya existe y llama al 911, que es lo unico que no puede faltar. Se
- * prefiere esto a un boton que no haga nada.
+ * Toda la pantalla esta pensada para usarse UNA vez cada mucho tiempo y en el
+ * peor momento posible. De ahi tres decisiones:
+ *
+ *   · el 911 va primero, grande y sin depender de nada — es lo unico que no
+ *     puede fallar, y funciona aunque no haya sesion ni contactos cargados;
+ *   · los contactos se tocan enteros para llamar, no con un boton chico al
+ *     costado: el dedo tiembla y la fila entera es un blanco mas grande;
+ *   · llamar ABRE EL DISCADOR con el numero puesto, no llama solo. Un toque de
+ *     manga no puede despertar a nadie a las cuatro de la mañana.
+ *
+ * Los contactos viven en el servidor. Uno que se pierde al reinstalar la app es
+ * un contacto que no esta el dia que hace falta.
  */
 function emergencyView(host, { go }) {
   host.className = 'screen';
-  host.innerHTML = html`
-    <div class="topbar">
-      <button class="fab" id="back" aria-label="Volver">${raw(icon('back', 20))}</button>
-      <h2>Emergencia</h2>
-    </div>
-    <div class="scroll">
-      <button class="btn btn-danger btn-block" id="call-911"
-              style="min-height:64px;font-size:18px">
-        Llamar al 911
-      </button>
 
-      <div class="card">
-        <h3>Todavía en camino</h3>
-        <p class="hint">
-          Los tres contactos de emergencia y compartir el viaje en tiempo real por
-          WhatsApp se agregan en la próxima etapa. Por ahora el botón hace lo único
-          que no puede fallar: llamar.
-        </p>
+  let contacts = [];
+  let loading = true;
+  let adding = false;
 
-        ${canPickContact ? raw(`
-          <button class="btn btn-ghost btn-block" id="try-contact">
-            Probar: elegir de la agenda
-          </button>
-          <p class="hint" id="contact-result"></p>
-        `) : ''}
+  function draw() {
+    const lleno = contacts.length >= 3;
+
+    render(host, html`
+      <div class="topbar">
+        <button class="fab" id="back" aria-label="Volver">${raw(icon('back', 20))}</button>
+        <h2>Emergencia</h2>
       </div>
-    </div>
-  `;
+      <div class="scroll">
+        <button class="btn btn-danger btn-block" id="call-911"
+                style="min-height:64px;font-size:18px">
+          Llamar al 911
+        </button>
 
-  wire(host, {
-    '#back': () => go('mapa'),
-    // Adentro del WebView un `tel:` no abre el discador solo: lo resuelve la
-    // cascara nativa por el puente.
-    '#call-911': () => call('911'),
-    '#try-contact': () => probarAgenda(host)
-  });
-}
+        <div class="card">
+          <h3>Mis contactos</h3>
 
-/**
- * Prueba el puente con la libreta de contactos.
- *
- * Es un banco de pruebas y no una funcion: no guarda nada ni llama a nadie. El
- * puente nativo se construyo antes que la pantalla que lo va a usar —los tres
- * contactos de emergencia y compartir viaje—, y un puente de la costura
- * nativa-web que no se toca en el telefono es exactamente lo que este proyecto
- * ya pago cinco veces. Esto existe para poder tocarlo.
- *
- * Se borra cuando llegue la pantalla de verdad.
- */
-async function probarAgenda(host) {
-  const salida = q(host, '#contact-result');
+          ${loading ? raw('<p class="hint">Buscando tus contactos…</p>') : raw(`
+            ${contacts.length ? `<ul class="contact-list">${contacts.map((c) => `
+              <li>
+                <button class="contact-call" data-llamar="${escapeHtml(c.phone)}" type="button">
+                  <span class="contact-name">${escapeHtml(c.name)}</span>
+                  <span class="contact-phone">${escapeHtml(c.phone)}</span>
+                </button>
+                <button class="waypoint-clear" data-borrar="${c.id}" type="button"
+                        aria-label="Borrar a ${escapeHtml(c.name)}">${icon('close', 16)}</button>
+              </li>`).join('')}</ul>` : `
+              <p class="hint">
+                Todavía no cargaste ninguno. Poné hasta tres personas a las que
+                quieras poder llamar de un toque.
+              </p>`}
+          `)}
 
-  try {
-    const contacto = await pickContact();
+          ${loading || lleno ? '' : raw(`
+            ${adding ? `
+              <div class="stack">
+                <div class="field">
+                  <label for="c-name">Nombre</label>
+                  <input class="input" id="c-name" placeholder="Mi vieja"
+                         autocomplete="off" maxlength="80">
+                </div>
 
-    salida.textContent = contacto
-      ? `Elegiste ${contacto.name || 'sin nombre'} — ${contacto.phone}`
-      : 'Saliste sin elegir.';
-  } catch (error) {
-    salida.textContent = `No se pudo: ${error.message}`;
+                <div class="field">
+                  <label for="c-phone">Teléfono</label>
+                  <input class="input" id="c-phone" placeholder="11 4567-8900"
+                         inputmode="tel" autocomplete="off" maxlength="40">
+                  <p class="hint">
+                    Como lo tengas anotado. Los espacios y guiones no molestan.
+                  </p>
+                </div>
+
+                <div class="row-buttons">
+                  <button class="btn btn-primary" id="c-save">Guardar</button>
+                  <button class="btn btn-ghost" id="c-cancel">Cancelar</button>
+                </div>
+              </div>` : `
+              <div class="row-buttons">
+                ${canPickContact
+                  ? '<button class="btn btn-primary" id="c-agenda">Elegir de la agenda</button>'
+                  : ''}
+                <button class="btn btn-ghost" id="c-manual">Escribirlo a mano</button>
+              </div>`}
+          `)}
+
+          ${lleno ? raw(`
+            <p class="hint">
+              Llegaste a los tres. Borrá uno si querés cambiarlo.
+            </p>`) : ''}
+        </div>
+
+        <div class="card">
+          <h3>Todavía en camino</h3>
+          <p class="hint">
+            Compartir el viaje en tiempo real por WhatsApp se agrega más adelante.
+          </p>
+        </div>
+      </div>
+    `);
+
+    wire(host, {
+      '#back': () => go('mapa'),
+      // Adentro del WebView un `tel:` no abre el discador solo: lo resuelve la
+      // cascara nativa por el puente.
+      '#call-911': () => call('911'),
+      '#c-agenda': (event) => desdeLaAgenda(event.currentTarget),
+      '#c-manual': () => { adding = true; draw(); },
+      '#c-cancel': () => { adding = false; draw(); },
+      '#c-save': (event) => guardar(event.currentTarget)
+    });
+
+    for (const boton of qa(host, '[data-llamar]')) {
+      boton.addEventListener('click', () => call(boton.dataset.llamar));
+    }
+
+    for (const boton of qa(host, '[data-borrar]')) {
+      boton.addEventListener('click', () => borrar(boton.dataset.borrar));
+    }
   }
+
+  async function cargar() {
+    try {
+      contacts = await api.emergencyContacts();
+    } catch (error) {
+      // Sin contactos la pantalla sigue sirviendo: el 911 no depende de esto.
+      toastError(error.message);
+    } finally {
+      loading = false;
+      draw();
+    }
+  }
+
+  /**
+   * Trae un contacto de la libreta del telefono y lo guarda.
+   *
+   * Si la persona sale sin elegir no pasa nada y no se le dice nada: cancelar es
+   * una respuesta, no un error. Ver AD-42.
+   */
+  async function desdeLaAgenda(button) {
+    try {
+      const elegido = await pickContact();
+
+      if (!elegido) return;
+
+      await withBusy(button, 'Guardando', () => alta(elegido.name, elegido.phone));
+    } catch (error) {
+      toastError(error.message);
+    }
+  }
+
+  async function guardar(button) {
+    const name = q(host, '#c-name')?.value ?? '';
+    const phone = q(host, '#c-phone')?.value ?? '';
+
+    await withBusy(button, 'Guardando', () => alta(name, phone));
+  }
+
+  async function alta(name, phone) {
+    try {
+      const guardado = await api.addEmergencyContact(name, phone);
+
+      contacts = [...contacts, guardado];
+      adding = false;
+      draw();
+
+      // "Guardaste a X" y no "X quedó guardado": el nombre lo escribe el usuario
+      // y puede ser de cualquier genero — "Mi vieja quedo guardado" se lee mal.
+      // Esta forma no concuerda con el nombre, asi que no puede fallar.
+      toastOk(`Guardaste a ${guardado.name}.`);
+    } catch (error) {
+      // El servidor valida con las mismas reglas del dominio, asi que su mensaje
+      // ya viene escrito para mostrarse. No se duplica la validacion aca.
+      toastError(error.message);
+    }
+  }
+
+  async function borrar(id) {
+    const contacto = contacts.find((c) => c.id === id);
+
+    // askConfirm y no confirm(): el WebView de Android no dibuja los dialogos de
+    // JavaScript y confirm() devuelve false sin mostrar nada. Ver AD-28.
+    const seguro = await askConfirm({
+      title: 'Borrar contacto',
+      message: `¿Sacamos a ${contacto?.name ?? 'este contacto'} de tus contactos de emergencia?`,
+      confirmLabel: 'Borrar',
+      danger: true
+    });
+
+    if (!seguro) return;
+
+    try {
+      await api.deleteEmergencyContact(id);
+
+      contacts = contacts.filter((c) => c.id !== id);
+      draw();
+    } catch (error) {
+      toastError(error.message);
+    }
+  }
+
+  draw();
+  cargar();
 }
 
 function settingsView(host, { go }) {

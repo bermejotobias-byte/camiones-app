@@ -2277,15 +2277,62 @@ El permiso no se pide porque **no hace falta**, y un permiso que no hace falta e
 un permiso que no se pide: en la pantalla de instalación, "acceder a tus
 contactos" es de los que más frenan a la gente.
 
-Se consulta `Phone.ContentUri` y no `Contacts.ContentUri`: aquél lista los
-**números**, así que alguien con tres líneas elige cuál, y lo que vuelve ya es el
-número. Con el segundo volvería el contacto y habría que resolver sus teléfonos
-aparte — lo que sí necesita el permiso.
+### El Intent se declara por tipo MIME, no por URI de datos
 
-**Los nombres de las columnas hay que buscarlos, no suponerlos.** Son asimétricos:
-`Phone.Number` cuelga directo de `Phone`, y `DisplayName` de su `InterfaceConsts`.
-Verificado contra el `Mono.Android.xml` del pack 36, después de que la primera
-versión no compilara.
+**Esto se descubrió en el teléfono y es el motivo de existir de la prueba
+manual.** La primera versión pasaba el URI —`ACTION_PICK` sobre
+`Phone.ContentUri`, que es lo que dice todo tutorial— y en el equipo de prueba
+abrió **el explorador de archivos de Xiaomi**. No la agenda.
+
+Medido con `cmd package query-activities` sobre ese teléfono:
+
+| Intent | Quién dice poder resolverlo |
+|---|---|
+| `PICK` + data `content://com.android.contacts/data/phones` | `com.mi.android.globalFileexplorer`, `com.miui.gallery`. **La agenda ni aparece** |
+| `PICK` + data **y** tipo | la agenda **y** el explorador: sigue ambiguo, Android muestra el "abrir con" |
+| **`PICK` + tipo `vnd.android.cursor.dir/phone_v2`** | `com.google.android.contacts`, **y sólo esa** |
+
+Va la tercera. Alcanza con `SetType` porque el filtro de la agenda declara ese
+MIME, y agregar el data sólo vuelve a abrir la puerta a los otros.
+
+**`SetType` borra el data y `SetData` borra el tipo** — para tener los dos hace
+falta `SetDataAndType`, que es justamente lo que no se quiere acá.
+
+Se pide el tipo de **`Phone`** y no el de `Contacts`: aquél lista los **números**,
+así que quien tiene tres líneas elige cuál y lo que vuelve ya es el número. Con
+el de contactos volvería la persona y habría que resolver sus teléfonos aparte,
+lo que sí necesita el permiso.
+
+La lección general: **un Intent no es una dirección, es un pedido a un concurso
+de candidatos**, y quién se presenta depende del teléfono. Que abra lo correcto
+en un equipo no dice nada de otro, y `query-activities` lo contesta sin adivinar.
+
+### Y NO se pregunta con `ResolveActivity` antes de lanzar
+
+Parecía lo prudente, se hizo, y **rompió lo que funcionaba**: devolvía `null` y la
+app decía *"este teléfono no tiene una aplicación de contactos"* con la agenda
+instalada y andando.
+
+La causa es el **filtrado de visibilidad entre aplicaciones** de Android 11
+(`targetSdk` 30+): *consultar* qué app resuelve un Intent exige declarar
+`<queries>` en el manifiesto. Por eso `adb shell cmd package query-activities` —que
+corre sin ese filtro— veía la agenda y la app no. **Lanzar el Intent nunca estuvo
+bloqueado; sólo preguntar.**
+
+Así que se lanza y listo. Si de verdad no hay agenda salta
+`ActivityNotFoundException`, y ese `catch` da la frase entendible. **Un chequeo
+defensivo que introduce el fallo que venía a evitar es peor que no tenerlo**, y
+esta es la lección que sobrevive al caso particular.
+
+Se podría declarar `<queries>` y recuperar la consulta, pero no hace falta para
+nada hoy: no se gana un mensaje que el `catch` no dé igual. Cuando llegue
+compartir viaje habrá que evaluarlo — ahí sí puede querer saberse **si WhatsApp
+está instalado** antes de ofrecer el botón, y eso es una consulta de verdad.
+
+**Los nombres de las columnas también hay que buscarlos, no suponerlos.** Son
+asimétricos: `Phone.Number` cuelga directo de `Phone`, y `DisplayName` de su
+`InterfaceConsts`. Verificado contra el `Mono.Android.xml` del pack 36, después de
+que la primera versión no compilara.
 
 ### Cancelar no es fallar
 
@@ -2332,9 +2379,157 @@ que la página, y un manejador olvidado se la lleva puesta.
 ### Verificación
 
 10 tests de JS sobre la mitad de este lado —que la promesa siempre termine, y que
-termine distinto según lo que pasó—, que suben el total web a 55. La mitad nativa
-sólo se puede probar en el teléfono, y se probó ahí.
+termine distinto según lo que pasó—, que suben el total web a 55.
+
+**La mitad nativa sólo se puede probar en el teléfono, y ningún test la habría
+salvado.** El código compilaba, instalaba, arrancaba sin un error, la promesa se
+resolvía bien y los diez tests pasaban — y abría el explorador de archivos. Lo
+encontró una persona tocando el botón, que es la sexta vez que esta costura falla
+de una forma que no se ve desde acá.
+
+Y el log estaba **vacío**: la primera versión no dejaba rastro hasta que alguien
+elegía un contacto, así que cuando abrió la app equivocada no había por dónde
+empezar. Ahora deja constancia al lanzar el selector.
 
 Mientras no exista la pantalla de los tres contactos, el único disparador es un
 botón de prueba en la pantalla de Emergencia, marcado como tal en el código.
 **Se borra cuando llegue la pantalla de verdad.**
+
+---
+
+## AD-43 · Los tres contactos de emergencia viven en el servidor
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+El brainstorm v1 pedía *"3 llamadas de emergencia a contactos que elige el
+usuario"*. Con el puente de la agenda ya resuelto (AD-42), esto es la pantalla y
+su respaldo.
+
+### Dónde viven
+
+**En el servidor, colgados de la cuenta**, y no en el teléfono. La alternativa
+—`localStorage`, o preferencias nativas— es más privada en un sentido estrecho:
+el número de un tercero no sale del aparato.
+
+Se eligió el servidor igual, por una razón que pesa más: **un contacto de
+emergencia que se pierde al reinstalar la app, o al cambiar de teléfono, es un
+contacto que no está el día que hace falta**, y nadie lo descubre hasta ese día.
+Es la misma clase de falla silenciosa que se evitó en el reparto cuando un par
+sin ruta no puede tirar abajo el pedido.
+
+Consecuencias asumidas, y las dos están cubiertas en el esquema:
+
+- Son **teléfonos de terceros que nunca dieron su consentimiento**. Por eso el
+  borrado de la cuenta se los lleva en cascada, y hay un test de integración
+  dedicado a que los contactos de un camionero no se mezclen con los de otro —
+  ése es el peor fallo posible de esta funcionalidad.
+- El filtro por dueño va **dentro de la consulta** del `DELETE`, no en una
+  comparación posterior: buscar por Id y comparar después deja la puerta abierta
+  el día que alguien olvida la comparación.
+
+### Tres, y es una decisión de producto
+
+`EmergencyContact.MaxPerDriver = 3`. No es una restricción técnica: esta pantalla
+se usa una vez cada mucho tiempo y **en el peor momento posible**. Una lista larga
+obliga a leer y a elegir justo cuando nadie está en condiciones de hacerlo.
+
+El cuarto contacto devuelve **409** con un mensaje que dice qué hacer —borrar uno—
+en vez de un error genérico.
+
+### El teléfono se guarda tal como se cargó, y se marca limpio
+
+Son dos cosas distintas, y confundirlas costó un defecto.
+
+**Se guarda sin normalizar**, igual que en el puente: con sus espacios y guiones,
+porque así lo reconoce la persona en su propia agenda. La validación es de
+**plausibilidad**, no de forma: caracteres que una persona escribe (`+ - ( ) . /`
+y dígitos) y entre 6 y 15 dígitos.
+
+**Pero al marcar se limpia**, porque `tel:` es un URI y **un espacio adentro de un
+URI no es válido**. `forDialing` en `platform.js` deja pasar dígitos, `*` y `#` de
+los códigos, y el `+` **sólo si abre el número** (en el medio no significa nada).
+Vive ahí y no en la cáscara porque `call()` es el único punto por el que pasan
+todas las llamadas —el 911 incluido— y así se testea con Node, sin depender del
+teléfono. Sin un solo dígito no marca nada: un `tel:` vacío abre el discador en
+blanco, que parece que la app hizo algo cuando no hizo nada.
+
+### El discador: dos problemas, y el diagnóstico del primero fue una inferencia
+
+Vale contarlo entero porque la equivocación es instructiva.
+
+Reportado: *"al tocar cualquiera de los 3 contactos no abre el discador"*. Se dio
+por hecho que **el 911 sí funcionaba** —no se lo había mencionado— y sobre esa
+inferencia se construyó la explicación completa del espacio en el URI: encajaba
+perfecto, porque el 911 es el único número de la pantalla sin espacios.
+
+**Era falso.** El 911 tampoco funcionaba: el discador no se abría **nunca**. El
+razonamiento era elegante y la evidencia, inventada.
+
+La causa real: **`PhoneDialer.Default.Open` de MAUI no abría nada en este teléfono,
+sin excepción y sin dejar rastro**. Es una caja negra que hace
+`Uri.Parse("tel:" + number)` sin validar nada —verificado en el ensamblado, que
+contiene `tel:` y ninguna otra cadena del asunto—. Se reemplazó por el Intent
+`ACTION_DIAL` explícito, donde se ve exactamente qué se manda, y ahí funcionó.
+
+Es la tercera vez que el proyecto cambia un helper de MAUI por el Intent o la API
+de Android directa: la vibración (AD-39), el selector de contactos (AD-42) y esto.
+**Cuando el helper de MAUI falla en silencio, el camino explícito es el único que
+se puede diagnosticar.**
+
+El arreglo del URI sigue siendo correcto y necesario —un espacio en un URI no es
+válido— pero **era un segundo problema tapado por el primero**, no la causa de lo
+reportado.
+
+Lo que destrabó el caso no fue razonar mejor: fue **poner un log a cada lado del
+puente**. Al tocar el botón no aparecía rastro en ningún punto del camino, así que
+no había forma de saber si se cortaba en el JavaScript, en el puente o en Android.
+Con `console.log` en `call()` y `Note` antes y después del Intent, el próximo
+fallo dice dónde está.
+
+El sesgo es deliberado y conviene entenderlo antes de endurecerlo: **rechazar un
+número válido es peor que aceptar uno raro**. Uno raro se llama y no atiende
+nadie; uno rechazado nunca se guardó. Por eso el mínimo es 6 y no 8 ni 10 — un
+interno de empresa o un número de otro país puede tener menos que un móvil
+argentino, y la app no está para discutirle a nadie cuál es su teléfono.
+
+Los 15 dígitos de máximo son el tope de E.164.
+
+### En la pantalla
+
+- **El 911 va primero, grande, y no depende de nada**: funciona sin sesión y sin
+  contactos cargados. Es lo único que no puede fallar.
+- **La fila entera llama.** El nombre y el número van adentro de un `<button>` y
+  no de un `<div>` con un botón chico al costado: se usa con el pulso alterado, y
+  un blanco de 44 px perdona lo que uno de 24 no. La cruz de borrar queda aparte
+  justamente para que no se toque sin querer.
+- **Llamar abre el discador con el número puesto, no llama solo.** Un toque de
+  manga no puede despertar a nadie a las cuatro de la mañana.
+- **Se borra con `askConfirm` y no con `confirm()`**, que en el WebView devuelve
+  `false` sin mostrar nada (AD-28).
+- El botón *Elegir de la agenda* **sólo aparece si hay agenda** (`canPickContact`):
+  en el navegador no existe, y queda el alta a mano, que además es el camino para
+  probar la pantalla sin el teléfono.
+
+Un detalle de redacción que se corrigió mirando la pantalla: el aviso decía
+*"X quedó guardado"* y el nombre lo escribe el usuario — *"Mi vieja quedó
+guardado"* se lee mal. Ahora dice **"Guardaste a X"**, que no concuerda con el
+nombre y por lo tanto no puede fallar.
+
+### Verificación
+
+20 tests de dominio sobre las reglas y 6 de integración contra el esquema real
+—orden de lectura, la fecha que vuelve intacta, el aislamiento entre cuentas y la
+cascada al borrar la cuenta—. Total: **199 tests .NET**, más 7 de `forDialing`
+que llevan los web a **62**.
+
+El ciclo completo se probó contra la API real y en la pantalla: alta, límite de
+tres con su 409, borrado con confirmación, y las validaciones devolviendo 400.
+
+**Y en el teléfono, que es donde apareció lo que faltaba.** La agenda, el guardado
+que sobrevive a cerrar y abrir la app —que es toda la razón por la que esto vive
+en el servidor— y el defecto del `tel:`. Ninguno de los 199 tests lo habría
+encontrado: la app guardaba bien, listaba bien, y el botón de llamar no hacía
+nada.

@@ -32,6 +32,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Trip> Trips => Set<Trip>();
 
+    public DbSet<EmergencyContact> EmergencyContacts => Set<EmergencyContact>();
+
     /// <summary>
     /// Guarda un instante como ticks UTC en lugar de texto.
     /// </summary>
@@ -147,6 +149,27 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .WithOne()
             .HasForeignKey<DriverProfile>(d => d.Id)
             .OnDelete(DeleteBehavior.Cascade);
+
+        var contact = modelBuilder.Entity<EmergencyContact>();
+
+        contact.HasKey(c => c.Id);
+        contact.Property(c => c.Name).IsRequired().HasMaxLength(EmergencyContactRules.MaxNameLength);
+        contact.Property(c => c.Phone).IsRequired().HasMaxLength(EmergencyContactRules.MaxPhoneLength);
+
+        // La fecha lleva el conversor a ticks como todas las del sistema: SQLite no
+        // sabe ordenar por DateTimeOffset y este orden se usa en cada lectura.
+        contact.Property(c => c.AddedAt).HasConversion(UtcTicks);
+
+        // Borrar la cuenta borra sus contactos. Son datos de esa persona sobre
+        // terceros: no hay ninguna razon para que sobrevivan a la cuenta, y si la
+        // hubiera seria una mala razon.
+        contact.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(c => c.OwnerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Se leen siempre los de un camionero, en orden de carga.
+        contact.HasIndex(c => new { c.OwnerId, c.AddedAt });
 
         var trip = modelBuilder.Entity<Trip>();
 

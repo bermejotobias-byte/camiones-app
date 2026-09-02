@@ -200,6 +200,13 @@ export const api = {
   saveProfile: (data) => put('/api/profile', data),
   aliasAvailable: (alias) => get(`/api/profile/alias-available${query({ alias })}`),
 
+  // contactos de emergencia — hasta tres, guardados en el servidor para que
+  // sobrevivan a reinstalar la app o a cambiar de telefono
+  emergencyContacts: () => get('/api/profile/emergency-contacts'),
+  addEmergencyContact: (name, phone) =>
+    post('/api/profile/emergency-contacts', { name, phone }),
+  deleteEmergencyContact: (id) => del(`/api/profile/emergency-contacts/${id}`),
+
   // camiones
   trucks: () => get('/api/trucks'),
   truckTemplates: () => get('/api/trucks/templates'),

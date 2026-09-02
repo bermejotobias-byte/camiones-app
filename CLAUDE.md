@@ -21,8 +21,8 @@ OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
-| `tests/TruckNavigator.UnitTests` | 127 tests: 65 de dominio + 20 de la direccion del backend + 17 de la politica de reintentos + 11 del orden de rutas alternativas + 14 del orden del reparto. Los dos ultimos grupos enlazan archivos de Mobile, que no depende de MAUI a proposito |
-| `tests/TruckNavigator.IntegrationTests` | 46 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 35 sobre datasets, perfiles, camiones, viajes y SQLite |
+| `tests/TruckNavigator.UnitTests` | 147 tests: 65 de dominio + 20 de la direccion del backend + 17 de la politica de reintentos + 11 del orden de rutas alternativas + 14 del orden del reparto + 20 de los contactos de emergencia. El de reintentos y los dos del reparto y las alternativas enlazan archivos de Mobile, que no depende de MAUI a proposito |
+| `tests/TruckNavigator.IntegrationTests` | 52 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 41 sobre datasets, perfiles, camiones, viajes, contactos de emergencia y SQLite |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -42,8 +42,8 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-radares-velocidad.ps1             # Radares de velocidad, dato oficial del GCBA
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 173 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 55 tests: guiado, avisos de ruta y agenda
+dotnet test                                    # 199 tests (.NET)
+node --test "tests/web/*.test.mjs"             # 62 tests: guiado, avisos de ruta y agenda
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -174,16 +174,63 @@ node --test "tests/web/*.test.mjs"             # 55 tests: guiado, avisos de rut
   lleva `[Conditional("DEBUG")]`, así que el compilador borra las llamadas en Release, o sea
   que los mensajes desaparecen justo en el APK que se instala en el teléfono. Va
   `Android.Util.Log`. Ver AD-31.
-- **El selector de contactos NO pide `READ_CONTACTS`, y no hay que agregárselo.** Va
-  por `ACTION_PICK` sobre `Phone.ContentUri`: el sistema dibuja la agenda y devuelve
-  sólo el contacto tocado, con permiso temporal para ese registro. `READ_CONTACTS`
-  daría la libreta entera **y queda declarado en la ficha de la tienda**, que es de
-  los permisos que más frenan una instalación. Los nombres de columna son
-  asimétricos y hay que **buscarlos, no suponerlos**: `Phone.Number` cuelga directo
-  de `Phone` y `DisplayName` de su `InterfaceConsts` — la primera versión no
-  compiló por eso. El resultado vuelve por `MainActivity.OnActivityResult`, no por
-  donde se pidió, y la suscripción se suelta al primer resultado porque la Activity
-  vive más que la página. **Cancelar resuelve `null`; sólo un fallo rechaza.** Ver AD-42.
+- **Un Intent no es una dirección: es un pedido a un concurso de candidatos, y
+  quién se presenta depende del teléfono.** El selector de contactos por
+  `ACTION_PICK` **sobre el URI** `Phone.ContentUri` —lo que dice todo tutorial—
+  abrió **el explorador de archivos** en el equipo de prueba: medido con
+  `cmd package query-activities`, ahí las únicas candidatas eran el explorador y
+  la galería de Xiaomi, y **la agenda ni siquiera aparecía**. Va por **tipo MIME**
+  (`SetType(Phone.ContentType)`, `vnd.android.cursor.dir/phone_v2`), que resuelve
+  a la agenda y a nada más. Ojo: `SetType` borra el data y `SetData` borra el
+  tipo; poner los dos vuelve a hacerlo ambiguo. **Antes de lanzar un Intent hacia
+  afuera, medir con `adb shell cmd package query-activities` qué apps se
+  presentan** — en otro teléfono se presentan otras. Ver AD-42.
+- **Pero NO preguntar con `ResolveActivity` antes de lanzar**: devuelve `null` con
+  la app instalada y andando. Desde Android 11 (`targetSdk` 30+) rige el filtrado
+  de visibilidad entre aplicaciones y **consultar** qué app resuelve un Intent
+  exige declarar `<queries>` en el manifiesto — que hoy no está. Por eso
+  `query-activities` desde `adb` ve la agenda y la app no. **Lanzar nunca estuvo
+  bloqueado; sólo preguntar.** Se lanza, y `ActivityNotFoundException` cubre el
+  caso raro. Ese chequeo se agregó "por las dudas" y **fue él quien rompió el
+  selector**: un control defensivo que introduce el fallo que venía a evitar es
+  peor que no tenerlo. Ver AD-42.
+- **El selector de contactos NO pide `READ_CONTACTS`, y no hay que agregárselo.** El
+  sistema dibuja la agenda y devuelve sólo el contacto tocado, con permiso temporal
+  para ese registro. `READ_CONTACTS` daría la libreta entera **y queda declarado en
+  la ficha de la tienda**, que es de los permisos que más frenan una instalación.
+  Los nombres de columna son asimétricos y hay que **buscarlos, no suponerlos**:
+  `Phone.Number` cuelga directo de `Phone` y `DisplayName` de su `InterfaceConsts` —
+  la primera versión no compiló por eso. El resultado vuelve por
+  `MainActivity.OnActivityResult`, no por donde se pidió, y la suscripción se suelta
+  al primer resultado porque la Activity vive más que la página. **Cancelar resuelve
+  `null`; sólo un fallo rechaza.** Ver AD-42.
+- **Los contactos de emergencia viven en el SERVIDOR, no en el teléfono.** Uno que
+  se pierde al reinstalar la app es un contacto que no está el día que hace falta,
+  y nadie lo descubre hasta ese día. Son **teléfonos de terceros**: el borrado de
+  la cuenta se los lleva en cascada, y el filtro por dueño va **dentro de la
+  consulta** del `DELETE`, no en una comparación posterior. Son **hasta 3** por
+  decisión de producto —la pantalla se lee en el peor momento posible y una lista
+  larga obliga a elegir justo cuando nadie puede—, y el teléfono **se guarda tal
+  como se cargó**: la validación es de plausibilidad (6 a 15 dígitos), no de forma
+  argentina. **Rechazar un número válido es peor que aceptar uno raro.** Ver AD-43.
+- **El discador se abre con un Intent `ACTION_DIAL` propio, NO con `PhoneDialer` de
+  MAUI.** Ese helper no abría nada en el teléfono de prueba —ni siquiera el 911—
+  **sin excepción y sin dejar rastro**; es una caja negra que hace
+  `Uri.Parse("tel:" + number)` sin validar nada, verificado en el ensamblado. Es la
+  tercera vez que un helper de MAUI se cambia por la API directa de Android: la
+  vibración (AD-39), el selector de contactos (AD-42) y esto. **Cuando el helper
+  falla en silencio, el camino explícito es el único que se puede diagnosticar.**
+- **Guardar un teléfono y marcarlo son dos cosas distintas.** Se guarda con sus
+  espacios y guiones —así lo reconoce la persona— pero **`tel:` es un URI y un
+  espacio adentro no es válido**. Todo número pasa por `forDialing` (`platform.js`)
+  antes de marcarse: deja dígitos, `*`, `#` y el `+` sólo si abre el número. El `#`
+  además va escapado a `%23` en la cáscara, porque en un URI abre el fragmento y
+  `tel:*111#` se cortaría ahí. Ver AD-43.
+- **Un botón que no reacciona y un log vacío no dicen de qué lado está el
+  problema.** Loguear sólo el resultado no alcanza: hay que dejar rastro **antes**
+  de la acción. `call()` loguea el pedido y la cáscara loguea antes y después del
+  Intent, así el próximo fallo dice si se cortó en el JavaScript, en el puente o en
+  Android. Esto costó una vuelta entera de diagnóstico a ciegas. Ver AD-43.
 - **`confirm()` y `alert()` no existen adentro de la app Android**: el WebView no dibuja
   diálogos de JavaScript sin un `WebChromeClient` que los atienda, y MAUI no instala
   ninguno — `confirm()` devuelve `false` sin mostrar nada y el botón parece no responder.

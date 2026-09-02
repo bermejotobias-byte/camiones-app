@@ -515,13 +515,59 @@ export async function keepScreenAwake(on) {
  * En el navegador alcanza con navegar a `tel:`. Adentro del WebView hay que
  * pedirselo a la cascara, porque el WebView no resuelve ese esquema solo.
  */
+/**
+ * Deja un numero listo para marcar.
+ *
+ * **Guardar y marcar son dos cosas distintas.** El numero se guarda tal como esta
+ * en la agenda —con sus espacios y guiones— porque asi lo reconoce la persona.
+ * Pero `tel:` es un URI, y **un espacio en un URI no es valido**: el Intent no
+ * resuelve, no abre ningun discador y NO da ningun error. El sintoma es un boton
+ * que no hace nada.
+ *
+ * Se descubrio en el telefono: el 911 marcaba y "11 4567-8900" no. Ver AD-43.
+ *
+ * Sobrevive lo que un discador entiende: digitos, `*` y `#` de los codigos, y el
+ * `+` **solo si abre el numero** — en el medio no significa nada.
+ */
+export function forDialing(number) {
+  let out = '';
+
+  for (const character of String(number ?? '')) {
+    if (/[0-9*#]/.test(character)) {
+      out += character;
+    } else if (character === '+' && out === '') {
+      out += character;
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Abre el discador con el numero puesto. No llama: marca.
+ *
+ * Que no llame solo es deliberado — Android muestra el numero y la persona
+ * aprieta. Un toque de manga no puede despertar a nadie a las cuatro de la
+ * mañana.
+ */
 export function call(number) {
+  const marcable = forDialing(number);
+
+  // Queda en el log de que se pidio marcar. Sin esto, un boton que no reacciona
+  // no dice si el problema esta de este lado o del otro, y eso ya costo una
+  // vuelta entera: al tocar no aparecia rastro en ningun punto del camino.
+  console.log(`discador: pedido ${marcable || '(vacio)'}`);
+
+  // Sin un solo digito no hay nada que marcar, y `tel:` vacio abre el discador
+  // en blanco: parece que la app hizo algo cuando no hizo nada.
+  if (!marcable) return;
+
   if (isNative) {
-    send({ action: 'call', number });
+    send({ action: 'call', number: marcable });
     return;
   }
 
-  window.location.href = `tel:${number}`;
+  window.location.href = `tel:${marcable}`;
 }
 
 /* ---------------------------------------------------------------------------

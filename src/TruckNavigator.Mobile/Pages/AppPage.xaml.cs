@@ -755,9 +755,44 @@ public partial class AppPage : ContentPage
             return;
         }
 
+        // Se deja rastro ANTES de intentar, no solo si falla. Un boton que no
+        // reacciona y un log vacio no dicen de que lado esta el problema, y eso
+        // costo una vuelta entera.
+        Note($"discador: pedido de {number.Length} caracteres");
+
+#if ANDROID
         try
         {
-            PhoneDialer.Default.Open(number);
+            // NO se usa PhoneDialer.Default.Open de MAUI.
+            //
+            // Es una caja negra que hace Uri.Parse("tel:" + number) sin validar
+            // nada —verificado en el ensamblado— y que no abria el discador en
+            // este telefono ni siquiera con el 911, sin excepcion ni rastro.
+            // Con el Intent explicito se ve exactamente que se manda, y lanzar un
+            // Intent implicito NO esta sujeto al filtrado de visibilidad entre
+            // aplicaciones de Android 11 (lo que si esta es consultarlo). Ver AD-43.
+            //
+            // El # va escapado: en un URI abre el fragmento, asi que "tel:*111#"
+            // se cortaria ahi. El + se deja, que es lo que significa el prefijo
+            // internacional, y el numero ya llega limpio desde forDialing.
+            var marcable = number.Replace("#", "%23");
+
+            var intent = new Android.Content.Intent(
+                Android.Content.Intent.ActionDial,
+                Android.Net.Uri.Parse("tel:" + marcable));
+
+            if (Platform.CurrentActivity is { } activity)
+            {
+                activity.StartActivity(intent);
+            }
+            else
+            {
+                // Fuera de una Activity, Android exige tarea nueva.
+                intent.SetFlags(Android.Content.ActivityFlags.NewTask);
+                Android.App.Application.Context.StartActivity(intent);
+            }
+
+            Note("discador: abierto");
         }
         catch (Exception ex)
         {
@@ -769,6 +804,7 @@ public partial class AppPage : ContentPage
             // que el rastro desaparecia justo en el APK que se instala. Ver AD-31.
             Note($"no se pudo abrir el discador ({ex.GetType().Name})", error: true);
         }
+#endif
     }
 
     /* --------------------------------------------------------------------
@@ -817,22 +853,66 @@ public partial class AppPage : ContentPage
                 return;
             }
 
-            var intent = new Android.Content.Intent(
-                Android.Content.Intent.ActionPick,
-                Android.Provider.ContactsContract.CommonDataKinds.Phone.ContentUri);
+            // El Intent va por TIPO MIME y NO por URI de datos. No es un detalle
+            // de estilo: con el URI, este telefono ofrecia el explorador de
+            // archivos. Medido con "cmd package query-activities":
+            //
+            //   PICK + data content://com.android.contacts/data/phones
+            //     -> com.mi.android.globalFileexplorer y com.miui.gallery.
+            //        La agenda NI SIQUIERA aparece entre las candidatas.
+            //   PICK + data Y tipo
+            //     -> la agenda, pero el explorador tambien: sigue ambiguo y
+            //        Android muestra el "abrir con".
+            //   PICK + tipo vnd.android.cursor.dir/phone_v2
+            //     -> com.google.android.contacts, y SOLO esa.
+            //
+            // Con SetType alcanza porque el filtro de la agenda declara ese MIME.
+            // Ojo: SetType borra el data y SetData borra el tipo; para tener los
+            // dos haria falta SetDataAndType, que es justamente lo que no se
+            // quiere. Ver AD-42.
+            var intent = new Android.Content.Intent(Android.Content.Intent.ActionPick);
+            intent.SetType(Android.Provider.ContactsContract.CommonDataKinds.Phone.ContentType);
 
+            // NO se pregunta antes con ResolveActivity, aunque parezca lo prudente.
+            //
+            // Se probo y ROMPIO lo que funcionaba: devolvia null y la app decia
+            // "este telefono no tiene una aplicacion de contactos" con la agenda
+            // instalada. Desde Android 11 (targetSdk 30+) rige el filtrado de
+            // visibilidad entre aplicaciones: CONSULTAR que app resuelve un Intent
+            // exige declarar <queries> en el manifiesto. Por eso "adb shell cmd
+            // package query-activities" —que corre sin ese filtro— veia la agenda
+            // y la app no.
+            //
+            // Lanzar el Intent nunca estuvo bloqueado; solo preguntar. Asi que se
+            // lanza y listo: si de verdad no hay agenda, salta
+            // ActivityNotFoundException y ahi se da el mensaje. Un chequeo
+            // defensivo que introduce el fallo que venia a evitar es peor que no
+            // tenerlo. Ver AD-42.
+            //
             // Suscribirse recien ahora y soltar al primer resultado: la Activity
             // vive mas que esta pagina, y un manejador olvidado se la lleva
             // puesta. Fuera de un pedido en curso no queda nada escuchando.
             MainActivity.ActivityResult += OnPickContactResult;
 
+            // Queda en el log que se lanzo: la primera version no dejaba rastro
+            // de nada hasta que alguien elegia, asi que cuando abrio la app
+            // equivocada el log estaba vacio y no habia por donde empezar.
+            Note("agenda: abriendo el selector de contactos");
+
             activity.StartActivityForResult(intent, PickContactRequest);
+        }
+        catch (Android.Content.ActivityNotFoundException)
+        {
+            // Ningun telefono con agenda cae aca. Es el caso raro de verdad, y
+            // merece una frase entendible en vez del nombre de una excepcion.
+            MainActivity.ActivityResult -= OnPickContactResult;
+            ContactFailed("Este teléfono no tiene una aplicación de contactos.");
         }
         catch (Exception ex)
         {
-            // Un telefono sin aplicacion de agenda tira ActivityNotFound. Es raro
-            // pero posible, y el usuario tiene que enterarse en vez de ver un
-            // boton que no hace nada.
+            // Cualquier otra cosa. Va el NOMBRE DEL TIPO y no ex.Message: el
+            // recorte de Release reemplaza esos textos por claves de recurso y al
+            // usuario le llegaria algo como "net_http_client_invalid_requesturi".
             MainActivity.ActivityResult -= OnPickContactResult;
             ContactFailed($"No se pudo abrir la agenda ({ex.GetType().Name}).");
         }

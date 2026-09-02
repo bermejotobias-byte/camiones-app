@@ -525,3 +525,26 @@ public sealed record TripStatsDto(
     double DrivenSeconds,
     DateTimeOffset? FirstTripAt,
     DateTimeOffset? LastTripAt);
+
+/// <summary>
+/// Un contacto de emergencia tal como lo ve la aplicacion.
+/// </summary>
+/// <remarks>
+/// El telefono viaja <b>tal como se guardo</b>. Ni el servidor ni la app lo
+/// reescriben: un numero normalizado mal es un numero que no llama.
+/// </remarks>
+public sealed record EmergencyContactDto(Guid Id, string Name, string Phone)
+{
+    public static EmergencyContactDto From(EmergencyContact contact) =>
+        new(contact.Id, contact.Name, contact.Phone);
+}
+
+/// <summary>
+/// Alta de un contacto de emergencia.
+/// </summary>
+/// <remarks>
+/// Los dos campos son obligatorios y los valida el dominio
+/// (<see cref="EmergencyContactRules"/>): el nombre porque hay que saber a quien
+/// se esta llamando, y el telefono porque sin el no hay contacto.
+/// </remarks>
+public sealed record SaveEmergencyContactRequest(string? Name, string? Phone);
