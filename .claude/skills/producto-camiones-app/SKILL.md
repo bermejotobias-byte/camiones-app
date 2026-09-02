@@ -95,8 +95,8 @@ pantalla de fuentes, leyenda achicada, iconos, mobile-first, modo día y noche.
 | | Ítem | Origen |
 |---|---|---|
 | ✅ | Botón de pánico de acceso rápido → llama al 911 | v1 |
-| ⬜ | **3 llamadas de emergencia** a contactos que elige el usuario | v1 |
-| ⬜ | **Compartir el viaje en tiempo real** por WhatsApp | v1 |
+| ✅ | **3 llamadas de emergencia** a contactos que elige el usuario — elegidos de la agenda de Android (sin pedir permiso sobre la libreta) o escritos a mano, guardados en el **servidor** para que sobrevivan a reinstalar la app. La fila entera llama y abre el discador, no llama sola. Verificado en el teléfono. Ver AD-42 y AD-43 | v1 · 02/09/2026 |
+| ⬜ | **Compartir el viaje en tiempo real** por WhatsApp — lo último construible de esta fase. Necesita endpoint público de seguimiento, tokens que venzan y decisiones de privacidad: **es un trabajo grande disfrazado de botón** y conviene plantearlo así. El puente de la agenda ya sirve para elegir destinatario | v1 |
 | ⬜ | **S.O.S. rápido dentro del reporte de siniestro**: al marcar un accidente grave, un aviso emergente para llegar al 911 en un toque | v2 |
 | ✅ | **Zonas peligrosas de CABA** — resuelto con el **mapa colaborativo del AMBA**, no con el dato oficial: 19 zonas, 8,8 km², el 4,3% de la Ciudad. El Mapa del Delito del GCBA se probó y se descartó — contar hechos mide dónde hay gente, y como el dataset cubre exactamente CABA el mapa de calor dibujaba la silueta de la Ciudad. Botón propio, arranca apagado, y el toque no da números. Verificado en el APK. Ver AD-36 | v1 + v2 · 01/09/2026 |
 
@@ -110,7 +110,7 @@ pantalla de fuentes, leyenda achicada, iconos, mobile-first, modo día y noche.
 | ✅ | **Radares de control de velocidad** — resuelto con dato oficial: 129 cinemómetros del GCBA (CC-BY). Las otras 95 cámaras del dataset son de analítica de video y quedaron afuera | v2 · 01/09/2026 |
 | ❌ 💬 | **Radares de control de peso.** Investigado sin resultado: **no existe fuente** — cero balanzas en CABA, ni dataset oficial ni OSM (L-9). Sólo queda como reporte comunitario | v2 · cerrado 31/08/2026 |
 | ⬜ 💬 | **Lugares de interés valorados por usuarios**, que además confirmen si son aptos para tránsito pesado (y eso da puntos). Se cruza con los 78 POIs que ya existen, donde la aptitud está indeclarada en 75 (L-6) | v2 |
-| ✅ | **Modo reparto**: hasta 10 paradas, ordenadas con distancias **reales** de ruta (no en línea recta: en CABA la ruta real llega a 1,67× la recta). Vecino más cercano + 2-opt en el dominio, 14 tests. 1,2 s para 9 paradas. Marcadores numerados en el mapa y en la lista con el mismo número. **Falta probarlo manejando** (AD-41) | v1 · 01/09/2026 |
+| ✅ | **Modo reparto**: hasta 10 paradas, ordenadas con distancias **reales** de ruta (no en línea recta: en CABA la ruta real llega a 1,67× la recta). Vecino más cercano + 2-opt en el dominio, 14 tests. 1,2 s para 9 paradas. Marcadores numerados en el mapa y en la lista con el mismo número. **Y se puede arrancar**: sus paradas viajan con el viaje, así que sobrevive a cerrar la app — hasta AD-45 calculaba pero no navegaba, o sea la mitad de la función. **Falta probarlo manejando** (AD-41, AD-45) | v1 · 02/09/2026 |
 
 ### Fase 5 · Reportes de la comunidad — ⬜ **nueva, sale del v2**
 

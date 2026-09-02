@@ -23,7 +23,7 @@ Objetivo declarado: *"El GPS de los camioneros de Buenos Aires"*. No sólo un
 navegador: perfil, historial, gamificación, comunidad.
 
 **Rama de trabajo:** `cuentas-de-usuario`, al día con `origin` desde el
-01/09/2026. **`main` quedó en `a587041`**: la rama está bastante adelante y
+02/09/2026. **`main` quedó en `a587041`**: la rama está bastante adelante y
 todavía no se fusionó.
 
 **Hay dos remotos.** `origin` es `bermejotobias-byte/camiones-app` y es el que se
@@ -40,7 +40,7 @@ lo pida.
 | Documento | Qué tiene |
 |---|---|
 | `CLAUDE.md` | Convenciones, comandos, **trampas que ya costaron tiempo** |
-| `docs/decisions.md` | **41 decisiones arquitectónicas (AD-01…AD-41)** con su porqué |
+| `docs/decisions.md` | **45 decisiones arquitectónicas (AD-01…AD-45)** con su porqué |
 | `docs/data-sources.md` | Fuentes, licencias y limitaciones **L-1…L-11** (L-4 ya resuelta) |
 | `docs/architecture.md` | Estructura y proyectos |
 | `docs/routing.md`, `docs/restrictions.md`, `docs/pois.md`, `docs/deploy.md` | Por tema |
@@ -48,18 +48,25 @@ lo pida.
 | **skill `producto-camiones-app`** | **El alcance completo**: los dos brainstorms unificados y asignados a fase |
 | Escritorio del usuario | `PUNTOS A TRABAJAR…docx` (33 requisitos, 22/08) y `ideas camionero app v2.docx` (31/08). Están **abiertos en Word**: para leerlos hay que copiarlos antes, si no el archivo está bloqueado |
 
-**Las AD-17 a AD-41 son del trabajo reciente.** Las seis últimas, del 01/09/2026:
+**Las AD-17 a AD-45 son del trabajo reciente.** Las cuatro últimas, del
+01–02/09/2026, son la sesión de la Fase 3 y salieron casi todas de defectos que
+encontró el usuario tocando la app:
 
 | AD | Qué resuelve | Por qué importa releerla |
 |---|---|---|
-| **AD-36** | Zonas peligrosas del mapa **comunitario**, no del oficial | Cuando la cobertura de una fuente coincide con una frontera, el mapa dibuja la frontera |
-| **AD-37** | El nombre de la calle se rotula sobre el **mapa base** | Los tramos entre maniobras miden 29–90 m: no entra el texto. Y la colisión va **activada** |
-| **AD-38** | Pasos a nivel sólo durante el viaje y sin escala de color | El color codifica una sola dimensión: cuánto te afecta a vos y a tu camión |
-| **AD-39** | Vibración con **un patrón por tipo de aviso** | Si todo vibrara igual habría que mirar la pantalla, que es lo que la vibración evita |
-| **AD-40** | Alternativas ordenadas por restricciones, no por tiempo | La tolerancia de 60 s no es un detalle: sin ella la Red nunca desempata |
-| **AD-41** | El orden del reparto con distancias **reales** | En CABA la ruta real llega a 1,67× la recta; un par sin ruta vale infinito y no tumba el reparto |
+| **AD-42** | Selector de contactos por `ACTION_PICK`, sin permiso de agenda | **Un Intent no es una dirección: es un pedido a un concurso de candidatos.** Y NO se pregunta con `ResolveActivity` |
+| **AD-43** | Tres contactos de emergencia en el servidor | Rechazar un número válido es peor que aceptar uno raro. Guardar y **marcar** son dos cosas distintas |
+| **AD-44** | La hoja se encoge; su acción va pegada abajo | `flex: none` la sacaba 112 px fuera de pantalla. Los bloques se separan con `gap`, **no** con `margin: auto` |
+| **AD-45** | Arrancar el reparto, con sus paradas en el viaje | `/api/trips/active` **recalcula**: sin las paradas, 31 km volvían convertidos en 10 |
 
-Las cinco anteriores, del 25–26/08/2026, siguen valiendo: **AD-30** (brújula del
+Las seis del 01/09/2026 por la mañana: **AD-36** (zonas del mapa comunitario —
+cuando la cobertura de una fuente coincide con una frontera, el mapa dibuja la
+frontera), **AD-37** (nombre de calle sobre el mapa base), **AD-38** (pasos a
+nivel sin escala de color), **AD-39** (vibración con un patrón por aviso),
+**AD-40** (alternativas por restricciones) y **AD-41** (orden del reparto con
+distancias reales).
+
+Y las cinco del 25–26/08/2026 siguen valiendo: **AD-30** (brújula del
 magnetómetro — por qué NO se usa `Compass` de MAUI), **AD-31** (`Debug.WriteLine`
 se borra en Release), **AD-32** (tests de JS sin dependencias), **AD-33** (una
 dirección mal escrita dejaba la app inutilizable) y **AD-34** (cámara cenital fija
@@ -81,8 +88,8 @@ Prioridad declarada:
 | **0 · Cimientos** | ✅ Completa — cuentas, camiones por usuario, viajes, mudanza del frontend |
 | **1 · Navegación** | 🔨 **Todo lo construible está hecho** — guiado, voz, GPS en segundo plano, brújula, nombre verde de la calle, vibración por patrón, alternativas de ruta y reintento al conectar. Falta lo único que no se puede hacer acá: **manejar** |
 | **2 · Usabilidad** | ✅ Completa — salió adelantada dentro de la mudanza del frontend |
-| **3 · Seguridad** | 🔨 Están el 911 y las zonas peligrosas. Faltan **3 contactos**, **compartir viaje** y el S.O.S. dentro del reporte |
-| **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto** hechos. Queda sólo **POIs valorados por usuarios**, que necesita conversación |
+| **3 · Seguridad** | 🔨 Están el 911, las zonas peligrosas y los **3 contactos de emergencia**. Queda **compartir viaje por WhatsApp** —necesita endpoint público, tokens que venzan y decisiones de privacidad— y el S.O.S. del reporte, que depende de la Fase 5 |
+| **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). Queda sólo **POIs valorados por usuarios**, que necesita conversación |
 | **5 · Reportes de comunidad** | ⬜ **Fase nueva del v2** — reportar y confirmar siniestros, radares y retenes. Es un sistema, no una función |
 | **6 · Experiencia y gamificación** | ⬜ Avatares, cofres, chat, bonos y **cinco juegos arcade** |
 | **Transversal** | ⬜ i18n (español, portugués, guaraní, inglés) · clave de firma de distribución |
@@ -121,10 +128,33 @@ d19d650  El nombre verde se achica y deja de encimarse consigo mismo
 954dd28  Alternativas de ruta, ordenadas por restricciones y no por tiempo
 907d5ed  Modo reparto: el backend ordena hasta 10 paradas por distancia real
 b5bacd4  Modo reparto: la interfaz, con paradas numeradas en la lista y en el mapa
+cd2499a  Actualiza las skills: la de estado decia seis cosas que ya eran falsas
+2ed7a39  Saca de la skill un numero que se desactualiza solo
+77f6e6f  L-11 pasa de pendiente a congelada por decision
+c5796d6  Elegir un contacto de la agenda, sin pedir permiso sobre la agenda
+a0dee91  Tres contactos de emergencia, y tres defectos que solo aparecieron en el telefono
+2e9a6c3  La hoja se encoge en vez de salirse de la pantalla, y el boton de accion queda fijo
+b496109  Los bloques de la capa del mapa se separan con gap, no con margenes automaticos
+30f742d  El reparto se puede arrancar, y sus paradas viajan con el viaje
 ```
 
-**`b5bacd4` es la punta del 01/09/2026**, y con ella **cierra todo lo construible
-de la Fase 1**. Los nueve commits desde `9363092` cubren:
+**`30f742d` es la punta del 02/09/2026.** Los seis commits desde `c5796d6` son la
+**sesión de la Fase 3**, y su rasgo distintivo es que **seis de sus defectos los
+encontró el usuario tocando la app, no los tests**:
+
+- **Puente de la agenda** (AD-42) y **tres contactos de emergencia** (AD-43),
+  guardados en el servidor.
+- **La hoja se encoge** y su acción queda fija abajo (AD-44), más la separación
+  de los controles del mapa con `gap`.
+- **Arrancar el reparto** (AD-45), que además destapó que el viaje perdía sus
+  paradas al recuperarse.
+- **L-11 congelada por decisión** hasta tener la base del AMBA.
+
+**Con AD-45 el modo reparto está completo por primera vez**: antes calculaba pero
+no navegaba, o sea la mitad de la función. Se había declarado cerrado igual.
+
+**`b5bacd4` fue la punta del 01/09/2026**, y con ella cerró todo lo construible de
+la Fase 1. Los nueve commits desde `9363092` cubren:
 
 - **Reintento al conectar** (apéndice de AD-33): 3 intentos, y sólo se reintenta
   lo que puede resolverse solo.
@@ -158,6 +188,24 @@ modificado en cada `git status`; **no commitearlo**.
 
 **Distinción crítica.** Mucho está probado a fondo; una franja específica no se
 pudo probar y hay que decirlo cada vez.
+
+### Verificado en el teléfono el 01–02/09/2026 — el usuario tocando la app
+
+**Esta tanda la probó una persona, no un script**, y por eso vale distinto:
+
+| Qué | Resultado |
+|---|---|
+| Selector de la agenda de Android | abre la agenda y devuelve el contacto |
+| Los 3 contactos guardados | **sobreviven a cerrar y abrir la app** — la razón por la que viven en el servidor |
+| Tocar un contacto | abre el discador con el número puesto, sin llamar |
+| Modo reparto de punta a punta | carga paradas, calcula, **arranca en modo GPS** |
+| La hoja con muchas paradas y con alternativas | no se sale de la pantalla; la acción queda alcanzable |
+| Separación de los controles del mapa | con aire, ya no amontonados |
+| El formulario de contactos | con la estética del resto de la app |
+
+**Y encontró seis defectos que ningún test habría atrapado**, todos ellos de "cómo
+se ve y cómo responde en un teléfono concreto". Están enumerados en la lección de
+más abajo.
 
 ### Verificado en el teléfono el 01/09/2026
 
@@ -212,16 +260,23 @@ bind a `0.0.0.0:5080`— también son esperados.
   de GraphHopper (**4 m de error en 26 km**); robusto a ±30 m de ruido; detección
   de desvío 0→1→2→3 strikes con enfriamiento; avisos de 35 apelotonados a 26 con
   220 m de separación mínima.
-- **Backend completo**: **127 tests unitarios + 46 de integración** (11 contra
+- **Backend completo**: **147 tests unitarios + 56 de integración** (11 contra
   GraphHopper real). Flujos end-to-end por HTTP: alta, verificación, login,
-  perfil, alias único, camiones, propiedad, viajes, acreditación de km. Los
-  unitarios incluyen 17 de la política de reintentos, 11 del orden de rutas
-  alternativas y 14 del orden del reparto; **los tres últimos grupos enlazan
-  archivos de Mobile**, que a propósito no depende de MAUI.
-- **45 tests de JS** (`node --test`), que cubren el motor de guiado y los avisos
-  de ruta. Fue un test —y no el teléfono— el que encontró que `Number(null)` es 0
-  y no `NaN`, con lo que un gálibo sin altura declarada se habría avisado como
-  *"puente de 0,00 m, no pasás"*.
+  perfil, alias único, camiones, propiedad, viajes, acreditación de km, contactos
+  de emergencia y paradas del reparto. Los unitarios incluyen 17 de la política de
+  reintentos, 11 del orden de alternativas, 14 del orden del reparto y 20 de los
+  contactos; **tres de esos grupos enlazan archivos de Mobile**, que a propósito no
+  depende de MAUI.
+- **62 tests de JS** (`node --test`): motor de guiado, avisos de ruta, el puente de
+  la agenda y el número listo para marcar. Fue un test —y no el teléfono— el que
+  encontró que `Number(null)` es 0 y no `NaN`, con lo que un gálibo sin altura
+  declarada se habría avisado como *"puente de 0,00 m, no pasás"*.
+
+**Lo que los tests SÍ atrapan y lo que no.** Los 265 cubren reglas de dominio y
+lógica pura, y ahí son buenos. **No cubren nada de lo que cruza hacia Android ni
+de cómo se ve una pantalla**, y esa frontera es más ancha de lo que parece: no es
+sólo "el puente", es también qué apps existen en *ese* teléfono, qué acepta *ese*
+discador y cómo cae el layout en *esa* pantalla. Ver la lección de más abajo.
 - **Datos del mapa**: medidos contra Overpass el 24/08/2026, dentro del límite
   administrativo de CABA.
 
@@ -243,9 +298,15 @@ bind a `0.0.0.0:5080`— también son esperados.
   aparato en la mano. Falta el caso que motivó no usar `Compass` de MAUI: el
   teléfono **parado en un soporte de parabrisas** (AD-30). Ahí es donde el eje
   cambia, y ahí es donde se sabrá si el trabajo extra valió la pena.
-- **La app en el teléfono, salvo lo que reportó el usuario.**
-- **El modo reparto, las alternativas y los pasos a nivel dentro y fuera del
-  viaje**, que quedaron probados en el navegador y no en el APK.
+- **La app en el teléfono, salvo lo que reportó el usuario** — que al 02/09/2026
+  ya es bastante: ver la tabla de arriba.
+- **Las alternativas y los pasos a nivel dentro y fuera del viaje**, probados en
+  el navegador y no en el APK.
+- **Los tres contactos de emergencia, EN una emergencia.** Se probó que guardan,
+  sobreviven a reinstalar y abren el discador. No se probó lo único que importa:
+  que alguien pueda usarlos con las manos temblando y sin mirar. Eso tampoco se
+  prueba manejando — se prueba el día que hace falta, y ahí no hay segunda vuelta.
+  Es un argumento para no complicar esa pantalla nunca.
 
 **Cuando el pedido es visual, la referencia visual manda.** El usuario pidió dos
 veces inspirarse en un mapa que compartió, y las dos veces el trabajo se fue a la
@@ -279,12 +340,42 @@ Con `window.__map` se puede leer `getStyle().layers`, escuchar `map.on('error')`
 —que es por donde MapLibre reporta los estilos inválidos, **no por excepción**— y
 probar valores en vivo con `setPaintProperty` sin recompilar nada.
 
-### Lección que se pagó cinco veces
+### La lección más cara del proyecto, y ya se pagó once veces
 
-Las cinco fallas encontradas en el teléfono estuvieron **todas en la costura
-entre la cáscara nativa y la web** — justamente lo único que no se puede probar
-acá. Cuando se toque esa costura, asumir que va a fallar y **pedirle al usuario el
-mensaje de error textual**: cada uno descartó una capa.
+**Todo lo que es "cómo se ve y cómo responde en un teléfono concreto" hay que
+hacerlo tocar por una persona.** No es una recomendación de prolijidad: es
+estadística de este proyecto.
+
+Los seis del 01–02/09/2026, todos con los tests en verde:
+
+| Defecto | Qué pasaba |
+|---|---|
+| El selector abría **el explorador de archivos** | `ACTION_PICK` sobre el URI de contactos ni ofrecía la agenda en ese equipo |
+| `ResolveActivity` decía "no hay agenda" | Con la agenda instalada. **El chequeo defensivo introdujo el fallo que venía a evitar** |
+| El discador **no se abría nunca**, ni con el 911 | `PhoneDialer` de MAUI no hacía nada, sin excepción y sin rastro |
+| El formulario sin estilos | Faltaban las clases `.field`/`.input` que ya existían |
+| La hoja **112 px fuera de pantalla** | `flex: none` no la dejaba encogerse |
+| Los controles del mapa **pegados, 0 px** | La separación era un resto de `margin: auto`, no una separación |
+
+Y los cinco anteriores estuvieron **todos en la costura entre la cáscara nativa y
+la web**. Cuando se toque esa costura, asumir que va a fallar y **pedirle al
+usuario el mensaje de error textual**: cada uno descartó una capa.
+
+**Tres reglas que salieron de esta tanda:**
+
+1. **Loguear ANTES de la acción, no sólo el resultado.** El discador no dejaba
+   rastro hasta que alguien elegía, así que cuando abrió la app equivocada el log
+   estaba vacío y no había por dónde empezar. Hoy `call()` loguea el pedido y la
+   cáscara loguea antes y después del Intent: el próximo fallo dice si se cortó en
+   el JavaScript, en el puente o en Android.
+2. **No mezclar un arreglo verificado con una mejora no pedida.** El
+   `ResolveActivity` se agregó "ya que estoy" junto al arreglo del Intent, y rompió
+   el arreglo. Si el arreglo después falla, no se sabe cuál de los dos fue.
+3. **No inferir lo que el usuario no dijo.** Se dio por hecho que el 911 funcionaba
+   —sólo porque no lo había mencionado— y sobre esa inferencia se construyó una
+   explicación completa y elegante del espacio en el URI, que encajaba perfecto
+   porque el 911 es el único número sin espacios. **Era falso.** El razonamiento
+   era bueno y la evidencia, inventada. Ver AD-43.
 
 La cuarta (25/08/2026) fue `confirm()`: el WebView no lo dibuja y devuelve `false`
 en silencio, así que *Terminar viaje*, *Cerrar sesión* y *Borrar camión* parecían
@@ -428,6 +519,30 @@ Tres secciones sirven, y conviene mirarlas en este orden:
 - **Estética:** seria pero dopamínica. Resuelto como **dos intensidades**: el
   mapa es sobrio, la progresión trae el color. No es sólo estético — impide que
   lo gamificado se filtre a la pantalla que se mira manejando.
+- **El AMBA entra cuando esté su base de datos, y hasta entonces no se toca
+  nada de ese sector.** Textual (01/09/2026): *"no quiero tocar ni romper nada en
+  ese sector hasta tener la base de datos"*. Al salir al público la app tiene que
+  cubrir el AMBA; la información está en recopilación. **L-11 está congelada por
+  esto, no por olvido.**
+- **Cuando algo se pospone por tamaño, vale preguntar si adentro hay una pieza
+  compartida y chica.** La Fase 3 se descartó por esfuerzo, pero el usuario pidió
+  igual el **puente de la agenda** —que lo necesitan sus dos ítems grandes—, y en
+  cuanto lo vio funcionar en el teléfono pidió la funcionalidad completa. La pieza
+  chica andando destrabó el trabajo grande.
+- **La prueba manejando es del usuario y no se puede sustituir.** Lo dice él y lo
+  confirma el registro: *"falta probarlo en viaje como todo lo demás que incluye
+  probar andando"*. No proponerla como tarea propia ni darla por hecha.
+- **Cuando el pedido es VISUAL, la referencia visual manda.** Pasó dos veces con
+  las zonas de riesgo: el usuario pidió inspirarse en un mapa que compartió y el
+  trabajo se fue a la metodología del dato. Textual: *"tenías que orientarte más
+  en lo visual del mapa de maps que en los datos de robo"*. Y una tercera con el
+  formulario de contactos, que salió sin las clases que ya existían: **antes de
+  inventar estilo, mirar cómo se ve el resto de la app**.
+- **Una función está lista cuando cierra el trabajo de la persona, no cuando la
+  pantalla responde.** El modo reparto se declaró completo en AD-41 y **calculaba
+  pero no navegaba** — o sea la mitad. Se había probado end-to-end en el navegador,
+  pero ese ciclo terminaba donde termina la pantalla, no donde termina el trabajo
+  del camionero. Ver AD-45.
 - **Identidad de git del repo:** `Tobias Bermejo <bermejotobias@gmail.com>`
   (verificado el 01/09/2026 con `git config user.name`; esta skill decía
   `bermejolautaro <tarolau97@hotmail.com>`, que es el dueño del remoto `hermano`).
@@ -442,7 +557,7 @@ Tres secciones sirven, y conviene mirarlas en este orden:
 
 - **Node 24.19 y npm 11.17 SÍ están instalados** (verificado el 26/08/2026; la
   nota anterior decía lo contrario y estaba vieja, y esa creencia costó no tener
-  tests sobre el motor de guiado). No hay Python. **Ya hay 45 tests de JS**:
+  tests sobre el motor de guiado). No hay Python. **Ya hay 62 tests de JS**:
   `node --test "tests/web/*.test.mjs"`, con el runner que trae Node, **sin una
   sola dependencia** — no hay `node_modules` ni `npm install`, y el `wwwroot` que
   se sirve y se empaqueta es idéntico con o sin ellos. Ver AD-32. Cubren
@@ -558,8 +673,8 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 ```powershell
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
-dotnet test                              # 173 tests (.NET)
-node --test "tests/web/*.test.mjs"       # 45 tests de JS
+dotnet test                              # 203 tests (.NET)
+node --test "tests/web/*.test.mjs"       # 62 tests de JS
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
 ```
@@ -628,29 +743,39 @@ giros? → **¿vibra, y se distingue el patrón del gálibo del de doblar?**
 Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
 `adb logcat -s Web Cascara Brujula`.
 
-**Acordado con el usuario el 01/09/2026**, después de un repaso del proyecto:
+**Lo acordado el 01/09/2026 ya se hizo**, y el resultado corrigió una prioridad:
 
-1. **L-11 — el aviso de que saliste de CABA.** Ninguna capa propia existe pasando
-   la General Paz o el Riachuelo y la app no lo dice: Dock Sud se ve igual que un
-   barrio sin registros. Es la regla de la casa incumplida por omisión, y mejora
-   la prueba en calle. ~30 min.
-2. **Fase 3 · los 3 contactos de emergencia.** Es lo que sigue en la prioridad
-   declarada y lo más limpio de arrancar: la pantalla de Emergencia **ya existe**
-   con un cartel que dice *"todavía en camino"* (`app.js`, `emergencyView`), y el
-   discador nativo ya funciona por el puente. Falta perfil + endpoint + pantalla.
-   **Cero acoplamiento con la navegación**: se puede construir sin esperar la
-   prueba en calle.
+- **L-11 quedó CONGELADA por decisión del usuario**, no hecha. No tocar nada del
+  sector AMBA hasta tener su base de datos: el aviso de cobertura y la ampliación
+  son el mismo trabajo, y hacerlo ahora significa escribir el límite en el código
+  para reescribirlo entero después. **No volver a proponerlo**: ya se ofreció y se
+  rechazó con motivo. Ver `data-sources.md` L-11.
+- **Los 3 contactos de emergencia están hechos** (AD-42, AD-43) y verificados en
+  el teléfono.
 
-**Deliberadamente para después:**
+**Lo que queda, en orden:**
 
-- **Compartir viaje por WhatsApp** — misma fase, pero necesita endpoint público de
-  seguimiento, tokens que venzan y decisiones de privacidad. Es un trabajo grande
-  disfrazado de botón.
-- **Fase 5 (reportes) y POIs valorados** — bloqueadas por decisiones del usuario,
-  no por código: cuánto dura un reporte, cuántas confirmaciones lo validan, qué
-  pasa con los falsos.
-- **Los cinco juegos** — proyecto aparte. Elegir uno, hacerlo bien, y recién ahí
-  ver.
+1. **Compartir viaje por WhatsApp** — lo último construible de la Fase 3.
+   Necesita endpoint público de seguimiento, tokens que venzan y decisiones de
+   privacidad: es un trabajo grande disfrazado de botón, y hay que plantearlo como
+   tal. **El puente de la agenda ya existe** y sirve para elegir destinatario.
+2. **Fase 5 (reportes) y POIs valorados** — bloqueadas por decisiones del usuario,
+   no por código: cuánto dura un reporte, cuántas confirmaciones lo validan, qué
+   pasa con los falsos.
+3. **Los cinco juegos** — proyecto aparte. Elegir uno, hacerlo bien, y recién ahí
+   ver.
+
+**Dos cosas menores que quedaron anotadas y sin hacer, a propósito:**
+
+- **Ampliar la hoja en modo reparto.** Medido: se limita en 472 px y su
+  `max-height` permite 584, así que el tope **no es el `max-height` sino los
+  botones del mapa**. Ampliarla exige sacarle controles al mapa durante el
+  reparto, y eso es decisión de producto (AD-44).
+- **La hoja re-dispara su animación de entrada en cada redibujo**, así que salta
+  14 px cada vez que se agrega o quita una parada. En el navegador no se nota
+  porque las animaciones quedan congeladas; en el teléfono sí. Es un cambio de una
+  línea, pero **no se hizo porque no se pidió** — la lección de esta sesión fue
+  justamente lo que cuesta mezclar una mejora no pedida con un arreglo.
 
 **Las zonas peligrosas están hechas, y NO salen del dato oficial.** Esta skill
 afirmó primero que no había fuente, después que era el Mapa del Delito del GCBA, y
