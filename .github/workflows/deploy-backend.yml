@@ -9,8 +9,17 @@ name: Desplegar backend
 
 on:
   workflow_dispatch:
+
   push:
-    branches: [main]
+    # cuentas-de-usuario esta aca a proposito y es temporal.
+    #
+    # El trabajo vive en esa rama y main quedo muy atras, asi que disparando solo
+    # en main este workflow no podria correr nunca. Y el boton de "Run workflow"
+    # tampoco aparece: GitHub solo lo muestra para workflows que existen en la rama
+    # por defecto.
+    #
+    # Cuando la rama se fusione, sacar esta linea.
+    branches: [main, cuentas-de-usuario]
     paths:
       - 'routing/**'
       - 'deploy/**'
