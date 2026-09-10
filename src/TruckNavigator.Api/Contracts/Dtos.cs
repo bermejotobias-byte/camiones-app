@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using TruckNavigator.Domain.Pois;
+using TruckNavigator.Domain.Progression;
 using TruckNavigator.Domain.Restrictions;
 using TruckNavigator.Domain.Routing;
 using TruckNavigator.Domain.Trips;
@@ -567,3 +569,22 @@ public sealed record EmergencyContactDto(Guid Id, string Name, string Phone)
 /// se esta llamando, y el telefono porque sin el no hay contacto.
 /// </remarks>
 public sealed record SaveEmergencyContactRequest(string? Name, string? Phone);
+
+/// <summary>
+/// Pedido de equipar una recompensa.
+/// </summary>
+/// <remarks>
+/// <para>
+/// El cliente dice que quiere ponerse y donde. Si no lo tiene desbloqueado, el
+/// servidor lo rechaza: equipar elige entre lo que ya se gano, no lo concede.
+/// </para>
+/// <para>
+/// <b>La ranura viaja por su nombre, y el conversor no es opcional.</b> Sin el,
+/// System.Text.Json no convierte <c>"Hat"</c> al enum y el endpoint responde 500 en
+/// vez de hacer su trabajo — medido, no supuesto. Va sobre la propiedad y no global
+/// para no cambiar como se serializan los enums que la app ya consume.
+/// </para>
+/// </remarks>
+public sealed record EquipRequest(
+    [property: JsonConverter(typeof(JsonStringEnumConverter))] LoadoutSlot Slot,
+    string RewardCode);

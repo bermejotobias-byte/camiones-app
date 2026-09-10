@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TruckNavigator.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using TruckNavigator.Infrastructure.Persistence;
 namespace TruckNavigator.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260910045524_AddProgressionLedger")]
+    partial class AddProgressionLedger
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
@@ -226,95 +229,6 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                     b.HasIndex("Category");
 
                     b.ToTable("PointsOfInterest");
-                });
-
-            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverLoadout", b =>
-                {
-                    b.Property<Guid>("DriverId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Slot")
-                        .HasMaxLength(24)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RewardCode")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("DriverId", "Slot");
-
-                    b.ToTable("Loadout");
-                });
-
-            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverProgressMark", b =>
-                {
-                    b.Property<Guid>("DriverId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("CelebratedUpTo")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("DriverId");
-
-                    b.ToTable("ProgressMarks");
-                });
-
-            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverRecord", b =>
-                {
-                    b.Property<Guid>("DriverId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RecordCode")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("AchievedAt")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("Value")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("DriverId", "RecordCode");
-
-                    b.ToTable("Records");
-                });
-
-            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverReward", b =>
-                {
-                    b.Property<Guid>("DriverId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RewardCode")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("UnlockedAt")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("DriverId", "RewardCode");
-
-                    b.ToTable("Rewards");
-                });
-
-            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverTrackProgress", b =>
-                {
-                    b.Property<Guid>("DriverId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TrackCode")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("Count")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TierReached")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("DriverId", "TrackCode");
-
-                    b.ToTable("TrackProgress");
                 });
 
             modelBuilder.Entity("TruckNavigator.Domain.Progression.LedgerEntry", b =>
@@ -655,51 +569,6 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                     b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverLoadout", b =>
-                {
-                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("DriverId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverProgressMark", b =>
-                {
-                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
-                        .WithOne()
-                        .HasForeignKey("TruckNavigator.Domain.Progression.DriverProgressMark", "DriverId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverRecord", b =>
-                {
-                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("DriverId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverReward", b =>
-                {
-                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("DriverId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverTrackProgress", b =>
-                {
-                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("DriverId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

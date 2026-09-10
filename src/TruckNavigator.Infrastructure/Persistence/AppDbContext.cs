@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TruckNavigator.Domain.Pois;
+using TruckNavigator.Domain.Progression;
 using TruckNavigator.Domain.Trips;
 using TruckNavigator.Domain.Trucks;
 using TruckNavigator.Domain.Users;
@@ -33,6 +34,18 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Trip> Trips => Set<Trip>();
 
     public DbSet<EmergencyContact> EmergencyContacts => Set<EmergencyContact>();
+
+    public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
+
+    public DbSet<DriverTrackProgress> TrackProgress => Set<DriverTrackProgress>();
+
+    public DbSet<DriverReward> Rewards => Set<DriverReward>();
+
+    public DbSet<DriverLoadout> Loadout => Set<DriverLoadout>();
+
+    public DbSet<DriverRecord> Records => Set<DriverRecord>();
+
+    public DbSet<DriverProgressMark> ProgressMarks => Set<DriverProgressMark>();
 
     /// <summary>
     /// Guarda un instante como ticks UTC en lugar de texto.
@@ -224,5 +237,93 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
         // El historial se lee siempre por camionero y de lo mas nuevo a lo mas viejo.
         trip.HasIndex(t => new { t.DriverId, t.StartedAt });
+
+        var ledger = modelBuilder.Entity<LedgerEntry>();
+
+        ledger.HasKey(e => e.Id);
+        ledger.Property(e => e.Denomination).HasConversion<string>().HasMaxLength(24);
+        ledger.Property(e => e.Reason).HasConversion<string>().HasMaxLength(32);
+        ledger.Property(e => e.SourceKey).IsRequired().HasMaxLength(120);
+
+        // Como todas las fechas del sistema: SQLite no sabe ordenar por
+        // DateTimeOffset, y este orden se usa para saber que hay sin festejar.
+        ledger.Property(e => e.OccurredAt).HasConversion(UtcTicks);
+
+        // EL indice que sostiene todo el diseno. Un reintento, un doble toque o un
+        // cierre de viaje procesado dos veces son cosas que van a pasar; sin esto,
+        // cada una regala EXP.
+        //
+        // Incluye al dueno a proposito: dos camioneros llegan al escalon 4 de
+        // viajes por separado y los dos tienen que poder cobrarlo.
+        ledger.HasIndex(e => new { e.DriverId, e.Denomination, e.Reason, e.SourceKey })
+            .IsUnique();
+
+        // Es historial de la persona: si se borra la cuenta, se va con ella.
+        ledger.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(e => e.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Las cinco tablas que siguen comparten la misma forma: cuelgan de la
+        // cuenta, se borran con ella, y su clave compuesta hace que duplicar sea
+        // imposible por construccion en vez de por chequeo.
+
+        var track = modelBuilder.Entity<DriverTrackProgress>();
+
+        track.HasKey(t => new { t.DriverId, t.TrackCode });
+        track.Property(t => t.TrackCode).HasMaxLength(64);
+
+        track.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(t => t.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var reward = modelBuilder.Entity<DriverReward>();
+
+        reward.HasKey(r => new { r.DriverId, r.RewardCode });
+        reward.Property(r => r.RewardCode).HasMaxLength(64);
+        reward.Property(r => r.UnlockedAt).HasConversion(UtcTicks);
+
+        reward.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(r => r.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var loadout = modelBuilder.Entity<DriverLoadout>();
+
+        // Una pieza por ranura: la clave compuesta es lo que hace que equipar sea
+        // reemplazar y no acumular.
+        loadout.HasKey(l => new { l.DriverId, l.Slot });
+        loadout.Property(l => l.Slot).HasConversion<string>().HasMaxLength(24);
+        loadout.Property(l => l.RewardCode).IsRequired().HasMaxLength(64);
+
+        loadout.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(l => l.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var record = modelBuilder.Entity<DriverRecord>();
+
+        record.HasKey(r => new { r.DriverId, r.RecordCode });
+        record.Property(r => r.RecordCode).HasMaxLength(64);
+
+        // Sin el conversor la fecha del record se guardaria como texto y no se
+        // podria ordenar. Y la fecha es justamente lo que hace valioso a un record.
+        record.Property(r => r.AchievedAt).HasConversion(UtcTicks);
+
+        record.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(r => r.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var mark = modelBuilder.Entity<DriverProgressMark>();
+
+        mark.HasKey(m => m.DriverId);
+        mark.Property(m => m.CelebratedUpTo).HasConversion(UtcTicks);
+
+        mark.HasOne<AppUser>()
+            .WithOne()
+            .HasForeignKey<DriverProgressMark>(m => m.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

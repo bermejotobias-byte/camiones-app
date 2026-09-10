@@ -20,6 +20,7 @@ using TruckNavigator.Infrastructure;
 using TruckNavigator.Infrastructure.Email;
 using TruckNavigator.Infrastructure.Identity;
 using TruckNavigator.Infrastructure.Persistence;
+using TruckNavigator.Infrastructure.Progression;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,6 +93,11 @@ builder.Services.AddIdentityApiEndpoints<AppUser>(options =>
 // Los mails de Identity salen por el envio propio de Infrastructure.
 builder.Services.AddSingleton<IEmailSender<AppUser>, IdentityEmailSender>();
 
+// Scoped como el DbContext del que depende: acredita dentro de la misma unidad de
+// trabajo que cierra el viaje.
+builder.Services.AddScoped<ProgressionRecorder>();
+builder.Services.AddScoped<ProgressionReader>();
+
 var app = builder.Build();
 
 // El seed corre al arrancar para que el MVP sea usable sin pasos manuales.
@@ -115,6 +121,14 @@ await using (var scope = app.Services.CreateAsyncScope())
             DevUserSeed.Email,
             DevUserSeed.Password);
     }
+
+    // Va ultimo, y despues de la cuenta de prueba: acredita la progresion de los
+    // viajes que se cerraron antes de que el motor existiera. Es idempotente, asi
+    // que correrla en cada arranque no duplica nada.
+    await ProgressionSeed.RunAsync(
+        db,
+        scope.ServiceProvider.GetRequiredService<ProgressionRecorder>(),
+        DateTimeOffset.UtcNow);
 }
 
 // Sin SMTP configurado no se envia ningun mail y los enlaces de verificacion van
@@ -937,17 +951,122 @@ trips.MapPost("/{id:guid}/finish", async (
     Guid id,
     ClaimsPrincipal principal,
     AppDbContext db,
+    ProgressionRecorder progression,
     CancellationToken ct) =>
-    await CloseTripAsync(db, id, CurrentUserId(principal), arrived: true, ct))
-.WithSummary("Marca el viaje como llegado y acredita los kilometros que correspondan.");
+    await CloseTripAsync(db, progression, id, CurrentUserId(principal), arrived: true, ct))
+.WithSummary("Marca el viaje como llegado, acredita los kilometros y la progresion.");
 
 trips.MapPost("/{id:guid}/cancel", async (
     Guid id,
     ClaimsPrincipal principal,
     AppDbContext db,
+    ProgressionRecorder progression,
     CancellationToken ct) =>
-    await CloseTripAsync(db, id, CurrentUserId(principal), arrived: false, ct))
-.WithSummary("Abandona el viaje. No acredita kilometros.");
+    await CloseTripAsync(db, progression, id, CurrentUserId(principal), arrived: false, ct))
+.WithSummary("Abandona el viaje. No acredita kilometros ni progresion.");
+
+// ------------------------------------------------------------------ progresion
+//
+// Ningun endpoint de aca otorga nada. Todo lo que se gana ocurre como efecto de que
+// el servidor cierre un viaje: el cliente pregunta cuanto tiene, nunca informa
+// cuanto gano. Es la misma regla que ya rige los kilometros.
+var progress = app.MapGroup("/api/progress").WithTags("Progresion").RequireAuthorization();
+
+progress.MapGet("/", async (
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    return userId is null
+        ? Results.Unauthorized()
+        : Results.Ok(await reader.GetProgressAsync(userId.Value, ct));
+})
+.WithSummary("Nivel, meta en curso, kilometros, EXP y lo que falta festejar.");
+
+progress.MapGet("/tracks", async (
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    return userId is null
+        ? Results.Unauthorized()
+        : Results.Ok(await reader.GetTracksAsync(userId.Value, ct));
+})
+.WithSummary("Las pistas con su escalon en curso. Es la vista de metas y logros.");
+
+progress.MapGet("/records", async (
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    return userId is null
+        ? Results.Unauthorized()
+        : Results.Ok(await reader.GetRecordsAsync(userId.Value, ct));
+})
+.WithSummary("Records personales: la mejor marca historica, con su fecha.");
+
+progress.MapGet("/inventory", async (
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    return userId is null
+        ? Results.Unauthorized()
+        : Results.Ok(await reader.GetInventoryAsync(userId.Value, ct));
+})
+.WithSummary("Recompensas desbloqueadas y que hay puesto en cada ranura.");
+
+// La marca solo avanza. Dejarla retroceder permitiria pedir el mismo festejo dos
+// veces, asi que el momento lo pone el servidor y no el cliente.
+progress.MapPost("/seen", async (
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    await reader.MarkSeenAsync(userId.Value, DateTimeOffset.UtcNow, ct);
+
+    return Results.NoContent();
+})
+.WithSummary("Marca como visto lo festejado hasta ahora.");
+
+progress.MapPost("/equip", async (
+    EquipRequest request,
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var equipped = await reader.EquipAsync(userId.Value, request.Slot, request.RewardCode, ct);
+
+    return equipped
+        ? Results.NoContent()
+        : Results.Problem(
+            title: "Esa recompensa no esta desbloqueada",
+            detail: "Solo se puede equipar lo que ya esta en el inventario.",
+            statusCode: StatusCodes.Status409Conflict);
+})
+.WithSummary("Pone una recompensa del inventario en su ranura.");
 
 trips.MapGet("/", async (
     int? limit,
@@ -1226,6 +1345,7 @@ static IResult? Validate<T>(T instance) where T : notnull
 /// </remarks>
 static async Task<IResult> CloseTripAsync(
     AppDbContext db,
+    ProgressionRecorder progression,
     Guid tripId,
     Guid? userId,
     bool arrived,
@@ -1263,6 +1383,12 @@ static async Task<IResult> CloseTripAsync(
     }
 
     await db.SaveChangesAsync(ct);
+
+    // La progresion se acredita DESPUES de guardar el viaje: el kilometraje se
+    // recalcula sumando los viajes completados, asi que este tiene que estar en la
+    // base para contar. Un viaje cancelado no acredita nada y el grabador lo
+    // descarta solo.
+    await progression.RecordAsync(trip, now, ct);
 
     return Results.Ok(TripDto.From(trip));
 }
