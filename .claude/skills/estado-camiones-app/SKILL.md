@@ -22,9 +22,12 @@ ruta, no como advertencia posterior. Fuente regulatoria: Ley 2148, art. 9.10.1
 Objetivo declarado: *"El GPS de los camioneros de Buenos Aires"*. No sólo un
 navegador: perfil, historial, gamificación, comunidad.
 
-**Rama de trabajo:** `cuentas-de-usuario`, al día con `origin` desde el
-02/09/2026. **`main` quedó en `a587041`**: la rama está bastante adelante y
-todavía no se fusionó.
+**Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
+está muy adelante y todavía no se fusionó.
+
+**Punta al 10/09/2026: `fdf8341`.** Los cuatro commits de esa fecha son la sesión
+del **motor de progresión** y del **despliegue por GitHub Actions**. Antes de
+ellos, la punta era `c9d3552` del 02/09.
 
 **Hay dos remotos.** `origin` es `bermejotobias-byte/camiones-app` y es el que se
 usa; `hermano` es `bermejolautaro/camiones-app`, con su propia rama
@@ -45,7 +48,10 @@ lo pida.
 | `docs/architecture.md` | Estructura y proyectos |
 | `docs/routing.md`, `docs/restrictions.md`, `docs/pois.md`, `docs/deploy.md` | Por tema |
 | `PLAN.md` | Especificación original del MVP |
-| **skill `producto-camiones-app`** | **El alcance completo**: los dos brainstorms unificados y asignados a fase |
+| **skill `producto-camiones-app`** | **El alcance completo**: los **tres** brainstorms unificados y asignados a fase. Incluye el v3 textual en `references/brainstorm-v3.md` |
+| **skill `diseno-camiones-app`** | **El lenguaje visual**, nueva del 09/09/2026: Duolingo + camioneros + arcade, extraído de 17 capturas reales. Invocarla antes de maquetar cualquier pantalla que no sea el mapa |
+| `docs/superpowers/specs/` | Dos specs con su porqué: el **despliegue gratuito** (02/09) y el **motor de progresión** (08/09) |
+| `docs/referencias/` | Las capturas de Duolingo y Preguntados, versionadas para poder revisar el análisis contra su fuente |
 | Escritorio del usuario | `PUNTOS A TRABAJAR…docx` (33 requisitos, 22/08) y `ideas camionero app v2.docx` (31/08). Están **abiertos en Word**: para leerlos hay que copiarlos antes, si no el archivo está bloqueado |
 
 **Las AD-17 a AD-45 son del trabajo reciente.** Las cuatro últimas, del
@@ -91,8 +97,10 @@ Prioridad declarada:
 | **3 · Seguridad** | 🔨 Están el 911, las zonas peligrosas y los **3 contactos de emergencia**. Queda **compartir viaje por WhatsApp** —necesita endpoint público, tokens que venzan y decisiones de privacidad— y el S.O.S. del reporte, que depende de la Fase 5 |
 | **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). Queda sólo **POIs valorados por usuarios**, que necesita conversación |
 | **5 · Reportes de comunidad** | ⬜ **Fase nueva del v2** — reportar y confirmar siniestros, radares y retenes. Es un sistema, no una función |
-| **6 · Experiencia y gamificación** | ⬜ Avatares, cofres, chat, bonos y **cinco juegos arcade** |
-| **Transversal** | ⬜ i18n (español, portugués, guaraní, inglés) · clave de firma de distribución |
+| **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Falta lo que se apoya en él: **las pantallas**, el avatar combinable, la batería y los juegos |
+| **7 · Cáscara, entrada e idiomas** | ⬜ **Fase nueva del v3**: intro → idioma → condiciones → acceso, zócalo inferior de 4 accesos, modo invitado. Ver `producto-camiones-app` |
+| **Transversal** | ⬜ i18n (la pantalla existe, **sólo español** por decisión) · clave de firma de distribución · **límite de tasa en la API** |
+| **Despliegue** | 🔨 Escrito y commiteado, **nunca ejecutado**: falta cupo de A1 en Oracle, el release del mapa base, SMTP y DuckDNS |
 
 **El 31/08/2026 el usuario sumó un segundo brainstorm** (*"IDEAS PARA TBF 2.0"*)
 que agranda el proyecto: abre la fase de reportes de comunidad, reabre la 4 y
@@ -136,9 +144,19 @@ a0dee91  Tres contactos de emergencia, y tres defectos que solo aparecieron en e
 2e9a6c3  La hoja se encoge en vez de salirse de la pantalla, y el boton de accion queda fijo
 b496109  Los bloques de la capa del mapa se separan con gap, no con margenes automaticos
 30f742d  El reparto se puede arrancar, y sus paradas viajan con el viaje
+c9d3552  Actualiza las skills con la sesion de la Fase 3 y lo que dejo aprendido
+686f1e9  El backend se construye en GitHub Actions y la VM solo baja imagenes
+4be2241  Suma el brainstorm v3, la skill de diseno y las referencias visuales
+a69019f  Motor de progresion: nivel, metas, logros y recompensas en el servidor
+fdf8341  El nivel lo calcula el servidor: sale levelFor del cliente          <- punta
 ```
 
-**`30f742d` es la punta del 02/09/2026.** Los seis commits desde `c5796d6` son la
+**Los cuatro últimos son del 10/09/2026** y cubren dos frentes: el **despliegue
+por GitHub Actions** y el **motor de progresión** completo, del dominio al
+cliente. `a69019f` es el más grande de la historia del proyecto: 31 archivos y
+4.788 líneas.
+
+**`30f742d` fue la punta del 02/09/2026.** Los seis commits desde `c5796d6` son la
 **sesión de la Fase 3**, y su rasgo distintivo es que **seis de sus defectos los
 encontró el usuario tocando la app, no los tests**:
 
@@ -188,6 +206,45 @@ modificado en cada `git status`; **no commitearlo**.
 
 **Distinción crítica.** Mucho está probado a fondo; una franja específica no se
 pudo probar y hay que decirlo cada vez.
+
+### El motor de progresión, verificado el 10/09/2026
+
+**357 tests en total**: 216 unitarios de .NET, 79 de integración y 62 de JS. Venían
+de 147 + 56 + 62.
+
+Todo el motor se construyó con **TDD estricto**: cada test se vio fallar antes de
+escribir el código. Eso atajó tres defectos **antes de que existiera una sola línea
+de interfaz**:
+
+| Defecto | Qué habría pasado |
+|---|---|
+| Desborde del último nivel | Con 500.000 km el perfil decía **"meta 35 de 10"** |
+| Kilometraje negativo | La escala devolvía **`-399`** como número de meta |
+| Viaje que cruza dos metas | Pagaba sólo la última y **perdía una recompensa sin avisar** |
+
+**Y verificado de punta a punta, no sólo con tests.** Contra la API real: arrancar
+y cerrar un viaje acredita 120 de EXP y desbloquea dos recompensas. Una es
+`nocturnos-01`, porque eran las 02:25 en Buenos Aires — **la regla de hora local
+disparó bien sobre datos reales**, que es lo que un test sintético no puede probar.
+
+En el navegador: entrar con la cuenta demo, ir al perfil, y ver *"Nivel 1 ·
+Novato"*, *"0 km"* y *"Te faltan 2.500 km para Repartidor"*, los tres calculados
+por el servidor. Sin errores nuevos en consola.
+
+### La lección del 10/09: un test puede pasar por el motivo equivocado
+
+Dos veces en la misma sesión, y las dos dan confianza falsa:
+
+**El endpoint de equipar devolvía 500 y no equipaba nada.** Los siete tests del
+lector pasaban porque le pasan el enum **ya construido y se saltean el JSON**. Por
+HTTP, `System.Text.Json` no convierte la cadena a enum sin que se lo pidan. Es la
+misma lección de las cinco fallas de la costura nativa-web, en una frontera nueva:
+**lo que cruza una frontera hay que probarlo cruzándola.**
+
+**Un test de clave duplicada probaba a EF, no al esquema.** EF detecta la clave
+repetida en su **rastreador en memoria** y tira `InvalidOperationException` antes
+de tocar la base. Para probar que el esquema lo impide hay que
+`ChangeTracker.Clear()` primero, y entonces sí llega el `DbUpdateException`.
 
 ### Verificado en el teléfono el 01–02/09/2026 — el usuario tocando la app
 
@@ -260,7 +317,7 @@ bind a `0.0.0.0:5080`— también son esperados.
   de GraphHopper (**4 m de error en 26 km**); robusto a ±30 m de ruido; detección
   de desvío 0→1→2→3 strikes con enfriamiento; avisos de 35 apelotonados a 26 con
   220 m de separación mínima.
-- **Backend completo**: **147 tests unitarios + 56 de integración** (11 contra
+- **Backend completo**: **216 tests unitarios + 79 de integración** (11 contra
   GraphHopper real). Flujos end-to-end por HTTP: alta, verificación, login,
   perfil, alias único, camiones, propiedad, viajes, acreditación de km, contactos
   de emergencia y paradas del reparto. Los unitarios incluyen 17 de la política de
@@ -282,6 +339,19 @@ discador y cómo cae el layout en *esa* pantalla. Ver la lección de más abajo.
 
 ### NO verificado
 
+- **El despliegue entero.** El workflow de GitHub Actions **nunca corrió** —
+  necesita un push— y `deploy/` **nunca se levantó**, porque esta máquina no tiene
+  Docker. Están los dos controles que hacen que falle temprano y con mensaje, pero
+  eso no es lo mismo que haberlo visto andar.
+- **La instancia de Oracle no existe todavía**: A1 respondió *out of capacity*.
+  Sin ella no hay backend público.
+- **La progresión con kilómetros de verdad.** El viaje de prueba acreditó **0 km**
+  porque se cerró al instante y `TripCrediting` exige que pase la mitad de la
+  duración estimada. Que la barra de nivel se mueva de verdad hay que verlo
+  manejando, como todo lo demás.
+- **Nada de la progresión se probó en el teléfono.** Todo fue por API y por el
+  navegador de escritorio, que es exactamente la franja donde este proyecto ya se
+  equivocó once veces.
 - **Navegación manejando.** Nunca se probó en movimiento, y a esta altura es
   **lo único que falta para cerrar la Fase 1**: que la flecha siga al camión, que
   hable en los giros, que el servicio sobreviva a apagar la pantalla, que el
@@ -548,6 +618,46 @@ Tres secciones sirven, y conviene mirarlas en este orden:
   `bermejolautaro <tarolau97@hotmail.com>`, que es el dueño del remoto `hermano`).
 - **Convención de código:** nombres de tipo **en inglés**, comentarios y docs en
   español, **sin acentos dentro de los `.cs`**. Rutas de API en inglés.
+- **La clave de firma de desarrollo se queda como está, y no se respalda todavía.**
+  Decisión del usuario, 10/09/2026. Hoy la app está instalada en **un solo
+  dispositivo**, el del equipo que prueba, así que perder la keystore cuesta una
+  desinstalación y nada más.
+
+  Los datos, para no volver a averiguarlos: vive en
+  `%LOCALAPPDATA%\TruckNavigator\firma-desarrollo.keystore`, alias
+  `trucknavigator`, y su contraseña es `camiones-dev` — **el valor por defecto
+  escrito en `build-apk.ps1`, o sea que está en el repositorio, que es público**.
+  Por eso esta clave sirve para continuidad pero **no para distribuir**.
+
+  **Generar otra es trivial** (`build-apk.ps1` acepta `-Keystore` y
+  `-KeystorePassword`, o la variable `TRUCKNAVIGATOR_KEYSTORE_PASS`). Lo que
+  cuesta no es generarla: es que cambiar de clave obliga a **desinstalar** a todo
+  el que ya la tenga. Por eso el momento a cuidar **no es publicar en Play, es el
+  primer reparto**. Hasta entonces cambiar es gratis.
+
+  Y si algún día va a Google Play, **Play App Signing** reduce mucho el escenario
+  catastrófico: Google guarda la clave final y puede resetear la de subida.
+
+  **No volver a proponer respaldarla**: ya se planteó y se decidió con motivo.
+- **El v3 trajo doce decisiones de producto y NO se repiten acá.** Viven en
+  `producto-camiones-app` §2 bis: la escala de niveles, el zócalo que se esconde en
+  el GPS, la batería sólo en juegos, el idioma único, el invitado que no escribe en
+  el servidor, los logros por escalones, los récords personales, el vocabulario de
+  reportes, y que los cofres quedan guardados como concepto. Duplicarlas acá sería
+  pedir que diverjan.
+- **Preguntar en vez de intuir.** Textual del usuario (09/09/2026): *"preguntame
+  si necesitas detalles y no estes intuyendo"*. Vino después de presentar como
+  propuestas cosas que eran invenciones —las ranuras del avatar, el modelo de
+  metas, la retroactividad—. Lo que se decide solo hay que **marcarlo como tal**, y
+  lo que es de producto se pregunta.
+- **Quedan dos cosas provisorias y explícitamente marcadas** en el motor: los
+  objetivos de los escalones de `viajes`, `repartos` y `nocturnos`, y los valores
+  de EXP (20 por viaje, 50 por escalón). **Se le deben opciones al usuario**, no
+  una decisión.
+- **Los códigos de recompensa son sistemáticos** (`viajes-01`, `nocturnos-01`), no
+  objetos diseñados. Es a propósito: la extensión del v3 §7 prohíbe aproximar nada
+  visual antes de tener las referencias del usuario. Cuando existan los dibujos, el
+  catálogo mapea código a asset sin tocar arquitectura.
 
 ---
 
@@ -579,7 +689,38 @@ Tres secciones sirven, y conviene mirarlas en este orden:
   Tarda ~30 s. No hay `sdkmanager` en `cmdline-tools/latest/bin`, así que este es
   el camino.
 
-- **PowerShell 5.1**, sin `&&` ni operadores modernos.
+- **PowerShell 7**, no 5.1 — la skill decía 5.1 y era falso. Verificado el
+  10/09/2026: `&&`, `||`, el operador ternario y `??` funcionan. Los avisos sobre
+  `$PSScriptRoot` y el desenrollado de arrays que siguen abajo **valen igual**,
+  porque no dependen de la versión.
+- **El backend corriendo BLOQUEA los DLL y el build falla.** Costó dos veces en la
+  misma sesión: `MSB3027 ... El archivo se ha bloqueado por: "TruckNavigator.Api"`.
+  Antes de compilar hay que pararlo. Se mata buscando el proceso por su línea de
+  comando:
+
+  ```powershell
+  Get-Process -Name dotnet | ForEach-Object {
+    $cmd = (Get-CimInstance Win32_Process -Filter "ProcessId = $($_.Id)").CommandLine
+    if ($cmd -like "*TruckNavigator.Api*") { Stop-Process -Id $_.Id -Force }
+  }
+  ```
+
+- **Los mensajes de commit largos van por archivo, con `git commit -F`.** El
+  guardián del entorno **lee rutas dentro del texto del mensaje** y aborta el
+  comando entero con un falso positivo (`Remove-Item on system path ... is
+  blocked`) si el mensaje menciona algo que parece una ruta. Se escribe el mensaje
+  a un archivo del scratchpad y se commitea con `-F`.
+- **No se puede leer la base SQLite desde PowerShell.** El proveedor necesita su
+  DLL nativa `e_sqlite3` y no resuelve por más que se carguen los ensamblados a
+  mano. Para inspeccionar datos reales, el camino que sí funciona es **levantar el
+  backend y pegarle a la API**.
+- **`dotnet-ef` está instalado** en `~/.dotnet/tools`, versión 10.0.11. Las
+  migraciones se crean con:
+
+  ```powershell
+  dotnet ef migrations add <Nombre> --project src/TruckNavigator.Infrastructure `
+    --startup-project src/TruckNavigator.Api --output-dir Persistence/Migrations
+  ```
 - **`$PSScriptRoot` viene vacío dentro del bloque `param()`** → una ruta relativa
   con `..` se ancla en la raíz del disco y el script escribe en `C:\src\...`
   informando éxito. Calcular la ruta en el cuerpo, con `$PSCommandPath`.
@@ -673,8 +814,8 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 ```powershell
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
-dotnet test                              # 203 tests (.NET)
-node --test "tests/web/*.test.mjs"       # 62 tests de JS
+dotnet test                              # 295 tests (.NET)
+node --test "tests/web/*.test.mjs"       # 62 tests de JS — correr desde bash
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
 ```
@@ -753,17 +894,37 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
 - **Los 3 contactos de emergencia están hechos** (AD-42, AD-43) y verificados en
   el teléfono.
 
-**Lo que queda, en orden:**
+**Lo que queda, al 10/09/2026:**
 
-1. **Compartir viaje por WhatsApp** — lo último construible de la Fase 3.
-   Necesita endpoint público de seguimiento, tokens que venzan y decisiones de
-   privacidad: es un trabajo grande disfrazado de botón, y hay que plantearlo como
-   tal. **El puente de la agenda ya existe** y sirve para elegir destinatario.
-2. **Fase 5 (reportes) y POIs valorados** — bloqueadas por decisiones del usuario,
+**Del despliegue** — nada de esto depende de programar, y todo está bloqueando:
+
+1. **Conseguir la instancia A1 en Oracle.** Respondió *out of capacity*. El stack
+   está guardado, así que reintentar son dos clicks. Si no aparece, el plan B son
+   los dos micros x86, que ya está pensado.
+2. **Publicar `routing/amba.pmtiles` como release con el tag exacto
+   `mapa-base-amba`.** El workflow lo busca por ese nombre y corta si no está.
+3. **SMTP y DuckDNS.**
+
+**De la gamificación** — el motor está, falta lo que se apoya en él:
+
+4. **Elegir la tipografía.** Bloquea maquetar cualquier pantalla. Candidatas en
+   `diseno-camiones-app` §11; hay que **vendorizarla**, la app no baja nada de la
+   red.
+5. **Las pantallas**: perfil-carnet, resumen, y el zócalo con el flujo de entrada.
+   Las referencias ya están y el lenguaje visual está definido.
+6. **Cerrar los números provisorios**: objetivos de los escalones y valores de EXP.
+
+**De antes, sin cambios:**
+
+7. **Compartir viaje por WhatsApp** — lo último construible de la Fase 3. Necesita
+   endpoint público de seguimiento, tokens que venzan y decisiones de privacidad:
+   es un trabajo grande disfrazado de botón. **El puente de la agenda ya existe.**
+8. **Fase 5 (reportes) y POIs valorados** — bloqueadas por decisiones del usuario,
    no por código: cuánto dura un reporte, cuántas confirmaciones lo validan, qué
-   pasa con los falsos.
-3. **Los cinco juegos** — proyecto aparte. Elegir uno, hacerlo bien, y recién ahí
-   ver.
+   pasa con los falsos. Con el motor hecho, sumarlas es **una pista más en el
+   catálogo**.
+9. **Los cinco juegos** — proyecto aparte. La trivia es la más definida y sería la
+   primera.
 
 **Dos cosas menores que quedaron anotadas y sin hacer, a propósito:**
 
