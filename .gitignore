@@ -32,3 +32,9 @@ routing/*.pmtiles
 ## Estas reglas son una red por si alguna termina copiada acá por error.
 *.keystore
 *.jks
+
+# Secretos del despliegue: SMTP y dominio. El repositorio es publico.
+deploy/.env
+
+# Artefacto de Windows, se cuela en cualquier carpeta abierta en el explorador
+desktop.ini

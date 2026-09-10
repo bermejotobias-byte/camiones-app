@@ -1,0 +1,208 @@
+name: Desplegar backend
+
+# Construye las dos imagenes del backend y las publica en GHCR. La VM no compila
+# nada: el recorte del mapa pide 6 GB de memoria y la importacion del grafo 3 GB,
+# y la maquina gratuita de Oracle no los tiene.
+#
+# Cuando este workflow termina, en la VM:
+#   cd /opt/trucknavigator/deploy && docker compose pull && docker compose up -d
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'routing/**'
+      - 'deploy/**'
+      - 'src/TruckNavigator.Api/**'
+      - 'src/TruckNavigator.Domain/**'
+      - 'src/TruckNavigator.Infrastructure/**'
+      - '.github/workflows/deploy-backend.yml'
+
+env:
+  VERSION_OSMOSIS: '0.49.2'
+  VERSION_GRAPHHOPPER: '11.0'
+
+  # El MISMO rectangulo con el que el geocoder acota sus resultados (seccion
+  # Geocoding de appsettings.json). Esa coincidencia no es casual: garantiza que
+  # todo lo que el buscador encuentra, el motor lo puede rutear. Si se amplia
+  # uno, hay que ampliar el otro.
+  RECORTE_IZQUIERDA: '-59.30'
+  RECORTE_ABAJO: '-35.20'
+  RECORTE_DERECHA: '-57.90'
+  RECORTE_ARRIBA: '-34.00'
+
+  # El mapa base son 54 MB que no se versionan y no se generan aca. Se publica a
+  # mano, una vez, como asset de este release.
+  TAG_MAPA_BASE: 'mapa-base-amba'
+
+jobs:
+  recorte:
+    name: Recortar el AMBA
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # El config commiteado tiene que apuntar al recorte. En el arbol de trabajo
+      # local apunta al pais entero —hace falta para levantar GraphHopper sin el
+      # recorte en disco— y si ese cambio se cuela en un commit, el build falla
+      # buscando un archivo de 408 MB que no entra en la imagen.
+      - name: Verificar que config-truck.yml apunta al recorte
+        run: |
+          if ! grep -qE '^[[:space:]]*datareader\.file:[[:space:]]*amba-latest\.osm\.pbf[[:space:]]*$' routing/config-truck.yml; then
+            echo "config-truck.yml NO apunta a amba-latest.osm.pbf:"
+            grep -n 'datareader' routing/config-truck.yml
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - id: periodo
+        run: echo "clave=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
+      # 408 MB. Se cachea por mes: la red vial del AMBA no cambia de una semana a
+      # la otra, y volver a bajarlo en cada corrida es tiempo tirado.
+      - uses: actions/cache@v4
+        id: cache-extracto
+        with:
+          path: routing/argentina-latest.osm.pbf
+          key: extracto-argentina-${{ steps.periodo.outputs.clave }}
+
+      - name: Bajar el extract de Geofabrik
+        if: steps.cache-extracto.outputs.cache-hit != 'true'
+        run: |
+          curl -fL --retry 3 -o routing/argentina-latest.osm.pbf \
+            https://download.geofabrik.de/south-america/argentina-latest.osm.pbf
+
+      # Se usa Osmosis y no osmium, aunque osmium sea mas rapido y venga en apt:
+      # el recorte actual es el que valido Retiro -> Mataderos en 28.182 m, y
+      # cambiar de herramienta cambia la semantica de completeWays y obliga a
+      # revalidar el ruteo.
+      - name: Bajar Osmosis
+        run: |
+          curl -fL --retry 3 -o osmosis.tar \
+            "https://github.com/openstreetmap/osmosis/releases/download/${VERSION_OSMOSIS}/osmosis-${VERSION_OSMOSIS}.tar"
+          mkdir -p osmosis
+          tar -xf osmosis.tar -C osmosis
+          binario=$(find osmosis -type f -path '*/bin/osmosis' | head -1)
+          if [ -z "$binario" ]; then
+            echo "No aparecio bin/osmosis adentro del tar:"
+            find osmosis -maxdepth 2
+            exit 1
+          fi
+          chmod +x "$binario"
+          echo "OSMOSIS_BIN=$binario" >> "$GITHUB_ENV"
+
+      # completeWays=yes mantiene enteras las calles que cruzan el borde del
+      # rectangulo. Sin eso, una avenida que sale del area queda cortada y el
+      # ruteo se topa con un callejon sin salida que no existe.
+      - name: Recortar
+        env:
+          JAVACMD_OPTIONS: '-Xmx6g'
+        run: |
+          "$OSMOSIS_BIN" \
+            --read-pbf file=routing/argentina-latest.osm.pbf \
+            --bounding-box \
+              left=$RECORTE_IZQUIERDA bottom=$RECORTE_ABAJO \
+              right=$RECORTE_DERECHA top=$RECORTE_ARRIBA \
+              completeWays=yes \
+            --write-pbf file=routing/amba-latest.osm.pbf
+
+      # Control del instrumento: un recorte vacio o truncado se ve igual que uno
+      # bueno hasta que GraphHopper no encuentra calles. El recorte medido da
+      # 44 MB; por debajo de 20 algo salio mal y conviene cortar aca.
+      - name: Verificar el recorte
+        run: |
+          tam=$(stat -c%s routing/amba-latest.osm.pbf)
+          echo "recorte: $((tam / 1024 / 1024)) MB"
+          if [ "$tam" -lt 20000000 ]; then
+            echo "El recorte es sospechosamente chico. No se publica."
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: amba-latest
+          path: routing/amba-latest.osm.pbf
+          retention-days: 1
+
+  imagenes:
+    name: Construir y publicar (${{ matrix.plataforma }})
+    needs: recorte
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        include:
+          # Hoy solo ARM: la VM es una Ampere A1 de Oracle. La importacion del
+          # grafo ocurre adentro del docker build, asi que corre en runner ARM
+          # nativo — emularla con QEMU seria lentisimo.
+          #
+          # Para sumar el host pago x86 el dia de la mudanza, agregar:
+          #   - runner: ubuntu-24.04
+          #     plataforma: linux/amd64
+          - runner: ubuntu-24.04-arm
+            plataforma: linux/arm64
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: amba-latest
+          path: routing/
+
+      - name: Bajar el jar de GraphHopper
+        run: |
+          curl -fL --retry 3 -o "routing/graphhopper-web-${VERSION_GRAPHHOPPER}.jar" \
+            "https://github.com/graphhopper/graphhopper/releases/download/${VERSION_GRAPHHOPPER}/graphhopper-web-${VERSION_GRAPHHOPPER}.jar"
+
+      # Sin el mapa base la API no sirve /tiles y el mapa cae al raster de
+      # OpenStreetMap **en silencio** — Directory.Exists devuelve false y no se
+      # loguea nada. Por eso este paso falla fuerte si el asset no esta.
+      - name: Bajar el mapa base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$TAG_MAPA_BASE" --pattern 'amba.pmtiles' --dir routing/ \
+            || { echo "Falta el asset amba.pmtiles en el release '$TAG_MAPA_BASE'. Publicalo y volve a correr."; exit 1; }
+          ls -lh routing/amba.pmtiles
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Construir y publicar GraphHopper
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.graphhopper
+          platforms: ${{ matrix.plataforma }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/camiones-graphhopper:latest
+            ghcr.io/${{ github.repository_owner }}/camiones-graphhopper:${{ github.sha }}
+
+      - name: Construir y publicar la API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.api
+          platforms: ${{ matrix.plataforma }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/camiones-api:latest
+            ghcr.io/${{ github.repository_owner }}/camiones-api:${{ github.sha }}

@@ -100,34 +100,46 @@ con una cuenta de GitHub o Google, elegís un subdominio y lo apuntás a la IP d
 la VM. Queda algo como `micamion.duckdns.org`, y Let's Encrypt emite
 certificados para esos dominios sin problema.
 
-### 3. Subir el proyecto
+### 3. Las imágenes las construye GitHub Actions, no la VM
 
-```bash
-# Desde tu máquina
-scp -r . usuario@IP:/opt/trucknavigator
-```
+**La VM no compila nada.** El recorte del mapa pide 6 GB de memoria y la
+importación del grafo 3 GB: una máquina gratuita no los tiene. El workflow
+`.github/workflows/deploy-backend.yml` hace todo eso en un runner y publica las
+dos imágenes en GHCR.
 
-El `.gitignore` excluye `routing/*.osm.pbf`, `routing/*.jar` y
-`routing/graph-cache/`, así que si clonás desde git en vez de copiar, en el
-servidor van a faltar. El build de la imagen necesita **dos** de esos archivos:
+Antes de la primera corrida hay que dejarle dos cosas:
 
-- `routing/graphhopper-web-11.0.jar` — lo baja `run-graphhopper.ps1`, o se
-  descarga suelto desde el release 11.0 de GraphHopper.
-- `routing/amba-latest.osm.pbf` — lo genera `crop-amba.ps1` (44 MB, se copia bien
-  por scp).
+- **`amba.pmtiles` como asset de un release con el tag `mapa-base-amba`.** Son
+  54 MB, no se versionan y no se generan en CI. Sin ese archivo la API no sirve
+  `/tiles` y el mapa cae al raster de OSM **en silencio**, así que el workflow
+  corta si no lo encuentra.
+- **`routing/config-truck.yml` commiteado apuntando a `amba-latest.osm.pbf`.** En
+  el árbol de trabajo local apunta al país entero, porque hace falta para levantar
+  GraphHopper sin el recorte en disco. El workflow verifica esto y falla claro si
+  el cambio local se coló en un commit.
 
-El grafo **no** hace falta subirlo: la imagen lo construye durante el build.
+El extract de Geofabrik, Osmosis y el jar de GraphHopper los baja el workflow; no
+hay que subir nada por `scp`.
 
 ### 4. Levantar
 
+En la VM sólo hacen falta `deploy/` y Docker:
+
 ```bash
 cd /opt/trucknavigator/deploy
-DOMAIN=micamion.duckdns.org docker compose up -d --build
+cp .env.ejemplo .env        # completar DOMAIN y la sección Email
+docker compose pull
+docker compose up -d
 ```
 
-El primer build tarda unos minutos: compila la API e importa el grafo. Después
-los contenedores arrancan en segundos, porque el grafo ya está adentro de la
-imagen.
+Arranca en segundos: el grafo ya viene construido adentro de la imagen. Para
+actualizar, `docker compose pull && docker compose up -d` después de que termine
+el workflow.
+
+> **Cuidado con el firewall de Oracle.** Abrir 80 y 443 en la *security list* de
+> la VCN no alcanza: la imagen de Ubuntu de Oracle trae iptables bloqueando todo
+> menos el 22 **adentro de la propia máquina**. Sin el 80 abierto de los dos
+> lados, Let's Encrypt no puede validar y Caddy no consigue el certificado.
 
 Comprobación:
 

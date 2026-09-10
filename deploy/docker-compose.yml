@@ -1,6 +1,13 @@
 # Despliegue completo: motor de ruteo, API y TLS.
 #
-#   cd deploy && DOMAIN=micamion.duckdns.org docker compose up -d --build
+#   cd deploy
+#   cp .env.ejemplo .env      # y completar SMTP y DOMAIN
+#   docker compose pull
+#   docker compose up -d
+#
+# La VM NO construye nada: las imagenes las arma el workflow "Desplegar backend"
+# y las publica en GHCR. El recorte del mapa pide 6 GB de memoria y la
+# importacion del grafo 3 GB, que la maquina gratuita no tiene.
 #
 # Solo Caddy publica puertos. GraphHopper y la API quedan en la red interna: la
 # app movil nunca habla con el motor de ruteo directamente, siempre a traves de
@@ -8,9 +15,7 @@
 
 services:
   graphhopper:
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile.graphhopper
+    image: ghcr.io/bermejotobias-byte/camiones-graphhopper:latest
     restart: unless-stopped
     expose:
       - "8989"
@@ -22,16 +27,33 @@ services:
       start_period: 20s
 
   api:
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile.api
+    image: ghcr.io/bermejotobias-byte/camiones-api:latest
     restart: unless-stopped
     depends_on:
       graphhopper:
         condition: service_healthy
     environment:
+      # Explicito y no heredado: la imagen de aspnet ya arranca en Production,
+      # pero dejarlo implicito esconde que de eso depende que el arranque exija
+      # SMTP. Ver el comentario de Email mas abajo.
+      ASPNETCORE_ENVIRONMENT: Production
+
       # Doble guion bajo = seccion anidada de appsettings.json.
       GraphHopper__BaseUrl: http://graphhopper:8989
+
+      # Donde quedo amba.pmtiles adentro de la imagen. Si esto no coincide con el
+      # Dockerfile, la API no sirve /tiles y el mapa cae al raster de OSM SIN
+      # avisar: Directory.Exists devuelve false y no se loguea nada.
+      Basemap__Directory: /tiles
+
+    # SMTP y dominio. El backend NO arranca en Production sin SMTP configurado, y
+    # es a proposito: sin envio de mail los enlaces de verificacion terminan en
+    # el log y cualquiera que lo lea podria activar cuentas ajenas.
+    #
+    # La contrasena NO va al repositorio. deploy/.env esta en .gitignore.
+    env_file:
+      - .env
+
     volumes:
       - api-data:/data
     expose:
@@ -47,8 +69,10 @@ services:
       - "443:443"
     environment:
       # Caddy pide el certificado a Let's Encrypt para este dominio. El puerto 80
-      # tiene que estar abierto: por ahi pasa la validacion.
-      DOMAIN: ${DOMAIN:?Defini DOMAIN, por ejemplo micamion.duckdns.org}
+      # tiene que estar abierto: por ahi pasa la validacion. Y en Oracle no
+      # alcanza con abrirlo en la security list de la VCN — la imagen de Ubuntu
+      # trae iptables bloqueando todo menos el 22 adentro de la propia maquina.
+      DOMAIN: ${DOMAIN:?Defini DOMAIN en deploy/.env, por ejemplo micamion.duckdns.org}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
