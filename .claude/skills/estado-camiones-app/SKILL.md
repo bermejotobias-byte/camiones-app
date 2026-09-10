@@ -339,10 +339,29 @@ discador y cómo cae el layout en *esa* pantalla. Ver la lección de más abajo.
 
 ### NO verificado
 
-- **El despliegue entero.** El workflow de GitHub Actions **nunca corrió** —
-  necesita un push— y `deploy/` **nunca se levantó**, porque esta máquina no tiene
-  Docker. Están los dos controles que hacen que falle temprano y con mensaje, pero
-  eso no es lo mismo que haberlo visto andar.
+- **El despliegue, a medias.** El workflow **corrió por primera vez el 10/09/2026**
+  (`16febd3`) y el resultado fue el mejor posible dadas las circunstancias:
+
+  | Trabajo | Resultado |
+  |---|---|
+  | **Recortar el AMBA** | ✅ **todos los pasos**, 4 min 39 s |
+  | Construir y publicar (arm64) | ❌ cortó en `Bajar el mapa base`, 9 s |
+
+  **Probado de verdad**: la verificación del `config-truck.yml`, los 408 MB de
+  Geofabrik con su caché, **Osmosis corriendo en Linux** —que era el cambio
+  riesgoso, de `.bat` a script de shell—, el recorte, el control de tamaño, el
+  traspaso del artefacto entre trabajos, el runner ARM y el jar de GraphHopper.
+
+  **Sin probar todavía**: la importación del grafo adentro del `docker build` y el
+  push a GHCR. Las dos están detrás del mismo bloqueo: **falta publicar
+  `amba.pmtiles` como release con el tag `mapa-base-amba`**. Es un paso manual de
+  dos minutos y desbloquea el resto del workflow.
+
+  Y `deploy/` **nunca se levantó**: esta máquina no tiene Docker.
+- **El disparador incluye `cuentas-de-usuario` a propósito y es temporal.**
+  Disparando sólo en `main` el workflow no podía correr nunca, y el botón de *Run
+  workflow* tampoco aparece —GitHub sólo lo muestra para workflows que existen en
+  la rama por defecto—. **Al fusionar a `main`, sacar esa línea.**
 - **La instancia de Oracle no existe todavía**: A1 respondió *out of capacity*.
   Sin ella no hay backend público.
 - **La progresión con kilómetros de verdad.** El viaje de prueba acreditó **0 km**
