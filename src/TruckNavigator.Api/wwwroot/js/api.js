@@ -252,5 +252,19 @@ export const api = {
   finishTrip: (id) => post(`/api/trips/${id}/finish`),
   cancelTrip: (id) => post(`/api/trips/${id}/cancel`),
   trips: (limit = 20) => get(`/api/trips${query({ limit })}`),
-  tripStats: () => get('/api/trips/stats')
+  tripStats: () => get('/api/trips/stats'),
+
+  // progresion
+  //
+  // El nivel lo calcula el SERVIDOR. Antes se derivaba aca de los kilometros, o
+  // sea en un lugar donde el usuario puede cambiar la regla; y teniendola en dos
+  // lados, tarde o temprano divergen.
+  progress: () => get('/api/progress'),
+  progressTracks: () => get('/api/progress/tracks'),
+  progressRecords: () => get('/api/progress/records'),
+  inventory: () => get('/api/progress/inventory'),
+
+  // No otorgan nada: una marca lo ya visto, la otra elige entre lo desbloqueado.
+  markProgressSeen: () => post('/api/progress/seen'),
+  equip: (slot, rewardCode) => post('/api/progress/equip', { slot, rewardCode })
 };

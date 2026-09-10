@@ -110,45 +110,11 @@ export function applyTheme() {
   }
 }
 
+
 // --- niveles ----------------------------------------------------------------
 //
-// Los niveles se ganan solo con kilometros, asi que no se pueden comprar. Los
-// nombres salen del vocabulario del oficio.
-
-const LEVELS = [
-  { km: 0, name: 'Novato' },
-  { km: 500, name: 'Repartidor' },
-  { km: 2_000, name: 'Fletero' },
-  { km: 6_000, name: 'Transportista' },
-  { km: 15_000, name: 'Rutero' },
-  { km: 40_000, name: 'Veterano' },
-  { km: 100_000, name: 'Leyenda del asfalto' }
-];
-
-/**
- * Nivel alcanzado con esos kilometros, y cuanto falta para el siguiente.
- *
- * En el ultimo nivel no hay siguiente: la barra se muestra llena en vez de
- * dividir por cero.
- */
-export function levelFor(kilometers) {
-  const km = Math.max(0, kilometers || 0);
-
-  let index = 0;
-  while (index + 1 < LEVELS.length && km >= LEVELS[index + 1].km) index++;
-
-  const current = LEVELS[index];
-  const next = LEVELS[index + 1] ?? null;
-
-  const span = next ? next.km - current.km : 0;
-  const done = km - current.km;
-
-  return {
-    number: index + 1,
-    name: current.name,
-    nextName: next?.name ?? null,
-    nextAt: next?.km ?? null,
-    progress: next ? Math.min(1, done / span) : 1,
-    remaining: next ? Math.max(0, next.km - km) : 0
-  };
-}
+// La escala se mudo al SERVIDOR (TruckNavigator.Domain.Progression.LevelScale).
+//
+// Vivia aca, o sea en un lugar donde el usuario puede cambiar la regla, y ademas
+// habria quedado duplicada con la del backend: dos copias de la misma regla
+// terminan divergiendo. El cliente pide /api/progress y muestra lo que le llega.

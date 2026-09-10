@@ -10,7 +10,7 @@
  */
 
 import { api } from '../api.js';
-import { state, setState, levelFor } from '../store.js';
+import { state, setState } from '../store.js';
 import { signOut } from '../api.js';
 import {
   html, raw, icon, wire, q, render, withBusy, debounce,
@@ -45,6 +45,10 @@ export function profileView(host, { go }) {
   let profile = null;
   let stats = null;
   let trips = [];
+
+  // Nivel, meta y progreso llegan calculados del servidor. No se derivan aca: la
+  // regla vive en el dominio y el cliente solo la muestra.
+  let progress = null;
   let tab = 'perfil';         // 'perfil' | 'historial'
 
   host.className = 'screen';
@@ -54,10 +58,11 @@ export function profileView(host, { go }) {
     attachTop();
 
     try {
-      [profile, stats, trips] = await Promise.all([
+      [profile, stats, trips, progress] = await Promise.all([
         api.profile(),
         api.tripStats(),
-        api.trips(20)
+        api.trips(20),
+        api.progress()
       ]);
 
       setState({ profile });
@@ -89,8 +94,9 @@ export function profileView(host, { go }) {
   ------------------------------------------------------------------------ */
 
   function profileMarkup() {
-    const km = stats?.creditedKilometers ?? 0;
-    const level = levelFor(km);
+    // Los kilometros del nivel salen de la progresion, no de las estadisticas:
+    // son el mismo total pero calculado por quien manda sobre el nivel.
+    const km = progress?.kilometers ?? 0;
     const avatar = AVATARS.find((a) => a.id === profile.avatarId) ?? AVATARS[0];
 
     return html`
@@ -105,15 +111,15 @@ export function profileView(host, { go }) {
 
           <div class="stack-sm" style="width:100%">
             <div class="row-between">
-              <span class="pill pill-reward">Nivel ${level.number} · ${level.name}</span>
+              <span class="pill pill-reward">Nivel ${progress.level} · ${progress.levelName}</span>
               <span class="muted num">${km.toLocaleString('es-AR')} km</span>
             </div>
             <div class="level-track">
-              <div class="level-fill" style="width:${Math.round(level.progress * 100)}%"></div>
+              <div class="level-fill" style="width:${Math.round(progress.progressInLevel * 100)}%"></div>
             </div>
             <p class="hint">
-              ${level.nextName
-                ? `Te faltan ${level.remaining.toLocaleString('es-AR')} km para ${level.nextName}.`
+              ${progress.nextLevelName
+                ? `Te faltan ${progress.kilometersToNextLevel.toLocaleString('es-AR')} km para ${progress.nextLevelName}.`
                 : 'Llegaste al último nivel. No es poca cosa.'}
             </p>
           </div>
