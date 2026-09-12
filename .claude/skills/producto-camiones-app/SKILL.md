@@ -369,7 +369,7 @@ aplicación. Criterio propio, no del documento.
 |---|---|---|
 | ⬜ | **Sucesión de entrada**: Intro → Idioma → Condiciones → Acceso | v3 §6 |
 | ⬜ | **Pantalla de idioma**, con **español como única opción por ahora** (decisión 08/09). El sistema queda preparado para internacionalizarse, pero **no se diseña alrededor del guaraní** (decisión 09/09): *"La localización en Guaraní no es prioridad actualmente."* Inglés y portugués, después | v3 §6 · v1 |
-| ⬜ 💬 | **Zócalo inferior** de cuatro accesos: GPS · JUEGOS · S.O.S. · MÁS. Falta decidir si **se esconde durante el viaje** (criterio propio: sí) | v3 §11 |
+| ✅ | **Zócalo inferior** de cuatro accesos: GPS · JUEGOS · S.O.S. · MÁS. **Construido el 12/09/2026.** Decidido por el usuario: **se esconde sólo durante el viaje** (en el mapa en reposo se ve), y JUEGOS abre una pantalla "pronto" hasta que haya juegos | v3 §11 · usuario 12/09 |
 | ⬜ 💬 | **Modo invitado de 1 día**, con acceso principalmente al GPS. Sin definir qué pasa con sus kilómetros y viajes al registrarse | v3 §7 |
 | ⬜ | **Registro** con verificación por mail → personalización del avatar | v3 §8 |
 | ⬜ | **Datos nuevos**: edad y nacionalidad del usuario; patente, marca/modelo y tipo del camión | v3 §9 |

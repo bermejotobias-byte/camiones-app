@@ -25,8 +25,8 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 12/09/2026: `91350da`**, pusheada a `origin`, sin nada pendiente
-salvo `routing/config-truck.yml`. Los cinco commits del 12/09 —escalas y EXP,
+**Punta al 12/09/2026: `ec20c58`** (el zócalo), pusheada a `origin`, sin nada
+pendiente salvo `routing/config-truck.yml`. Antes, `91350da`. Los cinco commits del 12/09 —escalas y EXP,
 campos de identidad, perfil, carnet, skills— son las sesiones del 10 al 12/09.
 **Los de perfil (`8daf031`) y carnet (`81573e6`) llevan en el mensaje que el
 diseño visual NO está aprobado**; lo funcional sí. Antes, la punta era `fdf8341`
@@ -101,7 +101,7 @@ Prioridad declarada:
 | **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). Queda sólo **POIs valorados por usuarios**, que necesita conversación |
 | **5 · Reportes de comunidad** | ⬜ **Fase nueva del v2** — reportar y confirmar siniestros, radares y retenes. Es un sistema, no una función |
 | **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Falta lo que se apoya en él: **las pantallas**, el avatar combinable, la batería y los juegos |
-| **7 · Cáscara, entrada e idiomas** | ⬜ **Fase nueva del v3**: intro → idioma → condiciones → acceso, zócalo inferior de 4 accesos, modo invitado. Ver `producto-camiones-app` |
+| **7 · Cáscara, entrada e idiomas** | 🔨 **El zócalo está** (12/09). Quedan intro → idioma → condiciones → acceso y el modo invitado. Ver `producto-camiones-app` |
 | **Transversal** | ⬜ i18n (la pantalla existe, **sólo español** por decisión) · clave de firma de distribución · **límite de tasa en la API** |
 | **Despliegue** | 🔨 Escrito y commiteado, **nunca ejecutado**: falta cupo de A1 en Oracle, el release del mapa base, SMTP y DuckDNS |
 
@@ -1012,10 +1012,11 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
    el momento vamos a dejarlo así"*. Cuando se retome, preguntar primero qué no
    le gusta. Quedan además la **vista pública** (endpoint + proyección sin la
    fecha de nacimiento) y **compartirlo como imagen**.
-8. **La Fase 7 entera**: el **zócalo inferior de 4 accesos** (GPS · Juegos ·
-   S.O.S. · Más), el flujo de entrada (intro → idioma → condiciones → acceso) y
-   el **modo invitado**. Es la pieza estructural que le falta a la navegación de
-   la app: hoy todo se llega por el menú lateral.
+8. **De la Fase 7, el zócalo está hecho** (12/09, `js/dock.js`): cuatro accesos,
+   se esconde durante el viaje, "Más" abre su hoja, y hay pantalla `juegos`
+   "pronto". Ver `diseno-camiones-app` §4. **Queda** el flujo de entrada (intro →
+   idioma → condiciones → acceso) y el **modo invitado**. Y una decisión chica:
+   el **hamburguesa del mapa duplica a "Más"**; sacarlo es una línea.
 9. **La pantalla de fin de viaje** (`diseno-camiones-app` §5): las estadísticas
    del viaje, la EXP ganada y lo desbloqueado, con tres fichas. Es donde la
    progresión se **ve** ocurrir; hoy el motor acredita en silencio.

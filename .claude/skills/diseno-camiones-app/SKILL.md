@@ -87,10 +87,42 @@ Fila de ícono + número, **cada uno de un color distinto**. En el home de Duoli
 son cuatro: idioma, racha, gemas y **batería**. Acá serían: nivel, racha, EXP y
 batería.
 
-### Zócalo inferior
+### Zócalo inferior — construido el 12/09/2026
 
 Íconos ilustrados a color, sin texto. **El activo lleva un recuadro redondeado**
 alrededor. Duolingo usa seis; acá son cuatro: GPS · JUEGOS · S.O.S. · MÁS.
+
+**Está hecho** (`js/dock.js`), leído de la captura del perfil con el menú "…"
+abierto — la única que muestra el activo y cómo se abre "más":
+
+- Barra de **64 px + área segura**, mismo fondo que la página, filo claro arriba.
+- Cuatro dibujos de **30 px, rellenos y a dos tonos** (el color y su sombra corrida
+  2 px), que es lo que los hace ilustración y no trazo: flecha de navegación
+  celeste, mando violeta, **salvavidas rojo** (semántico: es emergencia), tres
+  puntos índigo. Colores **fijos**: un dibujo no cambia con el tema.
+- Activo: caja de 52 px con **borde de 2,5 px en la marca al 55%** y fondo
+  `--brand-soft`, radio 14. El dibujo no cambia; cambia su marco.
+- **"Más" no navega: abre una hoja desde el zócalo** que atenúa lo de atrás, con
+  filas de 60 px —dibujo chico + texto en negrita— separadas por un filo: Perfil ·
+  Carnet · Mis camiones · Chat (con chapa *Pronto*, apagado) · Configuración.
+  Tocar afuera la cierra. **"Más" queda marcado mientras se está en cualquiera de
+  sus pantallas**, como en la referencia.
+- Es **pieza persistente de la cáscara**: vive fuera del contenedor de la vista
+  (`#view`) y no se redibuja al navegar.
+
+**Dos decisiones del usuario, 12/09/2026:**
+
+1. **Se ve también en el mapa en reposo** y **se esconde sólo durante el viaje**;
+   vuelve al salir. Lo avisa `navigate.js` con un evento `viaje` —no una
+   llamada, para que el mapa no conozca al zócalo— y el mapa se redimensiona al
+   frame siguiente, cuando el zócalo ya salió del layout y le devolvió sus 64 px.
+2. **JUEGOS existe antes que los juegos**: abre una pantalla "pronto" con el lugar
+   de la mascota reservado y la trivia anunciada. Una pestaña apagada se lee como
+   rota, y una que falta cambia la forma del zócalo cuando aparece.
+
+**Lo que quedó sin resolver, a propósito:** el **menú hamburguesa del mapa sigue
+ahí** y hoy duplica a "Más". Sacarlo es una línea, pero es decisión de producto:
+durante el viaje el zócalo no está, y el hamburguesa era la única salida del mapa.
 
 ### Logros
 
