@@ -1,6 +1,6 @@
 ---
 name: diseno-camiones-app
-description: El lenguaje visual de la app de camiones — Duolingo + camioneros + arcade, extraído de capturas reales. Componentes, jerarquías, estructuras de pantalla y la frontera con el GPS, que queda sobrio y afuera. Invocar antes de diseñar o maquetar cualquier pantalla que no sea el mapa.
+description: El lenguaje visual de la app de camiones — Duolingo + camioneros + arcade, extraído de capturas reales — y la mascota, el mono camionero, con su brief textual y sus poses. Componentes, jerarquías, estructuras de pantalla y la frontera con el GPS, que queda sobrio y afuera. Invocar antes de diseñar, maquetar, animar o dibujar cualquier cosa que no sea el mapa.
 ---
 
 # Diseño — Navegador de Tránsito Pesado
@@ -421,21 +421,91 @@ fuente de respaldo para ese idioma.
 
 Presupuesto: un subconjunto latino en `woff2` ronda los 30–60 KB por fuente.
 
-## 12. Mascota — va a haber, y es propia
+## 12. La mascota — el mono camionero. Pilar del diseño y la gamificación
 
-**En desarrollo con un diseñador gráfico**, se incorpora más adelante.
+**El brief del usuario está textual en `references/mascota.md`** (12/09/2026) y
+es un pilar: leerlo entero antes de dibujar, animar o diseñar un logro. Las seis
+imágenes están en `docs/referencias/mascota/`. Lo que sigue es el análisis.
 
-Dos consecuencias para diseñar mientras tanto:
+### Quién es
 
-1. **Dejarle el lugar.** En las referencias, la mascota sostiene media interfaz:
-   aparece en la tarjeta de completar perfil, en la cabecera de desafíos, en la
-   racha y en el fin de actividad. Esas pantallas hay que componerlas **previendo
-   dónde va**, no agregándola después a los apretones.
-2. **Que nada dependa de ella.** Si la mascota se demora, las pantallas tienen que
-   funcionar igual. Nada de layouts que se rompan sin el dibujo.
+Un **mono camionero** en pixel art de 16 bits, con proporciones de arcade —cabeza
+y manos grandes—. Es **el compañero de ruta**: acompaña, motiva, felicita y
+reacciona. Divertido pero no infantil; con humor de camionero; orgulloso cuando
+el usuario avanza y **empático cuando se equivoca** — nunca castiga.
 
-**No usar el búho de Duolingo ni un derivado como sustituto provisorio**, ni
-siquiera para maquetar.
+Tres fuentes de personalidad, ninguna para copiar: BJ (espíritu de camionero),
+los arcades clásicos tipo Donkey Kong (energía, formas simples, videojuego) y
+Duolingo (omnipresente, expresiva, recurso de gamificación).
+
+### El diseño base — leído de las hojas de poses
+
+| Pieza | Como está en las referencias |
+|---|---|
+| Gorra | **Roja, con "TBF"** al frente. (Una hoja dice "MACK": es la marca de camiones; **confirmar que la definitiva es TBF**) |
+| Camisa | A cuadros, **verde** con líneas más oscuras |
+| Overol | **Azul** de jean, con tiradores y botones amarillos |
+| Pelaje | Marrón oscuro; cara, orejas, manos y pies canela |
+| Cara | Ojos redondos marrones, nariz chata, **sonrisa grande con dientes** |
+| Pies | **Descalzo** en cuatro hojas; **con botas marrones** en una. **Confirmar** |
+
+**La regla fundamental, textual:** *"La mascota debe ser siempre reconocible como
+el mismo personaje. No crear monos diferentes para cada pantalla."* Las
+variaciones salen de **pose + expresión + accesorios + situación + acción**, nunca
+de cambiar el diseño base.
+
+**La sexta imagen NO es el personaje.** Es una pantalla de arcade estilo Donkey
+Kong donde el mono lleva **otro traje** (campera azul, pantalón rojo, gorro gris).
+Sirve como referencia del **juego y del HUD** —vigas rojas, escaleras azules,
+barriles, bananas, el camión TBF, surtidores, y **las vidas como cabezas del mono**
+arriba a la derecha—, no del diseño base. Si el juego se hace, el mono adentro
+tiene que ser **el mismo** de las hojas.
+
+### Las poses que ya existen, y a qué momento van
+
+Diecisiete poses en cinco hojas. Casi todas tienen un lugar en la app:
+
+| Pose | Momento de la app | Emoción del brief |
+|---|---|---|
+| **Brazos arriba, gorro de fiesta, confeti** | Fin de viaje · subir de nivel · logro | 🎉 😎 |
+| Con mate · con café | Inicio de jornada · racha del día | 🔥 |
+| Con el mapa · con binoculares | Buscando ruta · alertando | 👀 |
+| **Con el radar en la mano, cara seria** | Radar o control adelante | 👀 |
+| **Cambiando la rueda con la llave** | Error, reintento, "lo arreglamos" | 😅 |
+| Cargando combustible · comiendo | Paradas, POIs | — |
+| Con el joystick · con las cartas (truco) | Juegos, trivia | 💪 |
+| **Durmiendo en pijama y gorro** | Viaje nocturno · descanso | — |
+| **Con la torta de cumpleaños** | Cumpleaños — la fecha ya está en el carnet | 🎉 |
+| Parado, neutro (la hoja individual) | Tarjeta de "completá tu perfil" · vacío | 💪 |
+
+Los momentos que el brief pide y **no tienen pose todavía**: *motivando a
+continuar* (💪 sin objeto), y una **expresión de preocupación** para la racha en
+riesgo. Pedírselas al diseñador, no inventarlas.
+
+### Lo técnico, que condiciona todo
+
+- **Es pixel art.** Se muestra con `image-rendering: pixelated` y a **múltiplos
+  enteros** de su tamaño nativo; a escala fraccionaria se emborrona y deja de ser
+  pixel art. Eso fija los tamaños en pantalla desde el asset, no desde el layout.
+- **Las seis imágenes son referencias, no assets**: JPEG comprimido de WhatsApp,
+  con el fondo cuadriculado o negro incrustado. **No se pueden usar en la app.**
+  Hacen falta PNG con transparencia, a tamaño nativo, idealmente en una **hoja de
+  sprites** con las poses alineadas. Eso lo entrega el diseñador.
+- **No dibujarlo nosotros.** Ni como provisorio: la regla de consistencia lo
+  prohíbe, y un mono aproximado en el código termina siendo el mono. Hasta que
+  lleguen los PNG, la app tiene **el lugar reservado y vacío** (`.mascota-slot`),
+  y el sistema de momentos apunta a poses que todavía no existen.
+- **Las animaciones son de la pose, no del dibujo**: entrada con rebote, confeti,
+  salto — cosas que se hacen con `transform` sobre el sprite entero. Animar
+  partes del cuerpo exige sprites por cuadro, y eso es del diseñador.
+
+### Los logros van en el lenguaje de la mascota
+
+Decisión del usuario (12/09/2026): *"El logro cambia de color al subir, como el
+Duolingo."* Cada logro es **un** dibujo cuyo color recorre los escalones. Con diez
+escalones por pista, la escala de color se decide con el usuario — y como es
+pixel art, los íconos de metas y logros los dibuja el diseñador **en el mismo
+lenguaje del mono**, no nosotros en SVG.
 
 ## 13. La pantalla de logros
 
