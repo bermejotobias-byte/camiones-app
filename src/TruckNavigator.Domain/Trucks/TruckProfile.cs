@@ -40,6 +40,27 @@ public sealed class TruckProfile
 
     public double? TrailerLengthMeters { get; set; }
 
+    /// <summary>Marca del camion (Scania, Mercedes-Benz, Iveco…). Dato del carnet.</summary>
+    /// <remarks>
+    /// Los tres campos que siguen son <b>identidad</b>, no medidas: no entran en
+    /// el ruteo ni en las restricciones. Existen porque el dorso del carnet muestra
+    /// con que camion anda la persona. Van en <c>null</c> en las plantillas del
+    /// catalogo, que son genericas.
+    /// </remarks>
+    public string? Brand { get; set; }
+
+    /// <summary>Modelo (R 450, Actros 2651…).</summary>
+    public string? Model { get; set; }
+
+    /// <summary>
+    /// Patente, en forma canonica: mayusculas, sin espacios ni guiones.
+    /// </summary>
+    /// <remarks>
+    /// La forma la valida y normaliza <see cref="LicensePlate"/>. Se guarda
+    /// canonica para comparar y se muestra como esta estampada en la chapa.
+    /// </remarks>
+    public string? Plate { get; set; }
+
     /// <summary>
     /// Dueno del perfil.
     /// </summary>

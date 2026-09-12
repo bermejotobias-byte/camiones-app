@@ -28,7 +28,17 @@ public sealed record TruckProfileDto(
     /// Plantilla del catalogo: la comparten todas las cuentas y no se puede editar
     /// ni borrar. Sirve de punto de partida para cargar un camion propio.
     /// </summary>
-    bool IsTemplate)
+    bool IsTemplate,
+    string? Brand,
+    string? Model,
+    /// <summary>Patente canonica (sin espacios), para el formulario y para comparar.</summary>
+    string? Plate,
+    /// <summary>
+    /// Patente como esta estampada en la chapa (<c>AB 123 CD</c>), para mostrar.
+    /// Va calculada del lado del servidor para que la regla de como se estampa viva
+    /// en un solo lugar y no se duplique en el telefono.
+    /// </summary>
+    string? PlateDisplay)
 {
     public static TruckProfileDto From(TruckProfile truck) => new(
         truck.Id,
@@ -43,7 +53,11 @@ public sealed record TruckProfileDto(
         truck.TrailerLengthMeters,
         truck.TotalLengthMeters,
         truck.IsSampleData,
-        truck.IsTemplate);
+        truck.IsTemplate,
+        truck.Brand,
+        truck.Model,
+        truck.Plate,
+        truck.Plate is null ? null : LicensePlate.Display(truck.Plate));
 }
 
 public sealed class SaveTruckProfileRequest
@@ -73,6 +87,21 @@ public sealed class SaveTruckProfileRequest
     [Range(0.0, 30.0)]
     public double? TrailerLengthMeters { get; set; }
 
+    [StringLength(40)]
+    public string? Brand { get; set; }
+
+    [StringLength(40)]
+    public string? Model { get; set; }
+
+    /// <summary>
+    /// Patente, como la escriba el usuario. El formato lo valida
+    /// <see cref="LicensePlate"/> en el endpoint, no un atributo: es una regla de
+    /// dominio y tiene que dar el mismo veredicto desde cualquier llamador. El tope
+    /// de largo es holgado para dejar pasar espacios y guiones, que despues se sacan.
+    /// </summary>
+    [StringLength(12)]
+    public string? Plate { get; set; }
+
     public void ApplyTo(TruckProfile truck)
     {
         truck.Name = Name.Trim();
@@ -85,6 +114,13 @@ public sealed class SaveTruckProfileRequest
         truck.HasTrailer = HasTrailer;
         truck.TrailerLengthMeters = HasTrailer ? TrailerLengthMeters : null;
         truck.IsSampleData = false;
+
+        truck.Brand = string.IsNullOrWhiteSpace(Brand) ? null : Brand.Trim();
+        truck.Model = string.IsNullOrWhiteSpace(Model) ? null : Model.Trim();
+
+        // Se guarda la forma canonica. Se asume ya validada: el endpoint corta
+        // antes con 400 si la forma no es una patente.
+        truck.Plate = LicensePlate.Validate(Plate).Value;
     }
 }
 
@@ -363,17 +399,43 @@ public sealed record DriverProfileDto(
     string? FirstName,
     string? LastName,
     string? AvatarId,
+    string? Nationality,
+    Guid? ActiveTruckId,
+    string? ActiveTruckName,
+    VehicleType? ActiveTruckType,
+    /// <summary>
+    /// Fecha de nacimiento. <b>Este DTO es la vista del DUEÑO</b>: es el unico
+    /// perfil que existe hoy y lo pide la propia cuenta. El dia que haya una vista
+    /// publica del perfil o del carnet, va como OTRA proyeccion que omita este
+    /// campo — decision del usuario del 11/09/2026: la fecha se guarda pero no se
+    /// publica.
+    /// </summary>
+    DateOnly? BirthDate,
     string? Email,
     bool EmailConfirmed,
     bool IsComplete,
     DateTimeOffset CreatedAt)
 {
-    public static DriverProfileDto From(DriverProfile profile, AppUser user) => new(
+    /// <remarks>
+    /// El nombre y el tipo del camion activo se resuelven <b>del lado del
+    /// servidor</b> y no se dejan para que el cliente los busque en su lista. El
+    /// perfil lo ven otros usuarios, y esos otros no tienen la lista de camiones de
+    /// esta persona: resolverlo aca hace que la vista publica funcione sin cambios.
+    /// </remarks>
+    public static DriverProfileDto From(
+        DriverProfile profile,
+        AppUser user,
+        TruckProfile? activeTruck = null) => new(
         profile.Id,
         profile.Alias,
         profile.FirstName,
         profile.LastName,
         profile.AvatarId,
+        profile.Nationality,
+        profile.ActiveTruckId,
+        activeTruck?.Name,
+        activeTruck?.VehicleType,
+        profile.BirthDate,
         user.Email,
         user.EmailConfirmed,
         profile.IsComplete,
@@ -404,6 +466,26 @@ public sealed class SaveDriverProfileRequest
 
     [StringLength(64)]
     public string? AvatarId { get; set; }
+
+    /// <summary>Codigo de pais de dos letras.</summary>
+    [StringLength(2, MinimumLength = 2)]
+    public string? Nationality { get; set; }
+
+    /// <summary>
+    /// El camion que se exhibe en el perfil.
+    /// </summary>
+    /// <remarks>
+    /// Tiene que ser propio o una plantilla del catalogo. Uno ajeno se rechaza: es
+    /// la misma regla por la que no se puede equipar una recompensa que no se
+    /// desbloqueo.
+    /// </remarks>
+    public Guid? ActiveTruckId { get; set; }
+
+    /// <summary>
+    /// Fecha de nacimiento, como la escribe un <c>&lt;input type="date"&gt;</c>:
+    /// <c>AAAA-MM-DD</c>. La plausibilidad la decide <see cref="Domain.Users.BirthDate"/>.
+    /// </summary>
+    public DateOnly? BirthDate { get; set; }
 }
 
 /// <summary>Respuesta de la consulta de disponibilidad de un alias.</summary>

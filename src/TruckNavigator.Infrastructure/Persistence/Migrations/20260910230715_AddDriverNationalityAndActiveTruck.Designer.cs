@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TruckNavigator.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using TruckNavigator.Infrastructure.Persistence;
 namespace TruckNavigator.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260910230715_AddDriverNationalityAndActiveTruck")]
+    partial class AddDriverNationalityAndActiveTruck
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
@@ -434,10 +437,6 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Brand")
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("GrossWeightKg")
                         .HasColumnType("INTEGER");
 
@@ -453,10 +452,6 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                     b.Property<double>("LengthMeters")
                         .HasColumnType("REAL");
 
-                    b.Property<string>("Model")
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -466,10 +461,6 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("OwnerId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Plate")
-                        .HasMaxLength(7)
                         .HasColumnType("TEXT");
 
                     b.Property<double?>("TrailerLengthMeters")
@@ -504,9 +495,6 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("AvatarId")
                         .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateOnly?>("BirthDate")
                         .HasColumnType("TEXT");
 
                     b.Property<long>("CreatedAt")

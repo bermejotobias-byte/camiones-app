@@ -11,6 +11,7 @@ using TruckNavigator.Api.Contracts;
 using TruckNavigator.Api.Identity;
 using TruckNavigator.Domain.Places;
 using TruckNavigator.Domain.Pois;
+using TruckNavigator.Domain.Progression;
 using TruckNavigator.Domain.Restrictions;
 using TruckNavigator.Domain.Routing;
 using TruckNavigator.Domain.Trips;
@@ -287,7 +288,14 @@ profiles.MapGet("/", async (
         await db.SaveChangesAsync(ct);
     }
 
-    return Results.Ok(DriverProfileDto.From(profile, user));
+    // El nombre del camion se resuelve aca y no lo busca el cliente: el perfil lo
+    // ven otros usuarios, y esos otros no tienen la lista de camiones de esta
+    // persona.
+    var activeTruck = profile.ActiveTruckId is { } id
+        ? await db.TruckProfiles.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct)
+        : null;
+
+    return Results.Ok(DriverProfileDto.From(profile, user, activeTruck));
 })
 .WithSummary("Perfil del camionero autenticado. Lo crea si es el primer acceso.");
 
@@ -349,6 +357,43 @@ profiles.MapPut("/", async (
     profile.FirstName = Clean(request.FirstName);
     profile.LastName = Clean(request.LastName);
     profile.AvatarId = Clean(request.AvatarId);
+    profile.Nationality = Clean(request.Nationality)?.ToUpperInvariant();
+
+    // "Hoy" en hora de Buenos Aires, igual que el resto de las reglas de fecha:
+    // a las 23:00 locales ya es mañana en UTC, y un cumpleaños de hoy se
+    // rechazaria como del futuro.
+    var hoy = DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TripProgression.LocalOffset).DateTime);
+    var nacimiento = BirthDate.Validate(request.BirthDate, hoy);
+
+    if (!nacimiento.IsValid)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["birthDate"] = [nacimiento.Error!]
+        });
+    }
+
+    profile.BirthDate = request.BirthDate;
+
+    // El camion que se exhibe tiene que ser propio o una plantilla del catalogo.
+    // Uno ajeno se rechaza: es la misma regla por la que no se puede equipar una
+    // recompensa que no se desbloqueo.
+    TruckProfile? activeTruck = null;
+
+    if (request.ActiveTruckId is { } truckId)
+    {
+        activeTruck = await FindUsableTruckAsync(db, truckId, user.Id, ct);
+
+        if (activeTruck is null)
+        {
+            return Results.Problem(
+                title: "Ese camion no esta disponible",
+                detail: "Solo se puede exhibir un camion propio o del catalogo.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+    }
+
+    profile.ActiveTruckId = activeTruck?.Id;
 
     try
     {
@@ -359,7 +404,7 @@ profiles.MapPut("/", async (
         return AliasConflict(profile.Alias ?? request.Alias!);
     }
 
-    return Results.Ok(DriverProfileDto.From(profile, user));
+    return Results.Ok(DriverProfileDto.From(profile, user, activeTruck));
 })
 .WithSummary("Guarda nombre, apellido, alias y avatar. El alias es unico.");
 
@@ -568,6 +613,11 @@ trucks.MapPost("/", async (
         return Results.Unauthorized();
     }
 
+    if (InvalidPlate(request) is { } badPlate)
+    {
+        return badPlate;
+    }
+
     var truck = new TruckProfile { OwnerId = userId };
     request.ApplyTo(truck);
 
@@ -606,6 +656,11 @@ trucks.MapPut("/{id:guid}", async (
         return await TruckIsATemplateAsync(db, id, ct)
             ? TemplateIsReadOnly()
             : Results.NotFound();
+    }
+
+    if (InvalidPlate(request) is { } badPlate)
+    {
+        return badPlate;
     }
 
     request.ApplyTo(truck);
@@ -1343,6 +1398,22 @@ static IResult? Validate<T>(T instance) where T : notnull
 /// duplicada en dos endpoints. El filtro por camionero va en la misma consulta:
 /// el viaje de otro tiene que dar 404 y no 403.
 /// </remarks>
+/// <summary>
+/// 400 con el motivo si la patente no tiene forma de patente. Vacia es valida.
+/// </summary>
+/// <remarks>
+/// Va en un ayudante porque lo usan el alta y la edicion, y los dos tienen que
+/// dar el mismo veredicto con el mismo mensaje.
+/// </remarks>
+static IResult? InvalidPlate(SaveTruckProfileRequest request)
+{
+    var plate = LicensePlate.Validate(request.Plate);
+
+    return plate.IsValid
+        ? null
+        : Results.ValidationProblem(new Dictionary<string, string[]> { ["plate"] = [plate.Error!] });
+}
+
 static async Task<IResult> CloseTripAsync(
     AppDbContext db,
     ProgressionRecorder progression,

@@ -80,6 +80,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         truck.Property(t => t.Name).IsRequired().HasMaxLength(120);
         truck.Property(t => t.VehicleType).HasConversion<string>().HasMaxLength(32);
 
+        // Identidad del vehiculo, para el carnet. La patente va en forma canonica
+        // (7 caracteres como maximo, sin espacios) y la valida LicensePlate antes de
+        // llegar aca.
+        truck.Property(t => t.Brand).HasMaxLength(40);
+        truck.Property(t => t.Model).HasMaxLength(40);
+        truck.Property(t => t.Plate).HasMaxLength(7);
+
         // Propiedades calculadas: viven en el dominio, no en la tabla.
         truck.Ignore(t => t.GrossWeightTons);
         truck.Ignore(t => t.TotalLengthMeters);
@@ -145,6 +152,24 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         driver.Property(d => d.LastName).HasMaxLength(80);
         driver.Property(d => d.AvatarId).HasMaxLength(64);
         driver.Property(d => d.CreatedAt).HasConversion(UtcTicks);
+
+        // Codigo de pais de dos letras. Se guarda el codigo y no el nombre porque
+        // el nombre depende del idioma en que se muestre.
+        driver.Property(d => d.Nationality).HasMaxLength(2);
+
+        // DateOnly va como texto ISO en SQLite, que es lo que EF hace solo desde la
+        // 8. No pasa por el conversor de ticks porque no es un instante: es un dia.
+
+        // El camion que se exhibe en el perfil.
+        //
+        // SetNull y NO Cascade: borrar un camion deja la seleccion vacia, pero el
+        // perfil sigue existiendo. Con Cascade, perder un vehiculo le costaria a la
+        // persona su alias, su nombre y su avatar — es el mismo criterio por el que
+        // borrar un camion tampoco borra los viajes hechos con el.
+        driver.HasOne<TruckProfile>()
+            .WithMany()
+            .HasForeignKey(d => d.ActiveTruckId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         driver.Ignore(d => d.IsComplete);
 
