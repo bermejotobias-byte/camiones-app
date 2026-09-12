@@ -100,6 +100,54 @@ public sealed class ProgressionRecorderTests : IAsyncLifetime
     }
 
     /// <remarks>
+    /// <para>
+    /// <b>Lo que se acredita sale de la distancia, no de una constante.</b> Es el
+    /// unico test que cruza la regla del dominio con lo que termina escrito en el
+    /// libro: <see cref="ExperienceScale"/> se prueba sola, pero que el registrador
+    /// la use —y no un 20 pegado— solo se ve aca.
+    /// </para>
+    /// <para>
+    /// Y usa la distancia <b>acreditada</b>, que es la que el servidor midio, no la
+    /// planificada. Si tomara la planificada, un viaje que se corto a la mitad
+    /// pagaria entero.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData(20_000, 12)]
+    [InlineData(120_000, 22)]
+    [InlineData(300_000, 40)]
+    public async Task The_experience_of_a_trip_comes_from_how_far_it_went(double meters, int expected)
+    {
+        var driver = await CreateDriverAsync();
+        var trip = await FinishTripAsync(driver, meters);
+
+        await _recorder.RecordAsync(trip, DateTimeOffset.UtcNow);
+
+        var entry = await _db.LedgerEntries.SingleAsync(e => e.Reason == LedgerReason.TripCompleted);
+
+        Assert.Equal(expected, entry.Amount);
+    }
+
+    /// <remarks>
+    /// El escalon paga mas que el viaje mas largo que lleva a el. Si no, el camino
+    /// valdria mas que llegar, y el logro se sentiria un tramite.
+    /// </remarks>
+    [Fact]
+    public async Task A_completed_tier_pays_more_than_the_trip_that_completed_it()
+    {
+        var driver = await CreateDriverAsync();
+        var trip = await FinishTripAsync(driver, meters: 300_000);
+
+        await _recorder.RecordAsync(trip, DateTimeOffset.UtcNow);
+
+        var porElViaje = await _db.LedgerEntries.SingleAsync(e => e.Reason == LedgerReason.TripCompleted);
+        var porEscalon = await _db.LedgerEntries.FirstAsync(e => e.Reason == LedgerReason.TierCompleted);
+
+        Assert.Equal(100, porEscalon.Amount);
+        Assert.True(porEscalon.Amount > porElViaje.Amount);
+    }
+
+    /// <remarks>
     /// Un reintento, un doble toque o un cierre procesado dos veces son cosas que
     /// van a pasar. Cada una no puede regalar EXP.
     /// </remarks>

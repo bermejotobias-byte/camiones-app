@@ -22,18 +22,9 @@ namespace TruckNavigator.Infrastructure.Progression;
 /// </remarks>
 public sealed class ProgressionRecorder(AppDbContext db)
 {
-    /// <summary>EXP por cerrar un viaje.</summary>
-    /// <remarks>
-    /// <b>Es fija, no proporcional a los kilometros.</b> Si creciera con la
-    /// distancia seria una segunda forma de medir lo mismo que el nivel, y los dos
-    /// sistemas tienen que poder convivir sin confundirse.
-    ///
-    /// El valor es provisorio: esta puesto para poder construir y medir.
-    /// </remarks>
-    public const int ExperiencePerTrip = 20;
-
-    /// <summary>EXP por completar un escalon. Provisorio.</summary>
-    public const int ExperiencePerTier = 50;
+    // Cuanto paga cada cosa lo decide ExperienceScale, en el dominio. Aca no hay
+    // ningun numero: el registrador sabe escribir en el libro, no cuanto vale un
+    // viaje. Antes eran dos constantes fijas de 20 y 50.
 
     public async Task RecordAsync(Trip trip, DateTimeOffset when, CancellationToken ct = default)
     {
@@ -68,7 +59,14 @@ public sealed class ProgressionRecorder(AppDbContext db)
 
         var outcome = ProgressionEngine.Advance(TrackCatalog.All, countsBefore, increments);
 
-        db.LedgerEntries.Add(Entry(trip.DriverId, when, LedgerReason.TripCompleted, ExperiencePerTrip, tripKey));
+        // La distancia ACREDITADA, no la planificada: un viaje que se corto a la
+        // mitad no puede pagar entero.
+        db.LedgerEntries.Add(Entry(
+            trip.DriverId,
+            when,
+            LedgerReason.TripCompleted,
+            ExperienceScale.ForTrip(trip.CreditedDistanceMeters),
+            tripKey));
 
         foreach (var tier in outcome.CompletedTiers)
         {
@@ -76,7 +74,7 @@ public sealed class ProgressionRecorder(AppDbContext db)
                 trip.DriverId,
                 when,
                 LedgerReason.TierCompleted,
-                ExperiencePerTier,
+                ExperienceScale.PerTier,
                 $"{tier.TrackCode}:{tier.Tier}"));
 
             // El desbloqueo va en la misma operacion que el escalon: si fueran dos
