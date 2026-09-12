@@ -20,6 +20,7 @@ import { authView } from './views/auth.js';
 import { navigateView } from './views/navigate.js';
 import { trucksView } from './views/trucks.js';
 import { profileView } from './views/profile.js';
+import { carnetView } from './views/carnet.js';
 
 /* ---------------------------------------------------------------------------
    Que ningun error se pierda
@@ -57,7 +58,8 @@ let teardown = null;
 const ROUTES = {
   mapa: navigateView,
   camiones: trucksView,
-  perfil: profileView
+  perfil: profileView,
+  carnet: carnetView
 };
 
 applyTheme();
@@ -132,6 +134,7 @@ const MENU = [
   { name: 'mapa', label: 'Navegar', icon: 'route' },
   { name: 'camiones', label: 'Mis camiones', icon: 'truck' },
   { name: 'perfil', label: 'Mi perfil', icon: 'user' },
+  { name: 'carnet', label: 'Mi carnet', icon: 'carnet' },
   { name: 'chat', label: 'Chat', icon: 'chat', soon: true },
   { name: 'configuracion', label: 'Configuración', icon: 'settings' }
 ];

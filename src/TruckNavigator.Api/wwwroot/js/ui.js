@@ -113,7 +113,8 @@ const ICONS = {
   warning: '<path d="M12 3l9 17H3z"/><path d="M12 9v5M12 17.5v.5"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   flag: '<path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/>',
-  bridge: '<path d="M3 8h18M5 8v10M19 8v10M9 18v-5a3 3 0 0 1 6 0v5"/>'
+  bridge: '<path d="M3 8h18M5 8v10M19 8v10M9 18v-5a3 3 0 0 1 6 0v5"/>',
+  carnet: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M6 16c.5-1.5 1.5-2 2.5-2s2 .5 2.5 2M14 9h4M14 12.5h4"/>'
 };
 
 export function icon(name, size = 22) {
