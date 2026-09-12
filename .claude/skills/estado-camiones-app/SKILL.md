@@ -25,11 +25,12 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 12/09/2026: `7f7eeb9`**, y **hay dos días de trabajo sin commitear**
-—34 archivos, 2.153 líneas—: el perfil rehecho, las escalas y la EXP decididas,
-el carnet con sus cuatro columnas y dos migraciones, y dos fuentes vendorizadas.
-**Commitear es lo primero de la próxima sesión.** Antes, la punta era `fdf8341`
-del 10/09, la sesión del motor de progresión y del despliegue.
+**Punta al 12/09/2026: `91350da`**, pusheada a `origin`, sin nada pendiente
+salvo `routing/config-truck.yml`. Los cinco commits del 12/09 —escalas y EXP,
+campos de identidad, perfil, carnet, skills— son las sesiones del 10 al 12/09.
+**Los de perfil (`8daf031`) y carnet (`81573e6`) llevan en el mensaje que el
+diseño visual NO está aprobado**; lo funcional sí. Antes, la punta era `fdf8341`
+del 10/09.
 
 **Hay dos remotos.** `origin` es `bermejotobias-byte/camiones-app` y es el que se
 usa; `hermano` es `bermejolautaro/camiones-app`, con su propia rama
