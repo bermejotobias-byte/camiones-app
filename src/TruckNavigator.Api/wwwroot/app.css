@@ -1667,6 +1667,154 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
 .goal { display: flex; flex-direction: column; gap: 5px; }
 
 /* ============================================================================
+   El zocalo inferior
+   ----------------------------------------------------------------------------
+   GPS · JUEGOS · S.O.S. · MAS. Leido de la captura del perfil de Duolingo con el
+   menu "…" abierto: barra de ~68 px con filo claro arriba, iconos ilustrados y
+   a color sin texto, el activo dentro de un recuadro redondeado, y "mas" que
+   abre una hoja desde el zocalo atenuando lo de atras.
+
+   Es una pieza de la cascara, hermana de #view, no parte de ninguna pantalla.
+   Cuando esta oculto (hidden) sale del layout y la vista recupera su alto: eso
+   es lo que le devuelve la pantalla entera al mapa durante el viaje.
+   ========================================================================== */
+
+/* El contenedor de la vista: lo que antes era todo el #app. */
+#view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#dock { flex: none; position: relative; z-index: 30; }
+
+/* La barra. Mismo fondo que la pagina y un filo mas claro arriba, como en la
+   referencia; el area segura del telefono va abajo, adentro de la barra. */
+.dock-bar {
+  height: calc(64px + var(--safe-bottom));
+  padding: 0 6px var(--safe-bottom);
+  background: var(--ground);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+/* Un acceso: solo el dibujo, sin texto. La caja es cuadrada y grande para que el
+   dedo tenga donde caer; el recuadro del activo se dibuja sobre ella. */
+.dock-item {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  border: 2.5px solid transparent;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .12s ease, background .15s ease, border-color .15s ease;
+}
+
+.dock-item:active { transform: scale(.92); }
+
+.dock-item svg { display: block; filter: drop-shadow(0 1px 0 rgba(0,0,0,.25)); }
+
+/* El activo: el recuadro redondeado de la referencia, en un tono apagado de la
+   marca. No cambia el dibujo —que ya es de color— sino su marco. */
+.dock-item.is-active {
+  border-color: color-mix(in srgb, var(--brand) 55%, transparent);
+  background: var(--brand-soft);
+}
+
+/* ---- la hoja de "mas" ---------------------------------------------------- */
+
+/* Atenua lo de atras. Toca afuera y se cierra. */
+.dock-backdrop {
+  position: fixed;
+  inset: 0;
+  bottom: calc(64px + var(--safe-bottom));
+  background: rgba(0,0,0,.55);
+  z-index: 20;
+}
+
+/* La hoja sube desde el zocalo. Fuera del layout: es una capa. Filas de dibujo
+   + texto separadas por un filo, como en la referencia. */
+.dock-sheet {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(64px + var(--safe-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+  z-index: 25;
+  transform: translateY(100%);
+  visibility: hidden;
+  transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s linear .26s;
+}
+
+.dock-sheet.is-open {
+  transform: translateY(0);
+  visibility: visible;
+  transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-sheet, .dock-sheet.is-open { transition: none; }
+}
+
+.dock-row {
+  width: 100%;
+  min-height: 60px;
+  padding: 0 20px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 17px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dock-row:last-child { border-bottom: 0; }
+
+.dock-row:active { background: var(--surface-2); }
+
+.dock-row[disabled] { cursor: default; color: var(--ink-3); }
+
+.dock-row[disabled] svg { opacity: .45; }
+
+.dock-row > span { flex: 1; }
+
+/* "Pronto": la chapita de lo que todavia no esta, en el tono de recompensa. */
+.dock-row > em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--reward);
+  background: var(--reward-soft);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+/* ---- el lugar de la mascota ---------------------------------------------- */
+
+/* Un espacio reservado, no un dibujo provisorio: la skill lo pide asi. Cuando
+   la mascota exista va aca; hasta entonces, aire. */
+.mascota-slot {
+  height: 120px;
+  border-radius: var(--radius);
+  background: radial-gradient(60% 70% at 50% 60%, var(--reward-soft), transparent 70%);
+}
+
+/* ============================================================================
    El carnet
    ----------------------------------------------------------------------------
    Frente y dorso de una credencial que se da vuelta al tocarla. Los elementos
@@ -2151,6 +2299,10 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
   }
 
   .sheet { border-radius: var(--radius) var(--radius) 0 0; }
+
+  /* La hoja de "mas" es fija a la ventana: en ancho se acota a la misma columna
+     que el resto, si no cruza la pantalla entera. */
+  .dock-sheet { max-width: 480px; margin: 0 auto; }
 }
 
 /* Contactos de emergencia.

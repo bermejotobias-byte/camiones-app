@@ -21,6 +21,8 @@ import { navigateView } from './views/navigate.js';
 import { trucksView } from './views/trucks.js';
 import { profileView } from './views/profile.js';
 import { carnetView } from './views/carnet.js';
+import { juegosView } from './views/juegos.js';
+import { createDock } from './dock.js';
 
 /* ---------------------------------------------------------------------------
    Que ningun error se pierda
@@ -52,6 +54,13 @@ window.addEventListener('unhandledrejection', (event) => {
 
 const root = document.getElementById('app');
 
+// La cascara tiene dos piezas: la vista, que cambia con cada navegacion, y el
+// zocalo, que es persistente. Antes swap() reemplazaba todo el #app; ahora
+// reemplaza solo el contenedor de la vista, y el zocalo queda al lado.
+const viewRoot = document.createElement('div');
+viewRoot.id = 'view';
+root.replaceChildren(viewRoot);
+
 /** Limpieza que dejo la vista anterior, si dejo alguna. */
 let teardown = null;
 
@@ -59,7 +68,8 @@ const ROUTES = {
   mapa: navigateView,
   camiones: trucksView,
   perfil: profileView,
-  carnet: carnetView
+  carnet: carnetView,
+  juegos: juegosView
 };
 
 applyTheme();
@@ -94,17 +104,23 @@ function mount() {
 
   // Puerta 1: las fuentes se leen una vez, antes que nada.
   if (!prefs.sourcesAccepted) {
+    dock.setPermitido(false);
     onboardingView(host, { onDone: () => go(isSignedIn() ? "mapa" : "cuenta") });
     return;
   }
 
   // Puerta 2: sin sesion no hay camiones ni viajes que mostrar.
   if (!isSignedIn()) {
+    dock.setPermitido(false);
     authView(host, { onSignedIn: () => boot().then(() => go("mapa")) });
     return;
   }
 
   const name = (location.hash || '#mapa').slice(1);
+
+  // Pasadas las dos puertas hay zocalo, con el acceso de esta pantalla marcado.
+  dock.setPermitido(true);
+  dock.setActive(name);
 
   if (name === 'emergencia') {
     emergencyView(host, { go });
@@ -121,8 +137,12 @@ function mount() {
 }
 
 function swap(host) {
-  root.replaceChildren(host);
+  viewRoot.replaceChildren(host);
 }
+
+// El zocalo se crea una sola vez y va despues de la vista, o sea abajo.
+const dock = createDock({ go });
+root.append(dock.nodo);
 
 /* ---------------------------------------------------------------------------
    Menu lateral

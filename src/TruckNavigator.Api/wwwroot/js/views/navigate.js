@@ -1193,6 +1193,7 @@ export function navigateView(host, { openDrawer, go }) {
     gl.enterNavigationMode(origin);
     showZoomControls(false);
     keepScreenAwake(true);
+    avisarViaje(true);
 
     waitingForGps = true;
     drawSheet();
@@ -1208,6 +1209,18 @@ export function navigateView(host, { openDrawer, go }) {
     stopWatching = watchPosition(onPosition, destination?.label);
   }
 
+  /**
+   * Le avisa a la cascara que el viaje empieza o termina. Es un evento y no una
+   * llamada para que el mapa no tenga que conocer al zocalo: el zocalo se
+   * esconde durante el viaje (decision del usuario del 12/09/2026) y al irse le
+   * devuelve su alto al mapa, que hay que redimensionar al frame siguiente,
+   * cuando el layout ya cambio.
+   */
+  function avisarViaje(enCurso) {
+    document.dispatchEvent(new CustomEvent('viaje', { detail: { enCurso } }));
+    requestAnimationFrame(() => gl.resize());
+  }
+
   function stopNavigating() {
     stopWatching?.();
     stopWatching = null;
@@ -1216,6 +1229,7 @@ export function navigateView(host, { openDrawer, go }) {
     gl.exitNavigationMode();
     showZoomControls(true);
     clearOverlay();
+    avisarViaje(false);
 
     prepared = null;
     routeAlerts = [];
