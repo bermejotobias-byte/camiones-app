@@ -344,7 +344,8 @@ servidor: el cliente nunca dice cuánto ganó, sólo pregunta cuánto tiene.
 
 | | Ítem | Origen |
 |---|---|---|
-| ⬜ | **Perfil como carnet digital y vitrina.** *Frente*: skin equipado, nombre, nivel, EXP, camión activo. *Dorso*: estadísticas, kilómetros, viajes, **reportes**, metas, logros y **camiones desbloqueados**. El usuario tiene que poder exhibir lo que consiguió | v3 §10 · ext §4 |
+| 🔨 | **Perfil.** Es donde se ven **logros, metas y avatares**, y donde se **edita el skin**. Nada de eso va en el carnet. **Construido el 10/09/2026** con la estructura de Duolingo; **el diseño visual NO está aprobado** (12/09) | v3 §12 · usuario 10/09/2026 |
+| 🔨 | **Carnet de camionero digital**, frente y dorso. **Pantalla distinta del perfil.** Ítems decididos el 11/09/2026 — frente: nombre, nacionalidad, nacimiento, nivel, EXP, avatar, chip, firma, número; dorso: marca, modelo, patente, ejes, silueta, huella, código de barras. **Construido; el diseño visual NO está aprobado** (12/09: *"no me gusta pero por el momento vamos a dejarlo así"*) | v3 §10 · ext §4 |
 | ⬜ | **Resumen**: el centro de progreso — nivel, XP, kilometraje, estadísticas, metas, logros, actividad | v3 §12 |
 | ⬜ | **Avatar combinable y ampliable**: tonos de piel, barba, bigote, peinados, lentes. Lo que hay hoy en `profile.js` es un **placeholder**, no esto | v3 §8 · v1 |
 | ⬜ | Ediciones especiales de avatares (festivos, eventos), por suscripción o moneda | v1 |

@@ -191,13 +191,98 @@ una banda inferior con el número y la clase.
 **Dorso:** campos en cajas separadas, código de barras, y la línea de caracteres
 tipo MRZ que le da el aire de documento real.
 
-**Cómo se traduce:** el frente lleva el avatar equipado, el nombre, el nivel, la
-EXP y el camión activo. El dorso lleva las estadísticas, los kilómetros, los
-viajes, los reportes, las metas, los logros y los camiones desbloqueados.
+### El carnet NO es la pantalla de perfil
+
+**Corrección del usuario, 10/09/2026, y esta skill lo tenía mal.** El v3 §10 dice
+que *"la pantalla principal del perfil debe funcionar visualmente como un carnet"*,
+y de ahí salió la confusión: se venían tratando como la misma pantalla.
+
+Son **dos pantallas distintas**, aunque compartan algún dato:
+
+| | Qué lleva |
+|---|---|
+| **Perfil** | Logros, metas, avatares, y **editar el skin** |
+| **Carnet** | Nada de eso. **Lo que lleva lo decidió el usuario el 11/09/2026** — ver "§7bis. El carnet, construido" |
+
+Textual: *"Perfil no es la misma pantalla que la del carnet, por más que muestren
+algún dato similar. (…) En el perfil se ven los logros, metas, avatares, se edita
+el skin. Esas cosas no se muestran en carnet."*
+
+**No inferir el contenido del carnet de las referencias de licencia de conducir.**
+Esas referencias dan la **estructura visual** —bandas, campos etiquetados, foto,
+tipografía de datos—, no la lista de campos.
 
 La gracia es que **se sienta un documento**: bandas, campos etiquetados,
 tipografía de datos monoespaciada. Pero con el color y el peso de Duolingo, no con
 la sobriedad de un carnet real.
+
+## 7bis. El carnet — cuatro vueltas en dos días, y lo que quedó
+
+> **NO ESTÁ APROBADO.** Textual del usuario, 12/09/2026, después de la cuarta
+> vuelta: *"no me gusta pero por el momento vamos a dejarlo así"*. Se
+> congeló para avanzar con otras cosas, no porque esté bien. Cuando se
+> retome, **no partir de lo que hay**: preguntarle qué es lo que no le gusta
+> —no se dijo— antes de tocar una línea. Cuatro vueltas sin esa pregunta es
+> justamente lo que pasó.
+
+Está hecho: pantalla `carnet`, entrada *Mi carnet* en el menú, una tarjeta que
+**se da vuelta al tocarla** (giro 3D). Llegó a su forma final el 12/09/2026
+después de **cuatro vueltas**, y conviene conocerlas porque cada una enseñó algo:
+
+| Vuelta | Qué se hizo | Qué dijo el usuario |
+|---|---|---|
+| 1 | Grillas y flex con tamaños "razonables" sobre tres referencias | *"No respetaste los parámetros (…) el avatar está muy chico (…) las fuentes, sus tamaños, los zócalos, nada"* |
+| 2 | Proporciones parecidas, una mono, bloques | *"No me está convenciendo"* |
+| 3 | **Copia exacta** de una nueva referencia única, medida en píxeles y puesta en porcentajes | (aceptada como método, pero…) |
+| 4 | Los mismos elementos con **ejecución profesional** | *"Que se vea más profesional (…) orientate en los diseños de las grandes empresas"* |
+
+**La lección de las cuatro:** primero se copia la referencia *exactamente* para
+fijar qué elementos hay y dónde van; **después** se eleva la ejecución con los
+criterios de producto. Hacer las dos cosas a la vez es lo que falló en 1 y 2.
+
+### Los elementos — de la referencia del 12/09/2026
+
+> La referencia llegó pegada en el chat, no como archivo. Es una licencia azul,
+> frente y dorso, sobre fondo amarillo. Si hace falta de nuevo, pedírsela.
+
+**Frente:** título del documento, chapa de nivel, foto en retrato, campos (nombre,
+alias, nacimiento, nacionalidad, experiencia), firma, chip, número, emisor.
+**Dorso:** banda magnética, nombre del camión y clase, campos (marca, modelo,
+patente, ejes), silueta, huella, código de barras, chip, línea MRZ.
+
+### La ejecución — de Apple Wallet y las credenciales bancarias
+
+- **Jerarquía tipográfica.** Etiqueta chica (6,5 px) en mayúsculas espaciadas
+  (`.14em`) al 62% de blanco; valor grande (11 px, Nunito 800) en **caja mixta**.
+  Nunca `ETIQUETA:VALOR` todo en mayúsculas: es convención de ilustración de
+  stock, no de producto.
+- **Dos tipografías con roles.** Nunito para todo lo que se lee. **Space Mono
+  sólo para lo que se copia**: el número del carnet (espaciado `.16em`, como el
+  número de una tarjeta), la patente y el MRZ. Vendorizada en 400 y 700, 16 KB
+  cada una.
+- **Cada dato en su celda**, dentro de un **panel translúcido** (`backdrop-filter:
+  blur`, blanco al 13%, borde al 24%). Separa el aire y un hairline entre filas,
+  **no una caja de color por dato**.
+- **Un matiz dominante en tres pasos** (`#163f7c → #2364b3 → #3f8fdc`, dentro de
+  la paleta fría) y **UN acento**: la chapa de nivel, en el naranja de la app.
+  **Oro sólo en el chip**, porque es metal. El fondo de la foto es frío y claro,
+  no amarillo: en una credencial profesional el fondo de la foto es neutro.
+- **Profundidad real**, en capas: degradado en diagonal, luz radial arriba a la
+  izquierda, textura ondulada al 9%, brillo diagonal al 14%, sombra en dos capas
+  (ambiente lejana + contacto cercana), **filo claro de 1 px arriba** —lo que
+  hace que la tarjeta parezca tener canto—, y sombra propia en la foto, el chip
+  y la chapa.
+- **La silueta y las ruedas cambian con el camión**: tres cuerpos, ruedas por
+  importancia (dirección, tracción, acoplado). Las ruedas son los ejes.
+- **Colores fijos.** El carnet es un objeto, no interfaz.
+
+### Lo que sigue siendo cierto
+
+- **Perfil ≠ Carnet** (§7). Nada de logros, metas ni avatares en el carnet.
+- **Fecha de nacimiento sólo al dueño**; la vista pública, cuando exista, la omite.
+- Todo lo dibujado es SVG en línea. `prefers-reduced-motion` apaga el giro.
+- Los textos se verifican **por el DOM** (`scrollWidth > clientWidth`), no por la
+  captura: la captura del panel toca la página y da vuelta la tarjeta.
 
 ## 8. El arcade
 
@@ -249,8 +334,25 @@ conviene que así sea.** Una advertencia que está fuera del espectro se ve más
 meterla adentro la volvería un celeste más. Se mantiene, con uso semántico
 estricto — nunca decorativo.
 
-**Consecuencia:** el oro y el cromo que aparecieron en la exploración del 02/09 del
-canvas **quedan descartados**. Eran cálidos y esta decisión los deja afuera.
+**Consecuencia:** el **oro** queda descartado. Era cálido y esta decisión lo deja
+afuera.
+
+### El cromo volvió, pero frío — 10/09/2026
+
+Esta sección decía que el cromo quedaba descartado junto con el oro. **El usuario
+lo recuperó** para la barra de nivel: *"la barra de progreso de nivel que se barajó
+en un diseño, que tenía el cromado brillante. Es más agradable y gratificante a la
+vista."*
+
+No hay contradicción con la paleta, y vale entender por qué: **lo que hace que algo
+se lea como metal no es el matiz, es el degradado vertical.** Un brillo alto arriba,
+una caída rápida a sombra, un especular secundario más abajo y sombra al pie — esa
+curva asimétrica es lo que el ojo lee como superficie curva y pulida. El color puede
+ser cualquiera. Así que el mismo efecto se consigue **dentro del celeste y el
+violeta**, sin tocar la decisión de paleta fría.
+
+Lo descartado en su momento era el cromo **cálido** —plateado con reflejos dorados—,
+no el recurso.
 
 ### Los degradados son nuevos
 
@@ -337,7 +439,136 @@ las dos capturas, el mismo logro aparece rojo en un escalón bajo y celeste al
 completarse — la escala parece ir de rojo a violeta a dorado a celeste, aunque eso
 último es inferencia, no lectura segura.
 
-## 14. La trivia
+## 14. La pantalla de Perfil — construida el 10/09/2026
+
+Está hecha y andando. **Estructura leída de la captura del perfil**, de arriba
+abajo, y lo que se decidió al adaptarla:
+
+| Pieza de la referencia | Cómo quedó acá |
+|---|---|
+| Banda de **color plano** que arranca arriba de todo | `--band` (celeste). **La barra superior toma el mismo color**: en la referencia no hay costura entre las dos, son un bloque. El título de la barra es el nombre del camionero |
+| Busto del avatar **cortado por el borde**, sin círculo ni aro | `.avatar-bust`, 92 px, `margin-bottom: -14px` y `overflow: hidden` en la banda. La ausencia de marco es lo que hace que el personaje se asome en vez de estar en una foto de perfil |
+| `@ALIAS · SE UNIÓ EN 2026`, gris y en mayúsculas | `@DEMO · 🇦🇷 ARGENTINA · DESDE 2026`, más una segunda línea con el camión que se exhibe |
+| Fila de **tres cifras sociales** | **KILÓMETROS · VIAJES · LOGROS**. No hay social todavía |
+| **Botón secundario** ancho, transparente, borde de 2 px | `.btn-outline.btn-duo` — *Ver mis viajes* |
+| Tarjeta **"¡Completá tu perfil!"** con "QUEDAN N PASOS" y botón primario | Igual, y **desaparece al completarse**. Los pasos son nombre, nacionalidad y camión. Acá va el **acento naranja** |
+| `RESUMEN` en grilla 2×2 | **Sin tarjetas y sin bordes**: dibujo + valor sobre el fondo, y la **unidad adentro del valor** (`120 EXP`, `2 h 07`), que es lo que hace que no haga falta etiqueta |
+| `LOGROS` con chevron, fila de cuatro | Fila de cuatro insignias. **El chevron no está** porque todavía no existe la pantalla de logros: un chevron que no lleva a ningún lado es peor que no tenerlo |
+
+### Lo que hubo que corregir y por qué
+
+- **Las fichas de estadística con borde de color estaban de más.** Se habían
+  construido así leyendo §4, pero §4 describe las fichas de *fin de actividad*;
+  el resumen del perfil es lo más liviano de la pantalla. Ahora son renglones.
+- **La barra de progreso es PLANA, no un degradado.** El degradado era nuestro.
+  Además miente un poco: sugiere que el avance cambia de naturaleza a mitad de
+  camino. Y el valor va **gris con la barra vacía, blanco con relleno**.
+- **El botón va en MAYÚSCULAS** (`.btn-duo`), con reborde inferior. Es un
+  modificador, no un botón nuevo: se le suma a `.btn-accent`, `.btn-primary` o
+  `.btn-outline`. **No entra al mapa**: ahí una mayúscula se lee como un grito.
+- **Lo ELEGIDO se marca en celeste, no en violeta.** El violeta significa
+  recompensa en todo el sistema; elegir un avatar no es ganarlo. La referencia
+  marca la opción activa del editor de avatar con el celeste de la marca.
+
+### Los logros bloqueados — decisión del usuario, 10/09/2026
+
+**Silueta gris con el objetivo encima, sin recuadro, sin borde y sin color.**
+El número pisa el dibujo, no va debajo: apagada, es el dato que importa, porque
+dice cuánto hay que hacer para prenderla. Antes era la insignia a color con
+opacidad baja, y así un logro bloqueado y uno recién empezado se parecían
+demasiado.
+
+### La banda del avatar, con el lenguaje del carnet — 10/09/2026
+
+Pedido del usuario: *"revisá los carnets que te pasé y armemos algo así en la parte
+donde va el avatar."*
+
+**Esto es el lenguaje visual del carnet, NO la pantalla del carnet.** Siguen siendo
+dos pantallas distintas (§7): lo que se toma de la referencia es **cómo se ve un
+documento**, no qué datos lleva. La estructura sigue siendo la de Duolingo —banda de
+color arriba con la identidad adentro—, que es la regla de la casa: la estructura se
+copia, el tema se cambia.
+
+Cinco recursos, todos leídos de la segunda referencia de licencia (frente y dorso):
+
+| Recurso | Cómo quedó |
+|---|---|
+| **Trama diagonal de seguridad** | Dos `repeating-linear-gradient` en ángulos distintos sobre el color plano. **Sin imagen**: son dos declaraciones de CSS contra un archivo que habría que versionar, meter en el APK y servir |
+| **Foto enmarcada** con fondo propio | `.carnet-photo`, 84 px, borde claro de 2 px y fondo violeta. En la referencia la foto siempre tiene un color distinto al de la credencial |
+| **Chapita al pie de la foto** | En la referencia dice "HOLDER'S PHOTO"; acá dice la nacionalidad, que es el dato que una credencial pone al lado de la cara |
+| **Campos en pastillas** `ETIQUETA: valor` | `.carnet-field`. La etiqueta va más apagada que el valor: en la referencia son del mismo color, pero ahí el fondo es claro |
+| **Banda inferior segmentada** y **línea tipo MRZ** | `.carnet-strip` con tres segmentos, y `.carnet-mrz` en monoespaciada |
+
+**La línea MRZ es DECORATIVA y hay que decirlo.** No codifica nada, nadie la lee y
+no sigue ninguna norma. Está porque en la referencia es el recurso que más hace que
+algo se sienta un documento — lo único del dorso que no es un campo ni un código.
+Se arma con datos reales igual (nacionalidad, apellido, nombre) y no con relleno
+inventado: si el dibujo dice "documento", los caracteres tienen que ser los del
+titular. **El alias no va**: ya es un campo, y cuando coincide con el nombre la
+línea repite la misma palabra y se nota que es de adorno.
+
+**Un campo vacío se muestra, no se esconde.** "CAMIÓN: Ninguno" es información
+—*esto todavía no lo cargaste*— y además mantiene la altura estable, así que la foto
+no se mueve al completar el perfil.
+
+**Costo:** se perdió el busto que sangraba por el borde de la banda, que era lo más
+Duolingo de la pantalla. Es la única pieza donde el tema le ganó a la estructura, y
+fue una decisión explícita del usuario.
+
+### La barra de nivel cromada — 10/09/2026
+
+`.bar-chrome`, y **es la única barra cromada de la app**. Las metas siguen planas:
+si todas brillaran, el nivel dejaría de ser el momento especial, que es justamente
+lo que el brillo vino a marcar.
+
+- **26 px de alto**, contra los 20 de las demás. No es capricho: a 20 px el
+  degradado vertical se aplasta y el metal se ve plano
+- El riel se ve **hundido** (sombra interna arriba, filo claro abajo); el relleno
+  lleva **filo claro por dentro** —el canto pulido— y **resplandor por fuera**, que
+  es lo que hace que se vea encendida y no pintada
+- **El destello** recorre sólo lo lleno: vive adentro de `.bar-fill`, porque una
+  barra vacía no tiene nada que brillar. Se anima `transform` y nada más, que es lo
+  único que el navegador mueve sin repintar
+- La **pausa larga** entre pasadas es a propósito: un destello continuo deja de ser
+  un destello y pasa a ser un parpadeo
+- `prefers-reduced-motion` apaga el destello. **La barra se sigue viendo cromada**:
+  el metal está en el degradado, no en la animación
+- El valor va **blanco en los dos modos**: el relleno es saturado siempre, así que
+  la regla general de tinta oscura en claro no aplica acá
+
+### El acento complementario
+
+Naranja `--accent` (~24°), el complementario del celeste de la marca (~197°).
+Dos reglas para que no se desparrame, escritas también en `app.css`:
+
+1. **Una sola acción con acento por región** de la pantalla.
+2. **Nunca en el botón de un formulario.** Guardar, Crear y Confirmar siguen
+   siendo celestes en toda la app: si el acento entra a un formulario, entra a
+   todos, y ahí se acabó.
+
+En los mensajes se pinta **sólo la cifra** —*"Te faltan **2.500 km** para
+Repartidor"*— y no la frase entera: pintada entera se vuelve un cartel y compite
+con el botón, que es la única acción.
+
+### La rampa fría
+
+Cuatro escalones de un mismo recorrido: `--cool-1` a `--cool-4`, de 197° a 265°.
+Los extremos **no son colores nuevos**: son `--brand` y `--reward`. Sirven para
+distinguir piezas de la misma familia y **no codifican nada** — los que codifican
+son `--ok`, `--warn` y `--danger`. Se asignan **en orden de lectura** para que una
+grilla se lea como un degradado y no como colores sueltos.
+
+### Lo que le falta a esta pantalla
+
+- La **recompensa dibujada a la derecha de cada barra de meta** (§4). No hay arte.
+- La **pantalla de Logros** completa, con Personal Records y la grilla de 3 (§13).
+  Cuando exista, la fila del perfil recupera su chevron.
+- La **mascota**: la tarjeta de "completá tu perfil" tiene el lugar reservado a la
+  derecha, como en la referencia.
+
+---
+
+## 15. La trivia
 
 **La mecánica se toma de Preguntados; el lenguaje visual, de Duolingo.** Es una
 mezcla deliberada, pedida por el usuario el 09/09/2026.

@@ -25,9 +25,11 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 10/09/2026: `fdf8341`.** Los cuatro commits de esa fecha son la sesión
-del **motor de progresión** y del **despliegue por GitHub Actions**. Antes de
-ellos, la punta era `c9d3552` del 02/09.
+**Punta al 12/09/2026: `7f7eeb9`**, y **hay dos días de trabajo sin commitear**
+—34 archivos, 2.153 líneas—: el perfil rehecho, las escalas y la EXP decididas,
+el carnet con sus cuatro columnas y dos migraciones, y dos fuentes vendorizadas.
+**Commitear es lo primero de la próxima sesión.** Antes, la punta era `fdf8341`
+del 10/09, la sesión del motor de progresión y del despliegue.
 
 **Hay dos remotos.** `origin` es `bermejotobias-byte/camiones-app` y es el que se
 usa; `hermano` es `bermejolautaro/camiones-app`, con su propia rama
@@ -209,8 +211,8 @@ pudo probar y hay que decirlo cada vez.
 
 ### El motor de progresión, verificado el 10/09/2026
 
-**357 tests en total**: 216 unitarios de .NET, 79 de integración y 62 de JS. Venían
-de 147 + 56 + 62.
+**413 tests en total**: 255 unitarios de .NET, 96 de integración (11 se saltean sin
+GraphHopper) y 62 de JS. Venían de 147 + 56 + 62.
 
 Todo el motor se construyó con **TDD estricto**: cada test se vio fallar antes de
 escribir el código. Eso atajó tres defectos **antes de que existiera una sola línea
@@ -230,6 +232,72 @@ disparó bien sobre datos reales**, que es lo que un test sintético no puede pr
 En el navegador: entrar con la cuenta demo, ir al perfil, y ver *"Nivel 1 ·
 Novato"*, *"0 km"* y *"Te faltan 2.500 km para Repartidor"*, los tres calculados
 por el servidor. Sin errores nuevos en consola.
+
+### Escalas del motor — decididas por el usuario el 10/09/2026
+
+Estaban puestas por mí y marcadas como provisorias. Se le llevaron **opciones** y
+eligió, así que **ahora son decisiones y los tests las fijan** (`TrackCatalogTests`
+y `ExperienceScaleTests`): una decisión que se puede cambiar sin querer no está
+tomada.
+
+**Los escalones**, calibrados contra la cadencia real del oficio —2 viajes/día,
+5 repartos/día, 1 nocturno/semana, 250 días de trabajo al año—:
+
+| Pista | Escalones | Tope |
+|---|---|---|
+| `viajes` | 1 · 3 · 7 · 15 · 30 · 60 · 120 · 250 · 500 · 1.000 | ≈2 años |
+| `repartos` | 1 · 5 · 15 · 40 · 100 · 250 · 500 · 1.000 · 1.750 · 2.500 | ≈2 años |
+| `nocturnos` | 1 · 2 · 5 · 10 · 20 · 35 · 60 · 90 · 130 · 180 | ≈3,5 años |
+| `kilometraje` | Sale de `LevelScale.GoalThresholds()`, no tiene números propios | — |
+
+Los primeros tres escalones de cada una caen en la primera semana: ahí está el
+enganche. **Toda pista contable empieza en 1** — la primera vez que hacés algo,
+algo se prende.
+
+**La EXP mide esfuerzo, no cantidad** (`ExperienceScale`, en el dominio):
+
+    viaje  =  10 de base  +  1 cada 10 km      escalón = 100
+
+Un viaje de 20 km paga 12, uno de 300 km paga 40. El piso de 10 existe para que un
+reparto de cuatro cuadras no dé casi cero, y se **trunca**: 19 km pagan lo mismo
+que 10, porque redondear hacia arriba le cobraría a un viaje de 5 km un tramo que
+no hizo. El escalón tiene que ganarle al viaje más largo que lleva a él —hay un
+test que lo fija contra los 300 km—; si no, el camino valdría más que llegar.
+
+**No compite con el nivel aunque los dos miren la distancia**: el nivel se calcula
+del total acumulado y no se puede perder ni comprar; la EXP se paga por viaje. Uno
+dice hasta dónde llegaste, el otro cuánto hiciste.
+
+**Lo ya acreditado no se reescribe.** El libro es un registro de hechos: las
+entradas viejas conservan sus 20 y 50. La cuenta demo sigue mostrando 120 EXP.
+
+### El carnet — 11/09/2026
+
+Pantalla nueva, con **cuatro columnas nuevas en una migración** (`AddCarnetFields`):
+`DriverProfile.BirthDate` (`DateOnly?`) y `TruckProfile.Brand/Model/Plate`. Reglas
+en el dominio con sus tests: `LicensePlate` (formatos argentinos, canónica vs.
+estampada) y `BirthDate` (plausibilidad, sin mínimo de edad). Los endpoints
+devuelven **400 con el motivo** por `ValidationProblem`, y `api.js` ya lo muestra.
+
+**Trampas que aparecieron:**
+
+- **El transporte de la herramienta se come las barras invertidas** en los
+  scripts: `̀` llegó como el carácter real y `p` como `p`. Para escribir
+  una barra en un archivo desde un script, `String.fromCharCode(92)`. Para
+  sacar acentos, `/p{M}/gu` y no un rango de combinantes.
+- **Importar un módulo con cache-buster crea OTRA instancia**, sin la sesión.
+  Para usar la `api` de la app desde la consola, `import('/js/api.js')` sin
+  `?v=`: es la misma instancia, con su token.
+- **La captura de pantalla del panel toca la página para enfocarla**, y si el
+  toque cae sobre algo tocable —la tarjeta del carnet— lo activa. Verificar el
+  estado por el DOM, no por la captura.
+- **`DateOnly` cruza el JSON como `AAAA-MM-DD`** y SQLite lo guarda como texto sin
+  conversor. Hay test que lo fija: lo que cruza una frontera se prueba cruzándola.
+- **"Igual a la referencia" quiere decir copiar, no interpretar.** El primer carnet
+  salió con la foto al 17% del ancho, el chip como un rectángulo con rayitas y
+  dos tipografías, y el usuario lo devolvió. Antes de maquetar contra una
+  imagen: **medir** qué fracción ocupa cada pieza, **contar** las tipografías, y
+  reproducir la distribución. Ver `diseno-camiones-app` §7bis.
 
 ### La lección del 10/09: un test puede pasar por el motivo equivocado
 
@@ -669,10 +737,15 @@ Tres secciones sirven, y conviene mirarlas en este orden:
   propuestas cosas que eran invenciones —las ranuras del avatar, el modelo de
   metas, la retroactividad—. Lo que se decide solo hay que **marcarlo como tal**, y
   lo que es de producto se pregunta.
-- **Quedan dos cosas provisorias y explícitamente marcadas** en el motor: los
-  objetivos de los escalones de `viajes`, `repartos` y `nocturnos`, y los valores
-  de EXP (20 por viaje, 50 por escalón). **Se le deben opciones al usuario**, no
-  una decisión.
+- **Los escalones y la EXP ya no son provisorios: los eligió el usuario el
+  10/09/2026**, sobre opciones. Ver "Escalas del motor" abajo.
+- **Una escala hay que calibrarla contra la realidad que mide, no contra las otras
+  escalas.** Las tres escaleras contables tenían la misma forma, y eso las dejaba
+  mal calibradas en direcciones opuestas: con una cadencia real de oficio,
+  `repartos` se agotaba en cuatro meses y `nocturnos` tardaba más de seis años.
+  **La misma escala para actividades de cadencia distinta no es coherencia, es no
+  haber mirado.** Lo mismo valía para la EXP: un viaje de 300 km y uno de 20 km
+  pagaban los dos 20.
 - **Los códigos de recompensa son sistemáticos** (`viajes-01`, `nocturnos-01`), no
   objetos diseñados. Es a propósito: la extensión del v3 §7 prohíbe aproximar nada
   visual antes de tener las referencias del usuario. Cuando existan los dibujos, el
@@ -924,25 +997,42 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
    `mapa-base-amba`.** El workflow lo busca por ese nombre y corta si no está.
 3. **SMTP y DuckDNS.**
 
-**De la gamificación** — el motor está, falta lo que se apoya en él:
+**De la gamificación** — el motor está, y de las pantallas:
 
-4. **Elegir la tipografía.** Bloquea maquetar cualquier pantalla. Candidatas en
-   `diseno-camiones-app` §11; hay que **vendorizarla**, la app no baja nada de la
-   red.
-5. **Las pantallas**: perfil-carnet, resumen, y el zócalo con el flujo de entrada.
-   Las referencias ya están y el lenguaje visual está definido.
-6. **Cerrar los números provisorios**: objetivos de los escalones y valores de EXP.
+4. ~~Elegir la tipografía~~ — **Nunito**, vendorizada el 10/09. Más **Space Mono**
+   sólo para el carnet.
+5. ~~El perfil~~ — **hecho el 10/09**, con la estructura de Duolingo. Absorbió el
+   resumen. Lo que le falta: la recompensa dibujada junto a cada barra de meta
+   (no hay arte) y el chevron de logros (no hay pantalla).
+6. **La pantalla de Logros** (`diseno-camiones-app` §13): récords personales en
+   fila horizontal y la grilla de 3 de la colección. Cuando exista, la fila de
+   logros del perfil recupera su chevron, que hoy está sacado a propósito.
+7. **El carnet está construido pero NO aprobado** (12/09): *"no me gusta pero por
+   el momento vamos a dejarlo así"*. Cuando se retome, preguntar primero qué no
+   le gusta. Quedan además la **vista pública** (endpoint + proyección sin la
+   fecha de nacimiento) y **compartirlo como imagen**.
+8. **La Fase 7 entera**: el **zócalo inferior de 4 accesos** (GPS · Juegos ·
+   S.O.S. · Más), el flujo de entrada (intro → idioma → condiciones → acceso) y
+   el **modo invitado**. Es la pieza estructural que le falta a la navegación de
+   la app: hoy todo se llega por el menú lateral.
+9. **La pantalla de fin de viaje** (`diseno-camiones-app` §5): las estadísticas
+   del viaje, la EXP ganada y lo desbloqueado, con tres fichas. Es donde la
+   progresión se **ve** ocurrir; hoy el motor acredita en silencio.
+10. **La vista pública del perfil** — endpoint para ver el perfil de otro
+    usuario. El perfil se diseñó como público (*"visible para el resto de los
+    usuarios"*), pero **no existe forma de que otro lo vea**. Sin esto, la
+    comunidad no tiene con qué empezar.
 
 **De antes, sin cambios:**
 
-7. **Compartir viaje por WhatsApp** — lo último construible de la Fase 3. Necesita
+11. **Compartir viaje por WhatsApp** — lo último construible de la Fase 3. Necesita
    endpoint público de seguimiento, tokens que venzan y decisiones de privacidad:
    es un trabajo grande disfrazado de botón. **El puente de la agenda ya existe.**
-8. **Fase 5 (reportes) y POIs valorados** — bloqueadas por decisiones del usuario,
+12. **Fase 5 (reportes) y POIs valorados** — bloqueadas por decisiones del usuario,
    no por código: cuánto dura un reporte, cuántas confirmaciones lo validan, qué
    pasa con los falsos. Con el motor hecho, sumarlas es **una pista más en el
    catálogo**.
-9. **Los cinco juegos** — proyecto aparte. La trivia es la más definida y sería la
+13. **Los cinco juegos** — proyecto aparte. La trivia es la más definida y sería la
    primera.
 
 **Dos cosas menores que quedaron anotadas y sin hacer, a propósito:**
