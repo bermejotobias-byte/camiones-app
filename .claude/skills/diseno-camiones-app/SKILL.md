@@ -175,6 +175,22 @@ De arriba abajo, leído de las capturas:
 > El motor sí avanza los escalones al cerrar el viaje; lo que cambia es qué se
 > muestra, no qué se calcula.
 
+**Construida el 12/09/2026** (`views/fin-viaje.js`, ruta `fin`). Llega al cerrar
+un viaje con *Llegué* o al llegar a destino; abandonar no festeja nada. Muestra:
+la mascota en el momento `festejo` (o `nivel` si subió, o `error` si no
+acreditó: la pose de la rueda, el 😅 del brief), el título en el **acento** —el
+único título naranja de la app, porque es festejo—, origen → destino, **tres
+fichas** con su color (km celeste, tiempo índigo, EXP violeta) cuyos números
+**cuentan desde cero**, la sección *Desbloqueaste* con las insignias de los
+escalones que ese viaje completó, y la tarjeta *Nivel 2 → 3* si subió. Secuencia
+con retardos: mascota con rebote, confeti, título, fichas de a una. Con
+`prefers-reduced-motion` todo quieto y sin confeti. Si no acreditó kilómetros lo
+dice, sin confeti.
+
+Para eso el servidor **devuelve lo que ganó el viaje** en el cierre (`earned`,
+campo opcional de `TripDto`): EXP del viaje y de escalones, escalones
+completados con su objetivo, nivel antes y después.
+
 ### Racha
 
 Globo de diálogo con el mensaje, ilustración, **número gigante** en naranja, la
@@ -499,13 +515,44 @@ riesgo. Pedírselas al diseñador, no inventarlas.
   salto — cosas que se hacen con `transform` sobre el sprite entero. Animar
   partes del cuerpo exige sprites por cuadro, y eso es del diseñador.
 
-### Los logros van en el lenguaje de la mascota
+### El sistema de momentos — construido el 12/09/2026
+
+`js/mascota.js`. Traduce **momentos** de la app a **poses**: `festejo`, `nivel`,
+`racha`, `alerta`, `radar`, `error`, `motivar`, `perfil`, `juegos`,
+`nocturno`, `cumple`. Cada momento tiene su pose de las hojas y el texto
+alternativo. `DISPONIBLES` lista las poses con PNG entregado — **vacío hasta que
+el diseñador entregue** —; sin PNG, el hueco del mismo tamaño. `NATIVO` es el
+tamaño del pixel art y se fija cuando lleguen los archivos; cada pantalla elige
+la escala, siempre entera.
+
+Dos momentos comparten pose a propósito hasta que existan las propias: `nivel`
+usa el festejo y `motivar` el neutro. **Pedírselas al diseñador**, no inventarlas.
+
+**Decisiones del usuario, 12/09/2026:** los assets los entrega el diseñador como
+PNG con transparencia; el diseño base canónico es **gorra TBF y descalzo**.
+
+### Los logros — construidos, con la escala de Duolingo
 
 Decisión del usuario (12/09/2026): *"El logro cambia de color al subir, como el
-Duolingo."* Cada logro es **un** dibujo cuyo color recorre los escalones. Con diez
-escalones por pista, la escala de color se decide con el usuario — y como es
-pixel art, los íconos de metas y logros los dibuja el diseñador **en el mismo
-lenguaje del mono**, no nosotros en SVG.
+Duolingo"*, y de las tres escalas ofrecidas eligió **la de Duolingo: rojo →
+violeta → dorado → celeste**. `js/logros.js` tiene los diez colores.
+
+**Es una excepción deliberada a la paleta**, y hay que decirlo cada vez: el rojo
+está reservado para errores y el oro estaba descartado por cálido. Acá los dos
+son **colores de escalón**, y lo son porque el usuario eligió la escala con esa
+consecuencia a la vista. **No extender la excepción** a nada que no sea la
+insignia de un logro.
+
+**El color va por fracción del recorrido, no por índice**: la escala tiene diez
+colores y kilometraje tiene setenta escalones. Por índice, el escalón 13 de 70
+salía celeste brillante —el color de "completo"— con menos de un quinto hecho.
+Lo encontró la prueba, no el diseño.
+
+**Las insignias están dibujadas en pixel art** (SVG en grilla de 24, contorno
+oscuro, luz arriba a la izquierda, `shape-rendering: crispEdges`): un escudo
+común y un símbolo por pista. Son provisorias en un sentido preciso: **el
+diseñador puede reemplazar los trazos por los suyos, en el mismo lenguaje del
+mono, sin tocar nada más.** Se usan en el perfil y en el fin de viaje.
 
 ## 13. La pantalla de logros
 

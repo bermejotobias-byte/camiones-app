@@ -22,6 +22,7 @@ import { trucksView } from './views/trucks.js';
 import { profileView } from './views/profile.js';
 import { carnetView } from './views/carnet.js';
 import { juegosView } from './views/juegos.js';
+import { finViajeView } from './views/fin-viaje.js';
 import { createDock } from './dock.js';
 
 /* ---------------------------------------------------------------------------
@@ -69,7 +70,8 @@ const ROUTES = {
   camiones: trucksView,
   perfil: profileView,
   carnet: carnetView,
-  juegos: juegosView
+  juegos: juegosView,
+  fin: finViajeView
 };
 
 applyTheme();

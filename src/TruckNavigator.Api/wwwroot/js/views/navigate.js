@@ -1143,6 +1143,14 @@ export function navigateView(host, { openDrawer, go }) {
         // mientras la hoja mostraba la busqueda vacia: puntos en la pantalla que
         // ya no pertenecen a ningun viaje ni figuran en ninguna lista.
         stops = [];
+
+        // Si llego, la pantalla de fin de viaje: es donde se ve lo que dejo.
+        // Abandonar no festeja nada.
+        if (arrived) {
+          setState({ cerrado: closed });
+          go('fin');
+          return;
+        }
         deliveryOrder = null;
         gl.setDeliveryStops([]);
 
@@ -1473,11 +1481,16 @@ export function navigateView(host, { openDrawer, go }) {
 
     try {
       const closed = await api.finishTrip(trip.id);
-      setState({ activeTrip: null, activeRoute: null });
+      setState({ activeTrip: null, activeRoute: null, cerrado: closed });
 
-      toastOk(closed.creditedDistanceMeters > 0
-        ? `Llegaste. Sumaste ${formatDistance(closed.creditedDistanceMeters)}.`
-        : 'Llegaste. No sumó kilómetros: pasó muy poco tiempo.');
+      stage = 'search';
+      route = null;
+      gl.clearRoute();
+
+      // La pantalla de fin de viaje reemplaza al aviso de antes: ahi se ven los
+      // kilometros, la EXP y lo desbloqueado, y ahi esta la mascota.
+      go('fin');
+      return;
     } catch (error) {
       toastError(error.message);
     }

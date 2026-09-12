@@ -212,7 +212,7 @@ pudo probar y hay que decirlo cada vez.
 
 ### El motor de progresión, verificado el 10/09/2026
 
-**413 tests en total**: 255 unitarios de .NET, 96 de integración (11 se saltean sin
+**417 tests en total**: 255 unitarios de .NET, 100 de integración (11 se saltean sin
 GraphHopper) y 62 de JS. Venían de 147 + 56 + 62.
 
 Todo el motor se construyó con **TDD estricto**: cada test se vio fallar antes de
@@ -1017,9 +1017,11 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
    "pronto". Ver `diseno-camiones-app` §4. **Queda** el flujo de entrada (intro →
    idioma → condiciones → acceso) y el **modo invitado**. Y una decisión chica:
    el **hamburguesa del mapa duplica a "Más"**; sacarlo es una línea.
-9. **La pantalla de fin de viaje** (`diseno-camiones-app` §5): las estadísticas
-   del viaje, la EXP ganada y lo desbloqueado, con tres fichas. Es donde la
-   progresión se **ve** ocurrir; hoy el motor acredita en silencio.
+9. ~~La pantalla de fin de viaje~~ — **hecha el 12/09** (`views/fin-viaje.js`),
+   con el sistema de momentos de la mascota (`js/mascota.js`, hueco reservado
+   hasta que lleguen los PNG) y las insignias en pixel art con la escala de
+   Duolingo (`js/logros.js`). El cierre del viaje ahora devuelve `earned`.
+   **Falta verla en el teléfono al cerrar un viaje real.**
 10. **La vista pública del perfil** — endpoint para ver el perfil de otro
     usuario. El perfil se diseñó como público (*"visible para el resto de los
     usuarios"*), pero **no existe forma de que otro lo vea**. Sin esto, la

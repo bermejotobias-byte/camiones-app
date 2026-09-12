@@ -1,5 +1,6 @@
 using System.Text.Json;
 using TruckNavigator.Api.Contracts;
+using TruckNavigator.Domain.Progression;
 using TruckNavigator.Domain.Trucks;
 using TruckNavigator.Domain.Users;
 using TruckNavigator.Infrastructure.Identity;
@@ -56,6 +57,38 @@ public class CarnetContractsTests
         var json = JsonSerializer.Serialize(DriverProfileDto.From(profile, user), Web);
 
         Assert.Contains("\"birthDate\":\"1988-03-27\"", json);
+    }
+
+    /// <remarks>
+    /// <para>
+    /// Lo que gano el viaje viaja como campo OPCIONAL del DTO del viaje, no como
+    /// un envoltorio nuevo: la app instalada lee `creditedDistanceMeters` de la
+    /// raiz, y tiene que seguir andando. Es la misma regla que `alternatives` en
+    /// la ruta.
+    /// </para>
+    /// <para>
+    /// En un viaje listado o cancelado el campo no esta: null se omite al
+    /// serializar, y el cliente lo trata como "nada que celebrar".
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_closed_trip_carries_what_it_earned_as_an_optional_field()
+    {
+        var trip = new TruckNavigator.Domain.Trips.Trip { TruckName = "Semi" };
+        var earnings = new TripEarnings(
+            40, 100,
+            [new CompletedTier("viajes", 1, "viajes-01")],
+            LevelScale.For(0), LevelScale.For(0));
+
+        var con = JsonSerializer.Serialize(TripDto.From(trip, earnings), Web);
+        var sin = JsonSerializer.Serialize(TripDto.From(trip), Web);
+
+        Assert.Contains("\"earned\":{", con);
+        Assert.Contains("\"tripExperience\":40", con);
+        Assert.Contains("\"totalExperience\":140", con);
+        Assert.Contains("\"leveledUp\":false", con);
+        Assert.Contains("\"completedTiers\":[{", con);
+        Assert.DoesNotContain("earned", sin);
     }
 
     /// <remarks>

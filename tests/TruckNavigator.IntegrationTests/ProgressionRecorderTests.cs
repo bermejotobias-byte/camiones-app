@@ -148,6 +148,71 @@ public sealed class ProgressionRecorderTests : IAsyncLifetime
     }
 
     /// <remarks>
+    /// <para>
+    /// <b>Lo que se acredito se devuelve, para que la pantalla de fin de viaje lo
+    /// muestre.</b> Hasta ahora el motor acreditaba en silencio: el camionero
+    /// cerraba el viaje y no veia nada. La pantalla de fin de viaje muestra las
+    /// estadisticas, la EXP ganada y lo desbloqueado (decision del usuario del
+    /// 10/09/2026), y para eso el cierre tiene que decir que paso.
+    /// </para>
+    /// <para>
+    /// El primer viaje completa el primer escalon de "viajes" (objetivo 1), asi que
+    /// ademas de la EXP del viaje se acredita la del escalon.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task Recording_reports_what_the_trip_earned()
+    {
+        var driver = await CreateDriverAsync();
+        var trip = await FinishTripAsync(driver, meters: 300_000);
+
+        var earned = await _recorder.RecordAsync(trip, DateTimeOffset.UtcNow);
+
+        Assert.NotNull(earned);
+        Assert.Equal(40, earned.TripExperience);
+        Assert.Contains(earned.CompletedTiers, t => t.TrackCode == "viajes" && t.Tier == 1);
+        Assert.Equal(earned.CompletedTiers.Count * 100, earned.TierExperience);
+        Assert.Equal(1, earned.LevelBefore.Number);
+        Assert.Equal(1, earned.LevelAfter.Number);
+    }
+
+    /// <remarks>
+    /// Subir de nivel es el momento mas grande del sistema y la pantalla tiene que
+    /// saberlo: se devuelve el nivel de antes y el de despues. 2.500 km es el
+    /// umbral de Repartidor.
+    /// </remarks>
+    [Fact]
+    public async Task Recording_reports_a_level_up_when_the_trip_crosses_the_threshold()
+    {
+        var driver = await CreateDriverAsync();
+        var trip = await FinishTripAsync(driver, meters: 2_600_000);
+
+        var earned = await _recorder.RecordAsync(trip, DateTimeOffset.UtcNow);
+
+        Assert.NotNull(earned);
+        Assert.Equal(1, earned.LevelBefore.Number);
+        Assert.Equal(2, earned.LevelAfter.Number);
+        Assert.Equal("Repartidor", earned.LevelAfter.Name);
+    }
+
+    /// <remarks>
+    /// La segunda vez no hay nada que contar: se devuelve null, no un resultado
+    /// vacio, para que quien llama no pueda mostrar una celebracion de cero.
+    /// </remarks>
+    [Fact]
+    public async Task Recording_the_same_trip_twice_reports_nothing_the_second_time()
+    {
+        var driver = await CreateDriverAsync();
+        var trip = await FinishTripAsync(driver, meters: 120_000);
+
+        var primera = await _recorder.RecordAsync(trip, DateTimeOffset.UtcNow);
+        var segunda = await _recorder.RecordAsync(trip, DateTimeOffset.UtcNow);
+
+        Assert.NotNull(primera);
+        Assert.Null(segunda);
+    }
+
+    /// <remarks>
     /// Un reintento, un doble toque o un cierre procesado dos veces son cosas que
     /// van a pasar. Cada una no puede regalar EXP.
     /// </remarks>

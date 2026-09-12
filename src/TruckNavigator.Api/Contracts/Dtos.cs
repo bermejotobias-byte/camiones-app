@@ -564,9 +564,17 @@ public sealed record TripDto(
     /// cerrado antes de que fuera posible haberlo hecho.
     /// </summary>
     double CreditedDistanceMeters,
-    double? ElapsedSeconds)
+    double? ElapsedSeconds,
+    /// <summary>
+    /// Lo que el viaje le dejo al camionero. <b>Solo viene en la respuesta de
+    /// cerrar el viaje</b>, y solo si algo se acredito; en el historial y en un
+    /// viaje cancelado es null y se omite. Es un campo opcional y no un envoltorio
+    /// nuevo, para que la app ya instalada siga leyendo el viaje de la raiz.
+    /// </summary>
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    TripEarnedDto? Earned = null)
 {
-    public static TripDto From(Trip trip) => new(
+    public static TripDto From(Trip trip, TripEarnings? earnings = null) => new(
         trip.Id,
         trip.TruckId,
         trip.TruckName,
@@ -583,7 +591,47 @@ public sealed record TripDto(
         trip.FinishedAt,
         trip.Status.ToString(),
         trip.CreditedDistanceMeters,
-        trip.Elapsed?.TotalSeconds);
+        trip.Elapsed?.TotalSeconds,
+        earnings is null ? null : TripEarnedDto.From(earnings));
+}
+
+/// <summary>
+/// Lo que gano un viaje, para la pantalla de fin de viaje: la EXP del viaje y la
+/// de los escalones, los escalones completados con su objetivo, y el nivel antes
+/// y despues, para que la pantalla sepa si hay que festejar una subida.
+/// </summary>
+public sealed record TripEarnedDto(
+    int TripExperience,
+    int TierExperience,
+    int TotalExperience,
+    IReadOnlyList<CompletedTierDto> CompletedTiers,
+    LevelDto LevelBefore,
+    LevelDto LevelAfter,
+    bool LeveledUp)
+{
+    public static TripEarnedDto From(TripEarnings e) => new(
+        e.TripExperience,
+        e.TierExperience,
+        e.TotalExperience,
+        [.. e.CompletedTiers.Select(CompletedTierDto.From)],
+        LevelDto.From(e.LevelBefore),
+        LevelDto.From(e.LevelAfter),
+        e.LeveledUp);
+}
+
+/// <summary>Un escalon completado, con el objetivo que lo completo: es el numero que se muestra.</summary>
+public sealed record CompletedTierDto(string TrackCode, int Tier, long Goal, string RewardCode)
+{
+    public static CompletedTierDto From(CompletedTier t) => new(
+        t.TrackCode,
+        t.Tier,
+        TrackCatalog.Get(t.TrackCode).Tiers[t.Tier - 1].Goal,
+        t.RewardCode);
+}
+
+public sealed record LevelDto(int Number, string Name)
+{
+    public static LevelDto From(LevelStanding l) => new(l.Number, l.Name);
 }
 
 /// <summary>

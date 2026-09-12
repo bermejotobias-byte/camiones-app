@@ -1458,49 +1458,6 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
   letter-spacing: -.02em;
 }
 
-/* Insignia de logro.
-   ---------------------------------------------------------------------------
-   Decision del usuario del 10/09/2026, leida de la referencia: el bloqueado es
-   una SILUETA GRIS con el objetivo encima, sin recuadro, sin borde y sin color.
-   Antes era la insignia a color con opacidad baja, y asi un logro bloqueado y
-   uno recien empezado se parecian demasiado.
-
-   El numero es el dato que importa cuando esta apagado: dice cuanto hay que
-   hacer para prenderlo. Por eso pisa el dibujo en vez de ir debajo. */
-.badge-duo {
-  position: relative;
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-}
-
-.badge-duo svg { width: 76%; height: 76%; }
-
-/* La silueta bloqueada va con el trazo mas grueso: un icono de linea fina no se
-   lee como silueta, se lee como un icono apagado. La referencia usa siluetas
-   macizas; con trazos, engordarlos es lo que mas se le acerca. */
-.badge-off svg { stroke-width: 2.5; }
-
-.badge-duo b {
-  position: absolute;
-  /* Centrado sobre el dibujo. Sin left/right el numero se queda donde lo dejo el
-     flujo —al costado del SVG— y se monta sobre el borde en vez del centro. */
-  bottom: 0;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 17px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  /* Contorno para que el numero se lea sobre el dibujo, como en la referencia.
-     Va con text-shadow y no con -webkit-text-stroke, que come el interior de los
-     trazos finos. */
-  text-shadow: 0 2px 0 var(--ground), 0 -2px 0 var(--ground),
-               2px 0 0 var(--ground), -2px 0 0 var(--ground);
-}
-
-.badge-off { color: var(--ink-3); opacity: .55; }
-.badge-on  { color: var(--reward); }
 
 /* Tarjeta con degradado frio.
    La §10 del diseño habilito los degradados dentro del espectro frio para
@@ -1813,6 +1770,219 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
   border-radius: var(--radius);
   background: radial-gradient(60% 70% at 50% 60%, var(--reward-soft), transparent 70%);
 }
+
+/* ============================================================================
+   La mascota
+   ----------------------------------------------------------------------------
+   El sistema de momentos vive en js/mascota.js; aca va como se muestra. Es pixel
+   art: pixelated, y a multiplos enteros del tamaño nativo (--mascota-lado lo
+   trae el marcado). Sin el PNG, el hueco del mismo tamaño: las pantallas se
+   componen previendo donde va y no se rompen sin el dibujo.
+   ========================================================================== */
+
+.mascota {
+  width: var(--mascota-lado);
+  height: var(--mascota-lado);
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.mascota img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* El hueco: un resplandor apenas, para que el espacio se lea como reservado y no
+   como roto. Sin dibujo provisorio, a proposito. */
+.mascota-sin-pose {
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--reward-soft), transparent);
+}
+
+/* ============================================================================
+   Los logros — insignia en pixel art, color por escalon
+   ----------------------------------------------------------------------------
+   El escudo es comun; el simbolo es de cada pista; el color viene por --tier
+   desde js/logros.js. Bloqueado es gris y apagado; el numero pisa el dibujo.
+   ========================================================================== */
+
+.logro {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.logro svg { width: 82%; height: 82%; }
+
+.logro-borde  { fill: #0d1418; }
+.logro-cuerpo { fill: var(--tier); }
+.logro-luz    { fill: rgba(255,255,255,.35); }
+.logro-simbolo rect { fill: #fff; }
+.logro-simbolo .logro-hueco { fill: var(--tier); }
+
+.logro-off { opacity: .5; }
+
+.logro > b {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 0 2px 0 var(--ground), 0 -2px 0 var(--ground),
+               2px 0 0 var(--ground), -2px 0 0 var(--ground);
+}
+
+/* ============================================================================
+   Fin de viaje
+   ----------------------------------------------------------------------------
+   Pantalla de fin de actividad de la referencia: ilustracion grande, titulo en
+   color calido, tres fichas con su color, boton primario ancho. La secuencia de
+   entrada es lo que la hace gratificante; con movimiento reducido no hay
+   secuencia y todo esta quieto desde el principio.
+   ========================================================================== */
+
+.fin-viaje { align-items: stretch; text-align: center; padding-top: 8px; }
+
+/* La escena: la mascota y el confeti que cae alrededor. */
+.fin-escena {
+  position: relative;
+  height: 220px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.fin-mascota {
+  animation: fin-entra .55s cubic-bezier(.2,.9,.3,1.25) both;
+}
+
+@keyframes fin-entra {
+  from { transform: scale(.55) translateY(20px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* El titulo, en el color calido: el acento. Es el unico lugar de la app donde un
+   titulo va en naranja, y es porque esta pantalla es festejo. */
+.fin-titulo {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--accent-ink);
+  animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) .25s both;
+}
+
+.fin-bajada {
+  font-size: 14px;
+  animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) .32s both;
+}
+
+@keyframes fin-sube {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* Las tres fichas (skill §4): borde de su color, etiqueta arriba, valor grande.
+   Entran de a una, con la demora que trae cada una. */
+.fichas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ficha {
+  border: 2px solid var(--ficha);
+  border-radius: 14px;
+  padding: 8px 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--surface);
+  animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) var(--demora) both;
+}
+
+.ficha > span {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  color: var(--ficha);
+  white-space: nowrap;
+}
+
+.ficha > b {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+
+.fin-seccion { text-align: left; margin-top: 6px; }
+
+.fin-logros { display: flex; flex-direction: column; gap: 10px; }
+
+.fin-logro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) var(--demora) both;
+}
+
+.fin-logro .logro { width: 56px; flex: none; }
+.fin-logro > div { display: flex; flex-direction: column; gap: 2px; }
+.fin-logro b { font-size: 15px; }
+
+.fin-nivel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) .8s both;
+}
+
+.fin-nivel b { font-size: 17px; }
+
+.fin-boton { animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) .9s both; }
+
+/* El confeti: cada papelito cae desde arriba con su color, su x, su demora y su
+   giro, todo por variables. Solo transform y opacity: no repinta nada. */
+.papelito {
+  position: absolute;
+  top: -12px;
+  left: var(--x);
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--color);
+  opacity: 0;
+  animation: fin-cae 2.4s cubic-bezier(.3,.1,.6,1) var(--demora) both;
+}
+
+@keyframes fin-cae {
+  0%   { transform: translateY(0) rotate(0); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(240px) rotate(var(--giro)); opacity: 0; }
+}
+
+/* Con movimiento reducido, nada se mueve: todo esta en su lugar desde el
+   principio y el confeti no existe. */
+.fin-quieto .fin-mascota,
+.fin-quieto .fin-titulo,
+.fin-quieto .fin-bajada,
+.fin-quieto .ficha,
+.fin-quieto .fin-logro,
+.fin-quieto .fin-nivel,
+.fin-quieto .fin-boton { animation: none; }
+
+.fin-quieto .papelito { display: none; }
 
 /* ============================================================================
    El carnet

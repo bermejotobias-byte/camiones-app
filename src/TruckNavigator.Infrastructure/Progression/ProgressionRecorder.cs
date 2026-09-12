@@ -26,11 +26,16 @@ public sealed class ProgressionRecorder(AppDbContext db)
     // ningun numero: el registrador sabe escribir en el libro, no cuanto vale un
     // viaje. Antes eran dos constantes fijas de 20 y 50.
 
-    public async Task RecordAsync(Trip trip, DateTimeOffset when, CancellationToken ct = default)
+    /// <summary>
+    /// Acredita el viaje y devuelve lo que dejo, o <c>null</c> si no habia nada que
+    /// acreditar —cancelado, o ya acreditado—. Null y no un resultado vacio, para
+    /// que quien llama no pueda mostrar una celebracion de cero.
+    /// </summary>
+    public async Task<TripEarnings?> RecordAsync(Trip trip, DateTimeOffset when, CancellationToken ct = default)
     {
         if (trip.Status != TripStatus.Completed)
         {
-            return;
+            return null;
         }
 
         var tripKey = trip.Id.ToString();
@@ -45,7 +50,7 @@ public sealed class ProgressionRecorder(AppDbContext db)
 
         if (alreadyCredited)
         {
-            return;
+            return null;
         }
 
         var rows = await db.TrackProgress
@@ -59,13 +64,22 @@ public sealed class ProgressionRecorder(AppDbContext db)
 
         var outcome = ProgressionEngine.Advance(TrackCatalog.All, countsBefore, increments);
 
+        // El nivel de antes y el de despues salen de los mismos kilometros que la
+        // pista: el total acreditado con y sin este viaje.
+        countsBefore.TryGetValue(TrackCatalog.Mileage, out var kmBefore);
+        increments.TryGetValue(TrackCatalog.Mileage, out var kmIncrement);
+        var levelBefore = LevelScale.For(kmBefore);
+        var levelAfter = LevelScale.For(kmBefore + kmIncrement);
+
         // La distancia ACREDITADA, no la planificada: un viaje que se corto a la
         // mitad no puede pagar entero.
+        var tripExperience = ExperienceScale.ForTrip(trip.CreditedDistanceMeters);
+
         db.LedgerEntries.Add(Entry(
             trip.DriverId,
             when,
             LedgerReason.TripCompleted,
-            ExperienceScale.ForTrip(trip.CreditedDistanceMeters),
+            tripExperience,
             tripKey));
 
         foreach (var tier in outcome.CompletedTiers)
@@ -101,6 +115,13 @@ public sealed class ProgressionRecorder(AppDbContext db)
         }
 
         await db.SaveChangesAsync(ct);
+
+        return new TripEarnings(
+            tripExperience,
+            outcome.CompletedTiers.Count * ExperienceScale.PerTier,
+            outcome.CompletedTiers,
+            levelBefore,
+            levelAfter);
     }
 
     private Task<double> TotalCreditedMetersAsync(Guid driverId, CancellationToken ct) =>

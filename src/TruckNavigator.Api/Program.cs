@@ -1143,7 +1143,7 @@ trips.MapGet("/", async (
         .AsNoTracking()
         .ToListAsync(ct);
 
-    return Results.Ok(history.Select(TripDto.From));
+    return Results.Ok(history.Select(t => TripDto.From(t)));
 })
 .WithSummary("Historial de viajes, del mas nuevo al mas viejo.");
 
@@ -1459,9 +1459,9 @@ static async Task<IResult> CloseTripAsync(
     // recalcula sumando los viajes completados, asi que este tiene que estar en la
     // base para contar. Un viaje cancelado no acredita nada y el grabador lo
     // descarta solo.
-    await progression.RecordAsync(trip, now, ct);
+    var earnings = await progression.RecordAsync(trip, now, ct);
 
-    return Results.Ok(TripDto.From(trip));
+    return Results.Ok(TripDto.From(trip, earnings));
 }
 
 static Task<TruckProfile?> FindUsableTruckAsync(

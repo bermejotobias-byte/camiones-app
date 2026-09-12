@@ -12,6 +12,7 @@
 import { api } from '../api.js';
 import { state, setState } from '../store.js';
 import { VEHICLE_TYPES } from './trucks.js';
+import { insignia as insigniaDeLogro } from '../logros.js';
 import { signOut } from '../api.js';
 import {
   html, raw, icon, wire, q, render, withBusy, debounce, escapeHtml,
@@ -176,37 +177,15 @@ const barra = (porcentaje, valor, extra = '') => {
 };
 
 /**
- * Insignia de un logro.
- *
- * Bloqueada es una SILUETA GRIS con el objetivo encima, sin recuadro y sin color
- * —decision del usuario del 10/09/2026, leida de la referencia—. Antes era la
- * insignia a color con opacidad baja, y asi un logro bloqueado y uno recien
- * empezado se parecian demasiado.
- *
- * El numero que pisa el dibujo es el objetivo del escalon en curso: apagada, es
- * el dato que importa, porque dice cuanto hay que hacer para prenderla.
+ * Insignia de un logro: la compartida de logros.js, que trae el color por escalon
+ * —rojo, violeta, dorado, celeste, como Duolingo— y el dibujo en pixel art. El
+ * numero que pisa el dibujo es el objetivo del escalon en curso; si la pista esta
+ * completa, lo hecho.
  */
 const insignia = (t) => {
-  const meta = TRACKS[t.code];
-  if (!meta) return '';
-
-  // Si la pista esta completa no hay objetivo por delante: se muestra lo hecho.
   const objetivo = t.currentGoal > 0 ? t.currentGoal : t.count;
-
-  return `
-    <div class="badge-duo ${t.tiersReached > 0 ? 'badge-on' : 'badge-off'}"
-         title="${meta.name}">
-      ${trackIcon(t.code)}
-      <b>${objetivo.toLocaleString('es-AR')}</b>
-    </div>`;
+  return insigniaDeLogro(t.code, t.tiersReached, objetivo, { tamanio: 64 });
 };
-
-/** Icono de pista, dibujado. */
-const trackIcon = (code) => `
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    ${TRACKS[code]?.path ?? ''}
-  </svg>`;
 
 /**
  * Bandera a partir del codigo de pais de dos letras.
