@@ -17,6 +17,45 @@
    y render nativo.
    ========================================================================== */
 
+/* ============================================================================
+   Tipografia
+   ----------------------------------------------------------------------------
+   Nunito, VENDORIZADA. No se carga de Google Fonts ni de ningun CDN: adentro de
+   un camion puede no haber senal, y la interfaz entera viaja dentro del APK.
+
+   Es una fuente variable, asi que estos dos archivos cubren TODOS los pesos de
+   200 a 1000 en 74 KB. Sin variable harian falta seis archivos.
+
+   Redondeada, amigable y muy legible: es la direccion que pidio el usuario,
+   siguiendo el lenguaje de Duolingo sin usar su tipografia, que es propietaria.
+
+   Los dos subconjuntos y sus unicode-range salen del CSS que sirve Google para
+   esta misma familia. El latino alcanza para espanol y portugues; el extendido
+   queda para cuando entren mas idiomas.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('/fonts/nunito/nunito-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                 U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                 U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('/fonts/nunito/nunito-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+                 U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+                 U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
   /* --- superficies: asfalto con sesgo azulado --------------------------- */
   --ground:      #0d1418;
@@ -39,6 +78,68 @@
   --reward:      #a97bf0;
   --reward-soft: #241a3a;
 
+  /* --- la rampa fria: cuatro escalones de UN mismo recorrido -------------
+     El pedido fue "tonalidades dentro del gradiente de lo frio". Estos son los
+     cuatro puntos de ese recorrido, repartidos parejo por matiz:
+
+       197 celeste  ->  213 azul  ->  238 indigo  ->  265 violeta
+
+     Los extremos NO son colores nuevos: son --brand y --reward, o sea que la
+     rampa empieza y termina en tonos que ya significan algo en el sistema. Por
+     eso cuatro fichas de colores distintos no se leen como cuatro colores
+     sueltos sino como un degradado: es variedad sin desorden.
+
+     Sirven para DISTINGUIR piezas de la misma familia —las cuatro cifras del
+     resumen—. No codifican nada: ningun escalon quiere decir "bien" ni "mal".
+     Para eso estan --ok, --warn y --danger, que son los unicos semanticos. */
+  /* El color de la banda del perfil. Es un token y no un valor suelto porque el
+     dia que exista la ranura "fondo" del avatar sale de ahi, como en la
+     referencia. Y porque lo usan dos elementos hermanos —la barra superior y la
+     banda—, asi que no puede vivir en ninguno de los dos. */
+  --band:        #35b8e8;
+  --on-band:     #04222f;
+
+  --cool-1:      var(--brand);
+  --cool-2:      #5b9cf2;
+  --cool-3:      #8a86f2;
+  --cool-4:      var(--reward);
+
+  /* --- acento: el complementario que corta la paleta fria ---------------
+     La marca es celeste (matiz ~197 grados) y su complementario cae en naranja,
+     asi que este contraste no es capricho: es el que mas separa de todo lo demas
+     que hay en pantalla.
+
+     Y por eso mismo hay que usarlo POCO. Un acento complementario funciona
+     porque es raro; puesto en todos los botones deja de cortar y pasa a ser un
+     color mas.
+
+     Dos reglas para que no se desparrame:
+
+       1. UNA sola accion con acento por region de la pantalla.
+       2. NUNCA en el boton de un formulario. Guardar, Crear y Confirmar siguen
+          siendo celestes en toda la app, y tienen que verse iguales en todas:
+          si el acento entra a un formulario, entra a todos, y ahi se acabo.
+
+     Por eso en el perfil conviven el naranja de "Ver mis viajes" —la accion del
+     perfil, registro expresivo— y el celeste de "Guardar" —la accion del
+     formulario, igual que en camiones y en contactos—. No compiten: son de dos
+     registros distintos, y esa diferencia es justamente la que el color cuenta.
+
+     El matiz esta elegido para no chocar con los dos calidos que ya existen:
+       danger  ~4 grados   (rojo)
+       ACENTO  ~24 grados  (naranja)
+       warn    ~41 grados  (ambar)
+     Ese espaciado es lo que impide repetir el problema de AD-38, donde un mismo
+     color codificaba dos cosas distintas.
+
+     NUNCA entra al mapa: ahi el registro es sobrio y la accion sigue siendo
+     celeste. Por eso es una clase aparte y no un cambio de .btn-primary. */
+  --accent:      #f5843a;
+  --accent-ink:  #ffb078;
+  --accent-soft: #3a2010;
+  --accent-deep: #a8501c;   /* el reborde inferior del boton hundible */
+  --on-accent:   #2b1405;
+
   /* --- semanticos: no se usan para nada decorativo ---------------------- */
   --ok:          #43c98b;
   --ok-soft:     #0f2a1f;
@@ -60,8 +161,10 @@
   --shadow:      0 2px 6px rgba(0,0,0,.35), 0 12px 32px -14px rgba(0,0,0,.7);
   --shadow-up:   0 -4px 24px -8px rgba(0,0,0,.6);
 
-  --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-        Arial, sans-serif;
+  /* La pila del sistema queda de respaldo: si la fuente no llegara a cargar, la
+     interfaz sigue legible en vez de caer en una serif del navegador. */
+  --ui: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
 
   --safe-top:    env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -87,6 +190,24 @@
 
   --reward:      #7b4ecd;
   --reward-soft: #efe7fb;
+
+  /* Los dos intermedios se oscurecen igual que el resto: sobre fondo blanco los
+     tonos del modo noche no llegan al contraste que pide un texto. */
+  --cool-2:      #1f68c4;
+  --cool-3:      #5346c4;
+
+  /* En claro la banda se mantiene: es el mismo celeste de la referencia y sobre
+     el va tinta oscura en los dos modos. */
+  --band:        #35b8e8;
+  --on-band:     #04222f;
+
+  /* En claro el naranja se oscurece: sobre fondo blanco, el tono del modo noche
+     no tiene contraste suficiente para texto encima. */
+  --accent:      #d9631d;
+  --accent-ink:  #a8501c;
+  --accent-soft: #fdece0;
+  --accent-deep: #a04716;
+  --on-accent:   #ffffff;
 
   --ok:          #1c7d51;
   --ok-soft:     #dcefe5;
@@ -215,6 +336,52 @@ button { font-family: inherit; font-size: inherit; }
 .btn[disabled]:active { transform: none; }
 
 .btn-primary { background: var(--brand); color: var(--on-brand); font-weight: 700; }
+
+/* La accion principal de las pantallas de progresion.
+   ---------------------------------------------------------------------------
+   El reborde inferior solido —no una sombra— es lo que la hace ver hundible, y
+   es la firma de la interfaz de la referencia. Al presionar, el boton baja y el
+   reborde se achica: el pixel que se pierde arriba lo gana abajo, asi que nada
+   alrededor se mueve.
+
+   NO se usa en el mapa. Ahi la accion sigue siendo .btn-primary en celeste. */
+.btn-accent {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 800;
+  letter-spacing: .01em;
+  border-bottom: 4px solid var(--accent-deep);
+}
+
+.btn-accent:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+/* Tratamiento de boton de la referencia: MAYUSCULAS, negrita, espaciado y
+   reborde inferior. Es un modificador y no un boton nuevo: se le suma a
+   .btn-accent, .btn-primary o .btn-outline segun que color corresponda.
+
+   Va SOLO en las pantallas del registro expresivo. En el mapa un boton en
+   mayusculas se lee como un grito, y ahi el registro es sobrio. */
+.btn-duo {
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: .06em;
+  font-size: 14px;
+  min-height: 52px;
+  border-radius: 14px;
+}
+
+/* Secundario de la referencia: transparente, borde de 2 px, texto del color del
+   borde. Lo usa la accion que acompaña, nunca la principal. */
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--rule);
+  color: var(--ink-2);
+}
+
+.btn-outline:active { transform: translateY(1px); }
+
 .btn-ghost   { background: transparent; border-color: var(--rule); color: var(--ink-2); }
 .btn-danger  { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
 .btn-block   { width: 100%; }
@@ -1015,22 +1182,6 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
   flex: none;
 }
 
-.avatar-lg { width: 84px; height: 84px; font-size: 40px; }
-
-.level-track {
-  height: 10px;
-  border-radius: 5px;
-  background: var(--surface-3);
-  overflow: hidden;
-}
-
-.level-fill {
-  height: 100%;
-  border-radius: 5px;
-  background: linear-gradient(90deg, var(--brand), var(--reward));
-  transition: width .6s cubic-bezier(.2,.8,.3,1);
-}
-
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 .stat {
@@ -1058,8 +1209,830 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
   font-size: 24px;
 }
 
-.badge-locked { opacity: .32; }
-.badge-earned { border-color: var(--reward); background: var(--reward-soft); }
+/* Lo ELEGIDO en un selector va en celeste, no en violeta.
+   El violeta significa recompensa en todo el sistema —es el de las insignias y el
+   de la insignia de nivel—, y elegir un avatar no es ganarlo. En la referencia el
+   selector de avatar marca la opcion activa con el mismo celeste de la marca.
+
+   Antes se llamaba .badge-earned y pintaba de violeta: un mismo color para dos
+   cosas distintas, que es el problema que ya costo caro en el mapa (AD-38). */
+.badge-picked { border-color: var(--brand); background: var(--brand-soft); }
+
+/* ============================================================================
+   Perfil
+   ----------------------------------------------------------------------------
+   La banda de color detras del avatar sale de la referencia: separa la identidad
+   del resto de la pantalla sin necesidad de una linea ni un titulo. El gradiente
+   se queda dentro del espectro frio —celeste a violeta— porque es el registro de
+   la progresion.
+   ========================================================================== */
+
+/* La barra superior del perfil ES la banda.
+   ---------------------------------------------------------------------------
+   En la referencia no hay dos piezas: el nombre y el engranaje viven adentro del
+   mismo bloque de color que el avatar, sin costura. Por eso la barra toma el
+   color de la banda en vez de su fondo propio, y pierde la linea de abajo. */
+.topbar-band {
+  background: var(--band);
+  border-bottom: none;
+  color: var(--on-band);
+}
+
+.topbar-band h2 { color: var(--on-band); }
+
+.topbar-band .fab {
+  background: rgba(0,0,0,.14);
+  border-color: transparent;
+  color: var(--on-band);
+}
+
+/* La banda del perfil, con el lenguaje del CARNET.
+   ---------------------------------------------------------------------------
+   Pedido del usuario del 10/09/2026: que la parte del avatar se arme con los
+   recursos de las dos referencias de licencia de conducir.
+
+   OJO: esto es el LENGUAJE VISUAL del carnet, no la pantalla del carnet. Siguen
+   siendo dos pantallas distintas —el usuario fue explicito— y lo que se toma de
+   la referencia es como se ve un documento, no que datos lleva. La estructura
+   sigue siendo la de Duolingo: banda de color arriba con la identidad adentro.
+   Es la regla de la casa: la estructura se copia, el tema se cambia.
+
+   Cuatro recursos, todos leidos de la referencia:
+     1. la trama diagonal de seguridad
+     2. la foto enmarcada con su chapita al pie
+     3. los campos en pastillas translucidas, etiqueta y valor
+     4. la banda inferior segmentada y la linea tipo MRZ
+
+   La trama se dibuja con gradientes repetidos y no con una imagen: son dos
+   declaraciones de CSS contra un archivo que habria que versionar, meter en el
+   APK y servir. */
+.profile-band {
+  margin: -16px -16px 0;              /* rompe el padding del .scroll: pega a la barra */
+  padding: 12px 16px 0;
+  color: var(--on-band);
+
+  /* Trama de seguridad sobre el color: dos angulos distintos para que se lea
+     como un tejido y no como un rayado. Muy suave a proposito — tiene que
+     notarse al mirarla, no al pasar. */
+  background:
+    repeating-linear-gradient(115deg,
+      rgba(255,255,255,.10) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(65deg,
+      rgba(0,0,0,.05) 0 1px, transparent 1px 11px),
+    var(--band);
+}
+
+/* La fila del documento: los campos a la izquierda, la foto a la derecha, que es
+   como estan en la referencia. */
+.carnet-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.carnet-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Campo del documento: pastilla translucida con ETIQUETA y valor.
+   La etiqueta va en un tono mas apagado que el valor: en la referencia las dos
+   son del mismo color, pero ahi el fondo es claro y aca hay que separar el dato
+   de su nombre para que se lea de un vistazo. */
+.carnet-field {
+  background: rgba(255,255,255,.22);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.carnet-field span { opacity: .62; }
+
+/* La foto. Marco claro y fondo propio, como en la referencia, donde la foto
+   siempre tiene un color distinto al de la credencial. */
+.carnet-photo {
+  width: 84px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.carnet-photo > div:first-child {
+  width: 84px;
+  height: 84px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, var(--cool-3), var(--cool-4));
+  border: 2px solid rgba(255,255,255,.75);
+  display: grid;
+  place-items: center;
+  font-size: 46px;
+  line-height: 1;
+  overflow: hidden;
+}
+
+/* La chapita al pie de la foto: en la referencia dice "HOLDER'S PHOTO"; aca dice
+   la nacionalidad, que es el dato que una credencial pone al lado de la cara. */
+.carnet-photo b {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: rgba(0,0,0,.22);
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+
+/* La banda inferior segmentada del frente del carnet. */
+.carnet-strip {
+  margin: 10px -16px 0;
+  padding: 6px 16px;
+  background: rgba(0,0,0,.20);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+/* La linea tipo MRZ del dorso.
+   Es DECORATIVA: se arma con el alias y el apellido, no codifica nada y nadie la
+   lee. Esta porque es el recurso que mas hace que algo se sienta un documento —
+   en la referencia es lo unico del dorso que no es un campo ni un codigo. */
+.carnet-mrz {
+  margin: 0 -16px;
+  padding: 5px 16px 7px;
+  background: rgba(0,0,0,.20);
+  border-top: 1px solid rgba(255,255,255,.14);
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: .16em;
+  opacity: .55;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Linea de identidad: alias, nacionalidad y alta. Gris, MAYUSCULAS, apretada.
+   Es la unica linea de la referencia entre la banda y las cifras. */
+.profile-meta {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Las tres cifras: valor grande arriba, etiqueta gris abajo. Sin tarjetas. */
+.figures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.figures > div { display: flex; flex-direction: column; gap: 1px; }
+
+.figures b {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.figures span { font-size: 13px; color: var(--ink-3); }
+
+/* Etiqueta de seccion: gris, MAYUSCULAS, chica y muy espaciada.
+   Sustituye al <h3> blanco en esta pantalla. En la referencia los titulos de
+   seccion no compiten con el contenido: lo separan y se corren. */
+.section-caps {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Tarjeta de "completá tu perfil".
+   Existe SOLO mientras falte algo, igual que en la referencia. Cuando el perfil
+   esta completo desaparece: una tarjeta que felicita por algo ya hecho ocupa el
+   lugar de la proxima cosa por hacer. */
+.complete-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Resumen: SIN tarjetas y SIN bordes.
+   ---------------------------------------------------------------------------
+   Aca estaba el desvio mas grande contra la referencia: eran cuatro fichas con
+   borde de color. En la referencia el resumen es lo mas liviano de la pantalla,
+   cuatro renglones de dibujo + valor sobre el fondo de la pagina.
+
+   Y la unidad va DENTRO del valor —"120 EXP", "2 h 07"— que es lo que permite
+   que no haga falta ninguna etiqueta: el dibujo dice de que se trata y el texto
+   dice cuanto. */
+.summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 12px;
+}
+
+.summary > div { display: flex; align-items: center; gap: 9px; }
+
+.summary svg { width: 23px; height: 23px; flex: none; color: var(--tone, var(--brand)); }
+
+.summary b {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+/* Insignia de logro.
+   ---------------------------------------------------------------------------
+   Decision del usuario del 10/09/2026, leida de la referencia: el bloqueado es
+   una SILUETA GRIS con el objetivo encima, sin recuadro, sin borde y sin color.
+   Antes era la insignia a color con opacidad baja, y asi un logro bloqueado y
+   uno recien empezado se parecian demasiado.
+
+   El numero es el dato que importa cuando esta apagado: dice cuanto hay que
+   hacer para prenderlo. Por eso pisa el dibujo en vez de ir debajo. */
+.badge-duo {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.badge-duo svg { width: 76%; height: 76%; }
+
+/* La silueta bloqueada va con el trazo mas grueso: un icono de linea fina no se
+   lee como silueta, se lee como un icono apagado. La referencia usa siluetas
+   macizas; con trazos, engordarlos es lo que mas se le acerca. */
+.badge-off svg { stroke-width: 2.5; }
+
+.badge-duo b {
+  position: absolute;
+  /* Centrado sobre el dibujo. Sin left/right el numero se queda donde lo dejo el
+     flujo —al costado del SVG— y se monta sobre el borde en vez del centro. */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  /* Contorno para que el numero se lea sobre el dibujo, como en la referencia.
+     Va con text-shadow y no con -webkit-text-stroke, que come el interior de los
+     trazos finos. */
+  text-shadow: 0 2px 0 var(--ground), 0 -2px 0 var(--ground),
+               2px 0 0 var(--ground), -2px 0 0 var(--ground);
+}
+
+.badge-off { color: var(--ink-3); opacity: .55; }
+.badge-on  { color: var(--reward); }
+
+/* Tarjeta con degradado frio.
+   La §10 del diseño habilito los degradados dentro del espectro frio para
+   reforzar lo arcade, y la tarjeta de nivel es donde mas rinde: es la pieza
+   principal de la pantalla y el degradado la separa de las tarjetas comunes sin
+   agregarle un borde ni un titulo. Es tambien el fondo contra el que el acento
+   naranja tiene que cortar, asi que cuanto mas frio sea, mas corta. */
+.card-cool {
+  background: linear-gradient(135deg, var(--brand-soft), var(--reward-soft));
+}
+
+/* La cifra que motiva, en el complementario.
+   El pedido fue que los mensajes corten con el acento. Pero pintar la frase
+   entera de naranja la vuelve un cartel y compite con el boton, que es la unica
+   accion. Se pinta SOLO el numero: la frase se sigue leyendo como frase y el ojo
+   igual cae en el dato, que es lo que la frase vino a decir. */
+.accent-num {
+  color: var(--accent-ink);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barra de progreso con el VALOR ADENTRO. Es como lo resuelve la referencia, y
+   es mejor que ponerlo al lado: el numero y lo que representa quedan en el mismo
+   objeto, asi que no hay que asociarlos con la mirada. */
+.bar {
+  position: relative;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+/* Relleno PLANO, no degradado.
+   El degradado era nuestro; en la referencia la barra es un celeste solido. Un
+   degradado dentro de una barra ademas miente un poco: sugiere que el avance
+   cambia de naturaleza a mitad de camino, y no cambia. */
+.bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: var(--brand);
+  transition: width .6s cubic-bezier(.2,.8,.3,1);
+}
+
+.bar-value {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  /* Vacia, el numero es gris; con relleno, blanco. Asi lo hace la referencia y
+     tiene sentido: sobre el riel apagado un blanco pleno pesa mas que el dato. */
+  color: var(--ink-3);
+  text-shadow: none;
+}
+
+.bar-started .bar-value {
+  color: var(--ink);
+  text-shadow: 0 1px 2px rgba(0,0,0,.55);
+}
+
+/* En claro el texto de la barra es oscuro, asi que la sombra oscura lo empasta.
+   Va blanca: hace de halo cuando el numero cae sobre el relleno saturado, y
+   sobre el riel vacio, que es gris claro, no se ve. La barra es el unico lugar
+   donde un texto se apoya sobre dos fondos distintos segun cuanto llevas. */
+:root[data-theme="light"] .bar-value {
+  text-shadow: 0 1px 2px rgba(255,255,255,.75);
+}
+
+/* La barra de nivel, CROMADA.
+   ---------------------------------------------------------------------------
+   Pedido del usuario del 10/09/2026, recuperando la exploracion del 02/09: la de
+   cromo brillante, "mas agradable y gratificante a la vista".
+
+   La §10 habia descartado el cromo por calido —era cromo y oro—. Se recupera
+   como CROMO FRIO: el metal no lo hace el matiz sino el degradado vertical, asi
+   que el mismo efecto se consigue dentro del celeste y el violeta sin tocar la
+   decision de paleta.
+
+   Como se arma un metal en CSS, de arriba abajo:
+     brillo alto -> caida rapida a sombra -> especular secundario -> sombra
+   Esa curva asimetrica es lo que el ojo lee como superficie curva y pulida. Un
+   degradado parejo se ve plastico.
+
+   Va SOLO en la barra de nivel. Las metas siguen planas: si todas brillaran, el
+   nivel dejaria de ser el momento especial, que es justamente lo que el brillo
+   vino a marcar. Y no entra al mapa, como nada de esto. */
+.bar-chrome {
+  /* Mas alta que las demas. No es capricho: la curva especular necesita alto para
+     leerse, y a 20 px el degradado vertical se aplasta y el metal se ve plano.
+     Ademas la separa de las barras de metas, que es lo que se busca. */
+  height: 26px;
+  border-radius: 13px;
+
+  /* El riel se ve hundido: sombra interna arriba y un filo claro abajo. */
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,.45),
+    inset 0 -1px 0 rgba(255,255,255,.07);
+}
+
+/* En la cromada el valor va blanco SIEMPRE, tambien en modo claro: el relleno es
+   saturado en los dos modos, asi que la regla general —tinta oscura en claro— no
+   aplica y dejaba el numero al limite de contraste sobre el violeta. */
+.bar-chrome.bar-started .bar-value,
+:root[data-theme="light"] .bar-chrome.bar-started .bar-value {
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+
+.bar-chrome .bar-fill {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,.62) 0%,
+      rgba(255,255,255,.18) 22%,
+      rgba(0,0,0,.20)      48%,
+      rgba(255,255,255,.34) 68%,
+      rgba(255,255,255,.04) 84%,
+      rgba(0,0,0,.28)     100%),
+    linear-gradient(90deg, var(--cool-1), var(--cool-3) 55%, var(--cool-4));
+  border-radius: 13px;
+
+  /* El filo claro por dentro es el canto pulido; el resplandor por fuera es lo
+     que hace que se vea encendida y no pintada. */
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.38),
+    0 0 12px -2px var(--cool-2);
+}
+
+/* El destello que recorre el metal. Solo cruza lo LLENO —vive adentro de
+   .bar-fill— porque una barra vacia no tiene nada que brillar.
+
+   Se anima transform y nada mas: es lo unico que el navegador puede mover sin
+   volver a pintar. La pausa larga del arranque es a proposito; un destello
+   continuo deja de ser un destello y pasa a ser un parpadeo. */
+.bar-chrome .bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg,
+    transparent 42%,
+    rgba(255,255,255,.70) 50%,
+    transparent 58%);
+  transform: translateX(-110%);
+  animation: destello-cromo 3.6s ease-in-out infinite;
+}
+
+@keyframes destello-cromo {
+  0%, 62% { transform: translateX(-110%); }
+  100%    { transform: translateX(110%); }
+}
+
+/* Quien pidio menos movimiento no recibe el destello. La barra se sigue viendo
+   cromada: el metal esta en el degradado, no en la animacion. */
+@media (prefers-reduced-motion: reduce) {
+  .bar-chrome .bar-fill::after { animation: none; opacity: 0; }
+}
+
+/* Una meta: el nombre arriba, la barra abajo. */
+.goal { display: flex; flex-direction: column; gap: 5px; }
+
+/* ============================================================================
+   El carnet
+   ----------------------------------------------------------------------------
+   Frente y dorso de una credencial que se da vuelta al tocarla. Los elementos
+   son los de la referencia del 12/09/2026; la ejecucion, la de una tarjeta
+   profesional —pedido del usuario ese mismo dia: "orientate en los diseños
+   profesionales de las grandes empresas"—. Se tomo de Apple Wallet y de las
+   credenciales bancarias:
+
+     JERARQUIA   etiqueta chica, en mayusculas espaciadas, al 60%; valor grande
+                 en caja mixta. Dos tipografias con roles: Nunito para lo que se
+                 lee, Space Mono SOLO para lo que se copia (numero, patente, MRZ).
+     BLOQUES     cada dato en su celda, dentro de un panel translucido; separa el
+                 aire y un hairline, no una caja de color por dato.
+     COLOR       un matiz dominante con pasos tonales (azul, dentro de la paleta
+                 fria) y UN acento: la chapa de nivel, en el naranja de la app.
+                 Oro solo en el chip, porque es metal.
+     PROFUNDIDAD degradado en diagonal, luz radial arriba a la izquierda, sombra
+                 en dos capas (ambiente + contacto), filo claro de 1 px arriba, y
+                 sombra propia en la foto, el chip y la chapa.
+
+   TODOS LOS COLORES SON FIJOS. El carnet es un objeto y no interfaz: no sigue
+   el modo claro u oscuro.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/space-mono/space-mono-400-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/space-mono/space-mono-700-latin.woff2') format('woff2');
+}
+
+.carnet-scene {
+  perspective: 1400px;
+  margin: 0 -6px;
+  padding: 10px 0 14px;
+}
+
+/* La tarjeta que gira. Proporcion de una tarjeta: 1,6. */
+.carnet-card {
+  --c-1:      #163f7c;      /* el matiz dominante, en tres pasos */
+  --c-2:      #2364b3;
+  --c-3:      #3f8fdc;
+  --c-tinta:  #ffffff;
+  --c-suave:  rgba(255,255,255,.62);
+  --c-mono:   'Space Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.6;
+  transform-style: preserve-3d;
+  transition: transform .8s cubic-bezier(.2,.8,.3,1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  font-family: var(--ui);
+  color: var(--c-tinta);
+}
+
+.carnet-card:focus-visible { outline: 3px solid var(--brand); outline-offset: 5px; border-radius: 16px; }
+
+.carnet-card.is-flipped { transform: rotateY(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .carnet-card { transition: none; }
+}
+
+/* Una cara. Degradado en diagonal del matiz dominante, luz radial arriba a la
+   izquierda, y la textura ondulada muy tenue debajo del brillo. */
+.carnet-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  background-image:
+    radial-gradient(120% 90% at 18% -10%, rgba(255,255,255,.22), transparent 55%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='9'><path d='M0 4.5 Q7 1 14 4.5 T28 4.5' fill='none' stroke='rgba(255,255,255,.09)' stroke-width='1'/></svg>"),
+    linear-gradient(135deg, var(--c-1) 0%, var(--c-2) 52%, var(--c-3) 100%);
+  background-size: auto, 28px 9px, auto;
+
+  /* Sombra en dos capas —ambiente lejana y contacto cercana— y el filo claro
+     de arriba, que es lo que hace que la tarjeta parezca tener canto. */
+  box-shadow:
+    0 26px 44px -22px rgba(0,0,0,.7),
+    0 4px 10px -2px rgba(0,0,0,.3),
+    inset 0 1px 0 rgba(255,255,255,.32),
+    inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+/* El brillo: una banda ancha de luz en diagonal, discreta. Se corre al girar. */
+.carnet-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(118deg,
+    transparent 30%,
+    rgba(255,255,255,.14) 42%,
+    rgba(255,255,255,.04) 50%,
+    transparent 58%);
+  transition: transform .8s cubic-bezier(.2,.8,.3,1);
+}
+
+.carnet-card.is-flipped .carnet-face::after { transform: translateX(-10%); }
+
+.carnet-dorso { transform: rotateY(180deg); }
+
+/* ---- piezas comunes ------------------------------------------------------ */
+
+/* La fila del titulo: nombre del documento a la izquierda, chapa a la derecha. */
+.carnet-titulo {
+  position: absolute;
+  left: 5.5%; right: 5.5%; top: 7.5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.carnet-titulo > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--c-suave);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.carnet-titulo > span svg { flex: none; opacity: .85; }
+
+/* La chapa de nivel: EL acento del carnet, y el unico. */
+.carnet-titulo > em {
+  flex: none;
+  font-style: normal;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 4px 9px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.35);
+  white-space: nowrap;
+}
+
+/* En el dorso la chapa es discreta: ahi no hay acento, el frente ya lo tiene. */
+.carnet-titulo > .carnet-em-suave {
+  background: rgba(255,255,255,.14);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+}
+
+/* El panel translucido: vidrio sobre el degradado. Adentro, los campos en
+   grilla, separados por un hairline entre filas. */
+.carnet-panel {
+  position: absolute;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 10px;
+  padding: 0 10px;
+  background: rgba(255,255,255,.13);
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    0 10px 24px -14px rgba(0,0,0,.5);
+  overflow: hidden;
+}
+
+/* Un campo: etiqueta arriba, valor abajo. */
+.carnet-campo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,.14);
+}
+
+.carnet-campo > span {
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-suave);
+  white-space: nowrap;
+}
+
+.carnet-campo > b {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -.005em;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Lo que se copia va en mono, espaciado, como el numero de una tarjeta. */
+.carnet-mono {
+  font-family: var(--c-mono);
+  font-weight: 400;
+  letter-spacing: .10em;
+}
+
+/* La ultima fila del panel no lleva hairline debajo. */
+.carnet-panel > .carnet-campo:nth-last-child(-n+2) { border-bottom: none; }
+
+/* El chip: metal, con su sombra. */
+.carnet-chip { width: 100%; height: 100%; filter: drop-shadow(0 2px 3px rgba(0,0,0,.38)); }
+
+/* ---- FRENTE ------------------------------------------------------------- */
+
+/* La foto: retrato, con filo claro y sombra propia, sobre un fondo frio claro
+   —no amarillo: en una credencial profesional el fondo de la foto es neutro—. */
+.carnet-f-foto {
+  position: absolute;
+  left: 5.5%; top: 21%; width: 21.5%; height: 46%;
+  border-radius: 10px;
+  background: linear-gradient(165deg, #eaf4ff, #c7dff7);
+  display: grid;
+  place-items: center;
+  font-size: 54px;
+  line-height: 1;
+  overflow: hidden;
+  box-shadow:
+    0 10px 18px -8px rgba(0,0,0,.5),
+    inset 0 0 0 1.5px rgba(255,255,255,.7);
+}
+
+/* El panel del frente: a la derecha de la foto, tres filas de dos campos. */
+.carnet-f-panel { left: 30.5%; right: 5.5%; top: 21%; height: 46%; }
+
+/* La firma, en su celda: el garabato en blanco, sin caja. */
+.carnet-campo-firma { color: #fff; }
+.carnet-campo-firma > svg { height: 14px; width: auto; margin-top: 1px; }
+
+/* La fila de abajo: chip, numero y emisor, como en una tarjeta. */
+.carnet-f-chip { position: absolute; left: 5.5%; top: 75%; width: 11.5%; height: 15%; }
+
+.carnet-f-numero {
+  position: absolute;
+  left: 20.5%; top: 74.5%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.carnet-f-numero > span {
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-suave);
+}
+
+.carnet-f-numero > b {
+  font-size: 13.5px;
+  font-weight: 400;
+  letter-spacing: .16em;
+  text-shadow: 0 1px 2px rgba(0,0,0,.25);
+}
+
+.carnet-f-emisor {
+  position: absolute;
+  right: 5.5%; top: 75%;
+  text-align: right;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .10em;
+  line-height: 1.6;
+  text-transform: uppercase;
+  color: var(--c-suave);
+}
+
+/* ---- DORSO -------------------------------------------------------------- */
+
+/* La banda magnetica: oscura, arriba, con el reflejo de la cinta. */
+.carnet-d-banda {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 13%;
+  background: linear-gradient(180deg, #0d1a2e 0%, #1a2d4a 45%, #0f1f36 100%);
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.08), 0 2px 6px rgba(0,0,0,.25);
+}
+
+.carnet-d-titulo { top: 19%; }
+
+/* El panel del dorso: dos filas de dos campos y la silueta en su celda. */
+.carnet-d-panel {
+  left: 5.5%; right: 5.5%; top: 32%; height: 41%;
+  grid-template-columns: 1fr 1fr 1.2fr;
+}
+
+.carnet-d-panel > .carnet-campo:nth-last-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.14); }
+.carnet-d-panel > .carnet-campo:nth-last-child(-n+2):nth-child(n+4) { border-bottom: none; }
+
+.carnet-campo-silueta { grid-column: 3; grid-row: 1 / 3; align-items: flex-end; border-bottom: none !important; }
+.carnet-campo-silueta > span { align-self: flex-end; }
+.carnet-campo-silueta .carnet-silueta { height: 34px; width: auto; color: #fff; filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
+
+.carnet-silueta .carnet-vidrio { fill: var(--c-2); stroke: none; }
+.carnet-silueta .carnet-llanta { fill: var(--c-2); }
+
+/* La fila de abajo del dorso: huella, codigo de barras y chip. */
+.carnet-d-huella {
+  position: absolute;
+  left: 5.5%; top: 77%; height: 15%;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(255,255,255,.7);
+}
+
+.carnet-d-huella > svg { height: 100%; width: auto; }
+
+.carnet-d-huella > span {
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-suave);
+}
+
+.carnet-d-barras {
+  position: absolute;
+  left: 30%; right: 22%; top: 78%; height: 12%;
+  opacity: .92;
+}
+
+.carnet-barras { width: 100%; height: 100%; }
+.carnet-barras rect { fill: #fff; }
+
+.carnet-d-chip { position: absolute; right: 5.5%; top: 76.5%; width: 11.5%; height: 15%; }
+
+/* El MRZ: al pie, minusculo y apagado. Decorativo. */
+.carnet-d-mrz {
+  position: absolute;
+  left: 5.5%; right: 5.5%; bottom: 3.5%;
+  font-family: var(--c-mono);
+  font-size: 6px;
+  letter-spacing: .12em;
+  color: rgba(255,255,255,.38);
+  white-space: nowrap;
+  overflow: hidden;
+}
 
 /* ============================================================================
    Aviso emergente
