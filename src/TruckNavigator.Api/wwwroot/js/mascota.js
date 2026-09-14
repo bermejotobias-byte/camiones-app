@@ -7,16 +7,18 @@
  * app —fin de viaje, subir de nivel, error, alerta— a la POSE que corresponde, y
  * dibuja la pose si el asset existe o deja el lugar reservado si no.
  *
- * LOS ASSETS LOS ENTREGA EL DISEÑADOR (decision del 12/09/2026): PNG con
- * transparencia, a tamaño nativo, uno por pose, en /img/mascota/<pose>.png. Hasta
- * que lleguen, DISPONIBLES esta vacio y todo momento muestra el hueco. No se
- * dibuja el mono desde el codigo, ni como provisorio: un mono aproximado en el
- * codigo termina siendo el mono, y la regla de consistencia lo prohibe.
+ * LOS PNG SALEN DE LAS HOJAS DE REFERENCIA, uno por pose, en /img/mascota/<pose>.png.
+ * El usuario les saco el fondo el 12/09/2026 y el script las corto en poses,
+ * normalizando el alto del mono parado y dejandolo con los pies al piso en un
+ * lienzo cuadrado. Solo entran las hojas con gorra TBF: las de gorra MACK son
+ * una marca ajena. No se dibuja el mono desde el codigo, ni como provisorio: un
+ * mono aproximado en el codigo termina siendo el mono, y la regla de
+ * consistencia lo prohibe. Una pose que falta muestra el hueco.
  *
- * Es pixel art: se muestra con image-rendering pixelated y a MULTIPLOS ENTEROS de
- * su tamaño nativo. A escala fraccionaria se emborrona y deja de ser pixel art.
- * El tamaño nativo se fija cuando lleguen los PNG (NATIVO); la escala la elige
- * cada pantalla.
+ * Son renders de un dibujo con aire de pixel art, de 326 a 512 px de lado, no
+ * pixel art a resolucion nativa: se muestran con el suavizado normal del
+ * navegador y al tamaño que pide cada pantalla (NATIVO x escala, en px CSS).
+ * Nada de image-rendering pixelated, que al achicarlos los llena de escalones.
  */
 
 /**
@@ -62,10 +64,16 @@ export const MOMENTOS = {
   cumple:   { pose: 'torta',       alt: 'El mono trae la torta de tu cumpleanios' }
 };
 
-/** Poses con PNG entregado. Vacio hasta que el diseñador entregue. */
-export const DISPONIBLES = new Set([]);
+/**
+ * Poses con PNG en la carpeta. Falta "neutro": la unica hoja con el mono parado
+ * sin hacer nada lleva gorra MACK. Hay un test que cruza esta lista con la carpeta.
+ */
+export const DISPONIBLES = new Set([
+  'festejo', 'mate', 'cafe', 'mapa', 'binoculares', 'radar', 'rueda',
+  'combustible', 'comiendo', 'joystick', 'cartas', 'durmiendo', 'torta'
+]);
 
-/** Tamaño nativo del pixel art, en px. Se fija cuando lleguen los PNG. */
+/** Lado base en px CSS; cada pantalla lo multiplica por su escala. */
 export const NATIVO = 64;
 
 /**
@@ -75,7 +83,7 @@ export const NATIVO = 64;
  */
 export function mascota(momento, { escala = 2, clase = '' } = {}) {
   const m = MOMENTOS[momento] ?? MOMENTOS.motivar;
-  const lado = NATIVO * Math.max(1, Math.round(escala));
+  const lado = Math.round(NATIVO * Math.max(0.5, escala));
   const hay = DISPONIBLES.has(m.pose);
 
   return `

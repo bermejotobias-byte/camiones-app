@@ -41,9 +41,10 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-caba-map-layers.ps1               # Red, gálibos y pasos a nivel (sí se versionan)
 .\data\fetch-radares-velocidad.ps1             # Radares de velocidad, dato oficial del GCBA
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
+.\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 203 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 62 tests: guiado, avisos de ruta y agenda
+node --test "tests/web/*.test.mjs"             # 68 tests: guiado, avisos de ruta, agenda y mascota
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior

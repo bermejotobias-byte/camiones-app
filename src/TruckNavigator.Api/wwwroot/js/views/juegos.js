@@ -6,12 +6,13 @@
  * apagada se lee como rota, y una que falta cambia la forma del zocalo cuando
  * aparece. Esto no miente: dice que viene, y que.
  *
- * La trivia va primero (producto, v2 y v3). El lugar de la mascota queda
- * reservado arriba, como pide la skill de diseño: se compone previendo donde va,
- * y nada depende de que este.
+ * La trivia va primero (producto, v2 y v3). Arriba, la mascota en el momento
+ * "juegos" —el mono con el joystick—; si la pose faltara, el hueco del mismo
+ * tamaño, y nada depende de que este.
  */
 
 import { html, raw, icon, wire, render } from '../ui.js';
+import { mascota } from '../mascota.js';
 
 export function juegosView(host, { go, openDrawer }) {
   host.className = 'screen';
@@ -23,8 +24,7 @@ export function juegosView(host, { go, openDrawer }) {
     </div>
 
     <div class="scroll">
-      <!-- El lugar de la mascota. Vacio a proposito: se reserva, no se rellena. -->
-      <div class="mascota-slot" aria-hidden="true"></div>
+      ${raw(mascota('juegos', { escala: 2.5 }))}
 
       <div class="card stack">
         <span class="pill pill-reward" style="align-self:flex-start">Pronto</span>
