@@ -346,6 +346,8 @@ servidor: el cliente nunca dice cuánto ganó, sólo pregunta cuánto tiene.
 |---|---|---|
 | 🔨 | **Perfil.** Es donde se ven **logros, metas y avatares**, y donde se **edita el skin**. Nada de eso va en el carnet. **Construido el 10/09/2026** con la estructura de Duolingo; **el diseño visual NO está aprobado** (12/09) | v3 §12 · usuario 10/09/2026 |
 | 🔨 | **Carnet de camionero digital**, frente y dorso. **Pantalla distinta del perfil.** Ítems decididos el 11/09/2026 — frente: nombre, nacionalidad, nacimiento, nivel, EXP, avatar, chip, firma, número; dorso: marca, modelo, patente, ejes, silueta, huella, código de barras. **Construido; el diseño visual NO está aprobado** (12/09: *"no me gusta pero por el momento vamos a dejarlo así"*) | v3 §10 · ext §4 |
+| ✅ | **La mascota en la app**: el mono camionero con 13 poses, el sistema de momentos (`js/mascota.js`) y las insignias por escalón. **Aprobado el 14/09/2026.** | brief 12/09 · usuario 14/09/2026 |
+| 🔨 | **El diseño del resto de la app** —Bienvenida, Entrar, Perfil sin banda, Racha, Metas, Logros, festejos, listas y estados— está **prototipado y aprobado como dirección, sin codificar** (14/09/2026). Fuentes en `docs/diseno/prototipo/`; decisiones en `diseno-camiones-app` §16 | usuario 13–14/09/2026 |
 | ⬜ | **Resumen**: el centro de progreso — nivel, XP, kilometraje, estadísticas, metas, logros, actividad | v3 §12 |
 | ⬜ | **Avatar combinable y ampliable**: tonos de piel, barba, bigote, peinados, lentes. Lo que hay hoy en `profile.js` es un **placeholder**, no esto | v3 §8 · v1 |
 | ⬜ | Ediciones especiales de avatares (festivos, eventos), por suscripción o moneda | v1 |

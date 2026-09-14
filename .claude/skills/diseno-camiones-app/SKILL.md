@@ -500,17 +500,19 @@ riesgo. Pedírselas al diseñador, no inventarlas.
 
 ### Lo técnico, que condiciona todo
 
-- **Es pixel art.** Se muestra con `image-rendering: pixelated` y a **múltiplos
-  enteros** de su tamaño nativo; a escala fraccionaria se emborrona y deja de ser
-  pixel art. Eso fija los tamaños en pantalla desde el asset, no desde el layout.
-- **Las seis imágenes son referencias, no assets**: JPEG comprimido de WhatsApp,
-  con el fondo cuadriculado o negro incrustado. **No se pueden usar en la app.**
-  Hacen falta PNG con transparencia, a tamaño nativo, idealmente en una **hoja de
-  sprites** con las poses alineadas. Eso lo entrega el diseñador.
+- **Tiene aire de pixel art, pero no es pixel art nativo.** Las hojas son
+  renders de 300 a 500 px por pose con "píxeles" de 8 px y ruido de JPEG. Se
+  muestran con el **suavizado normal** del navegador, al tamaño que pide cada
+  pantalla; `image-rendering: pixelated` al achicarlos los llena de escalones.
+  (Esta sección decía lo contrario cuando se esperaba pixel art a resolución
+  nativa del diseñador.)
+- **Las imágenes de WhatsApp eran referencias; ahora son la fuente de los
+  assets.** El usuario les sacó el fondo con una herramienta en línea el
+  12/09/2026 y `data/cortar-mascota.ps1` las corta en un PNG por pose. Ver
+  abajo, "Los PNG".
 - **No dibujarlo nosotros.** Ni como provisorio: la regla de consistencia lo
-  prohíbe, y un mono aproximado en el código termina siendo el mono. Hasta que
-  lleguen los PNG, la app tiene **el lugar reservado y vacío** (`.mascota-slot`),
-  y el sistema de momentos apunta a poses que todavía no existen.
+  prohíbe, y un mono aproximado en el código termina siendo el mono. Una pose
+  que falta muestra **el hueco del mismo tamaño**, no un dibujo.
 - **Las animaciones son de la pose, no del dibujo**: entrada con rebote, confeti,
   salto — cosas que se hacen con `transform` sobre el sprite entero. Animar
   partes del cuerpo exige sprites por cuadro, y eso es del diseñador.
@@ -520,16 +522,53 @@ riesgo. Pedírselas al diseñador, no inventarlas.
 `js/mascota.js`. Traduce **momentos** de la app a **poses**: `festejo`, `nivel`,
 `racha`, `alerta`, `radar`, `error`, `motivar`, `perfil`, `juegos`,
 `nocturno`, `cumple`. Cada momento tiene su pose de las hojas y el texto
-alternativo. `DISPONIBLES` lista las poses con PNG entregado — **vacío hasta que
-el diseñador entregue** —; sin PNG, el hueco del mismo tamaño. `NATIVO` es el
-tamaño del pixel art y se fija cuando lleguen los archivos; cada pantalla elige
-la escala, siempre entera.
+alternativo. `DISPONIBLES` lista las poses con PNG en `wwwroot/img/mascota/`;
+sin PNG, el hueco del mismo tamaño. **Un test cruza esa lista con la carpeta en
+los dos sentidos** (`tests/web/mascota.test.mjs`): un PNG que no está en la
+lista no se muestra nunca, y una pose listada sin PNG es una imagen rota en la
+pantalla de festejo — ninguna de las dos falla en consola. `NATIVO` es el lado
+base en px CSS (64) y cada pantalla lo multiplica por su escala.
 
 Dos momentos comparten pose a propósito hasta que existan las propias: `nivel`
 usa el festejo y `motivar` el neutro. **Pedírselas al diseñador**, no inventarlas.
 
-**Decisiones del usuario, 12/09/2026:** los assets los entrega el diseñador como
-PNG con transparencia; el diseño base canónico es **gorra TBF y descalzo**.
+**Decisiones del usuario, 12/09/2026:** el diseño base canónico es **gorra TBF y
+descalzo**. Los assets iban a llegar del diseñador; el mismo día el usuario
+convirtió las hojas él mismo (abajo).
+
+### Los PNG — 12/09/2026, trece poses en la app. **Aprobado el 14/09.**
+
+El usuario pasó cuatro de las seis hojas por una herramienta de quitar fondo y
+las dejó en Descargas. `data/cortar-mascota.ps1` las corta por los huecos de
+alfa, normaliza el alto del mono **parado** entre hojas, lo pone con los pies al
+piso en un lienzo cuadrado y posteriza el color a 5 bits (el ruido del JPEG
+duplicaba el peso). Trece PNG, **964 KB en total**, y el script los regenera
+idénticos desde `docs/referencias/mascota/`.
+
+Lo que hubo que decidir, y conviene saber:
+
+- **Sólo entran las hojas con gorra TBF.** Dos de las cuatro convertidas llevan
+  gorra **MACK** —la marca de camiones— y quedaron afuera: es una marca ajena.
+  Consecuencia: **no hay pose `neutro`** (parado sin hacer nada), porque la única
+  hoja que la tiene es MACK. Los momentos `motivar` y `perfil` muestran el hueco.
+- **Las hojas TBF no cumplen el canon.** El canon es TBF **y descalzo**; las dos
+  hojas TBF convertidas van **con botas**, y la del festejo (TBF, descalza, la
+  canónica) no venía convertida: **la convertí yo** desde el JPEG, sacando el
+  damero por inundación desde el borde y comiendo dos píxeles de halo gris. Si
+  el usuario la pasa por su herramienta, se reemplaza el archivo y se vuelve a
+  correr el script. El mono con botas y el descalzo conviven en la app hoy;
+  cuando el diseñador entregue las definitivas, se unifica.
+- **Los estilos no son uno.** La hoja de cinco poses (comiendo, mate, cartas,
+  mapa, binoculares) es de perfil y con contorno blanco de calcomanía; la del
+  festejo es de frente y sin contorno. Es lo que hay en las referencias, no una
+  elección nuestra; el brief pide un solo personaje y esto se le señala al
+  diseñador, no se corrige en código.
+- **La pose `combustible` se achica** para que la manguera entre en el lienzo:
+  es 1,3 veces más ancha que alta. Ningún momento la usa hoy.
+
+Dónde se ve: **fin de viaje** (`festejo`, o `rueda` si no acreditó), **juegos**
+(`joystick`, que reemplazó al hueco suelto `.mascota-slot`). Verificado en el
+navegador a 375 px; falta el teléfono.
 
 ### Los logros — construidos, con la escala de Duolingo
 
@@ -589,6 +628,11 @@ completarse — la escala parece ir de rojo a violeta a dorado a celeste, aunque
 último es inferencia, no lectura segura.
 
 ## 14. La pantalla de Perfil — construida el 10/09/2026
+
+> **La banda celeste con trama de esta pantalla NO está aprobada** (usuario,
+> 13/09/2026: *"todavía no fue aprobado"*). El prototipo del §16 la reemplaza
+> por luz celeste, avatar con resplandor y la chapa de nivel. Lo que sigue
+> describe lo que hay **en código**, no la dirección.
 
 Está hecha y andando. **Estructura leída de la captura del perfil**, de arriba
 abajo, y lo que se decidió al adaptarla:
@@ -753,3 +797,99 @@ cultura general, fútbol.
 Requisito de arquitectura: el banco tiene que **poder ampliarse y categorizarse
 después sin tocar el sistema de trivia**. O sea, las preguntas son datos, no
 código.
+
+---
+
+## 16. El camino elegido — prototipo aprobado como dirección, 14/09/2026
+
+**Es un prototipo, no código.** Textual del usuario: *"Lo del diseño es prototipo
+y todavía no se va a trabajar en el código."* Lo que sí quedó **aprobado y en
+código** es la mascota aplicada en la app (§12, "Los PNG").
+
+**Dónde está:** el lienzo https://claude.ai/code/artifact/c7849797-3e2a-4d9d-83bf-2ac08fdfd44f
+y sus fuentes en `docs/diseno/prototipo/` (21 tableros, `final.mjs` los
+regenera). Cuando se implemente, **el vocabulario va primero a `app.css`** y las
+pantallas se hacen una por una contra esos tableros, sin inventar nada en el
+medio.
+
+### Cómo se llegó — seis vueltas en dos días, y qué enseñó cada una
+
+| Vuelta | Qué se propuso | Qué dijo el usuario |
+|---|---|---|
+| 1 | Dónde va el mono: tres tamaños, globo, seis pantallas | Pidió la estética del perfil y el zócalo en todas |
+| 2 | La banda celeste con trama en todas las cabeceras, cromo en todas las tiras | *"Fuiste muy literal (…) la banda todavía no fue aprobada (…) no era usar la misma barra en todas"*. Pidió más naranja para los globos y releer la regla del complementario |
+| 3 | Cuatro materiales, tres cabeceras, tres globos, la fila de Configuración | Aprobó vidrio, neón, naranja como voz, íconos, Configuración; cromo en más tonos; Entrar mal ejecutada; S.O.S. sin cabecera grande |
+| 4 | Cromo en tres tonos, globo pleno + vidrio con chip, Entrar rehecha | Pidió más gamificación sin exagerar, oro y plata más encendidos, Camiones con onda |
+| 5 | La chapa de nivel, oro y plata fuertes, Camiones hero | Pidió **dos pantallas con esfuerzo extra**: Bienvenida y Subiste de nivel |
+| 6 | Esas dos, desde las capturas de Duolingo | ***"Es la orientación que estaba buscando"*** → todo lo demás se derivó de ellas |
+
+**Las dos lecciones:**
+
+1. **La banda del perfil no estaba aprobada y yo la repliqué como si lo
+   estuviera.** Un recurso que el usuario dejó *"por ahora"* no es un recurso del
+   sistema. Antes de extender algo a toda la app, verificar que esté aprobado.
+2. **Dos pantallas con esfuerzo extra valieron más que seis rondas de dieciséis.**
+   Cuando el usuario no encuentra la dirección, reducir el alcance y subir la
+   calidad. Lo pidió él (*"solo esas dos"*), y funcionó al primer intento.
+
+### Las decisiones, en orden de peso
+
+- **El naranja es la voz del mono.** Aprobado. Es el complementario del celeste
+  (§14, "El acento complementario") y por eso se usa poco: **una sola pieza
+  naranja por región**, nunca en el botón de un formulario. El globo del mono es
+  esa pieza; donde él habla, el botón de al lado es celeste. El título de un
+  festejo también es naranja — es la otra excepción, y ya existía (§5).
+- **El globo del mono**, dos formas que se alternan: **vidrio** naranja con la
+  chip del momento (violeta si es racha, celeste si es sección, gris si es aviso)
+  donde hay luz detrás o más texto; **pleno**, con el reborde inferior de los
+  botones, para una sola frase. Cola al costado junto al mono o abajo cuando el
+  mono está debajo. El mono va **suelto con sombra en el piso**; el marco de
+  carnet quedó descartado con la banda.
+- **Materiales**, cada uno con su lugar:
+  - **Vidrio**: paneles y globos translúcidos sobre los heros con luz.
+  - **Neón**: lo activo se enciende con un borde de luz — el camión en uso, el
+    idioma elegido, el campo con foco. Uno por pantalla.
+  - **Cromo en tres tonos**, uno por pantalla: **frío** (celeste → violeta) para
+    el progreso, **oro** (naranja → dorado) para el nivel, **plata** para los
+    totales. Texto en tinta oscura sobre oro y plata, blanco con sombra doble
+    sobre frío. **El oro vuelve a la paleta sólo acá**: §10 lo había descartado
+    por cálido, y el usuario lo recuperó para el nivel, *"medio naranja/dorado"*.
+  - **Satinado**: de vez en cuando — la fila de la cuenta, un catálogo, un dato
+    secundario. Lo demás plano, para que los otros tres se noten.
+- **La chapa de nivel**: pastilla de oro con el número en un disco oscuro y el
+  nombre en mayúsculas — *2 · REPARTIDOR*. Es el elemento gamificado del usuario
+  y va con él: grande en Subiste de nivel, chica junto al nombre en Perfil y en
+  Configuración. **Subir de nivel es recibir la chapa**: es lo que se desbloquea,
+  no hay que inventar recompensas que el motor no da.
+- **Cabeceras, tres y ninguna repetida**: compacta con un dato en placa
+  (Historial, Camiones, Configuración), hero con luz de color y el mono parado
+  (Juegos, Metas), hero con el mono hablando (Bienvenida, Entrar). **La banda
+  celeste con trama del perfil NO fue aprobada**; el prototipo la reemplaza por
+  luz celeste, y §14 queda como registro de lo que hay en código.
+- **Fichas con su color y su luz** (borde de 2 px + resplandor del mismo tono):
+  es la pieza de Fin de viaje que el usuario señaló como referencia de color.
+- **La fila de Configuración es la caja de toda la app**: ícono ilustrado, título,
+  subtítulo gris, chip o botón a la derecha, chevron. Fue lo que más le gustó.
+- **Íconos ilustrados** de dos tonos como los del zócalo, aprobados: 27, en
+  `docs/diseno/prototipo/iconos.mjs`. La viborita en azul: el verde es semántico.
+- **S.O.S.**: cabecera de 48 px, plana, roja, con *S.O.S.* centrado; el 911 como
+  botón rojo con reborde; contactos como filas. Sin mono.
+- **El mapa en movimiento no lleva nada de esto**, y el mono aparece en la hoja
+  del mapa **sólo antes de arrancar**. Es la única pantalla sobria.
+- **Festejos** (Fin de viaje, Subiste de nivel, Racha): luz cálida abajo, confeti
+  con papelitos de oro, título naranja, la chapa, acción naranja y compartir.
+  **Sólo Subiste de nivel lleva los rayos** que giran detrás del mono.
+- **Perfil** en el prototipo: la estructura de la captura punto por punto, sin la
+  banda; el avatar es un placeholder hasta el editor de la Fase 6.
+- **Carnet**: sigue congelado sin aprobar (§7bis); entra con este vocabulario.
+- **Condiciones** no se bocetó: texto y un botón.
+
+### Principios que el usuario pidió explícitamente
+
+*"Usá los mejores conceptos de marketing digital y diseño gráfico de
+aplicaciones."* Los que quedaron aplicados y escritos en la portada del lienzo:
+**un foco por pantalla** y una sola acción principal; **celeste si es
+formulario, naranja si es festejo**; **un cromo por pantalla** — si todo brilla,
+nada brilla; **el mono habla, no decora** — una pose por momento, siempre la
+misma; **el vacío vende la próxima acción** — el mono pregunta, el botón
+responde; **los números cuentan la historia** — grandes, tabulares, con unidad.

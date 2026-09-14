@@ -212,8 +212,8 @@ pudo probar y hay que decirlo cada vez.
 
 ### El motor de progresión, verificado el 10/09/2026
 
-**417 tests en total**: 255 unitarios de .NET, 100 de integración (11 se saltean sin
-GraphHopper) y 62 de JS. Venían de 147 + 56 + 62.
+**423 tests en total**: 255 unitarios de .NET, 100 de integración (11 se saltean sin
+GraphHopper) y 68 de JS. Venían de 147 + 56 + 62.
 
 Todo el motor se construyó con **TDD estricto**: cada test se vio fallar antes de
 escribir el código. Eso atajó tres defectos **antes de que existiera una sola línea
@@ -987,7 +987,7 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
 - **Los 3 contactos de emergencia están hechos** (AD-42, AD-43) y verificados en
   el teléfono.
 
-**Lo que queda, al 10/09/2026:**
+**Lo que queda, al 14/09/2026:**
 
 **Del despliegue** — nada de esto depende de programar, y todo está bloqueando:
 
@@ -1018,10 +1018,20 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
    idioma → condiciones → acceso) y el **modo invitado**. Y una decisión chica:
    el **hamburguesa del mapa duplica a "Más"**; sacarlo es una línea.
 9. ~~La pantalla de fin de viaje~~ — **hecha el 12/09** (`views/fin-viaje.js`),
-   con el sistema de momentos de la mascota (`js/mascota.js`, hueco reservado
-   hasta que lleguen los PNG) y las insignias en pixel art con la escala de
-   Duolingo (`js/logros.js`). El cierre del viaje ahora devuelve `earned`.
+   con el sistema de momentos de la mascota (`js/mascota.js`) y las insignias
+   en pixel art con la escala de Duolingo (`js/logros.js`). El cierre del viaje
+   ahora devuelve `earned`. **La mascota se ve y está aprobada (14/09)**: el
+   usuario convirtió las hojas a PNG y `data/cortar-mascota.ps1` las cortó en
+   **13 poses** (964 KB). Falta `neutro` —sólo existe con gorra MACK, marca
+   ajena— y las hojas mezclan botas y descalzo. Ver `diseno-camiones-app` §12.
    **Falta verla en el teléfono al cerrar un viaje real.**
+9b. **El prototipo de diseño está aprobado como dirección y NO se codifica
+   todavía** (14/09). Está en `docs/diseno/prototipo/` y en el lienzo que
+   enlaza su README. Ver `diseno-camiones-app` §16. Cuando el usuario diga,
+   el orden es: vocabulario en `app.css` (vidrio, neón, cromo en tres tonos,
+   chapa, globo, fichas, fila) → Bienvenida y Entrar → Perfil sin banda →
+   festejos → el resto. **Racha, Metas y Logros no existen en código**: el
+   prototipo es su primera definición.
 10. **La vista pública del perfil** — endpoint para ver el perfil de otro
     usuario. El perfil se diseñó como público (*"visible para el resto de los
     usuarios"*), pero **no existe forma de que otro lo vea**. Sin esto, la
