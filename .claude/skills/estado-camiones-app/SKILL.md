@@ -25,7 +25,10 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 12/09/2026: `ec20c58`** (el zócalo), pusheada a `origin`, sin nada
+**Punta al 15/09/2026: el cierre del relevamiento de POIs** (diecisiete commits
+desde `b5dc4d3`, de la spec `c16cef1` al cierre en docs), **sin pushear**. Los
+del 14/09: la mascota en la app (`5db5267`) y el prototipo de diseño
+(`b5dc4d3`). Antes, **`ec20c58`** del 12/09 (el zócalo), pusheada a `origin`, sin nada
 pendiente salvo `routing/config-truck.yml`. Antes, `91350da`. Los cinco commits del 12/09 —escalas y EXP,
 campos de identidad, perfil, carnet, skills— son las sesiones del 10 al 12/09.
 **Los de perfil (`8daf031`) y carnet (`81573e6`) llevan en el mensaje que el
@@ -98,7 +101,7 @@ Prioridad declarada:
 | **1 · Navegación** | 🔨 **Todo lo construible está hecho** — guiado, voz, GPS en segundo plano, brújula, nombre verde de la calle, vibración por patrón, alternativas de ruta y reintento al conectar. Falta lo único que no se puede hacer acá: **manejar** |
 | **2 · Usabilidad** | ✅ Completa — salió adelantada dentro de la mudanza del frontend |
 | **3 · Seguridad** | 🔨 Están el 911, las zonas peligrosas y los **3 contactos de emergencia**. Queda **compartir viaje por WhatsApp** —necesita endpoint público, tokens que venzan y decisiones de privacidad— y el S.O.S. del reporte, que depende de la Fase 5 |
-| **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). Queda sólo **POIs valorados por usuarios**, que necesita conversación |
+| **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). **La base de POIs para camiones se relevó el 15/09/2026** (gomerías, estaciones, lugares para comer; 158 puntos, 26 con evidencia). Queda **la interfaz de POIs en la app web** y la conversación sobre **POIs valorados por usuarios** |
 | **5 · Reportes de comunidad** | ⬜ **Fase nueva del v2** — reportar y confirmar siniestros, radares y retenes. Es un sistema, no una función |
 | **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Falta lo que se apoya en él: **las pantallas**, el avatar combinable, la batería y los juegos |
 | **7 · Cáscara, entrada e idiomas** | 🔨 **El zócalo está** (12/09). Quedan intro → idioma → condiciones → acceso y el modo invitado. Ver `producto-camiones-app` |
@@ -210,10 +213,49 @@ modificado en cada `git status`; **no commitearlo**.
 **Distinción crítica.** Mucho está probado a fondo; una franja específica no se
 pudo probar y hay que decirlo cada vez.
 
+### El relevamiento de POIs — 15/09/2026
+
+**432 tests en total**: 256 unitarios de .NET, 108 de integración (11 se saltean
+sin GraphHopper) y 68 de JS. Todo verde al cierre.
+
+Spec `docs/superpowers/specs/2026-09-15-pois-camiones-relevamiento-design.md`,
+plan `docs/superpowers/plans/2026-09-15-pois-camiones-relevamiento.md`, once
+tareas ejecutadas en orden con commit por tanda. **Lo que quedó y cómo se
+verificó:**
+
+| Qué | Cómo se verificó |
+|---|---|
+| Modelo: `TruckFriendlyEatery`, `SuitabilityEvidence` + `Kind`, `ManagedByDataset`; migración `AddPoiSuitabilityEvidence`; DTO | Tests de dominio, persistencia (ida y vuelta por SQLite) y contrato |
+| El seed reconoce lo suyo por `ManagedByDataset` y borra lo que sale del archivo | Tres tests del seed, incluido el que **adopta filas de una base vieja por id** |
+| `pois-caba-relevamiento-2026-09.json`: **89 puntos** — 16 gomerías (14 `Confirmed`, 2 `Probable`), 1 auxilio pesado, 71 estaciones (5 `Confirmed`, 66 `NotConfirmed` sobre la Red), 1 lugar para comer | **11 candados en `PoiDatasetTests`** y la API levantada en Development: `GET /api/pois?categories=…` devuelve 41 gomerías (16 relevadas), 87 estaciones (71), 1 comedor. 155 POIs en total por la API, 158 en los archivos (los curados y los de muestra suman) |
+| Cada evidencia es un resumen propio con fecha; las coordenadas salen de OSM, del registro oficial o de Photon, y `source` lo dice | Test que exige fecha `DD/MM/AAAA` en toda evidencia; lectura a mano de las evidencias por la API |
+
+**Dos defectos que atraparon los tests, no el ojo:**
+
+- **Dos puntos con la misma fuente son el mismo id** (MD5 de `source`), y la
+  herramienta de armado pisaba uno con el otro sin avisar: Recapados Universal
+  desapareció detrás de Auxilios Mecánicos Pesados. Ahora la fuente de una ficha
+  pública lleva el nombre del comercio.
+- **El registro oficial lista la misma boca dos veces** (líquidos y GNC con
+  distinto `idempresa`): Zelarrayán 5530 salía encimada. El candado
+  `No_two_points_of_the_same_category_share_the_same_spot` (25 m) lo vio
+  primero; se fusionan.
+
+**Y uno que atrapó el cruce de fuentes:** el registro de la Secretaría de
+Energía **conserva estaciones cerradas** (Antártida Argentina y Calle 10, Juan
+B. Justo 8490 y 5940). Se cruzó cada una con el mapa oficial de su marca y la
+ficha pública; cinco quedaron afuera. **La fecha del último precio informado NO
+sirve como señal de cierre**: veinte estaciones abiertas dejaron de informar
+en 2025-06 a la vez.
+
+**Lo que NO se verificó:** nada en pantalla, porque **la app web no muestra los
+POIs** (ninguna vista llama a `api.pois()`, no hay capa en `layers.js`). La
+interfaz es lo siguiente, sobre el prototipo de diseño.
+
 ### El motor de progresión, verificado el 10/09/2026
 
-**423 tests en total**: 255 unitarios de .NET, 100 de integración (11 se saltean sin
-GraphHopper) y 68 de JS. Venían de 147 + 56 + 62.
+**423 tests en total** en ese momento: 255 unitarios de .NET, 100 de
+integración (11 se saltean sin GraphHopper) y 68 de JS. Venían de 147 + 56 + 62.
 
 Todo el motor se construyó con **TDD estricto**: cada test se vio fallar antes de
 escribir el código. Eso atajó tres defectos **antes de que existiera una sola línea
@@ -671,6 +713,18 @@ Tres secciones sirven, y conviene mirarlas en este orden:
   debe separar visiblemente ambos.
 - **Verificar, no especular.** Textual: *"no quiero que especules, prefiero que
   busques y confirmes"*. Medir contra la fuente y decir la fecha.
+- **Google Maps es referencia para los POIs, nunca base que se copia
+  (15/09/2026).** Cambió la regla que decía "nunca Google": textual, *"no es
+  copiarle la base de datos, es solo la referencia que tenemos para usarlo de
+  dato. Usa todas las líneas de acceso a la información que se te ocurra"*.
+  Sólo para los POIs; mapa base y ruteo siguen siendo OSM. Coordenadas de OSM o
+  de un registro oficial; lo que sale de una ficha o de reseñas, resumen propio
+  con fecha. **Las reseñas de conductores cuentan como confirmación** —*"si hay
+  reseña lo contamos como aprobado"*—, con la condición de decir *"según
+  reseñas de conductores, consultadas el <fecha>"* y marcar apto sólo el tipo
+  de camión que las reseñas mencionan. Alcance: **CABA más un anillo de ~2 km**
+  (colectoras de la General Paz, Mercado Central, Dock Sud); no es tocar el AMBA.
+  Ver `data-sources.md` "Puntos de interés" y la spec del 15/09.
 - **Regla de acreditación de km aprobada.** Media duración estimada. Textual:
   *"preferible ese abuso antes que romper la app"*. Revisar en Fase 1 con el
   trazado del GPS.
@@ -1046,6 +1100,16 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
    no por código: cuánto dura un reporte, cuántas confirmaciones lo validan, qué
    pasa con los falsos. Con el motor hecho, sumarlas es **una pista más en el
    catálogo**.
+12b. **La interfaz de POIs en la app web** — la base está (15/09/2026, ver §4)
+   y **ninguna vista la muestra**: `api.js` conserva `pois()`, no hay capa en
+   `layers.js`. Lo que hay que construir: el botón *Lugares* con filtros por
+   categoría, "solo aptos para mi camión" con el contador de ocultos, la ficha
+   con la evidencia y su fecha, y marcadores distintos para `Confirmed`,
+   `Probable` y `NotConfirmed` — un dato sin confirmar **no se ve igual** que
+   uno confirmado. Va sobre el prototipo de diseño cuando el usuario lo pida.
+   **Cómo seguir relevando** está en `data/relevamiento/README.md`: la
+   herramienta de armado quedó en el scratchpad de la sesión, no en el repo;
+   si hace falta otra tanda, rehacerla desde la plantilla del plan (Task 8).
 13. **Los cinco juegos** — proyecto aparte. La trivia es la más definida y sería la
    primera.
 

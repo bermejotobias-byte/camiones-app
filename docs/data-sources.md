@@ -109,9 +109,12 @@ base y el ruteo siguen siendo OSM.
 | Fuente | Qué aporta | Licencia |
 |---|---|---|
 | OpenStreetMap (Overpass, en tiempo de autoría) | Candidatos completos: estaciones, gomerías, talleres, playas; coordenadas y datos de contacto | ODbL |
-| Secretaría de Energía — *Precios en surtidor, Res. 314/2016* (datos.energia.gob.ar) | Registro completo de estaciones con coordenadas, bandera, dirección y productos (gasoil grado 2 y 3, GNC) | CC-BY-4.0 |
-| Sitios de operadores y marcas | Redes de estaciones para camiones, servicios declarados | Cita, no copia |
-| Fichas públicas y reseñas (Google Maps) | Verificación y testimonio de conductores | Resumen propio con fecha |
+| Secretaría de Energía — *Precios en surtidor, Res. 314/2016* (datos.energia.gob.ar) | Registro completo de estaciones con coordenadas, bandera, dirección y productos (gasoil grado 2 y 3, GNC). **Conserva bocas cerradas**: se cruza con el mapa de la marca o la ficha pública antes de entrar | CC-BY-4.0 |
+| INTI / ARAN — listado REG-04 de plantas de reconstrucción de neumáticos certificadas (aranargentina.com) | Gomerías con planta de recapado certificada: evidencia `Official` | Cita |
+| Mapas oficiales de las marcas: YPF (`mapa.ypf.com`), Shell (`find.shell.com/ar`), Axion (`axionenergy.com`) | Por estación: Azul 32 (urea para diésel pesado), playa para camiones, GNC, estado activa/inactiva. Las tarjetas de flota **no** cuentan como aptitud | Cita |
+| Acta Compromiso Transporte (Ministerio de Transporte, YPF y Camioneros, 24/03/2020), Anexo I | 260 estaciones YPF comprometidas como punto de parada para camioneros (descanso, comida las 24 h, baños): evidencia `Official` | Documento público |
+| Sitios de operadores y comercios | Servicios declarados: truck center, recapado, alineación de pesados | Cita, no copia |
+| Fichas públicas y reseñas (Google Maps) | Verificación, estado (abierto/cerrado) y testimonio de conductores | Resumen propio con fecha |
 
 Alcance: CABA más un anillo de ~2 km (`-34.725, -58.555` / `-34.505, -58.315`),
 que cubre las colectoras de la General Paz, el Mercado Central, Dock Sud y los
@@ -263,284 +266,31 @@ fuente.
 *Próximo paso:* pedir al GCBA el registro de playas habilitadas para carga, o
 modelar el auxilio como servicio con área de cobertura en lugar de como punto.
 
-### L-6 · La aptitud para camión casi nunca está declarada
+### L-6 · La aptitud para camión sigue sin declararse en la mayoría de los puntos
 
-75 de los 78 puntos del dataset inicial tienen los cuatro campos de aptitud en
-`null`. Con el filtro "solo aptos para mi camión" activado, un semirremolque hoy
-no ve ningún punto.
+**Al 15/09/2026, después del relevamiento:** 158 puntos en los tres datasets,
+**26 con aptitud declarada** (ya no 3 de 78) y 132 con los cuatro campos en
+`null`. Por categoría:
+
+| Categoría | Puntos | Con aptitud declarada | Cómo |
+|---|---|---|---|
+| Gomerías | 41 | **16** | 4 por el registro INTI/ARAN, 5 por el operador, 5 por reseñas de conductores (`Confirmed`), 2 por señales (`Probable`) |
+| Estaciones de servicio | 87 | **5** | 3 por el operador (Azul 32 de YPF, playa para camiones de Shell), 2 por el Acta Compromiso Transporte. Las otras 66 del relevamiento están sobre la Red de Tránsito Pesado y entran `NotConfirmed`, sin aptitud |
+| Lugares para comer con lugar para el camión | 1 | **1** | Por señales (adentro del Mercado Central) |
+| Auxilio pesado y playas | 4 | **4** | Los tres curados de agosto y uno nuevo por señales |
+| Talleres | 25 | 0 | Sin relevar: fuera del alcance de esta etapa |
+
+Con el filtro "solo aptos para mi camión" activado, un semirremolque hoy ve los
+puntos cuya evidencia menciona semirremolques (Calzetta Truck Center) y el
+comedor del Mercado Central; el resto de los aptos son para camión liviano y
+pesado, porque la evidencia sólo habla de "camiones". **La aptitud por reseñas
+lleva fecha** —las reseñas envejecen— y se lee en `suitabilityEvidence`.
 
 Es el resultado correcto —lo que falta es el dato, no el motor— pero conviene
 saberlo antes de interpretar un mapa vacío. La app lo dice explícitamente con el
-contador de puntos ocultos.
+contador de puntos ocultos. **La app web todavía no muestra los POIs**: la
+interfaz es lo siguiente.
 
-El 15/09/2026 empezó el relevamiento con evidencia por punto (ver "Puntos de
-interés" en la sección 2); los números se actualizan al cerrarlo.
+El método, las búsquedas hechas y los descartes con motivo están en
+`data/relevamiento/README.md`.
 
----
-
-## Datos de prueba
-
-Los tres perfiles que siembra la API (`Camión liviano` 7.500 kg, `Camión pesado`
-18.000 kg, `Semirremolque` 40.000 kg) son **valores de prueba** y no representan
-límites legales. Quedan marcados con `IsSampleData = true` y la app los muestra
-con la leyenda "Datos de prueba".
-
----
-
-## 5. Capas de camión del mapa
-
-Las genera `data/fetch-caba-map-layers.ps1` desde Overpass y quedan versionadas
-en `src/TruckNavigator.Api/wwwroot/data/`. Se sirven a la web y viajan dentro del
-APK, así que en el teléfono no se descargan.
-
-**Ningún proveedor de tiles incluye estos datos.** OpenMapTiles, Protomaps y los
-comerciales son basemaps de propósito general: no traen `hgv`, `maxheight` ni
-`railway=level_crossing` como atributos consultables. Por eso la capa es nuestra.
-
-| Archivo | Objetos | Consulta |
-|---|---|---|
-| `red-transito-pesado.geojson` | 2.426 tramos | `way[hgv=designated]` |
-| `alturas.geojson` | 577 puntos | `way[maxheight]` con altura numérica |
-| `pasos-a-nivel.geojson` | 312 puntos | `node[railway=level_crossing]` |
-
-Medido dentro del límite administrativo de CABA el 24/08/2026.
-
-### L-7 · Un sexto de los gálibos no declara una altura
-
-`maxheight=default` significa "rige el límite legal", no una medida: son **108 de
-685** tramos con la etiqueta. Quedan fuera del dataset porque mostrar un número
-inventado sobre un puente es peor que no mostrar nada — pero eso significa que
-**hay pasos bajo nivel reales que la app no marca**.
-
-*Próximo paso:* si aparece la altura publicada por el GCBA o por el operador
-ferroviario, se cargan como fuente propia y se distinguen de las de OSM.
-
-### L-8 · Un tercio de los pasos a nivel no declara su barrera
-
-117 de 312 no dicen qué protección tienen. Se pintan en gris: **no declarado no
-es lo mismo que sin barrera**, y tratarlo como tal sería inventar una advertencia.
-
-De los que sí declaran: 82 media barrera, 40 completa, 27 doble media y **36 sin
-barrera**. Esos 36 son los que importan.
-
-*Próximo paso:* el GCBA no publica el registro —se consultó el portal de datos
-abiertos por *paso a nivel*, *ferroviario*, *barrera* y *tren*, sin resultados—.
-Confirmarlos pide relevamiento o pedido de información pública.
-
----
-
-## 6. Mapa base vectorial
-
-Lo genera `data/build-basemap.ps1` y queda en `routing/amba.pmtiles` — no se
-versiona, igual que el extract de OSM y el grafo de GraphHopper.
-
-**Origen:** build diario del planeta que publica Protomaps, del que se extrae
-sólo el AMBA. El rectángulo es **el mismo** con el que se recorta el grafo de
-ruteo y se acotan los resultados del geocoder: que coincidan garantiza que todo
-lo que el buscador encuentra se puede ver y rutear.
-
-| | |
-|---|---|
-| Región | `-59.30, -35.20` / `-57.90, -34.00` |
-| Zoom | 0–15 |
-| Tamaño | 53 MB |
-| Esquema | Protomaps basemap — `earth`, `landuse`, `water`, `roads`, `buildings`, `boundaries`, `places` |
-| Licencia | OpenStreetMap (ODbL) |
-
-**Tipografía:** Noto Sans, rangos 0–511, vendorizada en `wwwroot/fonts`. Cubre el
-español completo incluidas las mayúsculas acentuadas. Va con la app y no se pide
-a un servidor: adentro de un camión, una descarga más es una cosa más que puede
-fallar — y sin glifos MapLibre no dibuja ni una letra.
-
-**Para actualizar:** volver a correr el script. Protomaps republica a diario.
-
----
-
-## Radares de velocidad — Buenos Aires Data
-
-**Dataset:** [Cámaras fijas de control vehicular](https://data.buenosaires.gob.ar/dataset/camaras-fijas-control-vehicular)
-
-| | |
-|---|---|
-| Organismo | Dirección General Cuerpo de Agentes de Control de Tránsito y Seguridad Vial |
-| Licencia | **CC-BY-2.5-AR** (confirmada por la API del portal) |
-| Actualización | cada seis meses · última publicación: 23/07/2025 |
-| Formatos | CSV, XLSX, SHP |
-| Registros | **224**, las 224 dentro de CABA |
-
-El dataset trae **dos tipos** en el campo `tipo_de_fiscalizador`, y sólo uno es un
-radar de velocidad:
-
-| Tipo | Cantidad | Qué es |
-|---|---|---|
-| **Cinemómetro** | **129** | mide velocidad |
-| Analítica de video | 95 | semáforo en rojo, celular, cinturón |
-
-`data/fetch-radares-velocidad.ps1` se queda **sólo con los cinemómetros**. Marcar
-los otros como radares sería decirle al camionero que hay un control de velocidad
-donde no lo hay.
-
-### Contraste con OpenStreetMap
-
-Medido contra Overpass el 31/08/2026, dentro del límite administrativo de CABA:
-
-| Fuente | Radares de velocidad |
-|---|---|
-| Dataset oficial | 129 cinemómetros |
-| OSM `highway=speed_camera` | **176** |
-
-**OSM tiene más que el listado oficial**, y no se sabe cuál está más al día. Se
-eligió el oficial porque tiene organismo responsable, licencia y cadencia
-declarada. OSM queda como control, no como fuente.
-
-### Trampas del archivo
-
-- Viene en **Latin-1**, no UTF-8. Decodificarlo con la página de códigos de la
-  máquina convierte "MARÍA" en "MAR?A" y cambia de equipo en equipo: el script lo
-  decodifica byte a byte, que es exacto para los acentos del castellano.
-- Separador **punto y coma**, decimales con **coma**.
-- El encabezado `ubicación` lleva tilde: el script declara los nombres de columna
-  a mano en vez de depender de que ese carácter sobreviva.
-
----
-
-## L-9 · No hay dato de balanzas de pesaje para CABA
-
-**Investigado el 31/08/2026, sin resultado.** El brainstorm v2 pedía radares de
-control de peso y el propio documento decía "investigar". Lo que se encontró:
-
-- **Ningún dataset abierto con ubicaciones**, ni en Buenos Aires Data, ni en el
-  portal nacional de transporte, ni en el de la Provincia.
-- Los puestos de control de pesos y dimensiones son de **Vialidad Nacional y
-  provincial, sobre rutas** — Santiago del Estero, Salta, Tucumán, Corrientes,
-  Misiones, Chaco, Santa Fe, Córdoba, Buenos Aires y Mendoza. Ninguno en la
-  Ciudad.
-- **En OSM: cero balanzas dentro de CABA.** En todo el AMBA hay **dos**, ambas
-  fuera de la Ciudad y sobre el corredor de Panamericana
-  (`-34,2469 / -58,9661` y `-34,4211 / -58,5714`), sin nombre ni operador.
-
-**Conclusión:** para una aplicación de CABA no hay dato que mostrar. La otra mitad
-de la idea —que el usuario avise si están parando— es un reporte de comunidad, y
-como tal tiene que verse distinto de un dato oficial.
-
----
-
-## 7. Zonas peligrosas — mapa colaborativo del AMBA
-
-**Fuente:** mapa ["Zonas Peligrosas"](https://www.google.com/maps/d/u/0/viewer?mid=1ZVh-1tRfDFTc4O1eITKjEkASCXFQExtL)
-de Google My Maps, que circula entre repartidores del AMBA.
-
-| | |
-|---|---|
-| Autoría | **anónima** |
-| Licencia | **no declarada** |
-| Metodología | **no publicada** |
-| Fecha | **no declarada** |
-| Polígonos | 403 en todo el país · **19 tocan CABA** |
-| Superficie en CABA | **8,8 km², el 4,3% de la Ciudad** |
-
-Lo genera `data/fetch-zonas-riesgo.ps1`, que baja el KML, se queda con los
-polígonos que tocan CABA y los recorta al límite de la Ciudad.
-
-**No es un dato oficial y la app lo dice cada vez que se toca una zona.** Se usa
-como lo que es: el juicio de gente que trabaja en la calle todos los días.
-
-### Por qué se descartó el Mapa del Delito del GCBA
-
-Se construyó primero con el dataset oficial de delitos (CC-BY, 133.203 hechos de
-2025 con coordenadas) y **hubo que descartarlo**. Los dos motivos valen la pena
-porque son fáciles de repetir:
-
-**1. Contar delitos denunciados mide dónde hay gente, no dónde hay peligro.**
-Palermo encabezaba la Ciudad con 4.126 hechos. Filtrar a robos a mano armada
-corregía buena parte del sesgo —Villa Soldati tiene 30,9% de robos con arma
-contra 6,3% de Palermo— pero no el fondo: un conteo de hechos no es un mapa de
-peligro.
-
-**2. El dataset cubre exactamente CABA**, así que el mapa de calor terminaba
-dibujando la silueta de la Ciudad. En pantalla era un manchón rojo con la forma
-del límite administrativo, diciendo *"toda la Ciudad es peligrosa y el conurbano
-es seguro"* — absurdo, y al revés de la realidad.
-
-El análisis del dato oficial queda acá porque sigue siendo útil para contrastar,
-y porque explica por qué la app **no** lo usa.
-
-### Dónde caen las 19 zonas
-
-| Barrio | km² |
-|---|---:|
-| Villa Soldati | 2,49 |
-| Barracas (Villa 21-24) | 2,02 |
-| Villa Lugano | 1,54 |
-| Retiro (Villa 31) | 0,86 |
-| Flores (Villa 1-11-14) | 0,78 |
-| Recoleta | 0,30 |
-| Parque Avellaneda | 0,19 |
-| Nueva Pompeya | 0,18 |
-| Puerto Madero | 0,12 |
-| La Boca | 0,09 |
-| Saavedra · Paternal · Parque Patricios · Chacarita · Villa Riachuelo · Parque Chacabuco | < 0,09 c/u |
-
-Es un control de cordura por sí solo: caen donde cualquiera que maneje por la
-Ciudad esperaría, y el dato oficial ponía a Palermo primero.
-
-### Qué emite el archivo
-
-Dos clases de objeto, distinguidas por la propiedad `t`:
-
-| `t` | Qué es | Cuántos | Para qué |
-|---|---|---:|---|
-| `"h"` | puntos muestreados adentro de las zonas, cada 60 m, en un solo MultiPoint | 2.449 | alimentan el mapa de calor |
-| `"f"` | los polígonos | 19 | contestan al tocar el mapa |
-
-Los puntos existen porque una capa `heatmap` de MapLibre **sólo acepta puntos**, y
-porque el difuminado evita prometer un borde exacto que este dato no tiene: el
-límite de una zona marcada a mano no es una línea, es un degradado.
-
-Tres puntos del muestreo caen fuera de CABA y **se recortan**: una zona a caballo
-del Riachuelo no puede pintar conurbano, donde la app no tiene ningún otro dato
-que mostrar.
-
-### El interruptor
-
-Las zonas se prenden y apagan con **su propio botón**, aparte de las capas de
-camión, y **arrancan apagadas**. Son datos de naturaleza distinta: la Red y los
-gálibos son oficiales y dicen por dónde puede pasar el vehículo; esto es un
-juicio de la comunidad sobre dónde no conviene parar. Quien quiere una no
-necesariamente quiere la otra, y el sombreado cubre área.
-
-### L-10 · Lo que este dato no dice
-
-- **No tiene grados.** Los polígonos son todos iguales y ninguno se superpone con
-  otro dentro de CABA: hay **dos estados**, marcada y no marcada. La app no
-  muestra una escala de gravedad porque la fuente no la tiene.
-- **Que una zona no esté marcada NO significa que sea segura.** Significa que
-  nadie la marcó. Por eso la app **nunca dice "zona segura"**.
-- **No hay metodología ni fecha.** No se sabe cuándo se marcó cada zona, con qué
-  criterio, ni cuántas personas lo hicieron.
-- **Está pensado para repartidores en moto**, no para camiones. Buena parte de su
-  valor está en el conurbano, donde esta app todavía no llega.
-- **Sólo se muestran 8,8 km²** de los 204 de la Ciudad. El resto no está evaluado.
-
-
-### L-11 · Fuera de CABA el mapa calla, y ese silencio se lee como seguridad
-
-**Detectado el 01/09/2026, sin resolver.** Ninguna de las capas propias —zonas de
-riesgo, Red de Tránsito Pesado, gálibos, pasos a nivel, radares— existe fuera del
-límite de la Ciudad, y **la app no lo dice**. En pantalla, Dock Sud e Isla Maciel
-se ven idénticos a un barrio sin registros: limpios.
-
-Para un camionero eso es exactamente al revés de la verdad, y contradice la regla
-del proyecto: donde falta el dato, se dice que falta. El arreglo es un aviso
-cuando el mapa sale del área cubierta.
-
-**Congelada por decisión, no por olvido (01/09/2026).** El objetivo declarado es
-que la aplicación cubra el AMBA cuando salga al público, y la información está en
-recopilación. Hasta tener esa base de datos **no se toca nada de este sector**:
-el aviso de "saliste del área cubierta" y la ampliación al conurbano son el mismo
-trabajo mirado desde dos lados, y hacer el aviso ahora significaría escribir el
-límite de la cobertura en el código para tener que reescribirlo entero después.
-
-Se retoma cuando estén los datos del AMBA, y ahí no es un aviso: es replicar para
-el conurbano todo lo que hoy existe para CABA —Red, gálibos, pasos a nivel,
-radares, zonas— más el aviso para lo que quede afuera de eso.

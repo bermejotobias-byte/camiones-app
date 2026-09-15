@@ -28,7 +28,7 @@ verde. El resto va a color pleno: que la fuente no diga nada no los vuelve
 sospechosos, y la ficha lo aclara con todas las letras.
 
 > La primera versión hacía lo contrario —atenuaba los de aptitud desconocida— y
-> quedó mal: como son 75 de 78, el mapa entero se veía lavado y la señal no
+> quedó mal: como eran 75 de 78 (hoy 132 de 158), el mapa entero se veía lavado y la señal no
 > distinguía nada. Se marca lo excepcional, no lo habitual.
 
 ## Modelo
@@ -140,12 +140,20 @@ tocar código.
 
 | Archivo | Origen | Puntos |
 |---|---|---|
-| `pois-caba-osm.json` | Generado por `data/fetch-caba-pois.ps1` (dato inicial, `isSampleData: true`) | 75 |
+| `pois-caba-osm.json` | Generado por `data/fetch-caba-pois.ps1` (dato inicial, `isSampleData: true`). Tenía 75; nueve estaciones se mudaron al relevamiento el 15/09/2026 | 66 |
 | `pois-caba-curados.json` | Relevamiento manual de agosto de 2026 con URL por entrada | 3 |
-| `pois-caba-relevamiento-2026-09.json` | Relevamiento con evidencia por las tres vías (`isSampleData: false`); método en `data/relevamiento/README.md` | en curso |
+| `pois-caba-relevamiento-2026-09.json` | Relevamiento del 15/09/2026 con evidencia por las tres vías (`isSampleData: false`): 16 gomerías (14 `Confirmed`, 2 `Probable`), 1 auxilio pesado (`Probable`), 71 estaciones (5 `Confirmed`, 66 `NotConfirmed` sobre la Red de Tránsito Pesado), 1 lugar para comer (`Probable`). Método, búsquedas y descartes en `data/relevamiento/README.md` | 89 |
+
+**158 puntos en total, 26 con aptitud declarada** (L-6 en
+[data-sources.md](data-sources.md)). Los candados del dataset viven en
+`PoiDatasetTests`: fuente y fecha en cada punto, ids únicos, ningún par de la
+misma categoría a menos de 25 m, todo adentro de CABA y su anillo, el nivel
+coherente con el tipo de evidencia, evidencia con fecha, y gomerías y lugares
+para comer nunca sin evidencia.
 
 El `Id` se deriva de `Source`, así que es estable entre corridas sin escribir
-GUIDs a mano.
+GUIDs a mano. Por eso dos puntos con la misma cadena de fuente son el mismo
+punto: las fichas públicas llevan el nombre del comercio en la fuente.
 
 ### Regenerar el dataset de OSM
 
@@ -167,6 +175,21 @@ usuario no se pisa. Hasta el 15/09/2026 filtraba por `IsSampleData`, y un archiv
 de producción se reinsertaba en cada arranque: chocaba por clave en el segundo.
 
 ### Lo que se dejó afuera a propósito
+
+**Lugares para comer con lugar para el camión: uno solo, y afuera de la
+Ciudad.** El 15/09/2026 se buscó en Google Maps —comedor camioneros, parador
+camiones, parrilla camioneros, comedores del Mercado Central— y en la web.
+Dentro de CABA no apareció ningún restaurante con evidencia de lugar para el
+camión: "Los Camioneros" (Parque Patricios) tiene el nombre y nada más. Lo que
+hay son las estaciones Full de la Riccheri y los comedores adentro del Mercado
+Central; entró el Comedor San Cayetano como `Probable`. Los paradores de verdad
+están en las rutas, fuera del rectángulo.
+
+**Estaciones cerradas que el registro oficial todavía lista.** El registro de la
+Secretaría de Energía conserva bocas inactivas; cinco de las que estaban sobre la
+Red se descartaron cruzándolas con el mapa de la marca y la ficha pública. Y una
+misma boca puede figurar dos veces (líquidos y GNC con distinto `idempresa`):
+se fusionan, y hay un test que atrapa el duplicado.
 
 **PinkGrúas** y **Remolques del Norte** ofrecen auxilio en CABA pero no publican
 domicilio ni base. Sin ubicación no hay marcador posible, y ponerles una

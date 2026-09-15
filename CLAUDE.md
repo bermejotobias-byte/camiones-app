@@ -26,7 +26,7 @@ Ver `docs/data-sources.md`, "Puntos de interés".
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
 | `tests/TruckNavigator.UnitTests` | 256 tests: dominio (restricciones, ruteo, progresión, aptitud de POIs, patente, fecha de nacimiento), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
-| `tests/TruckNavigator.IntegrationTests` | 106 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 95 sobre datasets, perfiles, camiones, viajes, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, y los candados del dataset de POIs con el seed por `ManagedByDataset` |
+| `tests/TruckNavigator.IntegrationTests` | 108 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 97 sobre datasets, perfiles, camiones, viajes, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, y los candados del dataset de POIs con el seed por `ManagedByDataset` |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -47,7 +47,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 362 tests (.NET)
+dotnet test                                    # 364 tests (.NET)
 node --test "tests/web/*.test.mjs"             # 68 tests: guiado, avisos de ruta, agenda y mascota
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
@@ -412,7 +412,7 @@ node --test "tests/web/*.test.mjs"             # 68 tests: guiado, avisos de rut
 - **No inventar datos ni normas.** Donde falta información se dejó explícito y documentado:
   la capa oficial del GCBA no está publicada (L-1), no se modelan restricciones horarias
   porque no se encontró norma general confirmada (L-2), playas de camiones y auxilio pesado
-  casi no tienen fuente (L-5), la aptitud para camión está indeclarada en 75 de 78 POIs (L-6),
+  casi no tienen fuente (L-5), la aptitud para camión sigue indeclarada en 132 de 158 POIs (L-6),
   no hay dato de balanzas (L-9), y el mapa no avisa cuándo salió del área cubierta (L-11).
   Ver `docs/data-sources.md`. Si hace falta un dato que no existe, decilo — no lo rellenes.
 - **`docker-compose.yml` de la raíz no se usa en el MVP**: es PostGIS preparado para la
