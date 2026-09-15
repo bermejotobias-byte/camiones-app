@@ -158,6 +158,70 @@ public sealed class PoiPersistenceTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// Un punto como los del relevamiento: de produccion, del dataset, con evidencia.
+    /// El id se deriva de la fuente igual que en PoiDataset, para que dos siembras
+    /// del mismo punto se reconozcan.
+    /// </summary>
+    private static PointOfInterest Relevado(string name, string source) => new()
+    {
+        Id = new Guid(System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(source))),
+        Name = name,
+        Category = PoiCategory.TyreShop,
+        Latitude = -34.65,
+        Longitude = -58.45,
+        Source = source,
+        SourceRetrievedOn = new DateOnly(2026, 9, 15),
+        VerificationLevel = VerificationLevel.Confirmed,
+        SuitabilityEvidenceKind = SuitabilityEvidenceKind.Reviews,
+        SuitabilityEvidence = "Según reseñas de conductores consultadas el 15/09/2026: entran semis.",
+        SuitableForSemiTrailer = true,
+        IsSampleData = false,
+        ManagedByDataset = true
+    };
+
+    /// <summary>
+    /// El defecto que motivo la bandera: un archivo con isSampleData en false se
+    /// reinsertaba en cada arranque y chocaba por clave en el segundo.
+    /// </summary>
+    [Fact]
+    public async Task A_production_dataset_can_be_seeded_twice()
+    {
+        var dataset = new[] { Relevado("Gomeria A", "https://a.test (15/09/2026)") };
+
+        await PointOfInterestSeed.ApplyAsync(_db, dataset);
+        await PointOfInterestSeed.ApplyAsync(_db, dataset);
+
+        Assert.Equal(1, await _db.PointsOfInterest.CountAsync(p => p.Name == "Gomeria A"));
+    }
+
+    [Fact]
+    public async Task A_production_point_that_leaves_the_dataset_disappears()
+    {
+        await PointOfInterestSeed.ApplyAsync(_db, [Relevado("Gomeria A", "https://a.test"), Relevado("Gomeria B", "https://b.test")]);
+        await PointOfInterestSeed.ApplyAsync(_db, [Relevado("Gomeria A", "https://a.test")]);
+
+        Assert.Equal(0, await _db.PointsOfInterest.CountAsync(p => p.Name == "Gomeria B"));
+    }
+
+    /// <summary>
+    /// Una base creada antes de la columna tiene las filas del dataset con la bandera
+    /// en false. El seed las reconoce por id y las adopta, en vez de duplicarlas.
+    /// </summary>
+    [Fact]
+    public async Task Rows_from_an_older_database_are_adopted_by_id()
+    {
+        var stored = await _db.PointsOfInterest.FirstAsync();
+        stored.ManagedByDataset = false;
+        await _db.SaveChangesAsync();
+        var before = await _db.PointsOfInterest.CountAsync();
+
+        await PointOfInterestSeed.ApplyAsync(_db);
+
+        Assert.Equal(before, await _db.PointsOfInterest.CountAsync());
+        Assert.True((await _db.PointsOfInterest.AsNoTracking().FirstAsync(p => p.Id == stored.Id)).ManagedByDataset);
+    }
+
+    /// <summary>
     /// Lo que no viene del dataset es del usuario y el seed no lo puede tocar.
     /// </summary>
     [Fact]
