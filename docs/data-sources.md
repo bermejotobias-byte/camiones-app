@@ -86,6 +86,39 @@ emergencia, servicios públicos, medios de comunicación y camiones hormigoneros
 
 ---
 
+### Puntos de interés: las fuentes y la regla del 15/09/2026
+
+Los POIs (gomerías, estaciones, lugares para comer, playas, auxilio) se relevan
+con **tres vías de evidencia**, en este orden:
+
+1. **El operador** — el sitio de la marca o del comercio. Da `Confirmed`.
+2. **Señales** — el nombre, etiquetas de OSM (`hgv`, `fuel:HGV_diesel`), fotos y
+   descripción de la ficha pública. Da `Probable`.
+3. **Reseñas de conductores** — lo que cuentan en la ficha pública. **Da
+   `Confirmed`** (decisión del usuario, 15/09/2026), con la condición de que la
+   evidencia diga *"según reseñas de conductores, consultadas el <fecha>"* y se
+   marque apto sólo para el tipo de camión que las reseñas mencionan.
+
+**Google Maps** se usa para (2) y (3) como referencia de descubrimiento y
+verificación. **No se copia su base**: cada dato cita su origen, las coordenadas
+salen de OSM o del registro oficial, y lo que sale de una ficha o de reseñas se
+escribe como resumen propio con fecha de consulta, nunca como texto copiado.
+Esto reemplaza, sólo para los POIs, la regla anterior de no usar Google; el mapa
+base y el ruteo siguen siendo OSM.
+
+| Fuente | Qué aporta | Licencia |
+|---|---|---|
+| OpenStreetMap (Overpass, en tiempo de autoría) | Candidatos completos: estaciones, gomerías, talleres, playas; coordenadas y datos de contacto | ODbL |
+| Secretaría de Energía — *Precios en surtidor, Res. 314/2016* (datos.energia.gob.ar) | Registro completo de estaciones con coordenadas, bandera, dirección y productos (gasoil grado 2 y 3, GNC) | CC-BY-4.0 |
+| Sitios de operadores y marcas | Redes de estaciones para camiones, servicios declarados | Cita, no copia |
+| Fichas públicas y reseñas (Google Maps) | Verificación y testimonio de conductores | Resumen propio con fecha |
+
+Alcance: CABA más un anillo de ~2 km (`-34.725, -58.555` / `-34.505, -58.315`),
+que cubre las colectoras de la General Paz, el Mercado Central, Dock Sud y los
+accesos. No es la L-11: es un anillo de servicios, no ampliar el mapa.
+
+El método completo, con los candidatos versionados, está en `data/relevamiento/`.
+
 ## 3. Photon — búsqueda de direcciones
 
 Geocoder construido sobre datos de OpenStreetMap, pensado para autocompletado.
@@ -239,6 +272,9 @@ no ve ningún punto.
 Es el resultado correcto —lo que falta es el dato, no el motor— pero conviene
 saberlo antes de interpretar un mapa vacío. La app lo dice explícitamente con el
 contador de puntos ocultos.
+
+El 15/09/2026 empezó el relevamiento con evidencia por punto (ver "Puntos de
+interés" en la sección 2); los números se actualizan al cerrarlo.
 
 ---
 

@@ -18,6 +18,7 @@ convertirse en una negativa**.
 | Talleres | `RepairShop` | 🔧 |
 | Gomerías | `TyreShop` | 🛞 |
 | Auxilio mecánico pesado | `HeavyRoadsideAssistance` | 🚨 |
+| Lugares para comer con lugar para el camión | `TruckFriendlyEatery` | 🍽️ |
 
 En el mapa se dibujan como cuadrados de 22 px, distintos de los círculos de 26 px
 que usan origen, destino y GPS, para que no se confundan de un vistazo.
@@ -54,6 +55,9 @@ inglés como el resto del código; la correspondencia con los campos pedidos es:
 | apto_acoplado | `SuitableForTrailer` | `bool?` |
 | fuente | `Source` + `SourceRetrievedOn` | `string` + `DateOnly` |
 | nivel_verificacion | `VerificationLevel` | enum |
+| evidencia | `SuitabilityEvidence` | `string?` — por qué es apto y desde cuándo |
+| tipo_de_evidencia | `SuitabilityEvidenceKind` | enum: `None`, `Operator`, `Official`, `Reviews`, `Signals` |
+| del_dataset | `ManagedByDataset` | `bool` — viene de los archivos embebidos |
 
 ### Por qué la aptitud es `bool?`
 
@@ -69,17 +73,27 @@ qué hacer con lo desconocido, en lugar de recibirlo ya convertido en negativa.
 
 ### Niveles de verificación
 
-| Nivel | Qué significa |
-|---|---|
-| `Confirmed` | Fuente oficial o el propio operador |
-| `Probable` | Lo declara la fuente, sin verificación independiente |
-| `NotConfirmed` | La fuente ubica el lugar pero no dice nada sobre aptitud |
+Significado desde el 15/09/2026 (decisión del usuario; antes, las reseñas daban
+`Probable`):
+
+| Nivel | Qué significa | Tipo de evidencia |
+|---|---|---|
+| `Confirmed` | Lo dice el **operador**, una **fuente oficial**, o **reseñas de conductores** que cuentan haber entrado con el camión | `Operator`, `Official`, `Reviews` |
+| `Probable` | Señales indirectas sin declaración ni testimonio: el nombre, una etiqueta de OSM, fotos de la ficha | `Signals` |
+| `NotConfirmed` | Existe, pero nadie dice si recibe camiones | `None` |
 
 Aplica a **los datos del establecimiento, no a su existencia**: un punto de OSM
 existe; que reciba camiones es otra pregunta.
 
-Un punto tomado de OSM nunca puede marcarse `Confirmed`, y un `Confirmed` no puede
-apoyarse sólo en OSM. Los dos tests de `PoiDatasetTests` lo verifican.
+**La evidencia se escribe** (`SuitabilityEvidence`): qué la respalda y la fecha,
+en palabras propias — *"Según reseñas de conductores consultadas el 15/09/2026:
+entran semis, playa amplia."* La aptitud se marca **sólo para los tipos de camión
+que la evidencia menciona**; los demás quedan `null`.
+
+`PoiDatasetTests` verifica que el nivel se corresponde con el tipo de evidencia,
+que toda evidencia lleva fecha, que un punto importado crudo de OSM (`Source` que
+empieza con "OpenStreetMap") nunca es `Confirmed`, y que gomerías y lugares para
+comer no entran sin evidencia.
 
 ## Cómo se decide la aptitud para el camión elegido
 
@@ -126,8 +140,9 @@ tocar código.
 
 | Archivo | Origen | Puntos |
 |---|---|---|
-| `pois-caba-osm.json` | Generado por `data/fetch-caba-pois.ps1` | 75 |
-| `pois-caba-curados.json` | Relevamiento manual con URL por entrada | 3 |
+| `pois-caba-osm.json` | Generado por `data/fetch-caba-pois.ps1` (dato inicial, `isSampleData: true`) | 75 |
+| `pois-caba-curados.json` | Relevamiento manual de agosto de 2026 con URL por entrada | 3 |
+| `pois-caba-relevamiento-2026-09.json` | Relevamiento con evidencia por las tres vías (`isSampleData: false`); método en `data/relevamiento/README.md` | en curso |
 
 El `Id` se deriva de `Source`, así que es estable entre corridas sin escribir
 GUIDs a mano.
@@ -145,8 +160,11 @@ los mejor documentados de cada categoría; el criterio de corte es la cantidad d
 tags útiles (dirección, horario, teléfono, web, operador).
 
 `PointOfInterestSeed` hace *upsert* por id en cada arranque, no "sembrar si está
-vacío": regenerar el dataset tiene que reflejarse en una base ya creada. Sólo toca
-filas con `IsSampleData = true`; lo que cargue el usuario no se pisa.
+vacío": regenerar el dataset tiene que reflejarse en una base ya creada. Reconoce
+lo suyo por `ManagedByDataset` —todo lo que sale de los archivos embebidos, sea de
+muestra o de relevamiento— y borra lo que salió del archivo; lo que cargue el
+usuario no se pisa. Hasta el 15/09/2026 filtraba por `IsSampleData`, y un archivo
+de producción se reinsertaba en cada arranque: chocaba por clave en el segundo.
 
 ### Lo que se dejó afuera a propósito
 
@@ -166,6 +184,11 @@ categoría vacía escondería un dato que el camionero necesita. Ver L-5 en
 [data-sources.md](data-sources.md).
 
 ## En la pantalla
+
+> **Hoy la app web no muestra los POIs.** Lo que sigue describe la interfaz MAUI
+> anterior a la mudanza a `wwwroot`; `api.js` conserva `pois()` pero ninguna
+> vista lo llama y no hay capa en `layers.js`. La interfaz es la construcción
+> siguiente al relevamiento, sobre el prototipo de diseño.
 
 - Botón **Lugares** abajo a la derecha del mapa: abre los filtros por categoría,
   más "Solo aptos para mi camión" y el contador de ocultos.

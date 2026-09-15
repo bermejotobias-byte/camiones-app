@@ -10,8 +10,12 @@ regulatorias del vehículo**. La restricción forma parte del cálculo, no es un
 posterior: los tramos por los que ese camión no puede circular reciben prioridad cero en el
 custom model de GraphHopper antes de que el algoritmo elija por dónde ir.
 
-Fuente regulatoria: Ley 2148 de CABA (Red de Tránsito Pesado, art. 9.10.1). Mapa base
-OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
+Fuente regulatoria: Ley 2148 de CABA (Red de Tránsito Pesado, art. 9.10.1). Mapa base y
+ruteo: OpenStreetMap — nunca Google Maps ni Waze. **Para los puntos de interés, desde el
+15/09/2026 Google Maps es referencia de descubrimiento y verificación** (fichas públicas y
+reseñas de conductores), nunca base que se copia: coordenadas de OSM o de un registro
+oficial, y lo que sale de una ficha o de reseñas se guarda como resumen propio con fecha.
+Ver `docs/data-sources.md`, "Puntos de interés".
 
 ## Estructura
 
@@ -21,8 +25,8 @@ OpenStreetMap — nunca Google Maps ni Waze, ni datos derivados de ellos.
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
-| `tests/TruckNavigator.UnitTests` | 147 tests: 65 de dominio + 20 de la direccion del backend + 17 de la politica de reintentos + 11 del orden de rutas alternativas + 14 del orden del reparto + 20 de los contactos de emergencia. El de reintentos y los dos del reparto y las alternativas enlazan archivos de Mobile, que no depende de MAUI a proposito |
-| `tests/TruckNavigator.IntegrationTests` | 56 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 45 sobre datasets, perfiles, camiones, viajes, paradas del reparto, contactos de emergencia y SQLite |
+| `tests/TruckNavigator.UnitTests` | 256 tests: dominio (restricciones, ruteo, progresión, aptitud de POIs, patente, fecha de nacimiento), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
+| `tests/TruckNavigator.IntegrationTests` | 106 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 95 sobre datasets, perfiles, camiones, viajes, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, y los candados del dataset de POIs con el seed por `ManagedByDataset` |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -43,7 +47,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 203 tests (.NET)
+dotnet test                                    # 362 tests (.NET)
 node --test "tests/web/*.test.mjs"             # 68 tests: guiado, avisos de ruta, agenda y mascota
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
