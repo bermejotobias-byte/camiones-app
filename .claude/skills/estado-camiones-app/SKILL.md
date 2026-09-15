@@ -25,7 +25,7 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; catorce
+**Punta al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; doce
 commits desde la spec `5298239`, uno por tarea), **sin pushear**. Antes, ese
 mismo día, el relevamiento de POIs y los talleres de mecánica pesada
 (`d0b6ddd`, diecisiete commits desde `b5dc4d3`, de la spec `c16cef1` al cierre en docs). Los
