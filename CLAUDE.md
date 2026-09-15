@@ -412,7 +412,7 @@ node --test "tests/web/*.test.mjs"             # 68 tests: guiado, avisos de rut
 - **No inventar datos ni normas.** Donde falta información se dejó explícito y documentado:
   la capa oficial del GCBA no está publicada (L-1), no se modelan restricciones horarias
   porque no se encontró norma general confirmada (L-2), playas de camiones y auxilio pesado
-  casi no tienen fuente (L-5), la aptitud para camión sigue indeclarada en 132 de 158 POIs (L-6),
+  casi no tienen fuente (L-5), la aptitud para camión sigue indeclarada en 132 de 180 POIs (L-6),
   no hay dato de balanzas (L-9), y el mapa no avisa cuándo salió del área cubierta (L-11).
   Ver `docs/data-sources.md`. Si hace falta un dato que no existe, decilo — no lo rellenes.
 - **`docker-compose.yml` de la raíz no se usa en el MVP**: es PostGIS preparado para la

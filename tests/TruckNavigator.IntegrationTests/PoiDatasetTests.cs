@@ -162,14 +162,15 @@ public class PoiDatasetTests
     }
 
     /// <summary>
-    /// Una gomeria de autos o un restaurante sin playa no le sirven a nadie en esta
-    /// app: esas dos categorias entran solo con evidencia (spec §6.3).
+    /// Una gomeria de autos, un taller de autos o un restaurante sin playa no le
+    /// sirven a nadie en esta app: esas categorias entran solo con evidencia (spec
+    /// §6.3; los talleres desde el 15/09/2026, con la misma regla que las gomerias).
     /// </summary>
     [Fact]
-    public void Tyre_shops_and_eateries_never_enter_without_evidence()
+    public void Tyre_shops_repair_shops_and_eateries_never_enter_without_evidence()
     {
         var strict = Dataset.Where(p =>
-            p.Category is PoiCategory.TyreShop or PoiCategory.TruckFriendlyEatery
+            p.Category is PoiCategory.TyreShop or PoiCategory.RepairShop or PoiCategory.TruckFriendlyEatery
             && !p.IsSampleData);
 
         Assert.All(strict, poi => Assert.NotEqual(VerificationLevel.NotConfirmed, poi.VerificationLevel));

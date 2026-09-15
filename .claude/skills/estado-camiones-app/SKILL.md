@@ -101,7 +101,7 @@ Prioridad declarada:
 | **1 · Navegación** | 🔨 **Todo lo construible está hecho** — guiado, voz, GPS en segundo plano, brújula, nombre verde de la calle, vibración por patrón, alternativas de ruta y reintento al conectar. Falta lo único que no se puede hacer acá: **manejar** |
 | **2 · Usabilidad** | ✅ Completa — salió adelantada dentro de la mudanza del frontend |
 | **3 · Seguridad** | 🔨 Están el 911, las zonas peligrosas y los **3 contactos de emergencia**. Queda **compartir viaje por WhatsApp** —necesita endpoint público, tokens que venzan y decisiones de privacidad— y el S.O.S. del reporte, que depende de la Fase 5 |
-| **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). **La base de POIs para camiones se relevó el 15/09/2026** (gomerías, estaciones, lugares para comer; 158 puntos, 26 con evidencia). Queda **la interfaz de POIs en la app web** y la conversación sobre **POIs valorados por usuarios** |
+| **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). **La base de POIs para camiones se relevó el 15/09/2026** (gomerías, estaciones, lugares para comer y talleres de mecánica pesada; 180 puntos, 48 con evidencia). Queda **la interfaz de POIs en la app web** y la conversación sobre **POIs valorados por usuarios** |
 | **5 · Reportes de comunidad** | ⬜ **Fase nueva del v2** — reportar y confirmar siniestros, radares y retenes. Es un sistema, no una función |
 | **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Falta lo que se apoya en él: **las pantallas**, el avatar combinable, la batería y los juegos |
 | **7 · Cáscara, entrada e idiomas** | 🔨 **El zócalo está** (12/09). Quedan intro → idioma → condiciones → acceso y el modo invitado. Ver `producto-camiones-app` |
@@ -227,7 +227,7 @@ verificó:**
 |---|---|
 | Modelo: `TruckFriendlyEatery`, `SuitabilityEvidence` + `Kind`, `ManagedByDataset`; migración `AddPoiSuitabilityEvidence`; DTO | Tests de dominio, persistencia (ida y vuelta por SQLite) y contrato |
 | El seed reconoce lo suyo por `ManagedByDataset` y borra lo que sale del archivo | Tres tests del seed, incluido el que **adopta filas de una base vieja por id** |
-| `pois-caba-relevamiento-2026-09.json`: **89 puntos** — 16 gomerías (14 `Confirmed`, 2 `Probable`), 1 auxilio pesado, 71 estaciones (5 `Confirmed`, 66 `NotConfirmed` sobre la Red), 1 lugar para comer | **11 candados en `PoiDatasetTests`** y la API levantada en Development: `GET /api/pois?categories=…` devuelve 41 gomerías (16 relevadas), 87 estaciones (71), 1 comedor. 155 POIs en total por la API, 158 en los archivos (los curados y los de muestra suman) |
+| `pois-caba-relevamiento-2026-09.json`: **111 puntos** — 16 gomerías (14 `Confirmed`, 2 `Probable`), 1 auxilio pesado, 71 estaciones (5 `Confirmed`, 66 `NotConfirmed` sobre la Red), 1 lugar para comer, **22 talleres de mecánica pesada** (21 `Confirmed`: 14 por la red oficial de la marca o el operador, 7 por reseñas; 1 `Probable`) | **11 candados en `PoiDatasetTests`** y la API levantada en Development: `GET /api/pois?categories=…` devuelve 41 gomerías (16 relevadas), 87 estaciones (71), 1 comedor, 47 talleres (22). 180 POIs en total, por la API y en los archivos |
 | Cada evidencia es un resumen propio con fecha; las coordenadas salen de OSM, del registro oficial o de Photon, y `source` lo dice | Test que exige fecha `DD/MM/AAAA` en toda evidencia; lectura a mano de las evidencias por la API |
 
 **Dos defectos que atraparon los tests, no el ojo:**
@@ -240,6 +240,12 @@ verificó:**
   distinto `idempresa`): Zelarrayán 5530 salía encimada. El candado
   `No_two_points_of_the_same_category_share_the_same_spot` (25 m) lo vio
   primero; se fusionan.
+
+**Y otro en los talleres:** la ficha pública de Volvo en Larrazábal 2742
+quedó a 9 m del taller de Armando J. Ríos (Larrazábal 2750) que lista la red
+oficial de Mercedes-Benz; el candado de 25 m lo vio, y el localizador oficial
+de Volvo Trucks no tiene ningún punto en la Ciudad: **la ficha sobrevive al
+comercio**, y la lista oficial de la marca manda sobre la ficha.
 
 **Y uno que atrapó el cruce de fuentes:** el registro de la Secretaría de
 Energía **conserva estaciones cerradas** (Antártida Argentina y Calle 10, Juan

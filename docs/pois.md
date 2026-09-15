@@ -28,7 +28,7 @@ verde. El resto va a color pleno: que la fuente no diga nada no los vuelve
 sospechosos, y la ficha lo aclara con todas las letras.
 
 > La primera versión hacía lo contrario —atenuaba los de aptitud desconocida— y
-> quedó mal: como eran 75 de 78 (hoy 132 de 158), el mapa entero se veía lavado y la señal no
+> quedó mal: como eran 75 de 78 (hoy 132 de 180), el mapa entero se veía lavado y la señal no
 > distinguía nada. Se marca lo excepcional, no lo habitual.
 
 ## Modelo
@@ -142,14 +142,14 @@ tocar código.
 |---|---|---|
 | `pois-caba-osm.json` | Generado por `data/fetch-caba-pois.ps1` (dato inicial, `isSampleData: true`). Tenía 75; nueve estaciones se mudaron al relevamiento el 15/09/2026 | 66 |
 | `pois-caba-curados.json` | Relevamiento manual de agosto de 2026 con URL por entrada | 3 |
-| `pois-caba-relevamiento-2026-09.json` | Relevamiento del 15/09/2026 con evidencia por las tres vías (`isSampleData: false`): 16 gomerías (14 `Confirmed`, 2 `Probable`), 1 auxilio pesado (`Probable`), 71 estaciones (5 `Confirmed`, 66 `NotConfirmed` sobre la Red de Tránsito Pesado), 1 lugar para comer (`Probable`). Método, búsquedas y descartes en `data/relevamiento/README.md` | 89 |
+| `pois-caba-relevamiento-2026-09.json` | Relevamiento del 15/09/2026 con evidencia por las tres vías (`isSampleData: false`): 16 gomerías (14 `Confirmed`, 2 `Probable`), 1 auxilio pesado (`Probable`), 71 estaciones (5 `Confirmed`, 66 `NotConfirmed` sobre la Red de Tránsito Pesado), 1 lugar para comer (`Probable`), 22 talleres de mecánica pesada (21 `Confirmed`, 1 `Probable`). Método, búsquedas y descartes en `data/relevamiento/README.md` | 111 |
 
-**158 puntos en total, 26 con aptitud declarada** (L-6 en
+**180 puntos en total, 48 con aptitud declarada** (L-6 en
 [data-sources.md](data-sources.md)). Los candados del dataset viven en
 `PoiDatasetTests`: fuente y fecha en cada punto, ids únicos, ningún par de la
 misma categoría a menos de 25 m, todo adentro de CABA y su anillo, el nivel
-coherente con el tipo de evidencia, evidencia con fecha, y gomerías y lugares
-para comer nunca sin evidencia.
+coherente con el tipo de evidencia, evidencia con fecha, y gomerías, talleres
+y lugares para comer nunca sin evidencia.
 
 El `Id` se deriva de `Source`, así que es estable entre corridas sin escribir
 GUIDs a mano. Por eso dos puntos con la misma cadena de fuente son el mismo

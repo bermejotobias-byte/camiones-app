@@ -43,7 +43,7 @@ se dice en `source`.
 
 ## Regla de entrada
 
-- Gomerías y lugares para comer: sólo con evidencia (`Confirmed` o `Probable`).
+- Gomerías, talleres y lugares para comer: sólo con evidencia (`Confirmed` o `Probable`).
 - Estaciones: con evidencia, y también `NotConfirmed` si `enRedPesada` es true.
 
 ## Formato de cada entrada
@@ -180,6 +180,44 @@ devuelve 1. **Dentro de la Ciudad no se encontró ningún lugar para comer con
 evidencia de lugar para el camión**: lo que hay son las estaciones Full de la
 autopista y los comedores del Mercado Central.
 
+### Talleres de mecánica pesada — 15/09/2026
+
+Misma regla que las gomerías: entra sólo con evidencia de que atiende camiones.
+OSM trae 3 candidatos (`shop=truck_repair|truck`) y ninguno con `hgv`; una
+consulta más amplia (`car_repair` con nombre de camión/diésel/pesado, marcas de
+camiones) dio 52 objetos, casi todos concesionarios de autos y talleres de
+inyección diésel de autos.
+
+**Las redes oficiales de las marcas de camiones**, leídas en sus sitios:
+
+| Marca | Fuente oficial | En el rectángulo |
+|---|---|---|
+| Mercedes-Benz Camiones y Buses | `mercedes-benz-trucks.com.ar/servicios/concesionarios` — lista completa con dirección, teléfono y horario | **Alenco** (Parque Patricios), **Armando J. Ríos** ×2 (Villa Lugano), **Autobus** (Mataderos, 2 entradas), **Automotores J. M. Fangio** (Barracas), **El Alemán de Artigas** (Flores), **Cigliutti Guerini** (Riccheri y Camino de Cintura) |
+| Iveco | localizador oficial (`iveco.com/api/Outlets/GetOutletDTOsByCoords`, brandCode 6) con actividad y gama atendida por sede | **Ivecam San Martín** (liviana, mediana y pesada), **Navicam Mataderos** (ídem), **Aurelia Daily Center** (sólo liviana); Ivecam Barracas es sólo venta y repuestos |
+| Scania | el sitio de Scania no expone la lista; el del concesionario sí | **Baisur Motor** (Barracas): "toda la gama de productos y servicios Scania para la zona sur" |
+| Mack | sitio del representante | **Thermodyne Vial** (Barracas), representante oficial con posventa |
+| Agrale / Foton | sitio del concesionario | **Cánovas** (Avellaneda), repuestos y servicios en H. Yrigoyen 884 |
+| Volvo Trucks | localizador oficial (`volvotrucks.com.ar/es-ar/tools/dealer-locator.html`) | **Ninguno**: Sueca está en Ezeiza y Moreno, Gotland en Grand Bourg. La ficha pública "Sueca - Gotland" de Larrazábal 2742 no está en la lista y en esa cuadra la red MB lista hoy a Armando J. Ríos: se descartó |
+| Ford Camiones, VW Camiones y Buses | sin lista oficial legible; concesionarios por reseñas | **SUR-CAM** (Piñeyro), **Buswagen** (Villa Tranquila) |
+| MAN, DAF, Renault Trucks | Google no devuelve puntos en el rectángulo | — |
+
+**Google Maps** (descubrimiento de talleres independientes):
+
+| Texto | Centro / zoom | Qué dejó |
+|---|---|---|
+| taller mecánica pesada | -34.63,-58.44 · 12 | AFH (San Martín), MecaNorte (J. L. Suárez, fuera), Beto (R. Castillo, fuera), Maradei (Hurlingham, fuera), Diesel Salinas (Lomas del Mirador), Caggiano (V. Ballester) |
+| taller de camiones | -34.63,-58.44 · 12 | Ivecam, "Taller Mecánico de Camiones" (Caseros, fuera) |
+| taller camiones | -34.655,-58.37 · 14 (Barracas/Avellaneda) | Canaluche, Perrone Hnos., Thermodyne Vial, Engrase de camiones (Iriarte), Taller de mantenimiento-escaneo de buses y camiones (Pinedo) |
+| taller camiones | -34.675,-58.475 · 14 (Lugano/Mataderos) | TRM, Florian, Diesel Lugano, Frenos Diesel |
+| Scania / Mercedes-Benz camiones / Volvo Trucks / MAN / Ford Camiones / Volkswagen Camiones y Buses | -34.63,-58.44 · 12 | los concesionarios de la tabla de arriba |
+
+**Resultado**: 22 talleres con evidencia — **21 `Confirmed`** (14 por el
+operador o la red oficial de la marca, 7 por reseñas de conductores) y **1
+`Probable`** por señales. Tres atienden semirremolques según su evidencia
+(Baisur, Thermodyne, Perrone); Perrone también acoplados. Verificado por la API
+el 15/09/2026: `GET /api/pois?categories=RepairShop` devuelve 47 puntos, 22 del
+relevamiento.
+
 ## Descartados por falta de evidencia
 
 ### Gomerías — 15/09/2026
@@ -238,3 +276,27 @@ pasar.
 - Fuera del rectángulo: Parador del Puerto (Campana), Parador "12" (Pablo
   Podestá), Parrilla El Camionero (Grand Bourg), Parador de camiones km 296
   (RN 14).
+
+### Talleres de mecánica pesada — 15/09/2026
+
+- **Diesel Truck S.R.L.** (Seguí 1880, Paternal): las reseñas dicen que a pesar
+  del nombre no trabajan camiones. El nombre no es evidencia.
+- **Servibom Diesel** (Cachi 453): Bosch Car Service de autos.
+- **Mercedes Crovara** (La Tablada): casa de repuestos, no taller.
+- **MegaCar** (Dellepiane 6281, en OSM como `shop=truck`): carrocera de
+  colectivos y minibuses, no taller para el público.
+- **Ivecam Barracas** (Vélez Sarsfield 1555): el localizador de Iveco la marca
+  sin servicio, sólo venta y repuestos.
+- **TRM** (Bragado 6967): las reseñas no mencionan el tipo de vehículo.
+- **Taller de mantenimiento-escaneo de buses y camiones** (Av. Pinedo 1050),
+  **Mecánica integral camiones** (Crisólogo Larralde 973), **Engrase de camiones
+  y vehículos livianos** (Iriarte 1314), **Mecánica pesada MF** (sin dirección):
+  sin reseñas y sin sitio leído; sólo el nombre.
+- **Sueca / Gotland Volvo** (Larrazábal 2742): ver la tabla de marcas.
+- Concesionarios Mercedes-Benz de autos (Klasse, Lonco Hue, DDI) y Ford de
+  autos (Taraborelli, Dietrich): no son de camiones.
+- Fuera del rectángulo: MecaNorte (J. L. Suárez), Beto Mecánica Pesada (Rafael
+  Castillo), Maradei (Hurlingham), Taller Mecánico de Camiones (Caseros),
+  Servictrucks (Villa Bosch), Navicam casa central (Ramos Mejía), Ivecam
+  Esteban Echeverría, Automotores Haedo, Diesel San Miguel, Andecam (Escobar),
+  Talleres Continental y "Mecánica pesada taller… y lubricentro" (Ruta 8).

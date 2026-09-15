@@ -113,7 +113,8 @@ base y el ruteo siguen siendo OSM.
 | INTI / ARAN — listado REG-04 de plantas de reconstrucción de neumáticos certificadas (aranargentina.com) | Gomerías con planta de recapado certificada: evidencia `Official` | Cita |
 | Mapas oficiales de las marcas: YPF (`mapa.ypf.com`), Shell (`find.shell.com/ar`), Axion (`axionenergy.com`) | Por estación: Azul 32 (urea para diésel pesado), playa para camiones, GNC, estado activa/inactiva. Las tarjetas de flota **no** cuentan como aptitud | Cita |
 | Acta Compromiso Transporte (Ministerio de Transporte, YPF y Camioneros, 24/03/2020), Anexo I | 260 estaciones YPF comprometidas como punto de parada para camioneros (descanso, comida las 24 h, baños): evidencia `Official` | Documento público |
-| Sitios de operadores y comercios | Servicios declarados: truck center, recapado, alineación de pesados | Cita, no copia |
+| Sitios de operadores y comercios | Servicios declarados: truck center, recapado, alineación de pesados, taller de camiones y semirremolques | Cita, no copia |
+| Redes oficiales de concesionarios de camiones: Mercedes-Benz Camiones y Buses (`mercedes-benz-trucks.com.ar`), Iveco (localizador `iveco.com/argentina`), Volvo Trucks (`volvotrucks.com.ar`) | Sedes con taller, gama atendida (Iveco: liviana/mediana/pesada), teléfono y horario: evidencia `Operator` | Cita |
 | Fichas públicas y reseñas (Google Maps) | Verificación, estado (abierto/cerrado) y testimonio de conductores | Resumen propio con fecha |
 
 Alcance: CABA más un anillo de ~2 km (`-34.725, -58.555` / `-34.505, -58.315`),
@@ -268,8 +269,8 @@ modelar el auxilio como servicio con área de cobertura en lugar de como punto.
 
 ### L-6 · La aptitud para camión sigue sin declararse en la mayoría de los puntos
 
-**Al 15/09/2026, después del relevamiento:** 158 puntos en los tres datasets,
-**26 con aptitud declarada** (ya no 3 de 78) y 132 con los cuatro campos en
+**Al 15/09/2026, después del relevamiento:** 180 puntos en los tres datasets,
+**48 con aptitud declarada** (ya no 3 de 78) y 132 con los cuatro campos en
 `null`. Por categoría:
 
 | Categoría | Puntos | Con aptitud declarada | Cómo |
@@ -278,11 +279,11 @@ modelar el auxilio como servicio con área de cobertura en lugar de como punto.
 | Estaciones de servicio | 87 | **5** | 3 por el operador (Azul 32 de YPF, playa para camiones de Shell), 2 por el Acta Compromiso Transporte. Las otras 66 del relevamiento están sobre la Red de Tránsito Pesado y entran `NotConfirmed`, sin aptitud |
 | Lugares para comer con lugar para el camión | 1 | **1** | Por señales (adentro del Mercado Central) |
 | Auxilio pesado y playas | 4 | **4** | Los tres curados de agosto y uno nuevo por señales |
-| Talleres | 25 | 0 | Sin relevar: fuera del alcance de esta etapa |
+| Talleres de mecánica pesada | 47 | **22** | 14 por la red oficial de la marca o el operador (Mercedes-Benz Camiones y Buses, Iveco, Scania, Mack, Agrale/Foton, Perrone), 7 por reseñas de conductores (`Confirmed`), 1 por señales (`Probable`) |
 
 Con el filtro "solo aptos para mi camión" activado, un semirremolque hoy ve los
-puntos cuya evidencia menciona semirremolques (Calzetta Truck Center) y el
-comedor del Mercado Central; el resto de los aptos son para camión liviano y
+puntos cuya evidencia menciona semirremolques (Calzetta Truck Center, Baisur
+Scania, Thermodyne Mack, Perrone Hnos.) y el comedor del Mercado Central; el resto de los aptos son para camión liviano y
 pesado, porque la evidencia sólo habla de "camiones". **La aptitud por reseñas
 lleva fecha** —las reseñas envejecen— y se lee en `suitabilityEvidence`.
 
