@@ -29,6 +29,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<PointOfInterest> PointsOfInterest => Set<PointOfInterest>();
 
+    public DbSet<PoiVote> PoiVotes => Set<PoiVote>();
+
     public DbSet<DriverProfile> DriverProfiles => Set<DriverProfile>();
 
     public DbSet<Trip> Trips => Set<Trip>();
@@ -127,6 +129,39 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         // Las filas que ya existen en una base creada antes de esta columna quedan en
         // false; el seed las adopta por id en el primer arranque (ver PointOfInterestSeed).
         poi.Property(p => p.ManagedByDataset).HasDefaultValue(false);
+
+        // Lo aportado por un usuario. Si la cuenta se borra, el lugar queda —ya es
+        // de todos— pero sin autor.
+        poi.Property(p => p.ContributedAt).HasConversion(NullableUtcTicks);
+        poi.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(p => p.ContributedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        var vote = modelBuilder.Entity<PoiVote>();
+
+        // Un voto por camionero y lugar: la clave compuesta lo hace imposible de
+        // duplicar por construccion. Cambiar de opinion es reescribir la fila.
+        vote.HasKey(v => new { v.PoiId, v.DriverId });
+        vote.Property(v => v.TruckClass).HasConversion<string>().HasMaxLength(16);
+        vote.Property(v => v.Verdict).HasConversion<string>().HasMaxLength(16);
+        vote.Property(v => v.CastAt).HasConversion(UtcTicks);
+        vote.Property(v => v.UpdatedAt).HasConversion(UtcTicks);
+
+        // La ficha cuenta los votos de un lugar: el indice es por lugar. El de la
+        // clave ya cubre la consulta "que vote yo aca".
+        vote.HasIndex(v => v.PoiId);
+
+        // El voto es del lugar y de la persona: se va con cualquiera de los dos.
+        vote.HasOne<PointOfInterest>()
+            .WithMany()
+            .HasForeignKey(v => v.PoiId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        vote.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(v => v.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // La fuente es obligatoria a nivel de esquema: un punto sin origen citable no
         // deberia poder guardarse, del mismo modo que una restriccion no se emite sin
