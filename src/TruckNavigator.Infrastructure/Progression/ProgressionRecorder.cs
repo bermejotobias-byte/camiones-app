@@ -62,8 +62,6 @@ public sealed class ProgressionRecorder(AppDbContext db)
 
         AddMileageIncrement(await TotalCreditedMetersAsync(trip.DriverId, ct), countsBefore, increments);
 
-        var outcome = ProgressionEngine.Advance(TrackCatalog.All, countsBefore, increments);
-
         // El nivel de antes y el de despues salen de los mismos kilometros que la
         // pista: el total acreditado con y sin este viaje.
         countsBefore.TryGetValue(TrackCatalog.Mileage, out var kmBefore);
@@ -82,10 +80,94 @@ public sealed class ProgressionRecorder(AppDbContext db)
             tripExperience,
             tripKey));
 
+        var outcome = Apply(trip.DriverId, when, countsBefore, increments, rows);
+
+        await db.SaveChangesAsync(ct);
+
+        return new TripEarnings(
+            tripExperience,
+            outcome.CompletedTiers.Count * ExperienceScale.PerTier,
+            outcome.CompletedTiers,
+            levelBefore,
+            levelAfter);
+    }
+
+    /// <summary>
+    /// Acredita un aporte a los lugares —un voto o un lugar nuevo— y devuelve lo
+    /// que dejo, o <c>null</c> si ese hecho ya estaba cobrado.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Es la misma puerta que los viajes: el cliente pide, el servidor decide, y el
+    /// mismo indice unico impide que un voto cambiado, un reintento o un doble
+    /// toque cobren dos veces. <b>Retirar un voto no devuelve nada</b>: el libro no
+    /// resta, y el voto ya se pago una vez.
+    /// </para>
+    /// <para>
+    /// Sin tope diario, por decision del usuario del 15/09/2026. El dia que haga
+    /// falta, el tope se decide aca contando los asientos del dia antes de escribir.
+    /// </para>
+    /// </remarks>
+    public async Task<ContributionEarnings?> RecordContributionAsync(
+        Guid driverId,
+        LedgerReason reason,
+        string sourceKey,
+        DateTimeOffset when,
+        CancellationToken ct = default)
+    {
+        var amount = reason switch
+        {
+            LedgerReason.PlaceAdded => ExperienceScale.PlaceAdded,
+            LedgerReason.PlaceVoted => ExperienceScale.PlaceVote,
+            _ => throw new ArgumentException("Por esta puerta solo pasan los aportes a los lugares.", nameof(reason))
+        };
+
+        var alreadyCredited = await db.LedgerEntries.AnyAsync(
+            e => e.DriverId == driverId && e.Reason == reason && e.SourceKey == sourceKey,
+            ct);
+
+        if (alreadyCredited)
+        {
+            return null;
+        }
+
+        var rows = await db.TrackProgress
+            .Where(t => t.DriverId == driverId)
+            .ToDictionaryAsync(t => t.TrackCode, ct);
+
+        var countsBefore = rows.ToDictionary(row => row.Key, row => row.Value.Count);
+        var increments = new Dictionary<string, long> { [TrackCatalog.Places] = 1 };
+
+        db.LedgerEntries.Add(Entry(driverId, when, reason, amount, sourceKey));
+
+        var outcome = Apply(driverId, when, countsBefore, increments, rows);
+
+        await db.SaveChangesAsync(ct);
+
+        return new ContributionEarnings(
+            amount,
+            outcome.CompletedTiers.Count * ExperienceScale.PerTier,
+            outcome.CompletedTiers);
+    }
+
+    /// <summary>
+    /// Lo que comparten un viaje y un aporte: decidir los escalones, asentarlos con
+    /// su recompensa y avanzar los contadores. No guarda: quien llama guarda, para
+    /// que todo salga en una sola operacion.
+    /// </summary>
+    private ProgressionOutcome Apply(
+        Guid driverId,
+        DateTimeOffset when,
+        IReadOnlyDictionary<string, long> countsBefore,
+        IReadOnlyDictionary<string, long> increments,
+        IDictionary<string, DriverTrackProgress> rows)
+    {
+        var outcome = ProgressionEngine.Advance(TrackCatalog.All, countsBefore, increments);
+
         foreach (var tier in outcome.CompletedTiers)
         {
             db.LedgerEntries.Add(Entry(
-                trip.DriverId,
+                driverId,
                 when,
                 LedgerReason.TierCompleted,
                 ExperienceScale.PerTier,
@@ -96,7 +178,7 @@ public sealed class ProgressionRecorder(AppDbContext db)
             // nunca al inventario.
             db.Rewards.Add(new DriverReward
             {
-                DriverId = trip.DriverId,
+                DriverId = driverId,
                 RewardCode = tier.RewardCode,
                 UnlockedAt = when
             });
@@ -106,22 +188,16 @@ public sealed class ProgressionRecorder(AppDbContext db)
         {
             if (!rows.TryGetValue(code, out var row))
             {
-                row = new DriverTrackProgress { DriverId = trip.DriverId, TrackCode = code };
+                row = new DriverTrackProgress { DriverId = driverId, TrackCode = code };
                 db.TrackProgress.Add(row);
+                rows[code] = row;
             }
 
             row.Count += increment;
             row.TierReached = TrackCatalog.Get(code).TiersReachedAt(row.Count);
         }
 
-        await db.SaveChangesAsync(ct);
-
-        return new TripEarnings(
-            tripExperience,
-            outcome.CompletedTiers.Count * ExperienceScale.PerTier,
-            outcome.CompletedTiers,
-            levelBefore,
-            levelAfter);
+        return outcome;
     }
 
     private Task<double> TotalCreditedMetersAsync(Guid driverId, CancellationToken ct) =>

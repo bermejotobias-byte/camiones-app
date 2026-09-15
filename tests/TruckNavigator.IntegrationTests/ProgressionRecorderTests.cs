@@ -268,4 +268,89 @@ public sealed class ProgressionRecorderTests : IAsyncLifetime
 
         Assert.Equal(2, kilometraje.Count);
     }
+
+    // ---------------------------------------------------------------- aportes
+    //
+    // Un voto o un lugar nuevo entran por la misma puerta que los viajes: el
+    // cliente pide, el servidor decide, y el indice unico impide cobrar dos veces.
+
+    private static readonly DateTimeOffset Contributed = DateTimeOffset.Parse("2026-09-15T15:00:00Z");
+
+    [Fact]
+    public async Task A_vote_pays_two_and_lights_the_first_tier_of_places()
+    {
+        var driver = await CreateDriverAsync();
+        var poi = Guid.NewGuid();
+
+        var earned = await _recorder.RecordContributionAsync(driver, LedgerReason.PlaceVoted, $"poi-vote:{poi}", Contributed);
+
+        Assert.NotNull(earned);
+        Assert.Equal(ExperienceScale.PlaceVote, earned!.ContributionExperience);
+        Assert.Single(earned.CompletedTiers);
+        Assert.Equal(TrackCatalog.Places, earned.CompletedTiers[0].TrackCode);
+        Assert.Equal(ExperienceScale.PerTier, earned.TierExperience);
+        Assert.Equal(ExperienceScale.PlaceVote + ExperienceScale.PerTier, earned.TotalExperience);
+
+        var rewards = await _db.Rewards.Where(r => r.DriverId == driver).Select(r => r.RewardCode).ToListAsync();
+        Assert.Contains("lugares-01", rewards);
+
+        var lugares = await _db.TrackProgress.SingleAsync(t => t.DriverId == driver && t.TrackCode == TrackCatalog.Places);
+        Assert.Equal(1, lugares.Count);
+        Assert.Equal(1, lugares.TierReached);
+    }
+
+    [Fact]
+    public async Task The_same_place_never_pays_twice()
+    {
+        var driver = await CreateDriverAsync();
+        var key = $"poi-vote:{Guid.NewGuid()}";
+
+        Assert.NotNull(await _recorder.RecordContributionAsync(driver, LedgerReason.PlaceVoted, key, Contributed));
+        Assert.Null(await _recorder.RecordContributionAsync(driver, LedgerReason.PlaceVoted, key, Contributed.AddDays(1)));
+
+        var lugares = await _db.TrackProgress.SingleAsync(t => t.DriverId == driver && t.TrackCode == TrackCatalog.Places);
+        Assert.Equal(1, lugares.Count);
+
+        var experience = await _db.LedgerEntries.Where(e => e.DriverId == driver && e.Reason == LedgerReason.PlaceVoted).SumAsync(e => e.Amount);
+        Assert.Equal(ExperienceScale.PlaceVote, experience);
+    }
+
+    [Fact]
+    public async Task Adding_a_place_pays_ten_and_counts_as_one_contribution()
+    {
+        var driver = await CreateDriverAsync();
+
+        var earned = await _recorder.RecordContributionAsync(driver, LedgerReason.PlaceAdded, $"poi-added:{Guid.NewGuid()}", Contributed);
+
+        Assert.Equal(ExperienceScale.PlaceAdded, earned!.ContributionExperience);
+
+        var lugares = await _db.TrackProgress.SingleAsync(t => t.DriverId == driver && t.TrackCode == TrackCatalog.Places);
+        Assert.Equal(1, lugares.Count);
+    }
+
+    /// <remarks>
+    /// Dos aportes distintos al mismo lugar —lo agregue y despues lo vote— son dos
+    /// hechos: el motivo es parte de la clave.
+    /// </remarks>
+    [Fact]
+    public async Task Adding_and_voting_the_same_place_are_two_different_facts()
+    {
+        var driver = await CreateDriverAsync();
+        var poi = Guid.NewGuid();
+
+        Assert.NotNull(await _recorder.RecordContributionAsync(driver, LedgerReason.PlaceAdded, $"poi-added:{poi}", Contributed));
+        Assert.NotNull(await _recorder.RecordContributionAsync(driver, LedgerReason.PlaceVoted, $"poi-vote:{poi}", Contributed));
+
+        var lugares = await _db.TrackProgress.SingleAsync(t => t.DriverId == driver && t.TrackCode == TrackCatalog.Places);
+        Assert.Equal(2, lugares.Count);
+    }
+
+    [Fact]
+    public async Task Only_contribution_reasons_go_through_this_door()
+    {
+        var driver = await CreateDriverAsync();
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _recorder.RecordContributionAsync(driver, LedgerReason.TripCompleted, "x", Contributed));
+    }
 }
