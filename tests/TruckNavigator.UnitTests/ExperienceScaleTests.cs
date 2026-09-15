@@ -71,4 +71,18 @@ public class ExperienceScaleTests
         Assert.Equal(100, ExperienceScale.PerTier);
         Assert.True(ExperienceScale.PerTier > ExperienceScale.ForTrip(300_000));
     }
+
+    /// <remarks>
+    /// Aportar no puede competir con manejar: un voto vale menos que el viaje mas
+    /// corto y un aporte no mas que el. Decision del usuario del 15/09/2026, junto
+    /// con no ponerle tope diario a los votos por ahora.
+    /// </remarks>
+    [Fact]
+    public void Contributing_pays_less_than_driving()
+    {
+        Assert.Equal(2, ExperienceScale.PlaceVote);
+        Assert.Equal(10, ExperienceScale.PlaceAdded);
+        Assert.True(ExperienceScale.PlaceVote < ExperienceScale.TripBase);
+        Assert.True(ExperienceScale.PlaceAdded <= ExperienceScale.TripBase);
+    }
 }

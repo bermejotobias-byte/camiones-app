@@ -43,6 +43,23 @@ public static class ExperienceScale
     /// </remarks>
     public const int PerTier = 100;
 
+    /// <summary>
+    /// EXP por agregar un lugar: como un viaje corto, porque hay que cargar nombre,
+    /// categoria, ubicacion y camion. Se paga una vez por lugar creado.
+    /// </summary>
+    public const int PlaceAdded = 10;
+
+    /// <summary>
+    /// EXP por votar un lugar, una sola vez por lugar: cambiar el voto no vuelve a
+    /// pagar y retirarlo no devuelve.
+    /// </summary>
+    /// <remarks>
+    /// <b>Sin tope diario</b>, por decision del usuario del 15/09/2026: "hoy por
+    /// hoy, al arrancar, sirve la interaccion de los usuarios por mas que sea sin
+    /// filtro". Se revisa cuando haya datos de como se usa.
+    /// </remarks>
+    public const int PlaceVote = 2;
+
     /// <summary>EXP que paga un viaje cerrado.</summary>
     public static int ForTrip(double creditedMeters)
     {

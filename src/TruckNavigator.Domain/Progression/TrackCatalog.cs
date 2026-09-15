@@ -21,6 +21,9 @@ public static class TrackCatalog
     /// <summary>Codigo de la pista de la que se lee el nivel.</summary>
     public const string Mileage = "kilometraje";
 
+    /// <summary>Codigo de la pista de los aportes a los lugares: votos y lugares nuevos.</summary>
+    public const string Places = "lugares";
+
     private static readonly Dictionary<string, Track> ByCode = Build();
 
     public static IReadOnlyList<Track> All { get; } = [.. ByCode.Values];
@@ -55,7 +58,14 @@ public static class TrackCatalog
             // primera semana, que es donde esta el enganche.
             Make("viajes",    [1, 3, 7, 15, 30, 60, 120, 250, 500, 1_000]),
             Make("repartos",  [1, 5, 15, 40, 100, 250, 500, 1_000, 1_750, 2_500]),
-            Make("nocturnos", [1, 2, 5, 10, 20, 35, 60, 90, 130, 180])
+            Make("nocturnos", [1, 2, 5, 10, 20, 35, 60, 90, 130, 180]),
+
+            // Los votos y los lugares aportados, con la escalera de viajes: los tres
+            // primeros escalones caen en la primera semana. Es la primera pista que
+            // no avanza manejando; entra por la misma puerta (el recorder) y sus
+            // recompensas son las skins de la comunidad. Decision del usuario del
+            // 15/09/2026.
+            Make(Places,      [1, 3, 7, 15, 30, 60, 120, 250, 500, 1_000])
         };
 
         return tracks.ToDictionary(track => track.Code);

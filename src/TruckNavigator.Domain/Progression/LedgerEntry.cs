@@ -13,13 +13,16 @@ public enum Denomination
 
 /// <summary>Por que se acredito un movimiento.</summary>
 /// <remarks>
-/// Dos motivos alcanzan: todo lo que no es cerrar un viaje es completar un escalon,
-/// y el escalon ya identifica su pista.
+/// Cerrar un viaje, completar un escalon —que ya identifica su pista—, y desde el
+/// 15/09/2026 los dos aportes a los lugares. Son dos motivos y no uno para que
+/// "por que tengo 1.200 de EXP" tenga respuesta: agregar y votar no valen lo mismo.
 /// </remarks>
 public enum LedgerReason
 {
     TripCompleted = 0,
-    TierCompleted = 1
+    TierCompleted = 1,
+    PlaceAdded = 2,
+    PlaceVoted = 3
 }
 
 /// <summary>
@@ -53,8 +56,8 @@ public sealed class LedgerEntry
     public LedgerReason Reason { get; set; }
 
     /// <summary>
-    /// Que hecho lo origino: el <c>Guid</c> del viaje, o pista y escalon como
-    /// <c>"viajes:4"</c>.
+    /// Que hecho lo origino: el <c>Guid</c> del viaje, pista y escalon como
+    /// <c>"viajes:4"</c>, o el lugar como <c>"poi-vote:{id}"</c> / <c>"poi-added:{id}"</c>.
     /// </summary>
     /// <remarks>
     /// Es la mitad de la clave de unicidad, asi que tiene que identificar el hecho

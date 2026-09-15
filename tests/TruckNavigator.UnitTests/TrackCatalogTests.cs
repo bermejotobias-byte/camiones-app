@@ -23,7 +23,7 @@ public class TrackCatalogTests
     public void The_catalog_only_has_tracks_the_server_can_already_measure()
     {
         Assert.Equal(
-            ["kilometraje", "viajes", "repartos", "nocturnos"],
+            ["kilometraje", "viajes", "repartos", "nocturnos", "lugares"],
             TrackCatalog.All.Select(t => t.Code));
     }
 
@@ -45,6 +45,7 @@ public class TrackCatalogTests
     [InlineData("viajes",    new long[] { 1, 3, 7, 15, 30, 60, 120, 250, 500, 1_000 })]
     [InlineData("repartos",  new long[] { 1, 5, 15, 40, 100, 250, 500, 1_000, 1_750, 2_500 })]
     [InlineData("nocturnos", new long[] { 1, 2, 5, 10, 20, 35, 60, 90, 130, 180 })]
+    [InlineData("lugares",   new long[] { 1, 3, 7, 15, 30, 60, 120, 250, 500, 1_000 })]
     public void The_ladders_are_the_ones_calibrated_against_the_trade(string code, long[] goals)
     {
         Assert.Equal(goals, TrackCatalog.Get(code).Tiers.Select(t => t.Goal));
