@@ -54,8 +54,71 @@ tipos que la evidencia menciona; `suitabilityEvidence` lleva fecha `DD/MM/AAAA`.
 
 ## Búsquedas de descubrimiento hechas
 
-(Se completa en cada etapa: texto, zona, fecha.)
+### Gomerías — 15/09/2026
+
+**Google Maps** (búsqueda `/maps/search/<texto>/@lat,lon,zoom`, panel de
+resultados leído hasta el final; cada candidato con señal se abrió aparte para
+leer las reseñas):
+
+| Texto | Centro / zoom | Qué dejó |
+|---|---|---|
+| gomería para camiones | -34.65,-58.42 · 13 | genéricas, sin señal |
+| gomeria camion 24 horas | -34.66,-58.45 · 12 | El Misionero (reseña: de pesados) |
+| gomeria de pesados | -34.65,-58.44 · 12 | Marchionno, TAST, Ombú Gral. Paz, Truck Center LG, recapados.com |
+| gomeria camiones | -34.63,-58.50 · 12 | Gomería de auto y camión (Cnel. Mom) |
+| neumaticos camion semirremolque | -34.67,-58.40 · 12 | Calzetta Truck Center |
+| gomeria pesados camiones | -34.69,-58.38 · 13 | TAST (reseña: trabajan con camiones) |
+| neumaticos para camiones | -34.65,-58.43 · 12 | Calzetta Perón 3420 (reseña: camiones y autoelevadores) |
+| gomería camiones Mataderos | -34.655,-58.505 · 14 | nada nuevo: 20 fichas, todas de autos |
+| gomería de pesados Liniers | -34.645,-58.52 · 14 | nada nuevo |
+| gomería camiones Dock Sud Avellaneda | -34.665,-58.35 · 14 | El Cordobés (reseña: camiones y máquinas viales) |
+| gomería camiones Villa Soldati Lugano | -34.675,-58.46 · 14 | Auxilios Mecánicos Pesados 24hs; el resto sin señal |
+| gomería de pesados | -34.615,-58.435 · 12 (toda la Ciudad) | repite lo ya encontrado |
+| neumáticos para camiones | -34.615,-58.435 · 12 | repite lo ya encontrado |
+
+**Sitios de operadores** leídos: ombuneumaticos.com.ar (3 sucursales),
+calzetta.com.ar (Truck Center y sucursales), neumatex.com.ar (casa central y
+planta Recamic), recapados.com (Distribuidora Martelli y Truck Center LG),
+storinoneumaticos.com. La Unión Neumáticos (Córdoba y Olavarría) quedó fuera.
+
+**Registro oficial**: listado REG-04 de plantas de reconstrucción de neumáticos
+certificadas por INTI, publicado por ARAN (aranargentina.com). De sus 22
+plantas, cinco caen en el rectángulo o cerca: Storino (Flores), Bandasur
+(Barracas), Neumatex (La Matanza), Distribuidora Martelli (Vicente López) — las
+cuatro entraron como `Official` — y Preking (Villa Bosch), que queda fuera.
+Neumáticos Antártida (Lomas de Zamora) y Tast SA (Morón) están fuera del
+rectángulo; la gomería TAST de Pompeya entró por reseñas, no por la planta.
+
+**Resultado**: 16 gomerías con evidencia (14 `Confirmed`: 4 por registro
+oficial, 5 por el operador, 5 por reseñas; 2 `Probable` por señales) y 1
+auxilio mecánico pesado (`Probable`). Verificado por la API el 15/09/2026:
+`GET /api/pois?categories=TyreShop` devuelve 41 puntos, 16 del relevamiento.
 
 ## Descartados por falta de evidencia
 
-(Se completa en cada etapa.)
+### Gomerías — 15/09/2026
+
+Sin señal de camiones ni en el nombre, ni en la ficha, ni en las reseñas
+(palabras clave de las reseñas leídas el 15/09/2026):
+
+- Gomería El Patrón (Av. Eva Perón 4414), Gomería Espinosa (Av. Rabanal 2903),
+  Gomería Poly (Av. Alberdi 7260, 24 h — reseñas de autos), "24hs" (Av. Fernández
+  de la Cruz 6365 — reseñas de motos y parches), Gomería Tata Beraldi (Cnel.
+  Suárez 1106), Kaucho's 24hs (Irigoyen 2579).
+- Neumatex sucursal Mataderos (Av. Alberdi 5367): la cadena declara recapado de
+  camión y alineación para transportes, pero no dice en qué sucursal y las
+  reseñas de la sucursal son de autos. Entró sólo la casa central de Lomas del
+  Mirador, donde está la planta.
+- "Truck neumaticos" (Avellaneda, sin dirección ni reseñas): no se pudo ubicar.
+
+Fuera del rectángulo: Grupo Portu (J. L. Suárez), Recapados Mufasa (San Justo),
+Gomería Antonella (Villa Zapiola), Preking Recapados (Villa Bosch, lon -58,59).
+
+Sin coordenada verificable: ninguna al cierre — Ombú Díaz Vélez 1034 (Ciudadela)
+entró con la esquina de Díaz Vélez y Ombú, marcada como aproximada.
+
+**Dos descartes que se revirtieron** al leer al operador: Truck Center LG se
+había anotado como fuera del rectángulo ("Boulogne") y está en Villa Adelina, a
+-34,511 / -58,533; recapados.com se había anotado "sin declaración de camiones" y
+su sitio declara gomería y mecánica para transporte pesado, además de estar en
+el listado INTI/ARAN.
