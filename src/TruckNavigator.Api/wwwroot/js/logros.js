@@ -86,6 +86,17 @@ export const PISTAS = {
       <rect x="9" y="6" width="5" height="1"/><rect x="8" y="7" width="2" height="1"/><rect x="7" y="8" width="2" height="3"/>
       <rect x="7" y="11" width="2" height="3"/><rect x="8" y="14" width="2" height="2"/><rect x="10" y="16" width="5" height="1"/>
       <rect x="14" y="15" width="3" height="1"/><rect x="15" y="14" width="2" height="1"/>`
+  },
+  // Los aportes a los lugares —votos y lugares nuevos—, la primera pista que no
+  // avanza manejando (15/09/2026). El símbolo es un pin de mapa: cabeza redonda
+  // con el hueco, y la punta hacia abajo.
+  lugares: {
+    nombre: 'Lugares',
+    total: 10,
+    simbolo: `
+      <rect x="10" y="5" width="4" height="1"/><rect x="9" y="6" width="6" height="1"/><rect x="8" y="7" width="8" height="4"/>
+      <rect x="9" y="11" width="6" height="1"/><rect x="10" y="12" width="4" height="2"/><rect x="11" y="14" width="2" height="3"/>
+      <rect x="11" y="8" width="2" height="2" class="logro-hueco"/>`
   }
 };
 

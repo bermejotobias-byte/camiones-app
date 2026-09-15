@@ -220,8 +220,24 @@ export const api = {
     request('GET', `/api/places/reverse${query({ lat, lng })}`, { auth: false }),
 
   // puntos de interes
-  pois: (categories, truckId) =>
-    request('GET', `/api/pois${query({ categories, truckId })}`, { auth: false }),
+  //
+  // Leer no exige sesion, pero va CON token si lo hay: asi cada lugar vuelve con
+  // el voto propio (yourVote). Con truckId, ademas, trae los votos de camiones
+  // como el elegido y el filtro "solo aptos" cuenta lo que la comunidad recomienda
+  // para ese tipo.
+  pois: (categories, truckId, suitableOnly) =>
+    request('GET', `/api/pois${query({ categories, truckId, suitableOnly })}`),
+
+  // Agregar un lugar: nace de la comunidad, con el primer voto de quien lo carga.
+  // 409 con `existingId` si ya hay uno igual a menos de 25 m; 400 con el motivo
+  // si el nombre no sirve o cae fuera de CABA y su anillo.
+  addPoi: (place) => request('POST', '/api/pois', { body: place }),
+
+  // El voto lleva el camion: de el sale el tipo que se guarda. Votar de nuevo
+  // cambia el voto; `earned` viene null cuando ese lugar ya habia pagado.
+  votePoi: (id, truckId, verdict) =>
+    request('PUT', `/api/pois/${id}/vote`, { body: { truckId, verdict } }),
+  retirePoiVote: (id) => del(`/api/pois/${id}/vote`),
 
   // Ruteo sin registrar viaje (vista previa).
   //
