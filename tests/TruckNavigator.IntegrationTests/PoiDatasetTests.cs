@@ -73,6 +73,37 @@ public class PoiDatasetTests
             "Puntos con id repetido (fuentes identicas): " + string.Join(", ", duplicated));
     }
 
+    /// <summary>
+    /// Dos puntos de la misma categoria a menos de 25 m son la misma estacion dos
+    /// veces. Paso con el registro oficial de estaciones: una misma boca figura con
+    /// dos idempresa (liquidos y GNC), y como la fuente es el id, salian dos puntos
+    /// encimados en el mapa.
+    /// </summary>
+    [Fact]
+    public void No_two_points_of_the_same_category_share_the_same_spot()
+    {
+        var encimados = new List<string>();
+        var lista = Dataset.ToList();
+        for (var i = 0; i < lista.Count; i++)
+            for (var j = i + 1; j < lista.Count; j++)
+            {
+                if (lista[i].Category != lista[j].Category) continue;
+                if (Metros(lista[i], lista[j]) < 25) encimados.Add(lista[i].Name + " / " + lista[j].Name);
+            }
+
+        Assert.True(encimados.Count == 0, "Puntos encimados: " + string.Join("; ", encimados));
+    }
+
+    private static double Metros(PointOfInterest a, PointOfInterest b)
+    {
+        const double radio = 6_371_000;
+        var dLat = (b.Latitude - a.Latitude) * Math.PI / 180;
+        var dLon = (b.Longitude - a.Longitude) * Math.PI / 180;
+        var s = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
+            + Math.Cos(a.Latitude * Math.PI / 180) * Math.Cos(b.Latitude * Math.PI / 180) * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        return 2 * radio * Math.Asin(Math.Sqrt(s));
+    }
+
     [Fact]
     public void Every_point_has_a_name_and_a_known_category()
     {
