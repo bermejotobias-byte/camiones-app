@@ -132,13 +132,53 @@ reseñas visibles; ninguna estación entró por reseñas.
 @ -34.705,-58.49 z14 — devuelven las YPF de siempre; las dos con Azul 32 ya
 estaban por el mapa de YPF.
 
-**Resultado**: 69 estaciones — **3 `Confirmed`** (operador: 2 YPF con Azul 32,
-1 Shell con playa para camiones), **0 `Probable`**, **66 `NotConfirmed`** sobre
-33 calles de la Red (Juan B. Justo 10, Beiró 6, Dellepiane 5, San Martín 4, Eva
-Perón 4, …). Nueve de ellas estaban en el dataset de OSM de agosto y se mudaron
-al relevamiento con la misma referencia de OSM. Verificado por la API el
-15/09/2026: `GET /api/pois?categories=FuelStation` devuelve 85 puntos, 69 del
+**Resultado**: 71 estaciones — **5 `Confirmed`** (operador: 2 YPF con Azul 32,
+1 Shell con playa para camiones; oficial: las 2 YPF de la Riccheri que figuran
+en el Acta Compromiso Transporte de 2020, ver "Lugares para comer"), **0
+`Probable`**, **66 `NotConfirmed`** sobre 33 calles de la Red (Juan B. Justo 10,
+Beiró 6, Dellepiane 5, San Martín 4, Eva Perón 4, …). Nueve de ellas estaban en
+el dataset de OSM de agosto y se mudaron al relevamiento con la misma
+referencia de OSM. Verificado por la API el 15/09/2026:
+`GET /api/pois?categories=FuelStation` devuelve 87 puntos, 71 del
 relevamiento.
+
+### Lugares para comer con lugar para el camión — 15/09/2026
+
+OSM no tiene ni un `amenity=restaurant` con `hgv` en el rectángulo, así que todo
+fue descubrimiento.
+
+**Google Maps** (mismo método que las gomerías):
+
+| Texto | Centro / zoom | Qué dejó |
+|---|---|---|
+| comedor camioneros | -34.66,-58.43 · 12 | "Los Camioneros" (Luna 100, Parque Patricios) y comedores sociales; ningún parador |
+| parador camiones | -34.66,-58.43 · 12 | paradores de ruta fuera del rectángulo (Campana, Pablo Podestá, RN 14, RN 9) y guarderías de camiones |
+| parrilla camioneros estacionamiento camiones | -34.66,-58.43 · 12 | Parrilla El Camionero (Grand Bourg, fuera) y guarderías de camiones |
+| estación de servicio camiones Mercado Central Tapiales | -34.705,-58.49 · 14 | las YPF de la Riccheri |
+| comedor parrilla Mercado Central de Buenos Aires | -34.71,-58.495 · 15 | Comedor San Cayetano y Parador La Carpa (adentro del predio), 222 Tu Parada Central (colectora) |
+
+**Web**: "parador para camioneros Capital Federal" llevó al Acta Compromiso
+Transporte (Ministerio de Transporte, YPF y Camioneros, 24/03/2020) y su
+Anexo I con 260 estaciones YPF comprometidas como punto de parada para
+camioneros (descanso, comida las 24 h, baños). Dos caen en el rectángulo: las
+YPF de la Riccheri lado Capital y lado Ezeiza, a la altura del Mercado Central.
+**Entraron como estaciones (`Official` → `Confirmed`), no como lugar para
+comer**: son estaciones con Full, y un mismo lugar no va dos veces. El Centro de
+Transferencia de Cargas de Villa Soldati tiene comedores, estación y gomerías
+adentro, pero con control de ingreso para operadores: no es un POI público.
+
+**El Mercado Central** (mercadocentral.gob.ar, Wikipedia): 210 ha, unos 700
+camiones por día, acceso norte mixto (autos y camiones) desde la salida 17 de
+la Riccheri y acceso sur de carga; adentro hay comedores (OSM lista cuatro
+restaurantes más: Las Chicas de las Tres, Tienda el Tano, Rosa de Saron, Lo de
+Nico — no verificados).
+
+**Resultado: 1 punto**, Comedor San Cayetano, `Probable` por señales (está
+adentro del predio del Mercado Central; sin playa propia declarada). Verificado
+por la API el 15/09/2026: `GET /api/pois?categories=TruckFriendlyEatery`
+devuelve 1. **Dentro de la Ciudad no se encontró ningún lugar para comer con
+evidencia de lugar para el camión**: lo que hay son las estaciones Full de la
+autopista y los comedores del Mercado Central.
 
 ## Descartados por falta de evidencia
 
@@ -183,3 +223,18 @@ Una misma boca con dos `idempresa` (líquidos y GNC): Zelarrayán 5530 (1052 y
 10264) se fusionó en una entrada; el candado
 `No_two_points_of_the_same_category_share_the_same_spot` lo atrapa si vuelve a
 pasar.
+
+### Lugares para comer — 15/09/2026
+
+- "Los Camioneros" (Luna 100, Parque Patricios, sobre Amancio Alcorta): el
+  nombre es la única señal; 157 reseñas de comida económica sin mención de
+  camiones ni de dónde dejarlos. No entra: un restaurante sin lugar para el
+  camión no es de esta categoría.
+- "222 Tu Parada Central" (Av. de Circunvalación 5150, Tapiales, 24 h): las
+  reseñas mencionan estacionamiento con seguridad pero no camiones; el sitio del
+  operador (panchos222.com) no dice nada de transportistas y da otra altura.
+- "Parador La Carpa" (De la Tierra 2252, Mercado Central): está en el sector de
+  compras minoristas, con playa de autos; sin señal de camiones.
+- Fuera del rectángulo: Parador del Puerto (Campana), Parador "12" (Pablo
+  Podestá), Parrilla El Camionero (Grand Bourg), Parador de camiones km 296
+  (RN 14).
