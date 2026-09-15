@@ -21,6 +21,7 @@ using TruckNavigator.Infrastructure;
 using TruckNavigator.Infrastructure.Email;
 using TruckNavigator.Infrastructure.Identity;
 using TruckNavigator.Infrastructure.Persistence;
+using TruckNavigator.Infrastructure.Pois;
 using TruckNavigator.Infrastructure.Progression;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -98,6 +99,7 @@ builder.Services.AddSingleton<IEmailSender<AppUser>, IdentityEmailSender>();
 // trabajo que cierra el viaje.
 builder.Services.AddScoped<ProgressionRecorder>();
 builder.Services.AddScoped<ProgressionReader>();
+builder.Services.AddScoped<CommunityReader>();
 
 var app = builder.Build();
 
@@ -741,6 +743,7 @@ pois.MapGet("/", async (
     bool? suitableOnly,
     ClaimsPrincipal principal,
     AppDbContext db,
+    CommunityReader communityReader,
     CancellationToken ct) =>
 {
     if (ParseCategories(categories) is not { } filter)
@@ -787,19 +790,37 @@ pois.MapGet("/", async (
 
     var points = await query.OrderBy(p => p.Name).ToListAsync(ct);
 
-    var results = points.Select(p => PoiDto.From(p, truck));
+    // Lo que la comunidad dice va aparte de lo verificado y siempre viaja: una
+    // consulta de votos por lote, filtrada por el tipo del camion indicado, y los
+    // alias de quienes aportaron lugares.
+    var community = await communityReader.ForPlacesAsync(
+        points.Select(p => p.Id).ToList(),
+        truck is null ? null : PoiSuitability.FieldFor(truck),
+        CurrentUserId(principal),
+        ct);
 
-    // El filtro deja pasar solo la aptitud confirmada: lo desconocido se oculta
-    // igual que lo no apto. Es la lectura estricta, y por eso el cliente lo trae
-    // apagado por defecto y avisa cuantos puntos escondio.
+    var aliases = await ContributorAliasesAsync(db, points, ct);
+
+    var results = points.Select(p => PoiDto.From(
+        p,
+        truck,
+        community[p.Id],
+        p.ContributedBy is { } by && aliases.TryGetValue(by, out var alias) ? alias : null));
+
+    // El filtro deja pasar lo verificado apto para el camion, o lo que la comunidad
+    // de ese tipo de camion recomienda cuando la fuente no dice nada. Lo desconocido
+    // y lo discutido se ocultan; el cliente lo trae apagado por defecto y avisa
+    // cuantos puntos escondio. La regla vive en el dominio (PoiFilter).
     if (suitableOnly == true)
     {
-        results = results.Where(p => p.SuitableForSelectedTruck == true);
+        results = results.Where(p => PoiFilter.PassesSuitableOnly(
+            p.SuitableForSelectedTruck,
+            Enum.TryParse<CommunitySeal>(p.Community.ForYourTruck?.Seal, out var seal) ? seal : null));
     }
 
     return Results.Ok(results.ToList());
 })
-.WithSummary("Playas, estaciones, talleres, gomerias y auxilio pesado para camiones.");
+.WithSummary("Playas, estaciones, talleres, gomerias, comer y auxilio pesado para camiones, con lo que la comunidad dice de cada uno.");
 
 // ------------------------------------------------------------------- viajes
 //
@@ -1488,6 +1509,29 @@ static IResult TemplateIsReadOnly() => Results.Problem(
     detail: "Es un tipo de transporte del catalogo y lo comparten todas las cuentas. " +
             "Carga un camion propio a partir de el para poder cambiarle las medidas.",
     statusCode: StatusCodes.Status403Forbidden);
+
+/// <summary>
+/// Los alias de quienes aportaron lugares, en una consulta. El alias es publico por
+/// diseño (el perfil se ve); lo que no se expone es el id de la cuenta.
+/// </summary>
+static async Task<Dictionary<Guid, string?>> ContributorAliasesAsync(
+    AppDbContext db,
+    IEnumerable<PointOfInterest> points,
+    CancellationToken ct)
+{
+    var ids = points
+        .Where(p => p.ContributedBy != null)
+        .Select(p => p.ContributedBy!.Value)
+        .Distinct()
+        .ToList();
+
+    return ids.Count == 0
+        ? []
+        : await db.DriverProfiles
+            .AsNoTracking()
+            .Where(d => ids.Contains(d.Id))
+            .ToDictionaryAsync(d => d.Id, d => d.Alias, ct);
+}
 
 static Guid? CurrentUserId(ClaimsPrincipal principal) =>
     Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id)

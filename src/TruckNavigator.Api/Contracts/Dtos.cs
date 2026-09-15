@@ -8,6 +8,7 @@ using TruckNavigator.Domain.Trips;
 using TruckNavigator.Domain.Trucks;
 using TruckNavigator.Domain.Users;
 using TruckNavigator.Infrastructure.Identity;
+using TruckNavigator.Infrastructure.Pois;
 
 namespace TruckNavigator.Api.Contracts;
 
@@ -161,6 +162,47 @@ public sealed class CoordinateDto
     public double Longitude { get; set; }
 }
 
+/// <summary>Los votos de un tipo de camion sobre un lugar: los de camiones como el tuyo.</summary>
+public sealed record CommunityForTruckDto(string TruckClass, int Suitable, int NotSuitable, string Seal);
+
+/// <summary>Quien aporto el lugar y cuando; solo en los lugares de la comunidad.</summary>
+public sealed record ContributedDto(DateOnly At, string? ByAlias);
+
+/// <summary>
+/// Lo que la comunidad dice de un lugar. Viaja APARTE de lo verificado: la ficha
+/// tiene que poder marcar distinto cada origen (decision del usuario del 15/09/2026).
+/// </summary>
+/// <param name="Suitable">Cuantos dijeron apto, entre todos los tipos de camion.</param>
+/// <param name="NotSuitable">Cuantos dijeron no apto.</param>
+/// <param name="Seal">El sello sobre todos los votos, en texto: NoVotesYet, Recommended, Disputed.</param>
+/// <param name="ForYourTruck">Solo los votos de camiones del tipo del indicado en la consulta; null sin camion.</param>
+/// <param name="YourVote">El voto de quien consulta; null sin sesion o sin voto.</param>
+/// <param name="Contributed">Quien lo aporto; null en lo relevado.</param>
+public sealed record CommunityDto(
+    int Suitable,
+    int NotSuitable,
+    string Seal,
+    CommunityForTruckDto? ForYourTruck,
+    string? YourVote,
+    ContributedDto? Contributed)
+{
+    public static CommunityDto From(CommunityView view, PointOfInterest poi, string? contributedByAlias) => new(
+        view.All.Suitable,
+        view.All.NotSuitable,
+        view.Seal.ToString(),
+        view.ForTruck is null
+            ? null
+            : new CommunityForTruckDto(view.TruckClass!.Value.ToString(), view.ForTruck.Suitable, view.ForTruck.NotSuitable, view.SealForTruck!.Value.ToString()),
+        view.YourVote?.ToString(),
+        poi.ContributedAt is { } at
+            ? new ContributedDto(DateOnly.FromDateTime(at.ToOffset(TimeSpan.FromHours(-3)).DateTime), contributedByAlias)
+            : null);
+
+    /// <summary>Sin votos y sin camion: lo que tiene un lugar del que todavia nadie opino.</summary>
+    public static CommunityDto Empty(PointOfInterest poi, string? contributedByAlias) =>
+        From(new CommunityView(new CommunityCount(0, 0), CommunitySeal.NoVotesYet, null, null, null, null), poi, contributedByAlias);
+}
+
 /// <summary>
 /// Un punto de interes tal como lo consume la app.
 /// </summary>
@@ -169,6 +211,10 @@ public sealed class CoordinateDto
 /// la consulta: <c>true</c> apto, <c>false</c> no apto, <c>null</c> la fuente no lo
 /// dice o no se indico camion. Lo calcula el servidor a proposito, para que el cliente
 /// no tenga que reimplementar la regla.
+/// </param>
+/// <param name="Community">
+/// Lo que la comunidad dice, aparte de lo verificado. Nunca falta: un lugar sin
+/// votos trae ceros y el sello "NoVotesYet".
 /// </param>
 public sealed record PoiDto(
     Guid Id,
@@ -193,9 +239,10 @@ public sealed record PoiDto(
     string? SuitabilityEvidence,
     string SuitabilityEvidenceKind,
     bool IsSampleData,
-    bool? SuitableForSelectedTruck)
+    bool? SuitableForSelectedTruck,
+    CommunityDto Community)
 {
-    public static PoiDto From(PointOfInterest poi, TruckProfile? truck) => new(
+    public static PoiDto From(PointOfInterest poi, TruckProfile? truck, CommunityView? community, string? contributedByAlias) => new(
         poi.Id,
         poi.Name,
         poi.Category.ToString(),
@@ -218,7 +265,8 @@ public sealed record PoiDto(
         poi.SuitabilityEvidence,
         poi.SuitabilityEvidenceKind.ToString(),
         poi.IsSampleData,
-        truck is null ? null : PoiSuitability.Accepts(poi, truck));
+        truck is null ? null : PoiSuitability.Accepts(poi, truck),
+        community is null ? CommunityDto.Empty(poi, contributedByAlias) : CommunityDto.From(community, poi, contributedByAlias));
 }
 
 public sealed record RestrictionFindingDto(
