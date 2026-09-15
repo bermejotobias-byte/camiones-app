@@ -168,4 +168,17 @@ public sealed class PointOfInterest
     /// <see cref="Trucks.TruckProfile.IsSampleData"/>.
     /// </summary>
     public bool IsSampleData { get; set; }
+
+    /// <summary>
+    /// Quien lo aporto, si vino de la comunidad; <c>null</c> en todo lo relevado.
+    /// </summary>
+    /// <remarks>
+    /// Un lugar aportado se distingue por esto y no por el nivel de verificacion:
+    /// un punto relevado tambien puede estar <c>NotConfirmed</c>. Lo que la
+    /// comunidad opina del lugar no vive aca sino en los votos (<see cref="PoiVote"/>).
+    /// </remarks>
+    public Guid? ContributedBy { get; set; }
+
+    /// <summary>Cuando lo aporto.</summary>
+    public DateTimeOffset? ContributedAt { get; set; }
 }
