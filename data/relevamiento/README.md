@@ -94,6 +94,52 @@ oficial, 5 por el operador, 5 por reseñas; 2 `Probable` por señales) y 1
 auxilio mecánico pesado (`Probable`). Verificado por la API el 15/09/2026:
 `GET /api/pois?categories=TyreShop` devuelve 41 puntos, 16 del relevamiento.
 
+### Estaciones de servicio — 15/09/2026
+
+**Las redes de las marcas, leídas en sus sitios** (lo que cada una declara por
+estación, y si sirve como evidencia):
+
+| Marca | Fuente oficial | Qué declara por estación | Sirve |
+|---|---|---|---|
+| YPF | `mapa.ypf.com` (JSON público `magui.ypf.com/boxes/eess/get/`, 1.740 bocas) | `AZUL32` (surtidor de urea para diésel pesado), `TIPO_DESPACHO` (GNC/dual/líquidos), `TIPO_UBICACION` (urbana/autopista), estado activa/inactiva. El campo `YER` (YPF Ruta) viene vacío | **Sí: Azul 32.** Dentro del rectángulo son 2 de 135 |
+| Shell | `find.shell.com/ar` (directorio público; 93 estaciones en el rectángulo, leídas una por una) | amenities `truck_parking`, `hgv_lane`, `truckport`, `adblue_truck`, `high_speed_diesel_pump`; `truck_diesel` es el gasoil común | **Sí: `truck_parking`.** Una sola de 93 (Edison 1610, Dock Sud) |
+| Axion | `axionenergy.com/wp-json/axion/v1/estaciones` (640 bocas) | GNC, diésel X10, tarjeta de flota `AXIONcard` (49 de 50 la aceptan), duchas, reparto capilar | **No**: nada específico de camiones en las 50 del rectángulo |
+| Puma | `pumaenergy.com.ar` no respondió; `pumaenergy.com/es/country/argentina` no lista estaciones | — | No |
+| YPF Ruta / Axion Card / Shell Card | páginas de las tarjetas de flota | aceptación de la tarjeta | **No cuenta como aptitud**: una estación urbana acepta la tarjeta y atiende utilitarios |
+
+**El registro oficial como lista**: `candidatos-energia.json`, 389 estaciones en
+el rectángulo, 73 a menos de 40 m de la Red de Tránsito Pesado. La regla de la
+spec (§6.3) las hace entrar como `NotConfirmed` aunque no tengan evidencia.
+
+**Depuración del registro**, porque conserva bocas que ya no existen: cada
+estación se cruzó con el mapa oficial de su marca (YPF/Shell/Axion, a ≤ 100 m y
+activa) y las 17 de otras banderas se buscaron una por una en la ficha pública.
+Descartadas 5: YPF Antártida Argentina y Calle 10 (inactiva en el mapa de YPF y
+cerrada según la ficha), Shell Juan B. Justo 8490 (no está en el directorio de
+Shell y la ficha la marca cerrada), GNC San Cayetano en Juan B. Justo 5940
+(cerrada según la ficha), y dos sin bandera —Av. Gral. Paz 7499 y Francisco
+Beiró 2801— que ni OSM ni la ficha ubican en esa dirección. **La fecha del último
+precio informado NO sirve como señal de cierre**: 20 estaciones abiertas dejaron
+de informar en 2025-06 a la vez.
+
+**Reseñas**: en las fichas de las estaciones de los corredores de camiones
+(Coronel Roca ×2, Fernández de la Cruz, Escalada, Dellepiane, Antártida
+Argentina) no aparece la palabra camión entre las palabras clave ni en las
+reseñas visibles; ninguna estación entró por reseñas.
+
+**Google Maps** (descubrimiento): "estación de servicio para camiones" @
+-34.635,-58.45 z12 y "estación de servicio camiones Mercado Central Tapiales"
+@ -34.705,-58.49 z14 — devuelven las YPF de siempre; las dos con Azul 32 ya
+estaban por el mapa de YPF.
+
+**Resultado**: 69 estaciones — **3 `Confirmed`** (operador: 2 YPF con Azul 32,
+1 Shell con playa para camiones), **0 `Probable`**, **66 `NotConfirmed`** sobre
+33 calles de la Red (Juan B. Justo 10, Beiró 6, Dellepiane 5, San Martín 4, Eva
+Perón 4, …). Nueve de ellas estaban en el dataset de OSM de agosto y se mudaron
+al relevamiento con la misma referencia de OSM. Verificado por la API el
+15/09/2026: `GET /api/pois?categories=FuelStation` devuelve 85 puntos, 69 del
+relevamiento.
+
 ## Descartados por falta de evidencia
 
 ### Gomerías — 15/09/2026
@@ -122,3 +168,18 @@ había anotado como fuera del rectángulo ("Boulogne") y está en Villa Adelina,
 -34,511 / -58,533; recapados.com se había anotado "sin declaración de camiones" y
 su sitio declara gomería y mecánica para transporte pesado, además de estar en
 el listado INTI/ARAN.
+
+### Estaciones de servicio — 15/09/2026
+
+Cerradas o inexistentes (ver "Depuración del registro" arriba): YPF Antártida
+Argentina y Calle 10 (idempresa 6852), Shell Juan B. Justo 8490 (640), GNC San
+Cayetano Juan B. Justo 5940 (5270), sin bandera Av. Gral. Paz 7499 (158), sin
+bandera Francisco Beiró 2801 (2126).
+
+Fuera de la Red y sin evidencia: las otras 316 estaciones del registro no
+entran, por la regla de la spec.
+
+Una misma boca con dos `idempresa` (líquidos y GNC): Zelarrayán 5530 (1052 y
+10264) se fusionó en una entrada; el candado
+`No_two_points_of_the_same_category_share_the_same_spot` lo atrapa si vuelve a
+pasar.
