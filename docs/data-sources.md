@@ -292,6 +292,14 @@ saberlo antes de interpretar un mapa vacío. La app lo dice explícitamente con 
 contador de puntos ocultos. **La app web todavía no muestra los POIs**: la
 interfaz es lo siguiente.
 
+**Desde el 15/09/2026 la comunidad completa lo que falta**: los usuarios votan
+cada lugar como apto o no apto **con su tipo de camión**, y agregan lugares
+nuevos. Es un dato de comunidad, **no oficial, y se muestra distinto**: viaja en
+un bloque aparte (`community`) con su propio sello, nunca escribe el nivel
+verificado ni los campos de aptitud, y un lugar aportado nace `NotConfirmed`
+con la marca *aportado por la comunidad*. Ver `docs/pois.md`, "La comunidad", y
+AD-46.
+
 El método, las búsquedas hechas y los descartes con motivo están en
-`data/relevamiento/README.md`.
+`data/relevamiento/README.md`; lo aportado por usuarios no pasa por ahí.
 

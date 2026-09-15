@@ -23,10 +23,10 @@ Ver `docs/data-sources.md`, "Puntos de interés".
 |---|---|
 | `src/TruckNavigator.Domain` | Motor de restricciones, ruteo, POIs y perfiles. **Sin dependencias externas** — mantenerlo así |
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
-| `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois`, `/api/routes`. Swagger en `/swagger` |
+| `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois` (leer, votar, agregar), `/api/progress`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
-| `tests/TruckNavigator.UnitTests` | 256 tests: dominio (restricciones, ruteo, progresión, aptitud de POIs, patente, fecha de nacimiento), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
-| `tests/TruckNavigator.IntegrationTests` | 108 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 97 sobre datasets, perfiles, camiones, viajes, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, y los candados del dataset de POIs con el seed por `ManagedByDataset` |
+| `tests/TruckNavigator.UnitTests` | 288 tests: dominio (restricciones, ruteo, progresión, aptitud de POIs, sello y filtro de la comunidad, patente, fecha de nacimiento), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
+| `tests/TruckNavigator.IntegrationTests` | 130 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 119 sobre datasets, perfiles, camiones, viajes, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, los candados del dataset de POIs con el seed por `ManagedByDataset`, y los votos y aportes de la comunidad |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -47,8 +47,8 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 364 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 68 tests: guiado, avisos de ruta, agenda y mascota
+dotnet test                                    # 418 tests (.NET)
+node --test "tests/web/*.test.mjs"             # 72 tests: guiado, avisos de ruta, agenda, mascota e insignias
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -56,6 +56,13 @@ node --test "tests/web/*.test.mjs"             # 68 tests: guiado, avisos de rut
 
 ## Trampas que ya costaron tiempo
 
+- **Los votos y los lugares que aporta la comunidad NUNCA tocan lo verificado.** El sello
+  comunitario viaja en el bloque `community` del `PoiDto`, aparte de `verificationLevel` y
+  de los cuatro `suitableFor…`; un lugar aportado nace `NotConfirmed` con
+  `ManagedByDataset = false` (el seed no lo borra). **Un voto paga EXP una vez por lugar y
+  retirarlo no devuelve**: el índice único del libro sobre `(camionero, motivo, lugar)` es
+  la garantía, y el único que otorga sigue siendo `ProgressionRecorder`. Sin tope diario
+  por decisión del usuario. Ver AD-46 y `docs/pois.md`, "La comunidad".
 - **APKs de Release: siempre con `build-apk.ps1`.** Una compilación incremental en Release
   produce un APK que aborta al arrancar con *"Compressed assembly is larger than when the
   application was built"*. El script limpia `obj/` y `bin/` antes de compilar, que es lo que

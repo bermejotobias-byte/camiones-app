@@ -2721,3 +2721,78 @@ End to end contra la API: el reparto da 31 km y al recuperar el viaje **sigue
 dando 31 km**. Y el viaje simple sin paradas responde 201 con 10,2 km al crear y
 al recuperar, que es la regresión que había que cuidar: son la mayoría de los
 viajes.
+
+## AD-46 · La comunidad vota y aporta lugares; complementa lo verificado, no lo reemplaza
+
+**Fecha:** 15/09/2026
+**Estado:** aceptada
+
+### El pedido
+
+Después del relevamiento de POIs (180 puntos, 48 con aptitud declarada por
+evidencia), el usuario pidió que los usuarios puedan **aprobar o desaprobar** un
+lugar como apto para camiones, que se muestre **cuántos** lo aprobaron, que eso
+sirva de **indicador de confiabilidad**, y que aportar cuente en la progresión
+—EXP, logros y skins— **sin inventar mecánicas nuevas**. Con una condición de
+fondo: *"la información comunitaria pueda complementar, pero no reemplazar, los
+datos verificados"*.
+
+### Cuatro decisiones, tomadas de a una
+
+| Decisión | Elegido | Por qué no lo otro |
+|---|---|---|
+| Un lugar agregado por un usuario aparece **enseguida**, marcado *aportado por la comunidad*, sin confirmar | (a) | (b) esperar N confirmaciones y (c) visible sólo para el autor dejaban lugares invisibles para siempre: hoy no hay moderación ni volumen de usuarios |
+| El voto lleva **el tipo de camión** con el que se vota, y la ficha muestra **los votos de camiones como el tuyo** | (b) | un pulgar genérico no dice nada: para un semi, veinte livianos que lo recomiendan no sirven |
+| **Sin tope** a la EXP por votar | (b) | textual: *"hoy por hoy, al arrancar, sirve la interacción de los usuarios por más que sea sin filtro"*. Se revisa con datos; el tope, si llega, es una línea en el recorder |
+| El indicador es **un segundo sello**, el de la comunidad, aparte del nivel verificado | — | umbrales fijos y testeables: recomendado con ≥ 3 aptos y el doble de aptos que no aptos; en discusión con ≥ 3 votos y los no aptos igualando o superando |
+
+### Por qué el sello es aparte y no un ajuste al nivel
+
+Un lugar de la comunidad llega como mucho a *recomendado por la comunidad*,
+nunca a `Confirmed`; un lugar verificado con sello *en discusión* sigue
+verificado, y la ficha muestra las dos cosas. Si los votos tocaran
+`VerificationLevel`, en un mes nadie sabría qué parte de "confirmado" salió de
+una fuente citable y qué parte de tres pulgares. Es la regla que ya estaba en
+la skill de producto: **un dato aportado por usuarios nunca se muestra igual que
+uno oficial**. Es lo que hace defendible al producto frente a Waze y Google Maps.
+
+Y el filtro *"solo aptos para mi camión"* lo aplica igual: pasa lo verificado
+apto **o** lo recomendado por la comunidad para ese tipo **cuando la fuente no
+dice nada**. Un "no apto" verificado sigue afuera aunque lo recomienden: la
+comunidad completa, no contradice (`PoiFilter`, en el dominio).
+
+### Por qué el voto guarda el tipo y no el camión
+
+Borrar un camión no puede borrar votos, y el voto tiene que seguir diciendo con
+qué clase de vehículo se emitió. El tipo sale de `PoiSuitability.FieldFor`, el
+mismo que decide qué campo de aptitud consultar: la misma clasificación para lo
+verificado y para lo que opina la comunidad.
+
+### Nada nuevo en la progresión
+
+Todo lo pedido ya tenía lugar: una pista más en `TrackCatalog` (`lugares`, con
+la escalera de viajes), dos motivos más en el libro (`PlaceAdded` 10,
+`PlaceVoted` 2), y un método más en `ProgressionRecorder`, **la única puerta
+que otorga** — el cliente nunca informa lo que ganó, igual que con los viajes.
+Las skins son las recompensas `lugares-01…10` que el catálogo genera solo.
+
+El índice único del libro sobre `(camionero, motivo, lugar)` es lo que sostiene
+el diseño: cambiar el voto no paga, retirarlo no devuelve —el libro no resta—,
+volver a votar no cobra. **El aporte trae su primer voto** —quien carga un lugar
+vota apto con su camión en la misma operación— y ese voto no paga aparte.
+
+### Dos cosas que aparecieron construyéndolo
+
+- **La primera versión del sello miraba el total de votos** para recomendar, y
+  dos aptos contra uno daba recomendado. La regla aprobada pide tres *aptos*; el
+  total sólo cuenta para marcar en discusión. Lo atrapó el test de casos.
+- **`ArgumentException.Message` le pega "(Parameter 'latitude')" al final.** El
+  dominio escribe el motivo para la persona; el endpoint le saca el sufijo antes
+  de devolverlo en el 400.
+
+### Fuera de alcance, a propósito
+
+La ficha con el botón de votar y el formulario de agregar van con la interfaz de
+POIs, que hoy no existe. Moderación, denuncias, edición y borrado de lo aportado
+quedan para cuando aparezca el abuso. Los reportes de la Fase 5 (siniestros,
+radares, retenes) son otro sistema, pero entran por la misma puerta.

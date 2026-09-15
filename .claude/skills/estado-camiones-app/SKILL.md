@@ -25,8 +25,10 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 15/09/2026: el cierre del relevamiento de POIs** (diecisiete commits
-desde `b5dc4d3`, de la spec `c16cef1` al cierre en docs), **sin pushear**. Los
+**Punta al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; catorce
+commits desde la spec `5298239`, uno por tarea), **sin pushear**. Antes, ese
+mismo día, el relevamiento de POIs y los talleres de mecánica pesada
+(`d0b6ddd`, diecisiete commits desde `b5dc4d3`, de la spec `c16cef1` al cierre en docs). Los
 del 14/09: la mascota en la app (`5db5267`) y el prototipo de diseño
 (`b5dc4d3`). Antes, **`ec20c58`** del 12/09 (el zócalo), pusheada a `origin`, sin nada
 pendiente salvo `routing/config-truck.yml`. Antes, `91350da`. Los cinco commits del 12/09 —escalas y EXP,
@@ -49,7 +51,7 @@ lo pida.
 | Documento | Qué tiene |
 |---|---|
 | `CLAUDE.md` | Convenciones, comandos, **trampas que ya costaron tiempo** |
-| `docs/decisions.md` | **45 decisiones arquitectónicas (AD-01…AD-45)** con su porqué |
+| `docs/decisions.md` | **46 decisiones arquitectónicas (AD-01…AD-46)** con su porqué |
 | `docs/data-sources.md` | Fuentes, licencias y limitaciones **L-1…L-11** (L-4 ya resuelta) |
 | `docs/architecture.md` | Estructura y proyectos |
 | `docs/routing.md`, `docs/restrictions.md`, `docs/pois.md`, `docs/deploy.md` | Por tema |
@@ -213,10 +215,42 @@ modificado en cada `git status`; **no commitearlo**.
 **Distinción crítica.** Mucho está probado a fondo; una franja específica no se
 pudo probar y hay que decirlo cada vez.
 
+### La comunidad vota y aporta lugares — 15/09/2026, más tarde
+
+**490 tests en total**: 288 unitarios de .NET, 130 de integración (11 se saltean
+sin GraphHopper) y 72 de JS. Todo verde al cierre. Spec y plan en
+`docs/superpowers/*/2026-09-15-pois-comunidad-y-gamificacion*`; el porqué en
+**AD-46**. Once tareas, un commit por tarea, cada test visto en rojo.
+
+**Lo que quedó:** `PoiVote` (un voto por camionero y lugar, con el **tipo de
+camión**), `CommunityStanding` (el sello: recomendado ≥ 3 aptos y 2 a 1; en
+discusión ≥ 3 votos y los no aptos igualan), `PoiContribution` (cómo nace un
+lugar aportado: `NotConfirmed`, sin aptitud verificada, fuera del dataset,
+dentro del rectángulo), `PoiFilter` (el filtro "solo aptos": verificado apto o
+recomendado por la comunidad para tu tipo cuando la fuente no dice nada), la
+pista `lugares` con sus skins `lugares-01…10`, `RecordContributionAsync` en el
+recorder, y tres endpoints: `GET /api/pois` con el bloque `community`,
+`PUT/DELETE /api/pois/{id}/vote`, `POST /api/pois`.
+
+**Verificado a mano con la cuenta demo, backend en Development:** el primer voto
+paga 2 + 100 del escalón y deja `lugares-01` pendiente de festejo; cambiar el
+voto no paga; retirar deja la EXP; agregar paga 10 y devuelve 201 con la ficha y
+el alias; un duplicado a 10 m da 409 con `existingId`; fuera del área 400 con el
+motivo limpio; el lugar aportado sobrevive a reiniciar el backend.
+
+**Dos cosas que atraparon los tests:** el sello miraba el total y no los aptos
+(2 a 1 daba recomendado); y `ArgumentException.Message` arrastra
+"(Parameter 'x')", que no es para una persona. Y una trampa del entorno: `curl`
+en Git Bash manda las tildes en Latin-1 y el JSON no es UTF-8 válido — el 500
+era de la prueba, no de la app; el cuerpo va en un archivo.
+
+**Lo que NO hay:** la ficha con el botón de votar y el formulario de agregar.
+Van con la interfaz de POIs. `api.js` y la insignia ya están.
+
 ### El relevamiento de POIs — 15/09/2026
 
-**432 tests en total**: 256 unitarios de .NET, 108 de integración (11 se saltean
-sin GraphHopper) y 68 de JS. Todo verde al cierre.
+**432 tests en total** en ese momento: 256 unitarios de .NET, 108 de integración
+(11 se saltean sin GraphHopper) y 68 de JS. Todo verde al cierre.
 
 Spec `docs/superpowers/specs/2026-09-15-pois-camiones-relevamiento-design.md`,
 plan `docs/superpowers/plans/2026-09-15-pois-camiones-relevamiento.md`, once
@@ -1106,13 +1140,18 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
    no por código: cuánto dura un reporte, cuántas confirmaciones lo validan, qué
    pasa con los falsos. Con el motor hecho, sumarlas es **una pista más en el
    catálogo**.
-12b. **La interfaz de POIs en la app web** — la base está (15/09/2026, ver §4)
-   y **ninguna vista la muestra**: `api.js` conserva `pois()`, no hay capa en
+12b. **La interfaz de POIs en la app web** — la base está (15/09/2026, ver §4),
+   **el sistema de votos y aportes también**, y **ninguna vista los muestra**:
+   `api.js` tiene `pois`, `addPoi`, `votePoi` y `retirePoiVote`; no hay capa en
    `layers.js`. Lo que hay que construir: el botón *Lugares* con filtros por
    categoría, "solo aptos para mi camión" con el contador de ocultos, la ficha
-   con la evidencia y su fecha, y marcadores distintos para `Confirmed`,
-   `Probable` y `NotConfirmed` — un dato sin confirmar **no se ve igual** que
-   uno confirmado. Va sobre el prototipo de diseño cuando el usuario lo pida.
+   con la evidencia y su fecha **y el bloque de la comunidad** ("N camioneros
+   como vos lo recomiendan", el voto propio, *aportado por la comunidad*), el
+   botón de votar, el formulario de agregar (con el 409 que ofrece votar el
+   existente), el festejo del aporte con `earned`, y marcadores distintos para
+   lo verificado, lo recomendado por la comunidad y lo sin confirmar — un dato
+   de la comunidad **no se ve igual** que uno oficial. Va sobre el prototipo
+   de diseño cuando el usuario lo pida.
    **Cómo seguir relevando** está en `data/relevamiento/README.md`: la
    herramienta de armado quedó en el scratchpad de la sesión, no en el repo;
    si hace falta otra tanda, rehacerla desde la plantilla del plan (Task 8).

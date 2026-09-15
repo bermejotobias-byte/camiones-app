@@ -124,12 +124,78 @@ GET /api/pois?categories=FuelStation,TyreShop&truckId=<guid>&suitableOnly=true
 | Parámetro | Efecto |
 |---|---|
 | `categories` | Lista separada por comas. Una categoría desconocida devuelve **400**, no se ignora. |
-| `truckId` | Completa `suitableForSelectedTruck`. Si el camión no existe, 404. |
-| `suitableOnly` | Deja sólo `suitableForSelectedTruck == true`. Requiere `truckId`. |
+| `truckId` | Completa `suitableForSelectedTruck` y `community.forYourTruck`. Si el camión no existe, 404. |
+| `suitableOnly` | Deja lo verificado apto para el camión **o** lo recomendado por la comunidad para su tipo cuando la fuente no dice nada. Requiere `truckId`. |
 
-`suitableOnly` oculta **también lo desconocido**: es la lectura estricta del
-filtro. Por eso la app lo trae apagado y avisa cuántos puntos escondió — hoy, para
-un semirremolque, esconde los 78.
+`suitableOnly` oculta **lo desconocido y lo discutido**: es la lectura estricta
+del filtro, y por eso la app lo trae apagado y avisa cuántos puntos escondió. La
+regla es `PoiFilter.PassesSuitableOnly`, en el dominio, con sus ocho casos: un
+"no apto" verificado sigue afuera aunque la comunidad lo recomiende — la
+comunidad completa, no contradice.
+
+Leer no exige sesión, pero con sesión cada lugar trae `community.yourVote`.
+
+## La comunidad
+
+Desde el 15/09/2026 los usuarios **votan** un lugar como apto o no apto y
+**agregan** lugares nuevos. Decisiones del usuario, con el porqué, en AD-46 y en
+la spec `docs/superpowers/specs/2026-09-15-pois-comunidad-y-gamificacion-design.md`.
+
+**La regla de fondo: la comunidad complementa lo verificado, no lo reemplaza.**
+Los votos nunca escriben `verificationLevel` ni `suitableFor…`; viajan en un
+bloque aparte del DTO, para que la ficha marque distinto cada origen:
+
+```json
+"community": {
+  "suitable": 3, "notSuitable": 1, "seal": "Recommended",
+  "forYourTruck": { "truckClass": "SemiTrailer", "suitable": 3, "notSuitable": 0, "seal": "Recommended" },
+  "yourVote": "Suitable",
+  "contributed": { "at": "2026-09-15", "byAlias": "demo" }
+}
+```
+
+| Pieza | Dónde | Qué hace |
+|---|---|---|
+| `PoiVote` | `Domain/Pois/PoiVote.cs` | un voto por camionero y lugar, con el **tipo de camión** (`PoiSuitabilityField`, el mismo de la aptitud) y el veredicto. Se guarda el tipo y no el id del camión: borrar el camión no borra el voto |
+| `CommunityStanding` | `Domain/Pois/CommunityStanding.cs` | el sello, función pura: **recomendado** con al menos 3 aptos y el doble de aptos que no aptos; **en discusión** con al menos 3 votos y los no aptos igualando o superando; **sin votos** en el resto. Se calcula sobre todos y sobre los del tipo del camión que consulta |
+| `PoiContribution` | `Domain/Pois/PoiContribution.cs` | cómo nace un lugar aportado: `NotConfirmed`, evidencia `None`, los cuatro campos de aptitud en `null`, `ManagedByDataset = false` (el seed no lo toca), dentro de CABA y su anillo, con `contributedBy` |
+| `PoiFilter` | `Domain/Pois/PoiFilter.cs` | qué deja pasar `suitableOnly` |
+| `GeoDistance` | `Domain/Pois/GeoDistance.cs` | los 25 m del duplicado, los mismos del candado del dataset |
+| `CommunityReader`, `PoiVoting`, `PoiContributing` | `Infrastructure/Pois/` | contar votos por lote; votar y retirar; agregar. Probados contra SQLite real |
+
+```
+PUT    /api/pois/{id}/vote   { truckId, verdict: "Suitable" | "NotSuitable" }   → { community, earned }
+DELETE /api/pois/{id}/vote                                                     → 204
+POST   /api/pois             { name, category, latitude, longitude, address?, description?, truckId }
+                             → 201 { poi, earned } · 400 con el motivo · 409 con existingId (misma categoría a < 25 m)
+```
+
+Votar y agregar piden sesión. **El aporte trae su primer voto**: quien carga un
+lugar vota apto con su camión en la misma operación.
+
+### Lo que paga, y por qué no se puede abusar del libro
+
+Todo pasa por `ProgressionRecorder.RecordContributionAsync`, la misma puerta que
+los viajes: el cliente nunca informa lo que ganó.
+
+| Aporte | EXP | Pista `lugares` |
+|---|---|---|
+| Agregar un lugar | 10 (`ExperienceScale.PlaceAdded`) | +1 |
+| Votar un lugar | 2 (`ExperienceScale.PlaceVote`), **una vez por lugar** | +1 |
+| Completar un escalón de `lugares` | 100, como toda pista | recompensa `lugares-NN` (las skins) |
+
+El índice único del libro sobre `(camionero, motivo, lugar)` es lo que hace que
+cambiar el voto no pague, que retirarlo no devuelva —el libro no resta— y que
+volver a votar no cobre. **Sin tope diario** por decisión del usuario del
+15/09/2026: se revisa con datos.
+
+### Lo que todavía no hay
+
+La ficha con el botón de votar y el formulario para agregar: van con la
+interfaz de POIs, que hoy no existe. `api.js` ya tiene `pois`, `addPoi`,
+`votePoi` y `retirePoiVote`, y `logros.js` la insignia de `lugares`. Tampoco hay
+moderación ni edición de lo aportado: un lugar mal puesto queda mal puesto
+hasta que exista.
 
 ## Los datos
 

@@ -41,6 +41,13 @@ es un resumen propio y dice la fecha. Las coordenadas salen de OSM o del registr
 oficial; si un lugar no está en ninguno, se geocodifica la dirección con Photon y
 se dice en `source`.
 
+## Lo que no pasa por aca
+
+Los lugares que agregan los usuarios y sus votos (AD-46, 15/09/2026) no son
+relevamiento: nacen con `ManagedByDataset = false`, fuente "Aporte de la
+comunidad", y su confianza es un sello aparte. Este archivo describe solo lo
+que se relevo con fuente.
+
 ## Regla de entrada
 
 - Gomerías, talleres y lugares para comer: sólo con evidencia (`Confirmed` o `Probable`).
