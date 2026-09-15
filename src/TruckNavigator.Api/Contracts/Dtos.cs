@@ -190,6 +190,8 @@ public sealed record PoiDto(
     string Source,
     DateOnly SourceRetrievedOn,
     string VerificationLevel,
+    string? SuitabilityEvidence,
+    string SuitabilityEvidenceKind,
     bool IsSampleData,
     bool? SuitableForSelectedTruck)
 {
@@ -213,6 +215,8 @@ public sealed record PoiDto(
         poi.Source,
         poi.SourceRetrievedOn,
         poi.VerificationLevel.ToString(),
+        poi.SuitabilityEvidence,
+        poi.SuitabilityEvidenceKind.ToString(),
         poi.IsSampleData,
         truck is null ? null : PoiSuitability.Accepts(poi, truck));
 }
