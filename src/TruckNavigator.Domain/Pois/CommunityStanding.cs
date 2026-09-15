@@ -38,7 +38,10 @@ public enum CommunitySeal
 /// </remarks>
 public static class CommunityStanding
 {
-    /// <summary>Menos que esto, el sello no dice nada.</summary>
+    /// <summary>
+    /// Menos que esto, el sello no dice nada: para recomendar hacen falta tantos
+    /// votos <b>apto</b>; para marcar en discusion, tantos votos en total.
+    /// </summary>
     public const int MinimumVotes = 3;
 
     /// <summary>Cuantos aptos por cada no apto hacen falta para recomendar.</summary>
@@ -46,19 +49,15 @@ public static class CommunityStanding
 
     public static CommunitySeal SealFor(CommunityCount count)
     {
-        if (count.Total < MinimumVotes)
-        {
-            return CommunitySeal.NoVotesYet;
-        }
-
-        if (count.NotSuitable >= count.Suitable)
+        if (count.Total >= MinimumVotes && count.NotSuitable >= count.Suitable)
         {
             return CommunitySeal.Disputed;
         }
 
-        // Entre "los no aptos igualan" y "el doble de aptos" el sello calla: 4 a 3
-        // no es una recomendacion, es una discusion que todavia no se dio.
-        return count.Suitable >= ApprovalRatio * count.NotSuitable
+        // Entre "los no aptos igualan" y "el doble de aptos" el sello calla: 5 a 3
+        // no es una recomendacion, es una discusion que todavia no se dio. Y dos
+        // aptos contra uno tampoco alcanzan: la regla pide tres aptos, no tres votos.
+        return count.Suitable >= MinimumVotes && count.Suitable >= ApprovalRatio * count.NotSuitable
             ? CommunitySeal.Recommended
             : CommunitySeal.NoVotesYet;
     }
