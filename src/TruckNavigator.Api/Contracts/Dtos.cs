@@ -671,6 +671,34 @@ public sealed record TripEarnedDto(
         e.LeveledUp);
 }
 
+/// <summary>
+/// Lo que gano un aporte a los lugares, para festejarlo igual que un viaje: la EXP
+/// del aporte y la de los escalones, y los escalones completados. Sin nivel: el
+/// nivel es de kilometros y aportar no lo mueve.
+/// </summary>
+public sealed record ContributionEarnedDto(
+    int ContributionExperience,
+    int TierExperience,
+    int TotalExperience,
+    IReadOnlyList<CompletedTierDto> CompletedTiers)
+{
+    public static ContributionEarnedDto From(ContributionEarnings e) => new(
+        e.ContributionExperience,
+        e.TierExperience,
+        e.TotalExperience,
+        [.. e.CompletedTiers.Select(CompletedTierDto.From)]);
+}
+
+/// <summary>El voto que se emite: con que camion y que dice.</summary>
+/// <param name="Verdict"><c>Suitable</c> o <c>NotSuitable</c>, en texto, como todo enum del contrato.</param>
+public sealed record VoteRequest(Guid TruckId, string Verdict);
+
+/// <summary>
+/// Lo que vuelve despues de votar: la ficha ya actualizada y lo que pago —null si
+/// ese lugar ya habia cobrado, que es lo normal al cambiar el voto—.
+/// </summary>
+public sealed record VoteResultDto(CommunityDto Community, ContributionEarnedDto? Earned);
+
 /// <summary>Un escalon completado, con el objetivo que lo completo: es el numero que se muestra.</summary>
 public sealed record CompletedTierDto(string TrackCode, int Tier, long Goal, string RewardCode)
 {

@@ -100,6 +100,7 @@ builder.Services.AddSingleton<IEmailSender<AppUser>, IdentityEmailSender>();
 builder.Services.AddScoped<ProgressionRecorder>();
 builder.Services.AddScoped<ProgressionReader>();
 builder.Services.AddScoped<CommunityReader>();
+builder.Services.AddScoped<PoiVoting>();
 
 var app = builder.Build();
 
@@ -821,6 +822,83 @@ pois.MapGet("/", async (
     return Results.Ok(results.ToList());
 })
 .WithSummary("Playas, estaciones, talleres, gomerias, comer y auxilio pesado para camiones, con lo que la comunidad dice de cada uno.");
+
+// El voto se emite con un camion: de el sale el tipo que guarda el voto. Se puede
+// cambiar (misma ruta) y retirar. La EXP la decide el servidor y se paga una vez
+// por lugar: el cliente nunca informa lo que gano.
+pois.MapPut("/{id:guid}/vote", async (
+    Guid id,
+    VoteRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    PoiVoting voting,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<PoiVerdict>(request.Verdict, ignoreCase: true, out var verdict))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["verdict"] = ["Vale Suitable o NotSuitable."]
+        });
+    }
+
+    var poi = await db.PointsOfInterest.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    if (poi is null)
+    {
+        return Results.NotFound();
+    }
+
+    var truck = await FindUsableTruckAsync(db, request.TruckId, userId, ct);
+
+    if (truck is null)
+    {
+        return Results.Problem(
+            title: "Camion inexistente",
+            detail: $"No existe un perfil de camion con id {request.TruckId}.",
+            statusCode: StatusCodes.Status404NotFound);
+    }
+
+    var result = await voting.CastAsync(userId.Value, id, truck, verdict, DateTimeOffset.UtcNow, ct);
+
+    var alias = poi.ContributedBy is { } by
+        ? await db.DriverProfiles.AsNoTracking().Where(d => d.Id == by).Select(d => d.Alias).FirstOrDefaultAsync(ct)
+        : null;
+
+    return Results.Ok(new VoteResultDto(
+        CommunityDto.From(result.Community, poi, alias),
+        result.Earned is null ? null : ContributionEarnedDto.From(result.Earned)));
+})
+.RequireAuthorization()
+.WithSummary("Vota un lugar como apto o no apto para el camion elegido; cambiarlo es votar de nuevo.");
+
+// Retirar no devuelve EXP: el libro no resta y el voto ya se pago una vez.
+pois.MapDelete("/{id:guid}/vote", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    PoiVoting voting,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    await voting.RetireAsync(userId.Value, id, ct);
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithSummary("Retira el voto propio sobre un lugar.");
 
 // ------------------------------------------------------------------- viajes
 //
