@@ -689,6 +689,27 @@ public sealed record ContributionEarnedDto(
         [.. e.CompletedTiers.Select(CompletedTierDto.From)]);
 }
 
+/// <summary>
+/// Un lugar que carga un camionero. Las reglas —largo del nombre, area cubierta—
+/// las valida el dominio (<see cref="PoiContribution"/>), no atributos: tienen que
+/// dar el mismo veredicto desde cualquier llamador. La categoria va en texto, como
+/// en todo el contrato.
+/// </summary>
+public sealed record AddPoiRequest(
+    string Name,
+    string Category,
+    double Latitude,
+    double Longitude,
+    string? Address,
+    string? Description,
+    Guid TruckId);
+
+/// <summary>
+/// Lo que vuelve al agregar: el lugar ya con su ficha comunitaria (un voto, el
+/// tuyo) y lo que pago.
+/// </summary>
+public sealed record AddedPoiDto(PoiDto Poi, ContributionEarnedDto? Earned);
+
 /// <summary>El voto que se emite: con que camion y que dice.</summary>
 /// <param name="Verdict"><c>Suitable</c> o <c>NotSuitable</c>, en texto, como todo enum del contrato.</param>
 public sealed record VoteRequest(Guid TruckId, string Verdict);

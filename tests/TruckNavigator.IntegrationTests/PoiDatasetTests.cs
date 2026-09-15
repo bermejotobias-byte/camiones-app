@@ -88,20 +88,17 @@ public class PoiDatasetTests
             for (var j = i + 1; j < lista.Count; j++)
             {
                 if (lista[i].Category != lista[j].Category) continue;
-                if (Metros(lista[i], lista[j]) < 25) encimados.Add(lista[i].Name + " / " + lista[j].Name);
+
+                // La misma cuenta y el mismo umbral que el chequeo de duplicados al
+                // aportar un lugar: si esto cambia, cambia para los dos.
+                var metros = GeoDistance.Meters(
+                    lista[i].Latitude, lista[i].Longitude,
+                    lista[j].Latitude, lista[j].Longitude);
+
+                if (metros < GeoDistance.SamePlaceMeters) encimados.Add(lista[i].Name + " / " + lista[j].Name);
             }
 
         Assert.True(encimados.Count == 0, "Puntos encimados: " + string.Join("; ", encimados));
-    }
-
-    private static double Metros(PointOfInterest a, PointOfInterest b)
-    {
-        const double radio = 6_371_000;
-        var dLat = (b.Latitude - a.Latitude) * Math.PI / 180;
-        var dLon = (b.Longitude - a.Longitude) * Math.PI / 180;
-        var s = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
-            + Math.Cos(a.Latitude * Math.PI / 180) * Math.Cos(b.Latitude * Math.PI / 180) * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-        return 2 * radio * Math.Asin(Math.Sqrt(s));
     }
 
     [Fact]

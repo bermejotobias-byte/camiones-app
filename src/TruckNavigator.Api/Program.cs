@@ -101,6 +101,7 @@ builder.Services.AddScoped<ProgressionRecorder>();
 builder.Services.AddScoped<ProgressionReader>();
 builder.Services.AddScoped<CommunityReader>();
 builder.Services.AddScoped<PoiVoting>();
+builder.Services.AddScoped<PoiContributing>();
 
 var app = builder.Build();
 
@@ -822,6 +823,92 @@ pois.MapGet("/", async (
     return Results.Ok(results.ToList());
 })
 .WithSummary("Playas, estaciones, talleres, gomerias, comer y auxilio pesado para camiones, con lo que la comunidad dice de cada uno.");
+
+// Agregar un lugar. Aparece enseguida, marcado como de la comunidad, sin
+// aptitud verificada y con el primer voto de quien lo cargo (decision del usuario
+// del 15/09/2026). Un duplicado no es un error a secas: se devuelve el existente
+// para que la interfaz ofrezca votarlo.
+pois.MapPost("/", async (
+    AddPoiRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    PoiContributing contributing,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<PoiCategory>(request.Category, ignoreCase: true, out var category))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["category"] =
+            [
+                "Categoria desconocida. Valores validos: " +
+                string.Join(", ", Enum.GetNames<PoiCategory>()) + "."
+            ]
+        });
+    }
+
+    var truck = await FindUsableTruckAsync(db, request.TruckId, userId, ct);
+
+    if (truck is null)
+    {
+        return Results.Problem(
+            title: "Camion inexistente",
+            detail: $"No existe un perfil de camion con id {request.TruckId}.",
+            statusCode: StatusCodes.Status404NotFound);
+    }
+
+    AddPlaceResult result;
+
+    try
+    {
+        result = await contributing.AddAsync(
+            userId.Value,
+            new NewPlace(request.Name, category, request.Latitude, request.Longitude, request.Address, request.Description),
+            truck,
+            DateTimeOffset.UtcNow,
+            ct);
+    }
+    catch (ArgumentException ex)
+    {
+        // El dominio ya escribio el motivo para la persona; .NET le pega el nombre
+        // del parametro al final, y eso no es para la persona.
+        var reason = ex.Message.Split(" (Parameter", StringSplitOptions.None)[0];
+
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [ex.ParamName ?? "place"] = [reason]
+        });
+    }
+
+    if (result.DuplicateOf is { } existingId)
+    {
+        return Results.Problem(
+            title: "Ya hay un lugar ahi",
+            detail: "Hay un lugar de la misma categoria a menos de 25 metros. Votalo en vez de cargarlo de nuevo.",
+            statusCode: StatusCodes.Status409Conflict,
+            extensions: new Dictionary<string, object?> { ["existingId"] = existingId });
+    }
+
+    var alias = await db.DriverProfiles.AsNoTracking()
+        .Where(d => d.Id == userId.Value)
+        .Select(d => d.Alias)
+        .FirstOrDefaultAsync(ct);
+
+    var dto = new AddedPoiDto(
+        PoiDto.From(result.Place!, truck, result.Community, alias),
+        result.Earned is null ? null : ContributionEarnedDto.From(result.Earned));
+
+    return Results.Created($"/api/pois/{result.Place!.Id}", dto);
+})
+.RequireAuthorization()
+.WithSummary("Agrega un lugar de la comunidad, con el primer voto de quien lo carga.");
 
 // El voto se emite con un camion: de el sale el tipo que guarda el voto. Se puede
 // cambiar (misma ruta) y retirar. La EXP la decide el servidor y se paga una vez
