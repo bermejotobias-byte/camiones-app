@@ -119,6 +119,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         poi.Property(p => p.OpeningHours).HasMaxLength(200);
         poi.Property(p => p.Description).HasMaxLength(1000);
 
+        // La evidencia es texto corto con fecha; el tipo va como texto para que la
+        // base se lea a simple vista, igual que la categoria y el nivel.
+        poi.Property(p => p.SuitabilityEvidence).HasMaxLength(600);
+        poi.Property(p => p.SuitabilityEvidenceKind).HasConversion<string>().HasMaxLength(32);
+
+        // Las filas que ya existen en una base creada antes de esta columna quedan en
+        // false; el seed las adopta por id en el primer arranque (ver PointOfInterestSeed).
+        poi.Property(p => p.ManagedByDataset).HasDefaultValue(false);
+
         // La fuente es obligatoria a nivel de esquema: un punto sin origen citable no
         // deberia poder guardarse, del mismo modo que una restriccion no se emite sin
         // su referencia normativa.

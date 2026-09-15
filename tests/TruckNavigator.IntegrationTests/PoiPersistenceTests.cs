@@ -96,6 +96,38 @@ public sealed class PoiPersistenceTests : IAsyncLifetime
     /// El seed se corre cada vez que arranca la API. Correrlo dos veces no puede
     /// duplicar puntos ni multiplicar filas.
     /// </summary>
+    /// <summary>
+    /// La evidencia y su tipo cruzan la base. Sin la migracion, SQLite no tiene la
+    /// columna y esto revienta al guardar.
+    /// </summary>
+    [Fact]
+    public async Task Suitability_evidence_survives_the_round_trip()
+    {
+        var point = new PointOfInterest
+        {
+            Name = "Gomeria con evidencia",
+            Category = PoiCategory.TyreShop,
+            Latitude = -34.65,
+            Longitude = -58.45,
+            Source = "https://ejemplo.test (consultado 2026-09-15)",
+            SourceRetrievedOn = new DateOnly(2026, 9, 15),
+            VerificationLevel = VerificationLevel.Confirmed,
+            SuitabilityEvidenceKind = SuitabilityEvidenceKind.Reviews,
+            SuitabilityEvidence = "Según reseñas de conductores consultadas el 15/09/2026: entran semis.",
+            SuitableForSemiTrailer = true,
+            ManagedByDataset = false
+        };
+
+        _db.PointsOfInterest.Add(point);
+        await _db.SaveChangesAsync();
+
+        var stored = await _db.PointsOfInterest.AsNoTracking().FirstAsync(p => p.Id == point.Id);
+
+        Assert.Equal(SuitabilityEvidenceKind.Reviews, stored.SuitabilityEvidenceKind);
+        Assert.Equal(point.SuitabilityEvidence, stored.SuitabilityEvidence);
+        Assert.False(stored.ManagedByDataset);
+    }
+
     [Fact]
     public async Task Running_the_seed_twice_does_not_duplicate_points()
     {
