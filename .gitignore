@@ -38,3 +38,7 @@ deploy/.env
 
 # Artefacto de Windows, se cuela en cualquier carpeta abierta en el explorador
 desktop.ini
+
+# Prototipo del GPS: el lienzo armado y la vista previa se regeneran con gps.mjs y /design
+docs/diseno/prototipo-gps/gps-de-camiones.html
+docs/diseno/prototipo-gps/index.html

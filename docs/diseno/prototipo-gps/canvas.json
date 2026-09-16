@@ -1,0 +1,257 @@
+{
+  "artboards": [
+    {
+      "file": "Sistema.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1160,
+      "h": 1700,
+      "title": "El sistema, medido"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 1280,
+      "y": 0,
+      "w": 360,
+      "h": 800,
+      "title": "Viaje"
+    },
+    {
+      "file": "Reposo.dc.html",
+      "x": 1760,
+      "y": 0,
+      "w": 360,
+      "h": 800,
+      "title": "Reposo"
+    },
+    {
+      "file": "Aviso.dc.html",
+      "x": 2240,
+      "y": 0,
+      "w": 360,
+      "h": 800,
+      "title": "Viaje · aviso"
+    },
+    {
+      "file": "Movido.dc.html",
+      "x": 2720,
+      "y": 0,
+      "w": 360,
+      "h": 800,
+      "title": "Viaje · mapa movido"
+    },
+    {
+      "file": "General.dc.html",
+      "x": 1280,
+      "y": 1100,
+      "w": 360,
+      "h": 800,
+      "title": "Vista general"
+    },
+    {
+      "file": "Lista.dc.html",
+      "x": 1760,
+      "y": 1100,
+      "w": 360,
+      "h": 800,
+      "title": "Vista general · lista"
+    },
+    {
+      "file": "Rutas.dc.html",
+      "x": 2240,
+      "y": 1100,
+      "w": 360,
+      "h": 800,
+      "title": "Elegir ruta"
+    },
+    {
+      "file": "Detalles.dc.html",
+      "x": 2720,
+      "y": 1100,
+      "w": 360,
+      "h": 800,
+      "title": "Detalles de la ruta"
+    },
+    {
+      "file": "Buscar.dc.html",
+      "x": 1280,
+      "y": 2200,
+      "w": 360,
+      "h": 800,
+      "title": "Buscar"
+    },
+    {
+      "file": "Capas.dc.html",
+      "x": 1760,
+      "y": 2200,
+      "w": 360,
+      "h": 800,
+      "title": "Capas"
+    },
+    {
+      "file": "Lugar.dc.html",
+      "x": 2240,
+      "y": 2200,
+      "w": 360,
+      "h": 800,
+      "title": "Lugar verificado"
+    },
+    {
+      "file": "LugarComunidad.dc.html",
+      "x": 2720,
+      "y": 2200,
+      "w": 360,
+      "h": 800,
+      "title": "Lugar de la comunidad"
+    },
+    {
+      "file": "Aportar.dc.html",
+      "x": 1280,
+      "y": 3300,
+      "w": 360,
+      "h": 800,
+      "title": "Aportar · ¿Qué hay acá?"
+    },
+    {
+      "file": "Marcar.dc.html",
+      "x": 1760,
+      "y": 3300,
+      "w": 360,
+      "h": 800,
+      "title": "Aportar · marcar el lugar"
+    },
+    {
+      "file": "Dia.dc.html",
+      "x": 2240,
+      "y": 3300,
+      "w": 360,
+      "h": 800,
+      "title": "Viaje · día"
+    },
+    {
+      "file": "Reanudar.dc.html",
+      "x": 2720,
+      "y": 3300,
+      "w": 360,
+      "h": 800,
+      "title": "Reanudar"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "nota-main",
+      "x": 1280,
+      "y": 830,
+      "w": 360,
+      "text": "Calcado de waze-06, medida por medida: banda negra de 127 con la flecha de 40 × 46 y trazo de 5, la distancia en 27 sp regular y la calle en 24 sp media celeste; dos círculos negros de 52 a la derecha (sonido y, lo nuestro, el S.O.S.); la ruta de 8 dp en #2ddcff; el globo de 30 dp en 18 sp negrita, clavado sobre Av. Sáenz con su punto blanco; la flecha blanca de la maniobra con sombra celeste; el chevrón de 40 en #00b5d0 sobre su disco de 82; la píldora negra con la calle actual en 20 sp negrita —blanca, como en Waze—; el botón de 63 dp donde Waze pone reportar; la hoja de 137 con la hora en 25 sp. Calles de 10 dp, manzanas en dos tonos, un predio, el parque, un semáforo y un radar sobre la ruta con la chapa de cámara de Waze. Sin velocímetro."
+    },
+    {
+      "id": "nota-reposo",
+      "x": 1760,
+      "y": 830,
+      "w": 360,
+      "text": "Calcado de waze-03: manzanas grandes, calles de 10 dp sin borde en #40546c sobre tierra #272d39, flechas de mano celestes, semáforos blancos en los cruces, nombres de calle en 12 sp claros a lo largo de la calle, barrios en 17 sp gris, el parque en verde con su nombre en verde, un predio más claro con su nombre en celeste. La hoja de 150 dp con la píldora de 50 y los atajos de 45. Lo nuestro: la Red es la vía más clara y más ancha —el lugar que en Waze ocupa la autopista—, con el nombre en mayúsculas; las chapas blancas de datos fijos, como las cámaras de Waze; los pines de lugares con el anillo que dice de dónde sale el dato; el S.O.S.; el zócalo en lugar del menú cuadrado."
+    },
+    {
+      "id": "nota-aviso",
+      "x": 2240,
+      "y": 830,
+      "w": 360,
+      "text": "Un aviso de la ruta —paso a nivel, radar— aparece como Waze muestra sus alertas: una tarjeta #202125 entre el mapa y la hoja, con el pin del aviso, qué es en 18 sp negrita y a cuánto está en 14 sp gris. Se va sola y vibra con su patrón (AD-39). Acá no hay aviso rojo, y no puede haberlo: un gálibo por el que este camión no pasa queda excluido del cálculo antes de trazar la ruta. La chapa roja de la izquierda es eso: un bajo vía de 3,90 m en una calle que la ruta ya esquivó. También se ve el segundo globo, en dos líneas como \"Av. de los Constituyentes\" en waze-08."
+    },
+    {
+      "id": "nota-movido",
+      "x": 2720,
+      "y": 830,
+      "w": 360,
+      "text": "Si el conductor arrastra el mapa, la cámara deja de seguir al camión y aparece la tarjeta de waze-08, medida: 62 dp de alto, radio 20, fondo #202125, círculo #e8e9ed de 36 con la cruceta, \"Volver a centrar\" en 20 sp y el tiempo con los km en 16 sp gris, y la píldora \"Vista general\" de 132 × 37 en #3c4043 con texto celeste de 16 sp. Hoy el mapa vuelve solo al camión con el próximo latido del GPS."
+    },
+    {
+      "id": "nota-general",
+      "x": 1280,
+      "y": 1930,
+      "w": 360,
+      "text": "Calcado de waze-02: el conmutador Mapa/Lista de 155 × 40 a 112 del borde, la banda compacta de 92, la trama fina de lejos (calles de 2,5, avenidas de 4), la autopista con carriles y centro punteado, el ferrocarril a rayas, el río, los parques y los barrios en 17 sp gris; la ruta entera con la bandera a cuadros y la alternativa en gris con su globito negro. La tarjeta de la captura: radio 16, tiempo en 27 sp negrita, \"Reanudar\" celeste de 134 × 44 con la flecha, hora y km en 19 sp, \"Por…\" en 18 sp, y la línea de tiempo con los avisos donde caen. La nuestra lleva el lenguaje del tráfico: celeste por la Red, amarillo fuera. El rojo no aparece sobre ninguna ruta."
+    },
+    {
+      "id": "nota-lista",
+      "x": 1760,
+      "y": 1930,
+      "w": 360,
+      "text": "Como waze-01: las mismas tarjetas apiladas sobre el mapa atenuado, con \"Ir\" en las alternativas — cambiar de ruta sin cerrar el viaje, posible porque el viaje guarda origen, destino y paradas, no la ruta—. La segunda lleva un tramo amarillo en su línea de tiempo: sale de la Red 9,3 km."
+    },
+    {
+      "id": "nota-rutas",
+      "x": 2240,
+      "y": 1930,
+      "w": 360,
+      "text": "Medido en la captura de la lista: cabecera negra de 55 con el título en 18 sp; tira de mapa de 117 con la píldora de 42; filas de 145 donde el tiempo es la cifra grande, 27 sp negrita —celeste y con borde celeste de 4 y fondo negro en la elegida—, los km en 18 sp gris a la derecha, \"Por…\" en 18 sp, la línea de estado en 16 sp gris y los chips de 25 con punto de color y texto en 14 sp. Dos píldoras de 48 abajo: gris con texto celeste, celeste con texto negro, en 16 sp negrita. Donde Waze dice \"Tráfico habitual\", nosotros cuánto va por la Red. \"Evitar\" pasa a ser el camión."
+    },
+    {
+      "id": "nota-detalles",
+      "x": 2720,
+      "y": 1930,
+      "w": 360,
+      "text": "Lo que hoy es prosa en la hoja de ruta pasa a un toque de distancia, en filas como las de Waze. Acá sí aparece el mono —sólo antes de arrancar, como quedó en el prototipo del 14/09— diciendo lo único que importa de esta ruta. Las fuentes siguen ahí, al final, como pide la regla de la casa."
+    },
+    {
+      "id": "nota-buscar",
+      "x": 1280,
+      "y": 3030,
+      "w": 360,
+      "text": "Medido en waze-05: píldora de 52 con la flecha de volver y el texto en 16 sp; chips de categorías de 82 × 65, radio 12, ícono de 20 y rótulo en 14 sp; filas de 65 con ícono de 30, título en 18 sp negrita y subtítulo en 14 sp celeste; secciones en 14 sp gris; separadores de un píxel. \"Más opciones\" trae lo que Waze no tiene: el reparto y fijar un punto. Sin micrófono."
+    },
+    {
+      "id": "nota-capas",
+      "x": 1760,
+      "y": 3030,
+      "w": 360,
+      "text": "De Maps se toma sólo esta hoja: la grilla de cuadros de 52 con radio 12 y rótulo en 12,5 sp, el activo con borde de 3 y rótulo del color. En Maps son verdes y claros; acá, celestes sobre la hoja #202125 de Waze. Sin tipos de mapa. Dos secciones: los datos para el camión —que hoy viven en dos botones flotantes— y las categorías de lugares. Y el interruptor que ya existe en la API: sólo aptos para este camión, con cuántos oculta."
+    },
+    {
+      "id": "nota-lugar",
+      "x": 2240,
+      "y": 3030,
+      "w": 360,
+      "text": "La ficha de un lugar, con la tarjeta de Waze: radio 16, calcomanía en caja de 44, nombre en 22 sp negrita, categoría y distancia en 14 sp gris, y \"Ir\" celeste con la flecha. Lo que no tiene Waze es lo verificado separado de lo comunitario: arriba la evidencia con su fecha —en verde porque es un sí—, abajo cuántos camioneros con un camión como el tuyo lo recomiendan, el total, y tu voto. Los votos nunca tocan lo verificado."
+    },
+    {
+      "id": "nota-lugarcomunidad",
+      "x": 2720,
+      "y": 3030,
+      "w": 360,
+      "text": "El mismo molde con un lugar que aportó alguien: anillo celeste en el pin y el contador de votos como el de los reportes agrupados de Waze, la etiqueta \"Aportado por la comunidad\" con la fecha y el alias, ningún bloque verde porque no hay evidencia, y los votos que le van sumando confianza. El toast del voto es lo único que dice EXP en el mapa: chico, gris, se va solo."
+    },
+    {
+      "id": "nota-aportar",
+      "x": 1280,
+      "y": 4130,
+      "w": 360,
+      "text": "La hoja \"¿Qué ves?\" de waze-07, medida: título en 21 sp negrita, cruz a la derecha, y la grilla de círculos de 75 dp en #3c4043 con calcomanía de 40 y rótulo en 14 sp. Con lo que existe hoy: las seis categorías de lugar. Los reportes de la Fase 5 entran a esta misma grilla cuando se decidan. Se abre desde el botón amarillo del viaje y desde el mapa en reposo."
+    },
+    {
+      "id": "nota-marcar",
+      "x": 1760,
+      "y": 4130,
+      "w": 360,
+      "text": "Elegida la categoría, el mapa vuelve al frente con el pin fijo en el centro —se mueve el mapa, no el pin, como en Maps— y una hoja corta: la categoría, el nombre y Guardar. Si ya hay uno igual a menos de 25 m, la API contesta 409 y la hoja ofrece votar el existente en vez de duplicarlo."
+    },
+    {
+      "id": "nota-dia",
+      "x": 2240,
+      "y": 4130,
+      "w": 360,
+      "text": "Derivado, no medido: no hay captura de Waze de día. Banda blanca con tinta negra y la calle en el celeste oscuro de nuestro modo día; mapa claro con calles blancas y filete gris, la Red en azul acero claro, autopista amarilla pálida con su punteado, parques verde claro. A validar con una captura."
+    },
+    {
+      "id": "nota-reanudar",
+      "x": 2720,
+      "y": 4130,
+      "w": 360,
+      "text": "Al abrir la app con un viaje abierto en el servidor, en vez de meterte en la navegación de golpe, la tarjeta de waze-03, medida: fondo #202125, radio 16, pin de 30, pregunta en 22 sp negrita, la \"i\" arriba a la derecha, y dos píldoras de 42: \"No\" en #3c4043 con texto celeste, \"Continuar viaje\" celeste, en 15 sp negrita. \"No\" abre las tres salidas de siempre —llegué, abandono, sigo—, porque cerrar un viaje decide si suma o no."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
