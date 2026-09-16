@@ -25,7 +25,7 @@ Ver `docs/data-sources.md`, "Puntos de interés".
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois` (leer, votar, agregar), `/api/progress`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
-| `tests/TruckNavigator.UnitTests` | 288 tests: dominio (restricciones, ruteo, progresión, aptitud de POIs, sello y filtro de la comunidad, patente, fecha de nacimiento), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
+| `tests/TruckNavigator.UnitTests` | 302 tests: dominio (restricciones, la oferta de rutas y sus gálibos, ruteo, progresión, aptitud de POIs, sello y filtro de la comunidad, patente, fecha de nacimiento), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
 | `tests/TruckNavigator.IntegrationTests` | 130 tests: 11 contra GraphHopper (se saltean solos si no está levantado) + 119 sobre datasets, perfiles, camiones, viajes, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, los candados del dataset de POIs con el seed por `ManagedByDataset`, y los votos y aportes de la comunidad |
 
 Solución: `TruckNavigator.slnx`.
@@ -47,8 +47,8 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 418 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 72 tests: guiado, avisos de ruta, agenda, mascota e insignias
+dotnet test                                    # 432 tests (.NET)
+node --test "tests/web/*.test.mjs"             # 77 tests: guiado, avisos de ruta, agenda, mascota e insignias
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -56,6 +56,14 @@ node --test "tests/web/*.test.mjs"             # 72 tests: guiado, avisos de rut
 
 ## Trampas que ya costaron tiempo
 
+- **Lo que el motor excluyó no se ofrece ni se avisa.** El custom model bloquea
+  alto, ancho, largo y peso antes de calcular; por eso **el aviso de gálibo del
+  viaje sale de la ruta (`hazards`), nunca de la capa del mapa**: por corredor,
+  el bajo vía queda a cero metros cuando vas por arriba del puente y sonaba "no
+  pasás" en una ruta legal. `RouteOffer` descarta toda ruta con un tramo
+  bloqueado (la recomendada bloqueada es un 422), el evaluador imita al motor en
+  `max_weight_except`, el radar tiene que ser de la calle por la que se va, y
+  **no se rutea por ejes** porque no hay dato. Ver AD-47.
 - **Los votos y los lugares que aporta la comunidad NUNCA tocan lo verificado.** El sello
   comunitario viaja en el bloque `community` del `PoiDto`, aparte de `verificationLevel` y
   de los cuatro `suitableFor…`; un lugar aportado nace `NotConfirmed` con

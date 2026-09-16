@@ -51,7 +51,7 @@ lo pida.
 | Documento | Qué tiene |
 |---|---|
 | `CLAUDE.md` | Convenciones, comandos, **trampas que ya costaron tiempo** |
-| `docs/decisions.md` | **46 decisiones arquitectónicas (AD-01…AD-46)** con su porqué |
+| `docs/decisions.md` | **47 decisiones arquitectónicas (AD-01…AD-47)** con su porqué |
 | `docs/data-sources.md` | Fuentes, licencias y limitaciones **L-1…L-11** (L-4 ya resuelta) |
 | `docs/architecture.md` | Estructura y proyectos |
 | `docs/routing.md`, `docs/restrictions.md`, `docs/pois.md`, `docs/deploy.md` | Por tema |

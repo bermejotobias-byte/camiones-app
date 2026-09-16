@@ -98,7 +98,9 @@ Respuesta:
   "accessLegs": [ ... ],
   "heavyNetworkSharePercent": 91.8,
   "truckName": "Semirremolque",
-  "attribution": "Datos de mapa © colaboradores de OpenStreetMap (ODbL). ..."
+  "attribution": "Datos de mapa © colaboradores de OpenStreetMap (ODbL). ...",
+  "alternatives": [ ... ],
+  "hazards": [ { "kind": "galibo", "metres": 4.5, "streetName": "Av. Sáenz", "fromPointIndex": 120, "toPointIndex": 126 } ]
 }
 ```
 
@@ -109,9 +111,21 @@ Respuesta:
 - **`accessLegs`** es el subconjunto que circula fuera de la Red al amparo de la
   excepción de acceso. La app los dibuja punteados en naranja.
 - **`heavyNetworkSharePercent`** es la porción del trazado que va por la Red.
+- **`alternatives`** son las otras rutas ofrecibles, completas, ya ordenadas por
+  lo que le conviene a un camión (AD-40). Campo opcional.
+- **`hazards`** es lo que hay sobre la ruta y conviene avisar al pasar: hoy los
+  gálibos declarados en los tramos que la ruta recorre, con su altura y sus
+  índices. **Es de acá de donde la app saca el aviso del viaje**, y no de la capa
+  de gálibos del mapa: es el mismo dato con el que se calculó, y por construcción
+  es informativo —un gálibo más bajo que el camión no llega a la ruta— (AD-47).
+  Campo opcional.
 
-Errores: `404` si el camión no existe, `422` si no hay ruta posible para ese
-vehículo, `503` si GraphHopper no responde. Todos como `ProblemDetails`.
+**Una ruta con un tramo prohibido para el camión no se ofrece.** Las alternativas
+que lo tengan se descartan; si la recomendada lo tiene, la respuesta es `422` con
+el hallazgo (`RouteOffer`, AD-47).
+
+Errores: `404` si el camión no existe, `422` si no hay ruta posible o apta para
+ese vehículo, `503` si GraphHopper no responde. Todos como `ProblemDetails`.
 
 ## Cómo se anota la ruta
 

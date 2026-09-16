@@ -2796,3 +2796,55 @@ La ficha con el botón de votar y el formulario de agregar van con la interfaz d
 POIs, que hoy no existe. Moderación, denuncias, edición y borrado de lo aportado
 quedan para cuando aparezca el abuso. Los reportes de la Fase 5 (siniestros,
 radares, retenes) son otro sistema, pero entran por la misma puerta.
+
+## AD-47 · Lo que el motor excluyó no se ofrece ni se avisa: los avisos salen de la ruta
+
+**Fecha:** 16/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+El usuario encontró en un tablero del prototipo algo que "nunca debe suceder":
+una ruta recomendada por el GPS con un gálibo en rojo que el camión no clara.
+Al revisar la cadena perfil → restricciones → cálculo → navegación aparecieron
+cuatro defectos reales, todos de la misma familia: **dos fuentes distintas para
+un mismo hecho**.
+
+1. El aviso de gálibo del viaje salía de la capa de gálibos (bajada de Overpass,
+   otra foto del mapa que el grafo) por corredor de 30 m. Yendo por arriba de un
+   puente, el punto del bajo vía queda a cero metros de la ruta y sonaba la
+   vibración de peligro con "no pasás" en una ruta legal.
+2. El evaluador de restricciones ignoraba `max_weight_except`, que el motor sí
+   respeta —ni siquiera se pedía en los `path_details`—, y una ruta legal
+   aparecía con "un tramo que no podés transitar".
+3. La interfaz ofrecía como opción rutas con tramos bloqueados.
+4. El script de capas parseaba `maxheight` con la cultura de la máquina.
+
+### Decisión
+
+- **El motor es la única fuente de "por dónde puede pasar el camión".** El
+  custom model bloquea alto, ancho, largo y peso bruto (`CabaTruckRoutingPolicy`);
+  GraphHopper no engancha a tramos bloqueados. No se rutea por ejes: no hay dato.
+- **Los avisos de gálibo salen de la ruta misma.** `RouteResponse.hazards` lista
+  los tramos con `max_height` declarado que la ruta recorre, del mismo dato con el
+  que se calculó (`RouteHazards.From`). El cliente no cruza la capa contra la
+  ruta. Sobre una ruta correcta el aviso es siempre informativo ("gálibo de 4,50
+  m, pasás"), con vibración suave; la capa queda para mirar el mapa.
+- **Una ruta con un tramo bloqueado no se ofrece.** `RouteOffer` descarta las
+  alternativas que lo tengan y, si la recomendada lo tiene, `/api/routes`
+  responde 422 con el hallazgo. La interfaz no tiene más "tramos que no podés
+  transitar": si aparece, es un error del servidor, no una opción.
+- **El evaluador imita al motor en peso**: `max_weight_except` entra a los
+  detalles y, con excepción declarada, el tramo es acceso condicionado.
+- **Radares por corredor y por calle**: el radar tiene que ser de la calle por la
+  que va la ruta en ese punto (`normalizarCalle` contra la instrucción); el paso
+  a nivel usa un corredor de 12 m.
+
+### Consecuencias
+
+- El rojo nunca aparece sobre una ruta; queda para la chapa del mapa de un gálibo
+  que el camión no pasa, que la ruta ya esquivó.
+- Si alguna vez el evaluador y el motor divergen por datos, el síntoma es un 422
+  explicado, no un viaje que termina bajo un puente.
+- El patrón de vibración de tres golpes largos del gálibo se retiró con el aviso
+  que lo justificaba.
