@@ -96,6 +96,42 @@ export function calcomania(nombre, t = 28) {
 }
 
 /* ---------------------------------------------------------------------------
+   Dibujos de interfaz
+
+   Trazos de 2,4 en el color del texto, en una caja de 24: la cruz de la
+   hoja, las rutas, el sonido, la lupa. Distintos de las calcomanias, que
+   llevan relleno y contorno: estos son controles, no cosas del mapa.
+--------------------------------------------------------------------------- */
+
+export const ICONOS = {
+  lupa: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/>',
+  cerrar: '<path d="M6 6l12 12M18 6L6 18"/>',
+  atras: '<path d="M15 5l-7 7 7 7"/>',
+  abajo: '<path d="M6 9l6 6 6-6"/>',
+  ubicacion: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="7.5"/>',
+  capas: '<path d="M12 4l8 4.5-8 4.5-8-4.5z"/><path d="M4 13l8 4.5 8-4.5"/><path d="M19 17.5v3M17.5 19h3"/>',
+  centrar: '<circle cx="12" cy="12" r="2.2"/><path d="M12 3v3.5M12 17.5V21M3 12h3.5M17.5 12H21"/><path d="M12 3l-2.2 2.6M12 3l2.2 2.6M12 21l-2.2-2.6M12 21l2.2-2.6M3 12l2.6-2.2M3 12l2.6 2.2M21 12l-2.6-2.2M21 12l-2.6 2.2"/>',
+  rutas: '<path d="M12 21v-8M12 13l-5-5V4M12 13l5-5V4"/><circle cx="7" cy="4" r="1.6"/><circle cx="17" cy="4" r="1.6"/><circle cx="12" cy="21" r="1.6"/>',
+  mas: '<path d="M12 5v14M5 12h14"/>',
+  reloj: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  sonido: '<path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/>',
+  sonidoApagado: '<path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>',
+  paradas: '<circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="12" r="2.2"/><circle cx="8" cy="18" r="2.2"/><path d="M8 6h6a3 3 0 0 1 0 6h-3a3 3 0 0 0 0 6"/>',
+  mano: '<path d="M9 12V5a1.5 1.5 0 0 1 3 0v6M12 10V4a1.5 1.5 0 0 1 3 0v7M15 11V6a1.5 1.5 0 0 1 3 0v8c0 4-2.5 7-6.5 7S6 18 6 14v-3a1.5 1.5 0 0 1 3 0"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  camion: '<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+  telefono: '<path d="M6 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L16 13l5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 4 6a2 2 0 0 1 2-2z"/>'
+};
+
+/** Un dibujo de interfaz de `t` px, en el color del texto. Desconocido: nada. */
+export function dibujo(nombre, t = 24, grosor = 2.4) {
+  const trazos = ICONOS[nombre];
+  if (!trazos) return '';
+  return `<svg viewBox="0 0 24 24" width="${t}" height="${t}" fill="none" stroke="currentColor" stroke-width="${grosor}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${trazos}</svg>`;
+}
+
+/* ---------------------------------------------------------------------------
    Pildoras, circulos y chips
 --------------------------------------------------------------------------- */
 

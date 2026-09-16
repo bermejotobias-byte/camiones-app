@@ -398,10 +398,7 @@ function gpsElement() {
    mentir sobre lo que dice la ley.
 --------------------------------------------------------------------------- */
 
-const ROUTE_LAYERS = ['route-halo', 'route-line', 'route-access', 'calle-actual'];
-// `calle-actual` NO tiene fuente propia: se dibuja sobre la del mapa base,
-// filtrando por nombre. Borrar esa fuente al limpiar la ruta se llevaria puesto
-// el mapa entero.
+const ROUTE_LAYERS = ['route-halo', 'route-line', 'route-access'];
 const ROUTE_SOURCES = ['route', 'route-access'];
 
 export function clearRoute() {
@@ -685,115 +682,6 @@ export function trimRoute(coordinates, fromIndex, snappedPoint) {
     type: 'Feature',
     geometry: { type: 'LineString', coordinates: rest }
   });
-}
-
-/* ---------------------------------------------------------------------------
-   El nombre de la calle por la que se va
-
-   Manejando, el dato que mas se necesita del mapa es por que calle se esta
-   yendo — y era lo que peor se veia: el mapa base rotula en 11 px y solo desde
-   el zoom 15, y encima la ruta le pasaba por arriba tapandolo.
-
-   Se dibuja como una capa propia sobre el tramo que se esta recorriendo, en
-   verde y grande. Verde porque es el color que el proyecto reservo para "la
-   calle por la que vas" (ver la skill de producto), y porque lo separa de un
-   golpe de los nombres grises del mapa base.
-
-   No alcanza con agrandar el rotulo del mapa base: ese texto sale de los tiles
-   y no sabe cual de todas las calles es la que uno esta tomando. Este si, porque
-   sale del motor de guiado.
---------------------------------------------------------------------------- */
-
-/** Filtro que no deja pasar ninguna calle. Se usa para apagar el rotulo. */
-const NINGUNA_CALLE = ['==', ['literal', '_'], ['literal', '']];
-
-/**
- * Rotula en verde la calle por la que se esta yendo.
- *
- * @param {string|null} name Nombre de la calle, o null para borrar el rotulo.
- */
-export function labelCurrentStreet(name) {
-  if (!map) return;
-
-  // Se rotula sobre la geometria DEL MAPA BASE, filtrando por nombre, y no
-  // sobre el tramo de la ruta. Costo un intento entender por que:
-  //
-  // los tramos entre maniobras son cortisimos —medidos sobre una ruta real del
-  // centro: 29 m, 69 m, 91 m, 251 m— y `symbol-placement: line` no dibuja nada
-  // si el texto no entra a lo largo de la linea. A zoom 16, 29 m son 15 px y
-  // "Avenida 9 de Julio" necesita unos 300: no aparecia casi nunca, y cuando
-  // aparecia era por casualidad.
-  //
-  // La calle del mapa base, en cambio, viene entera en el tile, asi que hay
-  // largo de sobra y ademas el texto sigue su curva. El precio es que si dos
-  // calles distantes comparten nombre se rotulan las dos; en el entorno visible
-  // eso practicamente no pasa.
-  if (!map.getSource('base')) return;   // el mapa base cayo al raster: no hay que rotular
-
-  if (!map.getLayer('calle-actual')) {
-    // El estilo puede no estar listo todavia. Se REINTENTA, no se abandona: sin
-    // esto, si el primer llamado cae antes de que el estilo termine de cargar,
-    // la capa no se crea nunca y el nombre no aparece en todo el viaje — de
-    // forma intermitente, segun quien conteste primero. Es la misma red que ya
-    // tiene `drawRoute` por el mismo motivo.
-    if (!map.isStyleLoaded()) {
-      map.once('idle', () => labelCurrentStreet(name));
-      return;
-    }
-
-    map.addLayer({
-      id: 'calle-actual',
-      type: 'symbol',
-      source: 'base',
-      'source-layer': 'roads',
-      minzoom: 12,
-      filter: NINGUNA_CALLE,
-      layout: {
-        'symbol-placement': 'line',
-        'text-field': ['coalesce', ['get', 'name:es'], ['get', 'name']],
-        'text-font': ['NotoSans-Regular'],
-        // El mapa base rotula en 11 px. Esto va de 15 a 19 segun el zoom — entre
-        // 1,4x y 1,7x, bastante menos que los 3x que pedia el brainstorm, y hay
-        // un motivo duro adelante del gusto:
-        //
-        // con `symbol-placement: line` MapLibre no dibuja el texto si no entra a
-        // lo largo del tramo, y los tiles fragmentan las avenidas en pedazos de
-        // una cuadra. En el zoom de navegacion —16,5— una cuadra son unos 79 px
-        // y "Avenida 9 de Julio" en 22 px mide 200: no se dibujaba NADA. Cuanto
-        // mas grande, menos veces aparece.
-        //
-        // El contraste no lo hace el tamaño solo: lo hacen el verde contra el
-        // gris de las demas y la prioridad de colision.
-        'text-size': ['interpolate', ['linear'], ['zoom'], 14, 15, 17, 19],
-        'text-letter-spacing': 0.02,
-        // Espaciado holgado entre repeticiones. Con 260 px el mismo nombre
-        // aparecia varias veces en una cuadra y las repeticiones se encimaban.
-        'symbol-spacing': 500,
-        // Colision ACTIVADA, y esto es lo que evita que el rotulo choque consigo
-        // mismo. Con `allow-overlap: true` MapLibre no compara los simbolos ni
-        // dentro de la misma capa: las repeticiones se pisaban entre si sobre
-        // las cuadras cortas, y el resultado dependia del zoom.
-        //
-        // La prioridad sobre los demas nombres no se consigue asi, sino por el
-        // ORDEN DE LA CAPA: MapLibre resuelve las colisiones en el orden en que
-        // se dibujan, y esta va antes que `calles-nombre` — ve el lugar libre
-        // primero y el nombre gris cede.
-        'text-allow-overlap': false,
-        'text-padding': 6
-      },
-      paint: {
-        'text-color': token('--ok'),
-        // Halo grueso: el texto pasa por encima de la linea de la ruta, que es
-        // de color, y sin esto se pierde contra ella.
-        'text-halo-color': token('--surface'),
-        'text-halo-width': 2.6
-      }
-    }, map.getLayer('calles-nombre') ? 'calles-nombre' : undefined);
-  }
-
-  map.setFilter('calle-actual', name
-    ? ['==', ['coalesce', ['get', 'name:es'], ['get', 'name']], name]
-    : NINGUNA_CALLE);
 }
 
 export function resize() {

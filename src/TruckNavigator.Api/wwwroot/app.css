@@ -821,131 +821,233 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 /* ============================================================================
-   Navegacion en curso
+   Viaje — la piel de Waze, medida
    ----------------------------------------------------------------------------
    Es la pantalla que se mira de reojo, a sesenta por hora, con el sol de frente.
-   Todo lo demas se corre: una sola maniobra, enorme, y nada que compita con ella.
+   Cada medida sale de una captura (docs/referencias/waze/waze-06.jpeg, 720 px
+   = 360 dp) y esta en la spec del 16/09/2026. Se copian patrones y medidas,
+   no la marca.
+
+   Mientras hay viaje, la capa de controles de reposo (.map-overlay) se esconde
+   entera y esta capa la reemplaza. Los contenedores no reciben toques; los
+   controles si — misma regla que en el reposo, ver AD-34.
    ========================================================================== */
 
+.map-screen.is-viaje .map-overlay { display: none; }
+
+.gps-viaje {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  color: var(--gps-ink);
+}
+
+.gps-viaje button { font: inherit; color: inherit; }
+
+/* Los circulos de Waze: 52 dp, negros, con el dibujo blanco adentro. Los de la
+   hoja son de 45 y grises (#3c4043), sin sombra. */
+.gps-circulo {
+  pointer-events: auto;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--gps-pildora);
+  color: var(--gps-ink);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-circulo:active { transform: scale(.94); }
+.gps-circulo.negro { background: var(--gps-banda); }
+.gps-circulo.chico { width: 45px; height: 45px; box-shadow: none; }
+.gps-circulo.sos { background: var(--gps-rojo); color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .02em; }
+.gps-circulo.apagado { color: var(--gps-ink-3); }
+
+/* ----------------------------------------------------------------------------
+   La banda
+
+   Medida: 130 dp con la barra de estado de 35, o sea 95 de contenido; la
+   flecha de 40 x 46 a 20 del borde, el texto a 85; distancia 27 sp regular,
+   calle 24 sp media en celeste. Todo centrado en vertical.
+   -------------------------------------------------------------------------- */
+.gps-banda {
+  pointer-events: auto;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: calc(95px + var(--safe-top));
+  padding: var(--safe-top) 16px 0 20px;
+  box-sizing: border-box;
+  background: var(--gps-banda);
+  color: var(--gps-ink);
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  z-index: 5;
+}
+
+.gps-banda-flecha { flex: none; width: 40px; display: grid; place-items: center; line-height: 0; }
+.gps-banda-flecha svg { display: block; }
+
+.gps-banda-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+
+.gps-banda-distancia {
+  display: block;
+  font-size: 27px;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gps-banda-calle {
+  display: block;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--gps-celeste);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Buscando señal o recalculando: el titulo baja a 20 y la segunda linea va en
+   gris, porque no es una calle. El spinner necesita su propio contraste sobre
+   el negro. */
+.gps-banda.esperando .gps-banda-distancia { font-size: 20px; font-weight: 500; white-space: normal; }
+.gps-banda.esperando .gps-banda-calle { font-size: 14px; font-weight: 400; color: var(--gps-ink-2); white-space: normal; line-height: 1.3; }
+.gps-banda .spinner {
+  width: 28px; height: 28px;
+  border-color: rgba(255, 255, 255, .25);
+  border-top-color: var(--gps-ink);
+  display: inline-block;
+}
+
+/* Compacta (waze-01): 92 con la barra de estado, o sea 57; flecha de 30 y una
+   sola linea de 20. Se usa con una hoja abierta encima del mapa. */
+.gps-banda.compacta { height: calc(57px + var(--safe-top)); gap: 14px; }
+.gps-banda.compacta .gps-banda-flecha { width: 30px; }
+.gps-banda.compacta .gps-banda-flecha svg { width: 30px; height: 34px; }
+.gps-banda.compacta .gps-banda-texto { flex-direction: row; align-items: baseline; gap: 10px; }
+.gps-banda.compacta .gps-banda-distancia { font-size: 20px; font-weight: 500; }
+.gps-banda.compacta .gps-banda-calle { font-size: 20px; }
+
+/* ----------------------------------------------------------------------------
+   El costado: sonido y S.O.S., a 15 del borde y 15 debajo de la banda, con 10
+   entre ellos (medido: 145 y 207,5 desde arriba en waze-06).
+   -------------------------------------------------------------------------- */
+.gps-costado {
+  position: absolute;
+  right: 15px;
+  top: calc(110px + var(--safe-top));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 3;
+}
+
+/* ----------------------------------------------------------------------------
+   La calle actual: pildora negra, 18 sp negrita, blanca, centrada, con el
+   borde de abajo a 155 del borde de la pantalla. Waze la deja partir en dos
+   lineas ("Bernardino / Rivadavia") antes que achicar la letra.
+   -------------------------------------------------------------------------- */
+.gps-calle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(155px + var(--safe-bottom));
+  max-width: calc(100% - 190px);
+  min-width: 168px;
+  box-sizing: border-box;
+  background: #000;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.12;
+  text-align: center;
+  padding: 11px 22px 12px;
+  border-radius: 26px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-wrap: balance;
+  z-index: 3;
+}
+
+.gps-calle[hidden] { display: none; }
+
+/* ----------------------------------------------------------------------------
+   Aportar: donde Waze pone reportar. 63 dp, radio 16, ambar oscuro, con la
+   calcomania amarilla; a 15 del borde derecho y 155 del de abajo.
+   -------------------------------------------------------------------------- */
+.gps-aportar {
+  pointer-events: auto;
+  position: absolute;
+  right: 15px;
+  bottom: calc(155px + var(--safe-bottom));
+  width: 63px; height: 63px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--gps-reportar);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 3;
+}
+
+.gps-aportar:active { transform: scale(.94); }
+.gps-aportar svg { display: block; }
+
+/* ----------------------------------------------------------------------------
+   La hoja del viaje: 137 dp, de borde a borde, radio 14 arriba; manija de
+   45 x 4 a 12 del borde; la fila con los dos circulos de 45 centrada a 55 del
+   borde de arriba; la hora en 25 sp negrita y "39 min • 32 km" en 20 sp gris.
+   -------------------------------------------------------------------------- */
+.gps-hoja-viaje {
+  pointer-events: auto;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: calc(137px + var(--safe-bottom));
+  box-sizing: border-box;
+  padding: 12px 15px var(--safe-bottom);
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  z-index: 4;
+}
+
+.gps-manija { width: 45px; height: 4px; border-radius: 2px; background: #6b7480; margin: 0 auto; }
+
+.gps-hoja-viaje-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 17px;
+  padding: 0 5px;
+}
+
+.gps-eta { text-align: center; flex: 1; min-width: 0; padding: 0 8px; }
+.gps-eta b { display: block; font-size: 25px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.gps-eta span { display: block; font-size: 20px; color: var(--gps-ink-2); margin-top: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* El vehiculo sobre el mapa (marcador de MapLibre). */
 .vehicle {
-  color: var(--brand);
+  color: var(--gps-chevron);
   filter: drop-shadow(0 2px 4px rgba(0,0,0,.6));
   display: block;
   line-height: 0;
-}
-
-.maneuver {
-  position: relative;
-  z-index: 3;
-  background: var(--ink);
-  color: var(--ground);
-  border-radius: 0 0 var(--radius) var(--radius);
-  padding: calc(12px + var(--safe-top)) 16px 16px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: var(--shadow);
-}
-
-.maneuver-arrow {
-  font-size: 44px;
-  line-height: 1;
-  flex: none;
-  width: 52px;
-  text-align: center;
-}
-
-.maneuver-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-
-/* La distancia es el dato que se lee de un vistazo: va mas grande que todo. */
-.maneuver-distance {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.maneuver-street {
-  font-size: 15px;
-  font-weight: 600;
-  opacity: .9;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Segunda linea del bloque de maniobra. Hoy la usa la espera del GPS: dice por
-   que se está esperando, en el mismo lugar donde después va la calle. */
-.maneuver-substreet {
-  font-size: 13px;
-  opacity: .65;
-  line-height: 1.35;
-  margin-top: 3px;
-}
-
-/* El bloque de maniobra tiene fondo oscuro, así que el spinner que se muestra
-   mientras engancha el GPS necesita su propio contraste: el de la app se apoya
-   en los tonos de superficie, que ahí no se ven. */
-.maneuver .spinner {
-  border-color: rgba(255, 255, 255, .25);
-  border-top-color: var(--ground);
-  width: 26px;
-  height: 26px;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-/* Aviso de restriccion durante la navegacion: solo aparece cuando falta poco. */
-.maneuver-alert {
-  position: relative;
-  z-index: 3;
-  margin: 8px 10px 0;
-  background: var(--warn-soft);
-  border: 1px solid var(--warn);
-  border-radius: var(--radius-sm);
-  padding: 9px 12px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--warn);
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-/* Barra inferior compacta: llegada, restante y salir. */
-.nav-bar {
-  position: relative;
-  z-index: 3;
-  margin-top: auto;
-  background: var(--surface);
-  border-top: 1px solid var(--rule);
-  border-radius: var(--radius) var(--radius) 0 0;
-  padding: 12px 14px calc(12px + var(--safe-bottom));
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: var(--shadow-up);
-}
-
-.nav-eta { display: flex; flex-direction: column; }
-.nav-eta b { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.nav-eta span { font-size: 11.5px; color: var(--ink-3); letter-spacing: .05em; text-transform: uppercase; }
-
-/* Aviso de que se esta recalculando: reemplaza a la maniobra, no se suma. */
-.rerouting {
-  position: relative;
-  z-index: 3;
-  margin: calc(10px + var(--safe-top)) 10px 0;
-  background: var(--brand-soft);
-  border: 1px solid var(--brand);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--brand-ink);
-  font-weight: 600;
 }
 
 /* ============================================================================

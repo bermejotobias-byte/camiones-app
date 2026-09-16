@@ -18,10 +18,11 @@ import {
 } from '../platform.js';
 import {
   prepareRoute, advance, shouldReroute, pendingAnnouncement,
-  speakableInstruction, maneuverArrow, ANNOUNCE_VIBRATE_AT,
+  speakableInstruction, ANNOUNCE_VIBRATE_AT,
   alertsAlongRoute, pendingRouteAlert, speakableAlert
 } from '../navigation.js';
 import * as gl from '../map.js';
+import { montarViaje, estadoDeBanda } from '../mapa/viaje.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
   html, raw, icon, wire, q, qa, render, debounce, withBusy,
@@ -52,6 +53,7 @@ export function navigateView(host, { openDrawer, go }) {
   let stopWatching = null;    // corta el seguimiento del GPS
   let rerouting = false;
   let lastRerouteAt = null;
+  let viaje = null;           // la pantalla del viaje (js/mapa/viaje.js), mientras dura
 
   // Si el viaje arranco pero todavia no llego ninguna posicion. Lo unico que
   // cambia es lo que dice la pantalla, y no es poco: sin esto mostraba un guion
@@ -727,100 +729,63 @@ export function navigateView(host, { openDrawer, go }) {
    *
    * Se mira de reojo, a sesenta por hora. Una sola maniobra, enorme, y la
    * distancia mas grande que todo lo demas: es el dato que se lee de un vistazo.
-   * El resto —restricciones, fuentes, kilometros— se corre de en medio.
+   *
+   * La dibuja `js/mapa/viaje.js` con las medidas de Waze; aca solo se le dice
+   * que mostrar. Mientras dura el viaje, la capa de controles del reposo se
+   * esconde entera (`is-viaje`): la pantalla del viaje tiene los suyos.
    */
   function drawNavigation() {
+    if (!viaje) {
+      host0.classList.add('is-viaje');
+
+      viaje = montarViaje(host0, {
+        alSalir: () => askToStop(),
+        alVistaGeneral: () => toast('La vista general llega en la próxima etapa.'),
+        alAportar: () => toast('Aportar un lugar llega en la próxima etapa.'),
+        alSos: () => go('emergencia'),
+        alVoz: () => alternarVoz(),
+        vozApagada: prefs.voz === false
+      });
+    }
+
+    pintarViaje();
+  }
+
+  /** Lo que muestra la pantalla del viaje, a partir del estado de la vista. */
+  function pintarViaje() {
+    if (!viaje) return;
+
     const trip = state.activeTrip;
-    const nav = navState;
 
-    if (rerouting) {
-      render(sheetAs('nav-bar'), '');
-      renderOverlay(html`
-        <div class="rerouting">
-          <span class="spinner"></span>
-          <span>Te saliste de la ruta. Buscando otra…</span>
-        </div>
-      `);
-      return;
-    }
+    viaje.banda(estadoDeBanda({
+      recalculando: rerouting,
+      esperandoGps: waitingForGps,
+      problema: trackingProblem,
+      nav: navState
+    }));
 
-    // Todavia sin posicion: se dice que se esta buscando, en vez de un guion.
-    // Es la diferencia entre "esperá, está enganchando" y "esto no anda".
-    if (waitingForGps && !nav) {
-      renderOverlay(html`
-        <div class="maneuver">
-          <div class="maneuver-arrow"><span class="spinner"></span></div>
-          <div class="maneuver-body">
-            <div class="maneuver-street" style="font-size:15px">
-              ${trackingProblem ?? 'Buscando señal de GPS…'}
-            </div>
-            <div class="maneuver-substreet">
-              ${trackingProblem
-                ? 'El viaje quedó abierto: podés cerrarlo desde Salir.'
-                : 'Bajo techo puede tardar. Al aire libre engancha enseguida.'}
-            </div>
-          </div>
-        </div>
-      `);
-    } else {
-      const upcoming = nav?.next ?? null;
-      const arrow = upcoming ? maneuverArrow(upcoming.kind) : '↑';
-      const distance = nav ? formatDistance(nav.distanceToManeuver) : '—';
+    viaje.hoja(navState
+      ? { segundos: navState.remainingSeconds, metros: navState.remainingMeters }
+      : { segundos: trip?.plannedDurationSeconds ?? null, metros: trip?.plannedDistanceMeters ?? null });
 
-      renderOverlay(html`
-        <div class="maneuver">
-          <div class="maneuver-arrow">${arrow}</div>
-          <div class="maneuver-body">
-            <div class="maneuver-distance num">${distance}</div>
-            <div class="maneuver-street">
-              ${upcoming ? (upcoming.streetName || upcoming.text) : 'Seguí la ruta'}
-            </div>
-          </div>
-        </div>
-
-        ${raw(restrictionAheadMarkup(nav))}
-      `);
-    }
-
-    const bar = sheetAs('nav-bar');
-    bar.innerHTML = html`
-      <div class="nav-eta">
-        <b>${nav ? arrivalTime(nav.remainingSeconds) : arrivalTime(trip.plannedDurationSeconds)}</b>
-        <span>Llegada</span>
-      </div>
-      <div class="nav-eta">
-        <b class="num">${nav ? formatDistance(nav.remainingMeters) : formatDistance(trip.plannedDistanceMeters)}</b>
-        <span>Restante</span>
-      </div>
-      <div class="grow"></div>
-      <button class="btn btn-ghost" id="stop-nav">Salir</button>
-    `;
-
-    wire(bar, { '#stop-nav': () => askToStop() });
+    viaje.calle(navState?.step?.streetName ?? null);
   }
 
   /**
-   * Aviso de restriccion, solo cuando esta cerca.
-   *
-   * Mostrar la lista entera de restricciones mientras se maneja es ruido: lo
-   * util es saber que el puente bajo esta a doscientos metros, no que la ruta
-   * tiene nueve tramos fuera de la Red.
+   * La voz se puede silenciar desde el viaje, como en Waze. Se recuerda: quien
+   * la apaga una vez no quiere volver a apagarla en cada viaje. La vibracion
+   * sigue: es el canal que no compite con el ruido de la cabina (AD-39).
    */
-  function restrictionAheadMarkup(nav) {
-    if (!nav || !route) return '';
+  function alternarVoz() {
+    savePrefs({ voz: prefs.voz === false });
+    viaje?.voz(prefs.voz === false);
+    toast(prefs.voz === false ? 'Voz silenciada. Las vibraciones siguen.' : 'Voz activada.');
+  }
 
-    const ahead = (route.restrictionNotes ?? []).find((note) => {
-      if (note.requiresAccessException) return false;
-      if (note.fromPointIndex < nav.index) return false;
-      return note.fromPointIndex - nav.index <= 6;
-    });
-
-    if (!ahead) return '';
-
-    const finding = ahead.findings?.[0];
-    if (!finding) return '';
-
-    return `<div class="maneuver-alert"><span>⚠</span><span>${escapeText(finding.description)}</span></div>`;
+  /** Dice una frase, salvo que la voz este silenciada. */
+  function decir(texto) {
+    if (prefs.voz === false) return;
+    speak(texto);
   }
 
   /**
@@ -843,25 +808,16 @@ export function navigateView(host, { openDrawer, go }) {
 
     if (choice === 'stay' || choice === null) return;
 
-    closeTrip(document.getElementById('stop-nav'), choice === 'arrived');
+    // Sin boton: la accion sale de un circulo con una cruz, donde no cabe un
+    // "Cerrando…". El cartel de eleccion ya se cerro; lo que sigue es rapido.
+    closeTrip(null, choice === 'arrived');
   }
 
-  /** Capa de maniobra por encima del mapa, encima de la barra superior. */
-  function renderOverlay(markup) {
-    let host = q(host0, '#nav-overlay');
-
-    if (!host) {
-      host = document.createElement('div');
-      host.id = 'nav-overlay';
-      host.style.cssText = 'position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;z-index:3';
-      q(host0, '.map-overlay').after(host);
-    }
-
-    host.innerHTML = markup;
-  }
-
-  function clearOverlay() {
-    q(host0, '#nav-overlay')?.remove();
+  /** Saca la pantalla del viaje y devuelve los controles del reposo. */
+  function desmontarViaje() {
+    viaje?.destruir();
+    viaje = null;
+    host0.classList.remove('is-viaje');
   }
 
   /* ------------------------------------------------------------------------
@@ -1211,7 +1167,7 @@ export function navigateView(host, { openDrawer, go }) {
     const first = prepared?.instructions?.[1] ?? prepared?.instructions?.[0];
 
     if (first) {
-      speak(speakableInstruction(first, first.distanceMeters));
+      decir(speakableInstruction(first, first.distanceMeters));
     }
 
     stopWatching = watchPosition(onPosition, destination?.label);
@@ -1236,7 +1192,7 @@ export function navigateView(host, { openDrawer, go }) {
     keepScreenAwake(false);
     gl.exitNavigationMode();
     showZoomControls(true);
-    clearOverlay();
+    desmontarViaje();
     avisarViaje(false);
 
     prepared = null;
@@ -1265,13 +1221,12 @@ export function navigateView(host, { openDrawer, go }) {
 
     gl.followVehicle(navState.snapped, navState.bearing);
     gl.trimRoute(route.geometry.coordinates, navState.index, navState.snapped);
-    rotularCalleActual();
 
     const announcement = pendingAnnouncement(navState, previousNav, announced);
 
     if (announcement) {
       announced.add(announcement.key);
-      speak(speakableInstruction(navState.next, navState.distanceToManeuver));
+      decir(speakableInstruction(navState.next, navState.distanceToManeuver));
 
       // Vibra sólo en el último aviso, el de 80 m, y no en los tres. Vibrar en
       // cada umbral convierte la maniobra en tres sacudones desde 800 m antes,
@@ -1325,7 +1280,7 @@ export function navigateView(host, { openDrawer, go }) {
     vibrate(VIBRACION[alerta.tipo] ?? VIBRACION.maniobra);
 
     const frase = speakableAlert(alerta);
-    if (frase) speak(frase);
+    if (frase) decir(frase);
 
     // Además del sonido y la vibración, queda escrito: si el teléfono está en
     // silencio o el motor tapó la voz, el aviso tiene que poder leerse. Es
@@ -1337,45 +1292,19 @@ export function navigateView(host, { openDrawer, go }) {
   }
 
   /**
-   * Escribe en verde, sobre el mapa, el nombre de la calle por la que se va.
-   *
-   * El mapa se encarga de encontrarla y rotularla; acá sólo se le dice cuál es.
-   * El dato sale del motor de guiado, que es el único que sabe cuál de todas
-   * las calles a la vista es la que se está tomando.
-   */
-  function rotularCalleActual() {
-    gl.labelCurrentStreet(navState?.step?.streetName ?? null);
-  }
-
-  /**
    * Actualiza los numeros sin volver a dibujar la pantalla.
    *
-   * Rehacer el marcado en cada latido del GPS tira el trabajo del navegador una
-   * vez por segundo y, sobre todo, corta cualquier animacion en curso. Se tocan
-   * solo los tres nodos que cambian.
+   * La pantalla del viaje toca solo los nodos que cambian: rehacer el marcado
+   * en cada latido del GPS tira el trabajo del navegador una vez por segundo
+   * y corta cualquier animacion en curso.
    */
   function updateNavigationUi() {
-    const overlay = q(host0, '#nav-overlay');
-
-    if (!overlay || rerouting) {
+    if (!viaje) {
       drawSheet();
       return;
     }
 
-    const upcoming = navState?.next ?? null;
-
-    setText(overlay, '.maneuver-distance', formatDistance(navState.distanceToManeuver));
-    setText(overlay, '.maneuver-arrow', upcoming ? maneuverArrow(upcoming.kind) : '↑');
-    setText(overlay, '.maneuver-street',
-      upcoming ? (upcoming.streetName || upcoming.text) : 'Seguí la ruta');
-
-    const bar = q(host0, '#sheet');
-    const figures = bar ? bar.querySelectorAll('.nav-eta b') : [];
-
-    if (figures.length === 2) {
-      figures[0].textContent = arrivalTime(navState.remainingSeconds);
-      figures[1].textContent = formatDistance(navState.remainingMeters);
-    }
+    pintarViaje();
   }
 
   function setText(root, selector, text) {
@@ -1396,7 +1325,7 @@ export function navigateView(host, { openDrawer, go }) {
     lastRerouteAt = Date.now();
     drawSheet();
 
-    speak('Recalculando.');
+    decir('Recalculando.');
 
     try {
       const truck = selectedTruck();
@@ -1479,7 +1408,7 @@ export function navigateView(host, { openDrawer, go }) {
     if (!trip) return;
 
     stopNavigating();
-    speak('Llegaste a destino.');
+    decir('Llegaste a destino.');
 
     try {
       const closed = await api.finishTrip(trip.id);

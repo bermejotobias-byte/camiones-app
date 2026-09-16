@@ -1849,7 +1849,11 @@ grande de un archivo de `wwwroot/js`.
 ## AD-37 · El nombre de la calle por la que vas se rotula sobre el mapa base
 
 **Fecha:** 01/09/2026
-**Estado:** aceptada
+**Estado:** reemplazada el 16/09/2026 — el rótulo verde se sacó a pedido del
+usuario ("es algo que te pedí yo pero no queda bien"). La calle actual va ahora
+en la píldora negra de la pantalla del viaje, como en Waze (ver AD-48). Lo que
+sigue queda como registro de por qué un rótulo sobre línea no se dibuja si el
+texto no entra en el tramo, que sigue siendo cierto.
 
 ### Contexto
 

@@ -301,10 +301,16 @@ export const cardinal = (degrees) =>
 export const cardinalName = (degrees) =>
   Number.isFinite(degrees) ? CARDINAL_LONG[cardinalIndex(degrees)] : '';
 
-/** Hora de llegada estimada a partir de ahora. */
-export function arrivalTime(seconds) {
-  const at = new Date(Date.now() + seconds * 1000);
-  return at.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+/**
+ * Hora de llegada estimada a partir de ahora, en 24 horas.
+ *
+ * El ciclo horario va explicito: la hoja del viaje la muestra en 25 sp y un
+ * "p. m." al lado no entra ni se lee de reojo. `now` se recibe para poder
+ * probarla con una hora fija.
+ */
+export function arrivalTime(seconds, now = Date.now()) {
+  const at = new Date(now + seconds * 1000);
+  return at.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 }
 
 // --- utilidades -------------------------------------------------------------
@@ -331,8 +337,14 @@ export function guard(fn) {
   };
 }
 
-/** Marca un boton como ocupado mientras corre una promesa. */
+/**
+ * Marca un boton como ocupado mientras corre una promesa. Sin boton —la
+ * accion salio de un circulo con un dibujo, donde no cabe un texto— corre
+ * el trabajo y nada mas.
+ */
 export async function withBusy(button, label, work) {
+  if (!button) return work();
+
   const original = button.innerHTML;
   button.disabled = true;
   button.innerHTML = `<span class="spinner"></span> ${escapeHtml(label)}`;

@@ -351,10 +351,23 @@ node --test "tests/web/*.test.mjs"             # 77 tests: guiado, avisos de rut
   través) y `bottom` **negativo** (con `0` queda 14 px arriba del borde real, por
   el padding de la hoja, y ahí se ve pasar la lista). Ver AD-44.
 - **La hoja inferior se referencia por `#sheet`, nunca por `.sheet`**: `sheetAs()` le
-  **reemplaza la clase** según el estado (`sheet` para buscar, `nav-bar` durante el viaje).
-  Un selector por clase deja de coincidir en modo viaje, la barra hereda
-  `pointer-events: none` y **el botón "Salir" no responde: el viaje queda imposible de
-  cerrar desde la app**. El id no cambia nunca. Ver AD-34.
+  **reemplaza la clase** según el estado (`sheet` para buscar y planificar). Un selector
+  por clase deja de coincidir y la hoja hereda `pointer-events: none`, con lo que ningún
+  botón responde. El id no cambia nunca. Ver AD-34.
+- **La pantalla del viaje es OTRA capa, no la hoja.** Mientras dura el viaje,
+  `js/mapa/viaje.js` monta `.gps-viaje` sobre la pantalla del mapa —banda, costado,
+  píldora de la calle actual, aportar y la hoja de 137— y `.map-overlay` entera se
+  esconde con la clase `is-viaje`. Nada de lo que hay en `#sheet` se ve durante el
+  viaje, y al salir (`desmontarViaje`) vuelve tal como estaba. Las medidas son las de
+  Waze, medidas sobre `docs/referencias/waze/waze-06.jpeg` (720 px = 360 dp): banda de
+  95 + safe-top, distancia 27 sp / 400, calle 24 sp / 500 celeste; hoja de 137, hora
+  25 sp / 700; píldora negra 18 sp / 700 a 155 del borde; aportar 63; círculos 52 y 45.
+  Está en `docs/superpowers/specs/2026-09-16-gps-waze-design.md`.
+- **El nombre de la calle actual va en la píldora negra, NO en verde sobre el mapa.** El
+  rótulo verde (`calle-actual`, AD-37) se sacó el 16/09/2026 a pedido del usuario: "no
+  queda bien". Sale de `navState.step.streetName` y lo pinta `viaje.calle()`; sin nombre
+  la píldora se esconde. Lo que AD-37 enseñó sobre `symbol-placement: line` (el texto no
+  se dibuja si no entra en el tramo) sigue valiendo para cualquier rótulo sobre línea.
 - **Fuera del viaje la cámara no se inclina ni gira, y el zoom es del usuario.** Los gestos
   de rotación e inclinación están apagados en `createMap`: en un teléfono salen sin querer y
   dejan el mapa torcido sin forma evidente de enderezarlo. `flyTo` **no cambia el zoom**
@@ -362,22 +375,6 @@ node --test "tests/web/*.test.mjs"             # 77 tests: guiado, avisos de rut
   con `easeTo` desde `enterNavigationMode`, que no pasa por esos manejadores, así que
   apagarlos no la rompe. Los botones + / − se esconden durante el viaje porque la cámara
   sigue al vehículo y deshace cualquier zoom manual. Ver AD-34.
-- **El nombre de la calle por la que vas se rotula sobre el MAPA BASE, no sobre el tramo
-  de la ruta.** Los tramos entre maniobras son cortísimos —29 m, 69 m, 91 m en una ruta
-  real del centro— y `symbol-placement: line` **no dibuja nada si el texto no entra a lo
-  largo de la línea**: a zoom 16, 29 m son 15 px y el nombre necesita unos 300. La calle
-  del mapa base viene entera en el tile, así que hay largo de sobra. La capa `calle-actual`
-  filtra por nombre sobre `base`/`roads` y **no tiene fuente propia** — por eso está en
-  `ROUTE_LAYERS` pero no en `ROUTE_SOURCES`: borrar esa fuente se lleva el mapa entero.
-  Y por lo mismo el rótulo va en **1,5×** y no en los 3× que pedía el brainstorm: los tiles
-  parten las avenidas en tramos de una cuadra, y cuanto más grande el texto en menos entra
-  — en 33 px no se dibuja **nada**.
-- **La colisión del rótulo verde va ACTIVADA.** Con `text-allow-overlap: true` MapLibre deja
-  de comparar los símbolos **incluso dentro de la misma capa**, y como los tiles traen la
-  avenida partida en varios tramos, el mismo nombre se encimaba consigo mismo sobre las
-  cuadras cortas, distinto según el zoom. La prioridad sobre los nombres grises se consigue
-  por el **orden de la capa** —`calle-actual` antes de `calles-nombre`—, no por
-  allow-overlap. Ver AD-37.
 - **La ruta se dibuja DEBAJO de `calles-nombre`.** Sin el `beforeId`, los 17 px del halo
   más la línea tapan justo el nombre de la calle por la que se va, que es el dato que más
   se necesita manejando.

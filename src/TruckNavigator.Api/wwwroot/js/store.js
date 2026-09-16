@@ -31,7 +31,14 @@ const defaults = {
    * dato de la comunidad y no oficial, cubre area en vez de marcar puntos, y no
    * es lo que uno necesita para manejar. Que aparezca solo si se lo pide.
    */
-  riskZones: false
+  riskZones: false,
+
+  /**
+   * La voz del guiado. Se silencia desde el boton de sonido del viaje y se
+   * recuerda: quien la apaga una vez no quiere apagarla en cada viaje. La
+   * vibracion no depende de esto (AD-39).
+   */
+  voz: true
 };
 
 function readPrefs() {
