@@ -2852,3 +2852,20 @@ un mismo hecho**.
   explicado, no un viaje que termina bajo un puente.
 - El patrón de vibración de tres golpes largos del gálibo se retiró con el aviso
   que lo justificaba.
+
+### Apéndice del 16/09/2026 · el viaje también pasa por el filtro
+
+Verificando la pantalla del viaje apareció un agujero en la misma regla:
+`POST /api/trips` pedía **una sola ruta** al motor (`CalculateAsync`, la más
+rápida por peso), o sea que el viaje arrancaba **por otra ruta que la
+recomendada** —medido: 2,7 km al 52 % por la Red contra los 2,2 km al 60 % que
+la pantalla acababa de mostrar— y **sin el filtro de ofrecibles**: un tramo
+prohibido podía colarse justo en la ruta que se iba a manejar, que es la única
+que importa. Lo mismo al retomar con `GET /api/trips/active`.
+
+Corrección en el origen: los dos endpoints calculan por el mismo camino que
+`/api/routes` (`TripRoutes.ForTripAsync`: alternativas ordenadas, `RouteOffer`),
+el pedido de arranque lleva `routeIndex` con la posición que se eligió en
+pantalla y `RouteOffer.Chosen` cae en la recomendada si esa posición ya no
+existe. Sin ruta apta, 422 al arrancar; al retomar, el viaje vuelve sin ruta y
+con el motivo, porque cerrarlo no necesita rutear.

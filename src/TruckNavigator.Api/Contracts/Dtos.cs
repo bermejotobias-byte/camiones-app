@@ -608,6 +608,22 @@ public sealed class StartTripRequest
     /// </remarks>
     public IReadOnlyList<CoordinateDto>? Stops { get; set; }
 
+    /// <summary>
+    /// Cual de las rutas que devolvio <c>POST /api/routes</c> eligio el usuario:
+    /// 0 la recomendada, 1 la primera alternativa, y asi. Opcional; sin el, la
+    /// recomendada.
+    /// </summary>
+    /// <remarks>
+    /// El viaje se arranca con la MISMA ruta que se eligio en pantalla. Antes el
+    /// servidor pedia una sola ruta al motor —la mas rapida por peso— y el viaje
+    /// arrancaba por otra que la recomendada, con otros kilometros previstos y
+    /// sin pasar por el filtro de AD-47. Una posicion que ya no existe cae en la
+    /// recomendada (ver <c>RouteOffer.Chosen</c>). Se ignora con paradas: un
+    /// reparto tiene una sola ruta, la que pasa por todas.
+    /// </remarks>
+    [Range(0, 9)]
+    public int? RouteIndex { get; set; }
+
     public DateTimeOffset? DepartureTime { get; set; }
 }
 

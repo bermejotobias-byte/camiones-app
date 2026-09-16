@@ -1031,7 +1031,9 @@ export function navigateView(host, { openDrawer, go }) {
           // Campo opcional: sin paradas el pedido queda igual que siempre.
           ...(intermedias.length
             ? { stops: intermedias.map((p) => ({ latitude: p.lat, longitude: p.lng })) }
-            : {})
+            // La ruta que se está mirando es la que arranca: el servidor la
+            // vuelve a calcular por el mismo camino y toma la de esta posición.
+            : { routeIndex: chosenRoute })
         });
 
         // La ruta se guarda en el estado compartido, no solo en la variable de

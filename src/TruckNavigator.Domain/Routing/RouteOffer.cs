@@ -39,6 +39,26 @@ public static class RouteOffer
         return routes.Where(IsOfferable).ToList();
     }
 
+    /// <summary>
+    /// La ruta por la que arranca el viaje: la que el usuario eligio entre las
+    /// ofrecidas, por su posicion en esa lista. Sin eleccion, o con una posicion
+    /// que ya no existe, la recomendada.
+    /// </summary>
+    /// <remarks>
+    /// Una posicion fuera de rango no cae en la ultima ni en la mas parecida:
+    /// significa que la lista cambio entre que se mostro y que se arranco, y
+    /// ante la duda la unica ruta que el usuario vio seguro es la recomendada.
+    /// </remarks>
+    public static TruckRoute Chosen(IReadOnlyList<TruckRoute> offerable, int? index)
+    {
+        if (offerable.Count == 0)
+        {
+            throw new ArgumentException("No hay rutas ofrecibles entre las que elegir.", nameof(offerable));
+        }
+
+        return index is >= 0 && index < offerable.Count ? offerable[index.Value] : offerable[0];
+    }
+
     /// <summary>El primer hallazgo que prohibe la ruta, para explicarselo al usuario; <c>null</c> si es ofrecible.</summary>
     public static RestrictionFinding? WhyNot(TruckRoute route) =>
         route.RestrictionNotes

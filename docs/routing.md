@@ -127,6 +127,23 @@ el hallazgo (`RouteOffer`, AD-47).
 Errores: `404` si el camión no existe, `422` si no hay ruta posible o apta para
 ese vehículo, `503` si GraphHopper no responde. Todos como `ProblemDetails`.
 
+### El viaje arranca por la ruta que se eligió
+
+`POST /api/trips` vuelve a calcular la ruta **por el mismo camino** que
+`POST /api/routes` —alternativas ordenadas para camión y el filtro de AD-47— y
+toma la de la posición `routeIndex` (opcional: `0` la recomendada, `1` la primera
+alternativa…). Una posición que ya no existe cae en la recomendada, nunca en
+otra (`RouteOffer.Chosen`). Sin ruta apta, `422` igual que al calcular. Con
+`stops` la ruta es una sola, la que pasa por todas (AD-45), y sólo se comprueba
+que sea ofrecible.
+
+Antes el viaje pedía **una sola ruta** al motor, la más rápida por peso, y salía
+por otra que la recomendada —medido el 16/09/2026 en Nueva Pompeya: 2,7 km al
+52 % por la Red contra los 2,2 km al 60 % que se acababan de mostrar— y además
+sin pasar por el filtro. `GET /api/trips/active` retoma por la recomendada; si
+no hay ruta apta, devuelve el viaje sin ruta y con el motivo, porque cerrarlo no
+necesita rutear. Lo cubre `TripRoutesTests` (con GraphHopper levantado).
+
 ## Cómo se anota la ruta
 
 GraphHopper devuelve `path_details` como intervalos `[desde, hasta, valor]` sobre

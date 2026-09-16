@@ -76,4 +76,39 @@ public class RouteOfferTests
         Assert.Equal(Blocked, RouteOffer.WhyNot(route));
         Assert.Null(RouteOffer.WhyNot(Route()));
     }
+
+    // El viaje arranca por la ruta que el usuario eligio entre las ofrecidas,
+    // que se identifica por su posicion en esa lista. Sin eleccion, la
+    // recomendada; con una posicion que ya no existe —la lista cambio entre
+    // que se mostro y que se arranco—, tambien la recomendada, nunca otra.
+
+    [Fact]
+    public void Without_a_choice_the_trip_starts_on_the_recommended_route()
+    {
+        var recommended = Route();
+        var alternative = Route(Note(true, OutsideNetwork));
+
+        Assert.Same(recommended, RouteOffer.Chosen([recommended, alternative], null));
+    }
+
+    [Fact]
+    public void The_chosen_alternative_is_the_one_the_trip_starts_on()
+    {
+        var recommended = Route();
+        var alternative = Route(Note(true, OutsideNetwork));
+
+        Assert.Same(alternative, RouteOffer.Chosen([recommended, alternative], 1));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(2)]
+    [InlineData(9)]
+    public void A_choice_that_no_longer_exists_falls_back_to_the_recommended_route(int index)
+    {
+        var recommended = Route();
+        var alternative = Route(Note(true, OutsideNetwork));
+
+        Assert.Same(recommended, RouteOffer.Chosen([recommended, alternative], index));
+    }
 }

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using TruckNavigator.Api.Contracts;
 using TruckNavigator.Api.Identity;
+using TruckNavigator.Api.Routing;
 using TruckNavigator.Domain.Places;
 using TruckNavigator.Domain.Pois;
 using TruckNavigator.Domain.Progression;
@@ -1060,13 +1061,20 @@ trips.MapPost("/", async (
         var origen = new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude);
         var destino = new GeoPoint(request.Destination!.Latitude, request.Destination.Longitude);
 
-        var route = stops.Count == 0
-            ? await calculator.CalculateAsync(truck, origen, destino, departure, ct)
-            : await calculator.CalculateThroughAsync(
-                truck,
-                [origen, .. stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)), destino],
-                departure,
-                ct);
+        // La misma ruta que se eligio en pantalla, por el mismo camino que la
+        // recomendo: alternativas ordenadas para camion y el filtro de AD-47.
+        var (route, reason) = await TripRoutes.ForTripAsync(
+            calculator, truck, origen, destino,
+            stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)).ToList(),
+            request.RouteIndex, departure, ct);
+
+        if (route is null)
+        {
+            return Results.Problem(
+                title: "No hay ruta apta para este camion",
+                detail: reason,
+                statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
 
         var trip = new Trip
         {
@@ -1166,18 +1174,19 @@ trips.MapGet("/active", async (
         // guardado. Sin las paradas, recuperar un reparto devolvia una ruta
         // directa —31 km por tres paradas se volvian 10 km de un tramo— y el
         // guiado mandaba al camion por donde no correspondia. Ver AD-45.
-        var route = trip.Stops.Count == 0
-            ? await calculator.CalculateAsync(truck, origen, destino, DateTimeOffset.Now, ct)
-            : await calculator.CalculateThroughAsync(
-                truck,
-                [origen, .. trip.Stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)), destino],
-                DateTimeOffset.Now,
-                ct);
+        //
+        // Se retoma por la recomendada: la eleccion original no se guarda y de
+        // todos modos el guiado recalcula desde donde este el camion.
+        var (route, reason) = await TripRoutes.ForTripAsync(
+            calculator, truck, origen, destino,
+            trip.Stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)).ToList(),
+            routeIndex: null, DateTimeOffset.Now, ct);
 
+        // Sin ruta apta el viaje se devuelve igual: cerrarlo no necesita rutear.
         return Results.Ok(new ActiveTripDto(
             TripDto.From(trip),
-            RouteResponse.From(route, truck.Name, Attribution),
-            null));
+            route is null ? null : RouteResponse.From(route, truck.Name, Attribution),
+            reason));
     }
     catch (Exception ex) when (ex is RoutingException or HttpRequestException)
     {
@@ -1436,13 +1445,9 @@ app.MapPost("/api/routes", async (
 
         if (routes is null)
         {
-            var motivo = calculadas.Count > 0 ? RouteOffer.WhyNot(calculadas[0]) : null;
-
             return Results.Problem(
                 title: "No hay ruta apta para este camion",
-                detail: motivo is null
-                    ? "El motor no encontro una ruta por la que este camion pueda circular."
-                    : $"La unica ruta posible pasa por un tramo prohibido para {truck.Name}: {motivo.Description}",
+                detail: TripRoutes.Unofferable(truck, calculadas.Count > 0 ? RouteOffer.WhyNot(calculadas[0]) : null),
                 statusCode: StatusCodes.Status422UnprocessableEntity);
         }
 
