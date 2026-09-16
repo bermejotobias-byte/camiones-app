@@ -154,6 +154,59 @@
   --origin:      #43c98b;
   --destination: #f0736a;
 
+  /* --- el GPS: la piel de Waze, medida sobre las capturas -----------------
+     Desde el 16/09/2026 la pantalla del mapa tiene sus propios tokens, aparte
+     del resto de la app: es el registro sobrio, y se calco de Waze (AD-48).
+     Cada valor esta sampleado de una captura de docs/referencias/waze/ o
+     medido en ella; ver docs/diseno/prototipo-gps/gps.mjs para de cual.
+
+     Tipografia: la del sistema (Roboto en Android) SOLO dentro del mapa.
+     Nunito sigue en todo lo demas, incluido el zocalo. */
+  --gps-ui:            Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --gps-banda:         #000000;   /* la banda de instruccion */
+  --gps-hoja:          #202125;   /* hojas y tarjetas */
+  --gps-pildora:       #3c4043;   /* pildoras grises, chips, circulos */
+  --gps-claro:         #e8e9ed;   /* el circulo de "volver a centrar" */
+  --gps-ruta:          #2ddcff;   /* la linea de la ruta */
+  --gps-accion:        #32ccfe;   /* pildoras celestes */
+  --gps-sobre-accion:  #0a1f2a;   /* texto sobre una pildora celeste */
+  --gps-celeste:       #32c8fb;   /* texto celeste: la calle que viene, "Vista general" */
+  --gps-chevron:       #00b5d0;   /* el vehiculo */
+  --gps-globo:         #1d7699;   /* globos de calle */
+  --gps-reportar:      #4e411e;   /* el boton amarillo de aportar */
+  --gps-amarillo:      #f9c531;   /* fuera de la Red; el dibujo de aportar */
+  --gps-rojo:          #e9463f;   /* S.O.S.; el galibo que NO se pasa, en el mapa */
+  --gps-ink:           #ffffff;
+  --gps-ink-2:         #c9cdd2;   /* "39 min • 32 km" */
+  --gps-ink-3:         #8e959c;   /* placeholders, cruces, secundarios */
+
+  /* El mapa base, con la jerarquia de Waze de noche (waze-03, 06, 08, 02). */
+  --map-tierra:        #272d39;
+  --map-manzana:       #252e3d;
+  --map-manzana-b:     #233041;
+  --map-predio:        #2e3d50;
+  --map-agua:          #22467a;
+  --map-parque:        #216a4f;
+  --map-cementerio:    #1f4d3a;
+  --map-calle:         #40546c;
+  --map-calle-borde:   rgba(0, 0, 0, 0);   /* de noche no hay borde; de dia si */
+  --map-avenida:       #4d6179;
+  --map-red:           #6d89a8;   /* la Red de Transito Pesado: la via mas clara y ancha */
+  --map-autopista:     #7494b4;
+  --map-carril:        #4a5c74;
+  --map-centro:        #c8d3df;
+  --map-ferrocarril:   #3a4553;
+  --map-ferrocarril-2: #aab4bf;
+  --map-edificio:      #2b3543;
+  --map-sendero:       #34455a;
+  --map-rotulo:        #d9e5ee;   /* nombres de calle */
+  --map-rotulo-red:    #e6eef5;   /* la Red, en mayusculas */
+  --map-halo:          #272d39;
+  --map-barrio:        #8b95a5;
+  --map-parque-rotulo: #6fc48a;
+  --map-lugar:         #8fb8e8;
+  --map-flecha:        #8fb3d9;
+
   --radius:      14px;
   --radius-sm:   9px;
   --tap:         48px;              /* blanco de toque minimo */
@@ -220,6 +273,54 @@
   --route-halo:  #ffffff;
   --origin:      #1c7d51;
   --destination: #b6362b;
+
+  /* El GPS de dia es DERIVADO, no medido: no hay captura de Waze de dia
+     (16/09/2026). Banda y hojas blancas con tinta oscura; el celeste se
+     oscurece para tener contraste sobre blanco; el mapa claro con calles
+     blancas y un filete gris, la Red en azul acero claro y la autopista en
+     amarillo palido, como la pinta Waze de dia. */
+  --gps-banda:         #ffffff;
+  --gps-hoja:          #ffffff;
+  --gps-pildora:       #e6e9ed;
+  --gps-claro:         #ffffff;
+  --gps-ruta:          #1fb0ec;
+  --gps-accion:        #1fb0ec;
+  --gps-sobre-accion:  #0a1f2a;
+  --gps-celeste:       #0e87b8;
+  --gps-chevron:       #00a5c0;
+  --gps-globo:         #1d7699;
+  --gps-reportar:      #fff3c4;
+  --gps-amarillo:      #e0a800;
+  --gps-rojo:          #d8392f;
+  --gps-ink:           #111418;
+  --gps-ink-2:         #5b6672;
+  --gps-ink-3:         #6f7a86;
+
+  --map-tierra:        #eef1f4;
+  --map-manzana:       #e9edf1;
+  --map-manzana-b:     #e4eaf0;
+  --map-predio:        #dfe5eb;
+  --map-agua:          #a8d2f1;
+  --map-parque:        #c6e5c0;
+  --map-cementerio:    #b8d8b2;
+  --map-calle:         #ffffff;
+  --map-calle-borde:   #d3d9e0;
+  --map-avenida:       #ffffff;
+  --map-red:           #9db4cc;
+  --map-autopista:     #ffe6a3;
+  --map-carril:        #e8cf85;
+  --map-centro:        #ffffff;
+  --map-ferrocarril:   #c5ccd4;
+  --map-ferrocarril-2: #ffffff;
+  --map-edificio:      #e2e6ea;
+  --map-sendero:       #d8dee5;
+  --map-rotulo:        #2a323b;
+  --map-rotulo-red:    #1f2a35;
+  --map-halo:          #eef1f4;
+  --map-barrio:        #6f7a86;
+  --map-parque-rotulo: #3f8f4f;
+  --map-lugar:         #3c74b8;
+  --map-flecha:        #7fa4cf;
 
   --shadow:      0 1px 3px rgba(14,22,27,.10), 0 10px 28px -14px rgba(14,22,27,.28);
   --shadow-up:   0 -4px 20px -10px rgba(14,22,27,.30);
@@ -540,7 +641,9 @@ button { font-family: inherit; font-size: inherit; }
    Mapa
    ========================================================================== */
 
-.map-screen { position: relative; }
+/* La pantalla del mapa va en la tipografia del sistema —Roboto en Android—,
+   como Waze: es la unica pantalla que no lleva Nunito (AD-48). */
+.map-screen { position: relative; font-family: var(--gps-ui); }
 #map { position: absolute; inset: 0; }
 
 .maplibregl-ctrl-attrib {
