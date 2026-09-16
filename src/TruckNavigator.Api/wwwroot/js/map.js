@@ -7,7 +7,7 @@
  */
 
 import { installTruckLayers, setTruckLayersVisible, setRiskZonesVisible, setCrossingsVisible, setTruckHeight, refreshLayerColors, truckDataset } from './layers.js';
-import { registerPmtilesProtocol, buildBasemapStyle } from './basemap.js';
+import { registerPmtilesProtocol, buildBasemapStyle } from './mapa/estilo-mapa.js';
 import { currentApiBase } from './api.js';
 
 const CABA_CENTER = [-58.4370, -34.6083];
@@ -112,7 +112,14 @@ export function createMap(container, handlers = {}) {
         'Generarlo con data/build-basemap.ps1. Detalle: ' + message);
 
       map.setStyle(rasterFallbackStyle());
+      return;
     }
+
+    // Con un oyente puesto, MapLibre deja de imprimir sus errores solo. Y un
+    // estilo con una expresion mal formada falla justamente por aca, sin
+    // excepcion: si no se reimprime, el sintoma es un mapa negro sin una linea
+    // en la consola. Costo una tarde.
+    console.error('Mapa: ' + (message || 'error sin detalle'), event?.error ?? event);
   });
 
   // El toque lleva ademas que hay debajo del dedo, si hay algo nuestro. Un
@@ -131,6 +138,13 @@ export function createMap(container, handlers = {}) {
   });
 
   installLongPress();
+
+  // Solo en desarrollo: el mapa a mano desde la consola, para calibrar el
+  // estilo contra los tiles reales (que `kind` hay, como se ve una capa) sin
+  // adivinar. En el telefono y en produccion no existe.
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    window.tnMap = map;
+  }
 
   return map;
 }

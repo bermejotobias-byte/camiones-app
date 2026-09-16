@@ -687,19 +687,25 @@ function addSpeedCameraLayers(map) {
 function addRedLayers(map) {
   if (!map.getSource('red') || map.getLayer('red-linea')) return;
 
+  // La Red va DEBAJO de los nombres de calle del mapa base: es una via, y una
+  // via no tapa rotulos. Si el mapa cayo al raster no existe esa capa y se
+  // agrega arriba de todo, que es lo unico posible.
+  const debajoDe = map.getLayer('calles-nombre') ? 'calles-nombre' : undefined;
+
   map.addLayer({
     id: 'red-linea',
     type: 'line',
     source: 'red',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: {
-      'line-color': token('--ink-3'),
-      'line-opacity': 0.35,
-      // Se engrosa con el zoom para que a lo lejos se lea el corredor y de
-      // cerca no tape la calle.
-      'line-width': ['interpolate', ['linear'], ['zoom'], 11, 2, 14, 4, 17, 7]
+      // La via mas clara y mas ancha del mapa: el lugar que en Waze ocupa la
+      // autopista. Se lee sola —que calles la forman, como se conectan y
+      // cuales quedan afuera— sin leyenda (AD-48). De cerca mide 14 dp, un
+      // poco mas que la avenida de 12 y la calle de 10; de lejos, 5,5.
+      'line-color': token('--map-red'),
+      'line-width': ['interpolate', ['exponential', 1.4], ['zoom'], 13, 3.5, 15, 7, 17, 14, 19, 36]
     }
-  });
+  }, debajoDe);
 
   map.addLayer({
     id: 'red-nombre',
@@ -707,24 +713,27 @@ function addRedLayers(map) {
     source: 'red',
     // Sin nombre no hay nada que mostrar, y la linea ya la dibuja la capa de arriba.
     filter: ['all', ['has', 'name'], ['!=', ['get', 'name'], null]],
+    minzoom: 13,
     layout: {
       'symbol-placement': 'line',
       'text-field': ['get', 'name'],
+      // En mayusculas espaciadas, chicas: es la marca de la Red, no un rotulo
+      // mas. 10,5 sp de cerca, medido en el prototipo.
       'text-transform': 'uppercase',
-      'text-letter-spacing': 0.12,
-      'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 15, 12, 18, 14],
+      'text-letter-spacing': 0.1,
+      'text-size': ['interpolate', ['linear'], ['zoom'], 13, 9, 16, 10.5, 18, 12],
       'text-font': ['NotoSans-Bold'],
       // Se repite a lo largo de la avenida: sirve de referencia en cualquier
       // punto, no solo donde arranca el tramo.
-      'symbol-spacing': 260,
+      'symbol-spacing': 320,
       'text-max-angle': 35,
       'text-allow-overlap': false,
-      'text-padding': 4
+      'text-padding': 6
     },
     paint: {
-      'text-color': token('--ink'),
-      'text-halo-color': token('--surface'),
-      'text-halo-width': 2.2
+      'text-color': token('--map-rotulo-red'),
+      'text-halo-color': token('--map-halo'),
+      'text-halo-width': 1.6
     }
   });
 }
@@ -920,12 +929,12 @@ export function refreshLayerColors(map) {
   if (!map) return;
 
   if (map.getLayer('red-linea')) {
-    map.setPaintProperty('red-linea', 'line-color', token('--ink-3'));
+    map.setPaintProperty('red-linea', 'line-color', token('--map-red'));
   }
 
   if (map.getLayer('red-nombre')) {
-    map.setPaintProperty('red-nombre', 'text-color', token('--ink'));
-    map.setPaintProperty('red-nombre', 'text-halo-color', token('--surface'));
+    map.setPaintProperty('red-nombre', 'text-color', token('--map-rotulo-red'));
+    map.setPaintProperty('red-nombre', 'text-halo-color', token('--map-halo'));
   }
 
   // Las señales NO se repintan con el tema: son imagenes de colores fijos, como
