@@ -371,7 +371,16 @@ public sealed record RouteResponse(
     /// dibuja para que uno elija mirando el mapa y no leyendo minutos.
     /// </para>
     /// </remarks>
-    IReadOnlyList<RouteResponse>? Alternatives = null)
+    IReadOnlyList<RouteResponse>? Alternatives = null,
+
+    /// <summary>
+    /// Lo que hay sobre la ruta y conviene avisar al pasar —hoy, los galibos
+    /// declarados en los tramos que la ruta recorre—. Sale de la ruta misma y
+    /// no de la capa del mapa, asi que siempre es informativo: un galibo mas
+    /// bajo que el camion no llega aca porque el motor lo excluye (AD-47).
+    /// Campo opcional, para que la app instalada siga leyendo lo de siempre.
+    /// </summary>
+    IReadOnlyList<RouteHazardDto>? Hazards = null)
 {
     /// <summary>
     /// Arma la respuesta a partir de la ruta del dominio. Existe porque la usan
@@ -389,7 +398,14 @@ public sealed record RouteResponse(
         route.AccessLegs.Select(RouteRestrictionNoteDto.From).ToList(),
         route.HeavyNetworkSharePercent,
         truckName,
-        attribution);
+        attribution,
+        Hazards: route.Hazards.Select(RouteHazardDto.From).ToList());
+}
+
+public sealed record RouteHazardDto(string Kind, double Metres, string StreetName, int FromPointIndex, int ToPointIndex)
+{
+    public static RouteHazardDto From(RouteHazard hazard) =>
+        new(hazard.Kind, hazard.Metres, hazard.StreetName, hazard.FromPointIndex, hazard.ToPointIndex);
 }
 
 public sealed record GeoJsonLineString(IReadOnlyList<double[]> Coordinates)

@@ -48,6 +48,27 @@ public sealed record RouteRestrictionNote(
     bool RequiresAccessException,
     IReadOnlyList<RestrictionFinding> Findings);
 
+/// <summary>
+/// Algo sobre la ruta de lo que conviene avisar al pasar, sacado de la ruta
+/// misma: un galibo declarado en un tramo que el motor recorrio.
+/// </summary>
+/// <remarks>
+/// Es informativo por construccion: un galibo mas bajo que el camion no llega
+/// aca, porque el motor excluye ese tramo antes de calcular (AD-47). Avisar
+/// desde la ruta y no desde la capa de galibos evita el falso "no pasas" al ir
+/// por arriba de un puente, donde el bajo via de abajo queda a cero metros.
+/// </remarks>
+/// <param name="Kind">Hoy solo "galibo".</param>
+/// <param name="Metres">La altura declarada del tramo.</param>
+/// <param name="FromPointIndex">Primer punto de la geometria (inclusive).</param>
+/// <param name="ToPointIndex">Ultimo punto (exclusive).</param>
+public sealed record RouteHazard(
+    string Kind,
+    double Metres,
+    string StreetName,
+    int FromPointIndex,
+    int ToPointIndex);
+
 public sealed record TruckRoute(
     double DistanceMeters,
     double DurationSeconds,
@@ -55,7 +76,52 @@ public sealed record TruckRoute(
     IReadOnlyList<RouteInstruction> Instructions,
     IReadOnlyList<RouteRestrictionNote> RestrictionNotes,
     IReadOnlyList<RouteRestrictionNote> AccessLegs,
-    double HeavyNetworkSharePercent);
+    double HeavyNetworkSharePercent,
+    IReadOnlyList<RouteHazard>? Hazards = null)
+{
+    /// <summary>Los avisos de la ruta; nunca nulo.</summary>
+    public IReadOnlyList<RouteHazard> Hazards { get; init; } = Hazards ?? [];
+}
+
+/// <summary>
+/// Arma los avisos de una ruta a partir de sus tramos con atributos.
+/// </summary>
+public static class RouteHazards
+{
+    public const string Clearance = "galibo";
+
+    /// <summary>
+    /// Un aviso por cada corrida de tramos contiguos con la misma altura
+    /// declarada: un puente largo cubre varios tramos y se avisa una sola vez.
+    /// </summary>
+    public static IReadOnlyList<RouteHazard> From(
+        IEnumerable<(int From, int To, RoadSegmentAttributes Attributes)> segments)
+    {
+        var hazards = new List<RouteHazard>();
+        RouteHazard? abierto = null;
+
+        foreach (var (from, to, attributes) in segments)
+        {
+            if (attributes.MaxHeightMeters is not { } metres)
+            {
+                abierto = null;
+                continue;
+            }
+
+            if (abierto is not null && abierto.ToPointIndex == from && abierto.Metres == metres)
+            {
+                abierto = abierto with { ToPointIndex = to };
+                hazards[^1] = abierto;
+                continue;
+            }
+
+            abierto = new RouteHazard(Clearance, metres, attributes.DisplayName, from, to);
+            hazards.Add(abierto);
+        }
+
+        return hazards;
+    }
+}
 
 /// <summary>
 /// Un reparto: la ruta completa y en que orden quedaron las paradas.

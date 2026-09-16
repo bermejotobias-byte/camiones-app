@@ -357,8 +357,9 @@ public sealed class GraphHopperRouteCalculator(
         var notes = new List<RouteRestrictionNote>();
         var accessLegs = new List<RouteRestrictionNote>();
         var heavyNetworkSpan = 0;
+        var segments = details.ToSegments();
 
-        foreach (var (from, to, attributes) in details.ToSegments())
+        foreach (var (from, to, attributes) in segments)
         {
             if (attributes.Hgv == HgvAccess.Designated)
             {
@@ -410,7 +411,10 @@ public sealed class GraphHopperRouteCalculator(
             instructions,
             notes,
             accessLegs,
-            Math.Round(100.0 * heavyNetworkSpan / totalPointSpan, 1));
+            Math.Round(100.0 * heavyNetworkSpan / totalPointSpan, 1),
+            // Los galibos que se avisan en el viaje salen de aca, del mismo dato
+            // con el que el motor calculo, y no de la capa del mapa (AD-47).
+            RouteHazards.From(segments));
     }
 
     private static List<GeoPoint> ReadGeometry(JsonElement path)
