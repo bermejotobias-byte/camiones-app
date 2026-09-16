@@ -1422,12 +1422,29 @@ app.MapPost("/api/routes", async (
 
     try
     {
-        var routes = await calculator.CalculateAlternativesAsync(
+        var calculadas = await calculator.CalculateAlternativesAsync(
             truck,
             new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude),
             new GeoPoint(request.Destination!.Latitude, request.Destination.Longitude),
             departure,
             ct);
+
+        // Lo que el motor excluyo no se ofrece: una ruta con un tramo prohibido
+        // para este camion no es una opcion, ni recomendada ni alternativa. Si
+        // la recomendada lo tiene, no hay ruta apta y se dice por que (AD-47).
+        var routes = RouteOffer.Offerable(calculadas);
+
+        if (routes is null)
+        {
+            var motivo = calculadas.Count > 0 ? RouteOffer.WhyNot(calculadas[0]) : null;
+
+            return Results.Problem(
+                title: "No hay ruta apta para este camion",
+                detail: motivo is null
+                    ? "El motor no encontro una ruta por la que este camion pueda circular."
+                    : $"La unica ruta posible pasa por un tramo prohibido para {truck.Name}: {motivo.Description}",
+                statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
 
         // La raiz de la respuesta conserva EXACTAMENTE la forma de antes —la ruta
         // recomendada— y `alternatives` se suma como campo. Asi la app que ya
