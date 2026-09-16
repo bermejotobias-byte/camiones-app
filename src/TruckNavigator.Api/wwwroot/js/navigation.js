@@ -112,7 +112,10 @@ export function prepareRoute(route) {
     // mostrarla, porque es la que quedo registrada en el viaje.
     reportedMeters: route.distanceMeters ?? cumulative[cumulative.length - 1],
     durationSeconds: route.durationSeconds ?? 0,
-    instructions: route.instructions ?? []
+    instructions: route.instructions ?? [],
+    // Lo que la ruta misma dice que hay sobre ella (galibos declarados en sus
+    // tramos). Es de donde salen los avisos de galibo: ver alertsAlongRoute.
+    hazards: route.hazards ?? []
   };
 }
 
@@ -534,14 +537,18 @@ const lowerFirst = (text) => text.charAt(0).toLowerCase() + text.slice(1);
 
 /**
  * A que distancia de la ruta tiene que estar algo para que cuente como "sobre
- * la ruta".
+ * la ruta", por tipo.
  *
- * Treinta metros. Mas ancho empieza a levantar lo de la calle paralela y lo de
- * la colectora —avisar de un puente por el que uno no va a pasar es peor que no
- * avisar, porque enseña a desconfiar del aviso—. Mas angosto se pierden cosas
- * por el error de la propia geometria de OpenStreetMap.
+ * Radares: treinta metros. Mas ancho empieza a levantar lo de la calle paralela
+ * y lo de la colectora —avisar de algo por lo que uno no va a pasar es peor
+ * que no avisar, porque enseña a desconfiar del aviso—; mas angosto se pierden
+ * cosas por el error de la propia geometria de OpenStreetMap. Y ademas del
+ * corredor, el radar tiene que ser de la calle por la que se va (ver abajo).
+ *
+ * Pasos a nivel: doce. El cruce esta SOBRE la calle que se recorre; uno a 20 m
+ * es el de la calle paralela, que en un barrio con vias corre pegada.
  */
-const ALERT_CORRIDOR_METERS = 30;
+const ALERT_CORRIDOR_METERS = { radar: 30, paso: 12 };
 
 /** A que distancia se avisa. Uno solo: no es una maniobra, es algo que esta ahi. */
 const ALERT_AT_METERS = 200;
@@ -549,65 +556,102 @@ const ALERT_AT_METERS = 200;
 /**
  * Busca sobre la ruta lo que hay que avisar, ordenado por cuando aparece.
  *
- * @param prepared      lo que devuelve prepareRoute
- * @param features      { galibos, pasos, radares }, cada uno un GeoJSON de puntos
- * @param truckHeight   altura del camion, en metros, o null si no se sabe
+ * Los galibos NO salen de la capa del mapa: salen de la ruta misma
+ * (`prepared.hazards`, los tramos con altura declarada que el motor recorrio).
+ * La capa puede quedar a cero metros de la ruta y hablar de otra calle —el
+ * bajo via de abajo, cuando uno va por arriba del puente— y avisar "no pasas"
+ * ahi es falso. Y un galibo por el que el camion no pasa no puede estar sobre
+ * la ruta: el motor lo excluye antes de calcular (AD-47). Por eso el aviso de
+ * galibo es siempre informativo.
+ *
+ * @param prepared  lo que devuelve prepareRoute
+ * @param features  { pasos, radares }, cada uno un GeoJSON de puntos
  */
-export function alertsAlongRoute(prepared, features = {}, truckHeight = null) {
+export function alertsAlongRoute(prepared, features = {}) {
   if (!prepared?.points?.length) return [];
 
   const alerts = [];
+
+  for (const hazard of prepared.hazards ?? []) {
+    if (hazard?.kind !== 'galibo') continue;
+
+    const metres = Number.parseFloat(hazard.metres);
+    const at = prepared.cumulative[hazard.fromPointIndex];
+
+    if (!Number.isFinite(metres) || !Number.isFinite(at)) continue;
+
+    alerts.push({ tipo: 'galibo', at, metres, name: hazard.streetName ?? null });
+  }
 
   const agregar = (tipo, geojson, decidir) => {
     for (const feature of geojson?.features ?? []) {
       const coords = feature.geometry?.coordinates;
       if (!Array.isArray(coords) || coords.length < 2) continue;
 
-      const sobre = locateOnRoute(prepared, coords[1], coords[0]);
+      const sobre = locateOnRoute(prepared, coords[1], coords[0], ALERT_CORRIDOR_METERS[tipo]);
       if (!sobre) continue;
 
-      const aviso = decidir(feature.properties ?? {});
+      const aviso = decidir(feature.properties ?? {}, sobre);
       if (!aviso) continue;
 
       alerts.push({ tipo, at: sobre.at, ...aviso });
     }
   };
 
-  // Galibos: SOLO los que este camion no pasa. Un puente de 5 m no le importa a
-  // nadie que quepa debajo, y avisarlo gasta la atencion que hace falta para el
-  // que si importa. Sin altura declarada del camion no se avisa ninguno: no se
-  // puede decir "no pasas" sin saber cuanto mide.
-  agregar('galibo', features.galibos, (p) => {
-    // parseFloat y NO Number: `Number(null)` es 0, asi que un galibo sin altura
-    // declarada pasaba el filtro y se avisaba como "puente de 0,00 m, no pasas".
-    // El generador hoy descarta los que no traen altura, pero esto no puede
-    // depender de eso — es exactamente la clase de dato faltante que la regla de
-    // la casa dice que hay que tratar como faltante.
-    const metres = Number.parseFloat(p.metres);
-
-    if (!Number.isFinite(metres) || !Number.isFinite(truckHeight)) return null;
-    if (metres >= truckHeight) return null;
-
-    return { metres, name: p.name ?? null };
-  });
-
   // Pasos a nivel: todos. No dependen del camion y cruzarlos siempre pide bajar
   // la velocidad.
   agregar('paso', features.pasos, (p) => ({ barrier: p.barrier ?? null }));
 
-  // Radares: todos.
-  agregar('radar', features.radares, (p) => ({ ubicacion: p.ubicacion ?? null }));
+  // Radares: los de la calle por la que se va. El dataset trae la calle del
+  // radar ("AV. JOSE MARÍA MORENO - 1657"); si la ruta sabe por que calle va en
+  // ese punto, los nombres tienen que coincidir. Si no lo sabe, decide el
+  // corredor solo: no se puede exigir un dato que no esta.
+  agregar('radar', features.radares, (p, sobre) => {
+    const calleDelRadar = normalizarCalle(p.ubicacion);
+    const calleDeLaRuta = normalizarCalle(streetAt(prepared, sobre.index));
+
+    if (calleDelRadar && calleDeLaRuta && !mismaCalle(calleDelRadar, calleDeLaRuta)) return null;
+
+    return { ubicacion: p.ubicacion ?? null };
+  });
 
   return alerts.sort((a, b) => a.at - b.at);
+}
+
+/**
+ * Un nombre de calle reducido a lo que identifica: mayusculas, sin acentos,
+ * sin "Av."/"Avenida"/"Au."/"Diag.", sin la altura ("- 1657") ni numeracion.
+ */
+export function normalizarCalle(texto) {
+  if (!texto) return '';
+
+  return String(texto)
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toUpperCase()
+    .replace(/\s*-\s*\d+.*$/, '')
+    .replace(/\b\d{2,}\s*$/, '')
+    .replace(/^(AV\.?|AVDA\.?|AVENIDA|AU\.?|AUTOPISTA|DIAG\.?|DIAGONAL|CALLE)\s+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const mismaCalle = (a, b) => a === b || a.includes(b) || b.includes(a);
+
+/** La calle por la que va la ruta en un indice de su geometria, si la sabe. */
+function streetAt(prepared, index) {
+  const step = currentStep(prepared.instructions, index);
+  return step < 0 ? null : prepared.instructions[step]?.streetName ?? null;
 }
 
 /**
  * Donde cae un punto sobre la ruta, si es que cae.
  *
  * Devuelve la distancia acumulada desde el arranque, que es la misma unidad con
- * la que el motor mide el avance: asi "cuanto falta para el puente" es una resta.
+ * la que el motor mide el avance: asi "cuanto falta para el puente" es una
+ * resta. Y el indice del tramo, para saber por que calle va la ruta ahi.
  */
-function locateOnRoute(prepared, lat, lng) {
+function locateOnRoute(prepared, lat, lng, corredor) {
   const { points, cumulative, projector } = prepared;
   const target = projector.toLocal(lat, lng);
 
@@ -616,14 +660,15 @@ function locateOnRoute(prepared, lat, lng) {
   for (let i = 1; i < points.length; i++) {
     const projected = projectOnSegment(target, points[i - 1], points[i]);
 
-    if (projected.distance > ALERT_CORRIDOR_METERS) continue;
+    if (projected.distance > corredor) continue;
     if (best && projected.distance >= best.distance) continue;
 
     const largo = Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
 
     best = {
       distance: projected.distance,
-      at: cumulative[i - 1] + projected.t * largo
+      at: cumulative[i - 1] + projected.t * largo,
+      index: i - 1
     };
   }
 
@@ -674,8 +719,10 @@ export function speakableAlert(alert) {
   if (!alert) return null;
 
   if (alert.tipo === 'galibo') {
+    // Informativo por construccion: un galibo mas bajo que el camion no llega a
+    // estar sobre una ruta calculada para el.
     const altura = alert.metres.toFixed(2).replace('.', ',');
-    return `Atención: puente de ${altura} metros. Tu camión no pasa.`;
+    return `Gálibo de ${altura} metros adelante. Pasás.`;
   }
 
   if (alert.tipo === 'paso') {

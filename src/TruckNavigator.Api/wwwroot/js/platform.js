@@ -445,13 +445,15 @@ export const VIBRACION = {
   maniobra: [70],
 
   /**
-   * Un galibo por el que este camion NO pasa.
+   * Un galibo sobre la ruta.
    *
-   * Tres golpes largos, el patron mas insistente de todos: es el unico aviso
-   * que anticipa un choque, y tiene que distinguirse aunque uno lo haya sentido
-   * una sola vez antes.
+   * Es informativo: un galibo por el que este camion no pasa no puede estar
+   * sobre una ruta calculada para el, porque el motor lo excluye antes de
+   * calcular (AD-47). Dos toques suaves, como el radar: algo que esta ahi y
+   * conviene saber, no un choque que anticipar. El patron de tres golpes
+   * largos que tenia se fue con el aviso que lo justificaba.
    */
-  galibo: [140, 90, 140, 90, 140],
+  galibo: [50, 90, 50],
 
   /** Radar de velocidad. Dos toques secos, como un parpadeo. */
   radar: [50, 90, 50],

@@ -1186,7 +1186,7 @@ export function navigateView(host, { openDrawer, go }) {
     // del GPS: cruzar la posición contra 685 gálibos, 312 pasos a nivel y 129
     // radares una vez por segundo es trabajo de sobra para un teléfono que
     // además está dibujando el mapa.
-    routeAlerts = alertsAlongRoute(prepared, gl.datasets(), selectedTruck()?.heightMeters ?? null);
+    routeAlerts = alertsAlongRoute(prepared, gl.datasets());
     alerted = new Set();
 
     navState = null;
@@ -1328,9 +1328,11 @@ export function navigateView(host, { openDrawer, go }) {
     if (frase) speak(frase);
 
     // Además del sonido y la vibración, queda escrito: si el teléfono está en
-    // silencio o el motor tapó la voz, el aviso tiene que poder leerse.
+    // silencio o el motor tapó la voz, el aviso tiene que poder leerse. Es
+    // informativo —el motor ya excluyó los gálibos que no se pasan—, así que
+    // va como aviso y no como error.
     if (alerta.tipo === 'galibo') {
-      toastError(`Puente de ${alerta.metres.toFixed(2).replace('.', ',')} m a ${alerta.meters} m. No pasás.`);
+      toast(`Gálibo de ${alerta.metres.toFixed(2).replace('.', ',')} m a ${alerta.meters} m. Pasás.`);
     }
   }
 
@@ -1410,7 +1412,7 @@ export function navigateView(host, { openDrawer, go }) {
 
       // La ruta nueva pasa por otro lado: lo que había sobre la anterior no
       // sirve, y las claves de los avisos ya dados apuntan a otros índices.
-      routeAlerts = alertsAlongRoute(prepared, gl.datasets(), selectedTruck()?.heightMeters ?? null);
+      routeAlerts = alertsAlongRoute(prepared, gl.datasets());
       alerted = new Set();
 
       // El estado arranca de cero: los indices de la ruta vieja no significan

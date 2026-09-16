@@ -17,7 +17,8 @@ import {
   prepareRoute,
   alertsAlongRoute,
   pendingRouteAlert,
-  speakableAlert
+  speakableAlert,
+  normalizarCalle
 } from '../../src/TruckNavigator.Api/wwwroot/js/navigation.js';
 
 /* ---------------------------------------------------------------------------
@@ -32,15 +33,34 @@ const LAT = -34.6037;
 const LNG = -58.3816;
 const METRO = 1 / (111320 * Math.cos(LAT * Math.PI / 180));   // grados por metro
 
-/** Ruta recta al este, de `largo` metros. */
-function rectaAlEste(largo = 2000) {
+const coordenadas = (largo) => {
   const coordinates = [];
+  for (let m = 0; m <= largo; m += 100) coordinates.push([LNG + m * METRO, LAT]);
+  return coordinates;
+};
 
-  for (let m = 0; m <= largo; m += 100) {
-    coordinates.push([LNG + m * METRO, LAT]);
-  }
+/** Ruta recta al este, de `largo` metros, sin calle conocida ni gálibos. */
+function rectaAlEste(largo = 2000) {
+  return prepareRoute({ geometry: { coordinates: coordenadas(largo) }, instructions: [] });
+}
 
-  return prepareRoute({ geometry: { coordinates }, instructions: [] });
+/** Una recta al este por una calle con nombre. */
+function rectaPor(streetName, largo = 2000) {
+  const coordinates = coordenadas(largo);
+
+  return prepareRoute({
+    geometry: { coordinates },
+    instructions: [{ text: 'Seguí', streetName, kind: 'Continue', fromPointIndex: 0, toPointIndex: coordinates.length - 1 }]
+  });
+}
+
+/** Una ruta con un gálibo declarado entre los puntos 5 y 7 (a 500 m). */
+function rectaConGalibo(metres = 4.5) {
+  return prepareRoute({
+    geometry: { coordinates: coordenadas(2000) },
+    instructions: [],
+    hazards: [{ kind: 'galibo', metres, streetName: 'Av. Sáenz', fromPointIndex: 5, toPointIndex: 7 }]
+  });
 }
 
 /** Un punto a `metros` del arranque y `desvio` metros al norte de la ruta. */
@@ -97,37 +117,85 @@ test('los avisos salen ordenados por dónde aparecen', () => {
 });
 
 /* ---------------------------------------------------------------------------
-   Gálibos: sólo los que este camión no pasa
+   Gálibos: salen de la ruta, no de la capa
+
+   Un gálibo por el que el camión no pasa no puede estar sobre la ruta: el motor
+   lo excluye antes de calcular. Lo que hay que avisar es el que la ruta SÍ
+   recorre, y eso lo dice la ruta misma (hazards), no una capa que puede quedar
+   a cero metros por debajo de un puente por el que uno pasa por arriba.
 --------------------------------------------------------------------------- */
 
-test('un puente más bajo que el camión se avisa', () => {
-  const prepared = rectaAlEste();
-  const alerts = alertsAlongRoute(prepared, { galibos: capa(punto(500, 0, { metres: 3.8 })) }, 4.2);
+test('un gálibo de la ruta se avisa donde empieza, y es informativo', () => {
+  const alerts = alertsAlongRoute(rectaConGalibo(4.5), {});
 
   assert.equal(alerts.length, 1);
   assert.equal(alerts[0].tipo, 'galibo');
+  assert.equal(alerts[0].metres, 4.5);
+  assert.equal(alerts[0].name, 'Av. Sáenz');
+  assert.ok(Math.abs(alerts[0].at - 500) < 2, `quedó en ${alerts[0].at} y debía estar cerca de 500`);
 });
 
-test('un puente por el que el camión pasa NO se avisa', () => {
+test('la capa de gálibos ya no manda avisos, aunque se la pase', () => {
   const prepared = rectaAlEste();
-  const alerts = alertsAlongRoute(prepared, { galibos: capa(punto(500, 0, { metres: 5.5 })) }, 4.2);
+  const alerts = alertsAlongRoute(prepared, { galibos: capa(punto(500, 0, { metres: 3.0 })) });
 
   assert.equal(alerts.length, 0,
-    'avisar de un puente que sobra gasta la atención que hace falta para el que no da');
+    'yendo por arriba de un puente, el bajo vía de la capa queda a cero metros: avisar "no pasás" ahí es falso');
 });
 
-test('sin altura declarada del camión no se avisa ningún gálibo', () => {
-  const prepared = rectaAlEste();
-  const alerts = alertsAlongRoute(prepared, { galibos: capa(punto(500, 0, { metres: 3.0 })) }, null);
-
-  assert.equal(alerts.length, 0, 'no se puede decir "no pasás" sin saber cuánto mide el camión');
+test('sin hazards en la ruta no se avisa ningún gálibo', () => {
+  assert.equal(alertsAlongRoute(rectaAlEste(), {}).filter((a) => a.tipo === 'galibo').length, 0);
 });
 
-test('un gálibo sin altura numérica no se avisa', () => {
-  const prepared = rectaAlEste();
-  const alerts = alertsAlongRoute(prepared, { galibos: capa(punto(500, 0, { metres: null })) }, 4.2);
+/* ---------------------------------------------------------------------------
+   Radares: por corredor Y por calle
 
-  assert.equal(alerts.length, 0);
+   El dataset trae la calle del radar ("AV. JOSE MARÍA MORENO - 1657"). Un radar
+   sobre la avenida que se CRUZA queda dentro del corredor de 30 m y no es de
+   uno: si la ruta sabe por qué calle va en ese punto, el nombre tiene que
+   coincidir.
+--------------------------------------------------------------------------- */
+
+test('un radar de la calle por la que se va se avisa', () => {
+  const prepared = rectaPor('Avenida José María Moreno');
+  const alerts = alertsAlongRoute(prepared, { radares: capa(punto(500, 10, { ubicacion: 'AV. JOSE MARÍA MORENO - 1657' })) });
+
+  assert.equal(alerts.length, 1);
+});
+
+test('un radar de la calle que se cruza NO se avisa aunque esté a diez metros', () => {
+  const prepared = rectaPor('Avenida José María Moreno');
+  const alerts = alertsAlongRoute(prepared, { radares: capa(punto(500, 10, { ubicacion: 'AV. RIVADAVIA - 4800' })) });
+
+  assert.equal(alerts.length, 0, 'el de la avenida que se cruza es el falso positivo clásico del corredor');
+});
+
+test('si la ruta no sabe por qué calle va, el corredor decide solo', () => {
+  const alerts = alertsAlongRoute(rectaAlEste(), { radares: capa(punto(500, 10, { ubicacion: 'AV. RIVADAVIA - 4800' })) });
+
+  assert.equal(alerts.length, 1);
+});
+
+test('normalizarCalle iguala mayúsculas, acentos, prefijos y numeración', () => {
+  assert.equal(normalizarCalle('AV. JOSE MARÍA MORENO - 1657'), 'JOSE MARIA MORENO');
+  assert.equal(normalizarCalle('Avenida José María Moreno'), 'JOSE MARIA MORENO');
+  assert.equal(normalizarCalle('Au. 25 de Mayo'), '25 DE MAYO');
+  assert.equal(normalizarCalle(null), '');
+});
+
+/* ---------------------------------------------------------------------------
+   Pasos a nivel: corredor angosto
+
+   El cruce está SOBRE la calle que se recorre; uno a 20 m es el de la calle
+   paralela, que en un barrio con vías corre pegada.
+--------------------------------------------------------------------------- */
+
+test('un paso a nivel sobre la ruta se avisa', () => {
+  assert.equal(alertsAlongRoute(rectaAlEste(), { pasos: capa(punto(700, 6)) }).length, 1);
+});
+
+test('un paso a nivel a veinte metros es el de la calle de al lado', () => {
+  assert.equal(alertsAlongRoute(rectaAlEste(), { pasos: capa(punto(700, 20)) }).length, 0);
 });
 
 /* ---------------------------------------------------------------------------
@@ -187,11 +255,12 @@ test('avisa del más cercano primero', () => {
    Lo que se dice
 --------------------------------------------------------------------------- */
 
-test('el aviso de gálibo dice la altura y que no pasa', () => {
-  const frase = speakableAlert({ tipo: 'galibo', metres: 3.8 });
+test('el aviso de gálibo dice la altura y que se pasa', () => {
+  const frase = speakableAlert({ tipo: 'galibo', metres: 4.5 });
 
-  assert.match(frase, /3,80/, 'la altura va con coma, que es como se lee en castellano');
-  assert.match(frase, /no pas/i);
+  assert.match(frase, /4,50/, 'la altura va con coma, que es como se lee en castellano');
+  assert.match(frase, /pas/i);
+  assert.doesNotMatch(frase, /no pas/i, 'sobre una ruta calculada para este camión, un gálibo siempre se pasa');
 });
 
 test('cada tipo tiene su frase, y lo desconocido no inventa ninguna', () => {
