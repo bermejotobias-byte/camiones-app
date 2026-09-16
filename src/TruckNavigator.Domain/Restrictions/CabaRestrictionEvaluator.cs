@@ -30,15 +30,30 @@ public sealed class CabaRestrictionEvaluator : IRestrictionEvaluator
 
         var findings = new List<RestrictionFinding>();
         var isAllowed = true;
+        var requiresAccessException = false;
 
         // --- Limites fisicos declarados sobre la via (fuente: OSM) ---
 
         if (segment.MaxWeightTons is { } maxWeight && truck.GrossWeightTons > maxWeight)
         {
-            isAllowed = false;
-            findings.Add(PhysicalLimit(
-                RestrictionKind.MaxWeight, "maxweight", "t",
-                maxWeight, truck.GrossWeightTons, "Peso"));
+            if (segment.HasWeightException)
+            {
+                // "Excepto reparto" (o destino): el motor de ruteo deja pasar el
+                // tramo, asi que aca no es un bloqueo sino un acceso condicionado.
+                // Decir otra cosa haria aparecer una ruta legal como prohibida.
+                requiresAccessException = true;
+                findings.Add(PhysicalLimit(
+                    RestrictionKind.MaxWeight, "maxweight", "t",
+                    maxWeight, truck.GrossWeightTons, "Peso",
+                    $" Rige con excepcion declarada ({segment.MaxWeightExcept})."));
+            }
+            else
+            {
+                isAllowed = false;
+                findings.Add(PhysicalLimit(
+                    RestrictionKind.MaxWeight, "maxweight", "t",
+                    maxWeight, truck.GrossWeightTons, "Peso"));
+            }
         }
 
         if (segment.MaxHeightMeters is { } maxHeight && truck.HeightMeters > maxHeight)
@@ -85,8 +100,6 @@ public sealed class CabaRestrictionEvaluator : IRestrictionEvaluator
         //
         // Solo aplica por encima del umbral de peso fijado por la norma. Un
         // camion liviano puede circular fuera de la Red sin condicionamiento.
-        var requiresAccessException = false;
-
         if (truck.GrossWeightKg > CabaHeavyTrafficRules.HeavyNetworkWeightThresholdKg
             && segment.Hgv != HgvAccess.Designated
             && segment.Hgv != HgvAccess.No)
@@ -112,14 +125,15 @@ public sealed class CabaRestrictionEvaluator : IRestrictionEvaluator
         string unit,
         double limit,
         double truckValue,
-        string label)
+        string label,
+        string suffix = "")
     {
         var limitText = Format(limit);
         var truckText = Format(truckValue);
 
         return new RestrictionFinding(
             kind,
-            $"{label} maxima {limitText} {unit}; el vehiculo declara {truckText} {unit}.",
+            $"{label} maxima {limitText} {unit}; el vehiculo declara {truckText} {unit}.{suffix}",
             limit,
             unit,
             RuleSource: RestrictionSourceType.Osm,

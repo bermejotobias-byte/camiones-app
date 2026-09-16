@@ -38,6 +38,12 @@ public enum HgvAccess
 /// <param name="MaxHeightMeters">Galibo de la via, en metros. <c>null</c> si no hay limite declarado.</param>
 /// <param name="MaxWidthMeters">Ancho maximo de la via, en metros. <c>null</c> si no hay limite declarado.</param>
 /// <param name="MaxLengthMeters">Longitud maxima admitida, en metros. <c>null</c> si no hay limite declarado.</param>
+/// <param name="MaxWeightExcept">
+/// Excepcion declarada al limite de peso, tal como la codifica GraphHopper en
+/// <c>max_weight_except</c> ("delivery", "destination", "forestry"). <c>null</c> o
+/// "missing" cuando no hay excepcion. El motor deja pasar el tramo cuando hay
+/// una, asi que el evaluador tiene que leerla para decir lo mismo.
+/// </param>
 public readonly record struct RoadSegmentAttributes(
     string? StreetName = null,
     string? RoadClass = null,
@@ -45,8 +51,14 @@ public readonly record struct RoadSegmentAttributes(
     double? MaxHeightMeters = null,
     double? MaxWidthMeters = null,
     double? MaxLengthMeters = null,
-    HgvAccess Hgv = HgvAccess.Missing)
+    HgvAccess Hgv = HgvAccess.Missing,
+    string? MaxWeightExcept = null)
 {
+    /// <summary>Si la via declara una excepcion al limite de peso.</summary>
+    public bool HasWeightException =>
+        !string.IsNullOrWhiteSpace(MaxWeightExcept) &&
+        !string.Equals(MaxWeightExcept, "missing", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Nombre legible del tramo, para mensajes al usuario.</summary>
     public string DisplayName =>
         string.IsNullOrWhiteSpace(StreetName) ? "tramo sin nombre" : StreetName!;

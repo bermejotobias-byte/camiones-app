@@ -20,8 +20,10 @@ public sealed class GraphHopperRouteCalculator(
     IOptions<GraphHopperOptions> options,
     ILogger<GraphHopperRouteCalculator> logger) : ITruckRouteCalculator
 {
+    // max_weight_except va junto con max_weight: sin el, el evaluador no sabe que
+    // el motor dejo pasar el tramo por una excepcion y lo marca como prohibido.
     private static readonly string[] RequestedDetails =
-        ["street_name", "road_class", "max_height", "max_weight", "max_width", "max_length", "hgv"];
+        ["street_name", "road_class", "max_height", "max_weight", "max_weight_except", "max_width", "max_length", "hgv"];
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {

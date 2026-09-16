@@ -92,7 +92,8 @@ internal sealed class PathDetails
         MaxHeightMeters: ReadDouble("max_height", index),
         MaxWidthMeters: ReadDouble("max_width", index),
         MaxLengthMeters: ReadDouble("max_length", index),
-        Hgv: ParseHgv(ReadString("hgv", index)));
+        Hgv: ParseHgv(ReadString("hgv", index)),
+        MaxWeightExcept: ReadString("max_weight_except", index));
 
     private JsonElement? ValueAt(string key, int index)
     {
