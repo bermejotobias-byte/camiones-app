@@ -25,7 +25,8 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; doce
+**Punta al 17/09/2026: el GPS con la piel de Waze, en curso** (`c2f8cca`, 33 commits
+desde `92a8ed3`, sin pushear; ver §8, punto 0). Antes, **al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; doce
 commits desde la spec `5298239`, uno por tarea), **sin pushear**. Antes, ese
 mismo día, el relevamiento de POIs y los talleres de mecánica pesada
 (`d0b6ddd`, diecisiete commits desde `b5dc4d3`, de la spec `c16cef1` al cierre en docs). Los
@@ -1060,6 +1061,42 @@ lo correcto.
 ---
 
 ## 8. Lo que sigue
+
+### 0. EN CURSO — el GPS con la piel de Waze (16–17/09/2026)
+
+**Es el frente vivo y va primero.** El usuario aprobó el prototipo medido
+sobre sus capturas de Waze (`docs/diseno/prototipo-gps/`, lienzo
+https://claude.ai/artifact/42KH4a8piCQSCb5xez2K4H) con *"ahora sí, aprobado,
+vamos a implementarlo. arrancá pantalla por pantalla"*. Spec:
+`docs/superpowers/specs/2026-09-16-gps-waze-design.md`. **Plan con casillas y
+la nota "Dónde quedamos":** `docs/superpowers/plans/2026-09-16-gps-waze.md`
+— leer esa nota antes que nada.
+
+Al cortar (17/09, 00:10, por límite semanal de uso): **etapas 1 a 5 hechas y
+verificadas en el navegador** (ruteo seguro AD-47; tokens y mapa base con la
+jerarquía de Waze; la pantalla del viaje entera —banda, hoja, píldora de la
+calle, ruta de 8 con canto, chevrón, flecha de maniobra sobre la calle, globos
+de nueve partes, tarjeta de aviso—; volver a centrar; vista general Mapa/Lista
+con línea de tiempo y cambiar de ruta en viaje; Casa/Depósito y recientes en el
+servidor; la hoja de reposo y la de búsqueda). **En curso: Task 20**, la lista
+de rutas: lo puro está (`textoDeEstado`, `chipsDeRuta` en `js/mapa/rutas.js`),
+**falta la hoja** que reemplaza al `drawRoute()` viejo de `navigate.js`.
+Después: Task 21 (detalles con el mono) y las etapas 7 a 10 (lugares, ficha y
+voto, hoja de capas, aportar, reanudar, día, docs/AD-48, verificación y APK).
+Punta: `c2f8cca`, **sin pushear** (33 commits desde `92a8ed3`, uno por tarea).
+
+Dos cosas que aparecieron verificando y se corrigieron **en el origen**, no
+con un parche: `POST /api/trips` pedía una sola ruta al motor y el viaje
+arrancaba por otra que la recomendada, sin el filtro de AD-47 → `TripRoutes` +
+`routeIndex` (`ac590ac`); y el rótulo verde de la calle actual se sacó a
+pedido del usuario (*"no queda bien"*) → píldora negra, AD-37 reemplazada.
+
+Decisiones tomadas en esta tanda (ver "Decisiones", más abajo, y CLAUDE.md):
+sin velocímetro, sin micrófono, sin hamburguesa en el mapa; Roboto sólo en el
+GPS; los lugares guardados en el servidor; el S.O.S. siempre visible en viaje;
+"Volver a centrar" en 18 sp porque a 20 no entra (medido); los logos y la
+identidad quedan para una aprobación aparte. **Pedirle al usuario una captura
+de Waze de día**: el tema claro se derivó, no se midió.
 
 **Ya no hay nada de la Fase 1 que se pueda construir acá.** Lo único que queda es
 probarla en movimiento, y eso es del usuario. Orden que más rápido descarta
