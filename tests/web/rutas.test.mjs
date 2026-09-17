@@ -8,7 +8,39 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/rutas.js';
+import { porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta, textoDeEstado, chipsDeRuta } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/rutas.js';
+
+/* ---------------------------------------------------------------------------
+   La línea de estado y los chips de una ruta
+--------------------------------------------------------------------------- */
+
+const ruta = (share, accessLegs = []) => ({ heavyNetworkSharePercent: share, accessLegs });
+
+test('la línea de estado: toda por la Red, mejor ruta con su porcentaje, o cuánto sale de la Red', () => {
+  assert.equal(textoDeEstado(ruta(100), true), 'Toda por la Red');
+  assert.equal(textoDeEstado(ruta(99.7), false), 'Toda por la Red');
+  assert.equal(textoDeEstado(ruta(85.4), true), 'Mejor ruta, 85% por la Red');
+  assert.equal(textoDeEstado(ruta(70, [{ distanceMeters: 9_300 }]), false), 'Sale de la Red 9,3 km');
+  assert.equal(textoDeEstado(ruta(90, [{ distanceMeters: 450 }, { distanceMeters: 400 }]), false), 'Sale de la Red 850 m');
+});
+
+test('los chips cuentan lo que hay en el camino, con el color de cada cosa', () => {
+  const alerts = [
+    { tipo: 'radar', at: 100 }, { tipo: 'radar', at: 900 },
+    { tipo: 'galibo', at: 500, metres: 4.5 },
+    { tipo: 'paso', at: 700 }
+  ];
+
+  const chips = chipsDeRuta(alerts, ruta(85, [{ distanceMeters: 9_300 }]));
+
+  assert.deepEqual(chips.map((c) => c.texto), ['Fuera de la Red', '2 radares', 'Gálibo 4,50 · pasás', '1 paso a nivel']);
+  assert.equal(chips[0].color, '#f9c531');
+});
+
+test('sin nada en el camino no hay chips, y uno solo va en singular', () => {
+  assert.deepEqual(chipsDeRuta([], ruta(100)), []);
+  assert.deepEqual(chipsDeRuta([{ tipo: 'radar', at: 1 }], ruta(100)).map((c) => c.texto), ['1 radar']);
+});
 
 /* ---------------------------------------------------------------------------
    Las opciones que devuelve el servidor

@@ -88,6 +88,69 @@ export function porDonde(instrucciones, desde = 0) {
 }
 
 /* ---------------------------------------------------------------------------
+   Que dice cada ruta al elegir
+
+   Donde Waze dice "Trafico habitual", aca va cuanto va por la Red: es lo que
+   decide entre dos rutas para un camion. Y los chips cuentan lo que hay en el
+   camino con el color de cada cosa: amarillo es salir de la Red; el rojo no
+   aparece sobre ninguna ruta (AD-47).
+--------------------------------------------------------------------------- */
+
+const COLOR_CHIP = { red: '#f9c531', radar: '#4f6d8e', galibo: '#8b949e', paso: '#8b949e' };
+
+const metrosLegibles = (metros) => (metros < 1000
+  ? `${Math.round(metros)} m`
+  : `${(metros / 1000).toFixed(1).replace('.', ',')} km`);
+
+const fueraDeLaRed = (route) => (route.accessLegs ?? []).reduce((suma, leg) => suma + (leg.distanceMeters ?? 0), 0);
+
+/**
+ * "Toda por la Red" / "Mejor ruta, 85% por la Red" / "Sale de la Red 9,3 km".
+ *
+ * @param {object} route          la ruta, con heavyNetworkSharePercent y accessLegs
+ * @param {boolean} esRecomendada si es la primera de la lista
+ */
+export function textoDeEstado(route, esRecomendada) {
+  const share = route.heavyNetworkSharePercent ?? 0;
+
+  if (share >= 99.5) return 'Toda por la Red';
+  if (esRecomendada) return `Mejor ruta, ${Math.round(share)}% por la Red`;
+
+  const metros = fueraDeLaRed(route);
+  return metros > 0 ? `Sale de la Red ${metrosLegibles(metros)}` : `${Math.round(share)}% por la Red`;
+}
+
+/**
+ * Los chips de una ruta: fuera de la Red, radares, galibos (siempre "pasas":
+ * uno que no se pasa no llega a la ruta) y pasos a nivel.
+ *
+ * @param {Array} alerts  lo que devuelve alertsAlongRoute para esa ruta
+ * @param {object} route  la ruta
+ * @returns {{color: string, texto: string}[]}
+ */
+export function chipsDeRuta(alerts, route) {
+  const chips = [];
+  const cuantos = (tipo) => alerts.filter((a) => a.tipo === tipo).length;
+  const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+
+  if ((route.accessLegs ?? []).length) chips.push({ color: COLOR_CHIP.red, texto: 'Fuera de la Red' });
+
+  const radares = cuantos('radar');
+  if (radares) chips.push({ color: COLOR_CHIP.radar, texto: plural(radares, 'radar', 'radares') });
+
+  const galibos = alerts.filter((a) => a.tipo === 'galibo');
+  if (galibos.length) {
+    const masBajo = Math.min(...galibos.map((g) => g.metres));
+    chips.push({ color: COLOR_CHIP.galibo, texto: `Gálibo ${masBajo.toFixed(2).replace('.', ',')} · pasás` });
+  }
+
+  const pasos = cuantos('paso');
+  if (pasos) chips.push({ color: COLOR_CHIP.paso, texto: plural(pasos, 'paso a nivel', 'pasos a nivel') });
+
+  return chips;
+}
+
+/* ---------------------------------------------------------------------------
    La linea de tiempo
 --------------------------------------------------------------------------- */
 
