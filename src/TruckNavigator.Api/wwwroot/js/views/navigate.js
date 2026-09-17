@@ -19,7 +19,7 @@ import {
 import {
   prepareRoute, advance, shouldReroute, pendingAnnouncement,
   speakableInstruction, ANNOUNCE_VIBRATE_AT,
-  alertsAlongRoute, pendingRouteAlert, speakableAlert
+  alertsAlongRoute, pendingRouteAlert, speakableAlert, maneuverArrowPath
 } from '../navigation.js';
 import * as gl from '../map.js';
 import { montarViaje, estadoDeBanda } from '../mapa/viaje.js';
@@ -1223,6 +1223,7 @@ export function navigateView(host, { openDrawer, go }) {
 
     gl.followVehicle(navState.snapped, navState.bearing);
     gl.trimRoute(route.geometry.coordinates, navState.index, navState.snapped);
+    marcarManiobra();
 
     const announcement = pendingAnnouncement(navState, previousNav, announced);
 
@@ -1291,6 +1292,24 @@ export function navigateView(host, { openDrawer, go }) {
     if (alerta.tipo === 'galibo') {
       toast(`Gálibo de ${alerta.metres.toFixed(2).replace('.', ',')} m a ${alerta.meters} m. Pasás.`);
     }
+  }
+
+  /**
+   * La flecha blanca sobre la calle, en la proxima maniobra.
+   *
+   * Se calcula sobre la ruta preparada y el mapa la redibuja solo cuando la
+   * maniobra cambia (la clave es su vertice). La llegada no lleva flecha: ahi
+   * lo que se ve es la bandera del destino.
+   */
+  function marcarManiobra() {
+    const proxima = navState?.next;
+
+    if (!proxima || proxima.kind === 'Finish') {
+      gl.showManeuver(null);
+      return;
+    }
+
+    gl.showManeuver(maneuverArrowPath(prepared, proxima.fromPointIndex), proxima.fromPointIndex);
   }
 
   /**

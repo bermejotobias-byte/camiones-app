@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 439 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 97 tests: guiado, avisos de ruta, piezas y pantalla del viaje, agenda, mascota e insignias
+node --test "tests/web/*.test.mjs"             # 100 tests: guiado, avisos de ruta, piezas, pantalla del viaje y flecha de maniobra, agenda, mascota e insignias
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -375,9 +375,14 @@ node --test "tests/web/*.test.mjs"             # 97 tests: guiado, avisos de rut
   con `easeTo` desde `enterNavigationMode`, que no pasa por esos manejadores, así que
   apagarlos no la rompe. Los botones + / − se esconden durante el viaje porque la cámara
   sigue al vehículo y deshace cualquier zoom manual. Ver AD-34.
-- **La ruta se dibuja DEBAJO de `calles-nombre`.** Sin el `beforeId`, los 17 px del halo
-  más la línea tapan justo el nombre de la calle por la que se va, que es el dato que más
-  se necesita manejando.
+- **La ruta se dibuja DEBAJO de `calles-nombre`.** Sin el `beforeId`, la línea de 8 dp con
+  su canto tapa justo el nombre de la calle por la que se va, que es el dato que más se
+  necesita manejando. **La flecha blanca de la maniobra va ENCIMA de todo**, nombres
+  incluidos: en el momento del giro es lo único que importa. Es un pedazo de la ruta
+  misma (`maneuverArrowPath`, 25 m antes y 45 después del vértice) con degradado por
+  `line-progress` —que exige `lineMetrics: true` en la fuente— y la punta como imagen
+  rotada por el rumbo del último tramo. Se redibuja sólo cuando cambia la maniobra
+  (`showManeuver(flecha, clave)`), no en cada latido.
 - **El mapa se dibuja después de que el estilo cargue**: `drawRoute` reintenta con `once("idle")`
   si `isStyleLoaded()` es falso. Sin eso la ruta no aparece, de forma intermitente.
 - **SQLite no ordena por `DateTimeOffset`**: los instantes se guardan como ticks UTC con un

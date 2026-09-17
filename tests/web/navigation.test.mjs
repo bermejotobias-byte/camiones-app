@@ -19,7 +19,6 @@ import {
   shouldReroute,
   pendingAnnouncement,
   speakableInstruction,
-  maneuverArrow,
   STRIKES_TO_REROUTE,
   REROUTE_COOLDOWN_MS
 } from '../../src/TruckNavigator.Api/wwwroot/js/navigation.js';
@@ -188,12 +187,6 @@ test('la rotonda dice que salida tomar', () => {
 test('una maniobra desconocida no rompe la voz', () => {
   assert.equal(speakableInstruction({ kind: 'EstoNoExiste' }, 300), 'En 300 metros, seguí la ruta.');
   assert.equal(speakableInstruction(null, 300), '');
-});
-
-test('toda maniobra tiene flecha, incluso una que no existe', () => {
-  assert.equal(maneuverArrow('Left'), '←');
-  assert.equal(maneuverArrow('EstoNoExiste'), '↑');
-  assert.equal(maneuverArrow(undefined), '↑');
 });
 
 /* ---------------------------------------------------------------------------

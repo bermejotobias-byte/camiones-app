@@ -1042,13 +1042,28 @@ button { font-family: inherit; font-size: inherit; }
 .gps-eta b { display: block; font-size: 25px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .gps-eta span { display: block; font-size: 20px; color: var(--gps-ink-2); margin-top: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-/* El vehiculo sobre el mapa (marcador de MapLibre). */
-.vehicle {
-  color: var(--gps-chevron);
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,.6));
-  display: block;
+/* El vehiculo sobre el mapa: el chevron de Waze (40 x 39 mas la base) sobre
+   su disco de 82 al 6 % de blanco. Marcador de MapLibre: se apila con una
+   grilla, nunca con `position` (ver la trampa del marcador en CLAUDE.md). */
+.gps-chevron {
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 82px;
   line-height: 0;
+  pointer-events: none;
 }
+
+.gps-chevron > * { grid-area: 1 / 1; }
+
+.gps-chevron-disco {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .06);
+}
+
+.gps-chevron svg { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .5)); }
 
 /* ============================================================================
    Hoja inferior — el patron principal de la pantalla de busqueda

@@ -460,25 +460,67 @@ const MANEUVER_VERBS = {
   Unknown: 'Seguí la ruta'
 };
 
-/** Flecha para la maniobra. */
-export const MANEUVER_ARROWS = {
-  Continue: '↑',
-  SlightLeft: '↖',
-  Left: '←',
-  SharpLeft: '↰',
-  SlightRight: '↗',
-  Right: '→',
-  SharpRight: '↱',
-  KeepLeft: '↖',
-  KeepRight: '↗',
-  UTurn: '⇊',
-  Roundabout: '↻',
-  Waypoint: '◉',
-  Finish: '⚑',
-  Unknown: '↑'
-};
+/* ---------------------------------------------------------------------------
+   La flecha sobre la calle
 
-export const maneuverArrow = (kind) => MANEUVER_ARROWS[kind] ?? MANEUVER_ARROWS.Unknown;
+   Ademas de la banda, Waze dibuja la maniobra SOBRE el mapa: una flecha blanca
+   que sigue la ruta unos metros antes del giro y unos metros despues, con la
+   punta hacia donde se sigue (waze-06). Aca se calcula el pedazo de ruta que
+   la flecha recorre; el mapa lo dibuja como linea y pone la punta al final.
+--------------------------------------------------------------------------- */
+
+/** Punto de la ruta a una distancia acumulada dada, como [lng, lat]. */
+function pointAtDistance(prepared, meters) {
+  const { points, cumulative } = prepared;
+  const target = Math.max(0, Math.min(cumulative[cumulative.length - 1], meters));
+  const i = segmentAtDistance(cumulative, target);
+  const length = cumulative[i + 1] - cumulative[i];
+  const t = length > 0 ? (target - cumulative[i]) / length : 0;
+  const a = points[i];
+  const b = points[i + 1];
+
+  return [a.lng + (b.lng - a.lng) * t, a.lat + (b.lat - a.lat) * t];
+}
+
+/**
+ * El tramo de ruta que recorre la flecha de una maniobra.
+ *
+ * @param {object} prepared la ruta preparada por prepareRoute
+ * @param {number} index    vertice de la maniobra (fromPointIndex)
+ * @param {{before?: number, after?: number}} [metros] cuanto antes y despues del giro
+ * @returns {{coordinates: number[][], bearing: number}|null}
+ *   la linea como [lng, lat] y el rumbo del ultimo tramo, para la punta
+ */
+export function maneuverArrowPath(prepared, index, { before = 25, after = 45 } = {}) {
+  if (!prepared || !Number.isInteger(index) || index < 0 || index >= prepared.points.length) {
+    return null;
+  }
+
+  const { points, cumulative } = prepared;
+  const total = cumulative[cumulative.length - 1];
+  const from = Math.max(0, cumulative[index] - before);
+  const to = Math.min(total, cumulative[index] + after);
+
+  const coordinates = [pointAtDistance(prepared, from)];
+
+  // Los vertices que quedan estrictamente adentro del tramo.
+  for (let i = 0; i < points.length; i++) {
+    if (cumulative[i] > from && cumulative[i] < to) {
+      coordinates.push([points[i].lng, points[i].lat]);
+    }
+  }
+
+  coordinates.push(pointAtDistance(prepared, to));
+
+  // El rumbo de la punta sale del ultimo segmento con largo; en local, donde
+  // un metro de longitud mide lo mismo que uno de latitud.
+  const last = coordinates.length - 1;
+  const a = prepared.projector.toLocal(coordinates[last - 1][1], coordinates[last - 1][0]);
+  const b = prepared.projector.toLocal(coordinates[last][1], coordinates[last][0]);
+  const bearing = (a.x === b.x && a.y === b.y) ? 0 : segmentBearing(a, b);
+
+  return { coordinates, bearing };
+}
 
 /**
  * Frase para decir en voz alta.

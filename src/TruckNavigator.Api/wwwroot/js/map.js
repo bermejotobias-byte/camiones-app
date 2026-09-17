@@ -390,22 +390,34 @@ function gpsElement() {
 /* ---------------------------------------------------------------------------
    Ruta
 
-   Se dibuja en tres capas apiladas: un halo grueso que la despega del mapa, la
-   linea de la ruta, y encima los tramos fuera de la Red punteados.
+   Como en Waze (waze-06, medido): una linea de 8 dp en celeste con un canto de
+   1 dp blanco al 35 % que la despega del mapa. Encima, los tramos fuera de la
+   Red en AMARILLO, que en toda la app significa "salis de la Red" — no naranja
+   ni rojo: la norma admite salir de la Red para llegar al destino, asi que
+   pintarlo como infraccion seria mentir sobre lo que dice la ley. El rojo
+   nunca esta sobre una ruta (AD-47).
 
-   Fuera de la Red va en CELESTE y no en naranja ni rojo: la norma admite salir
-   de la Red para llegar al destino, asi que pintarlo como infraccion seria
-   mentir sobre lo que dice la ley.
+   Y sobre la ruta, la flecha blanca de la proxima maniobra: un pedazo de la
+   ruta misma alrededor del giro, con la punta hacia donde se sigue. Es lo que
+   Waze dibuja ademas de la banda, y se mueve cuando cambia la maniobra.
 --------------------------------------------------------------------------- */
 
-const ROUTE_LAYERS = ['route-halo', 'route-line', 'route-access'];
-const ROUTE_SOURCES = ['route', 'route-access'];
+const ROUTE_LAYERS = ['route-casing', 'route-line', 'route-access', 'maniobra-canto', 'maniobra-linea', 'maniobra-punta'];
+const ROUTE_SOURCES = ['route', 'route-access', 'maniobra', 'maniobra-fin'];
+
+/** Ancho de la ruta en px de pantalla y de su canto (1 dp por lado). */
+const ROUTE_WIDTH = 8;
+const ROUTE_CASING = ROUTE_WIDTH + 2;
+
+/** Que maniobra tiene la flecha puesta, para no rehacerla en cada latido. */
+let maniobraDibujada = null;
 
 export function clearRoute() {
   if (!map) return;
 
   ROUTE_LAYERS.forEach((id) => map.getLayer(id) && map.removeLayer(id));
   ROUTE_SOURCES.forEach((id) => map.getSource(id) && map.removeSource(id));
+  maniobraDibujada = null;
 }
 
 /**
@@ -437,18 +449,18 @@ export function drawRoute(route, accessLegs = []) {
 
   // DEBAJO de los nombres de calle, no encima.
   //
-  // Sin esto la ruta —17 px entre el halo y la linea— tapa justamente el nombre
-  // de la calle por la que se va, que es el dato que el conductor mas necesita
-  // durante el viaje. La ruta se sigue viendo igual: es una linea gruesa y de
-  // color, y el texto encima lleva halo.
+  // Sin esto la ruta tapa justamente el nombre de la calle por la que se va,
+  // que es el dato que el conductor mas necesita durante el viaje. La ruta se
+  // sigue viendo igual: es una linea gruesa y de color, y el texto encima
+  // lleva halo.
   const antesDeNombres = map.getLayer('calles-nombre') ? 'calles-nombre' : undefined;
 
   map.addLayer({
-    id: 'route-halo',
+    id: 'route-casing',
     type: 'line',
     source: 'route',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: { 'line-color': token('--route-halo'), 'line-width': 11, 'line-opacity': .9 }
+    paint: { 'line-color': '#ffffff', 'line-width': ROUTE_CASING, 'line-opacity': .35 }
   }, antesDeNombres);
 
   map.addLayer({
@@ -456,7 +468,7 @@ export function drawRoute(route, accessLegs = []) {
     type: 'line',
     source: 'route',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: { 'line-color': token('--route'), 'line-width': 6 }
+    paint: { 'line-color': token('--gps-ruta'), 'line-width': ROUTE_WIDTH }
   }, antesDeNombres);
 
   // Los tramos de acceso vienen como rangos de indices sobre la geometria.
@@ -478,15 +490,142 @@ export function drawRoute(route, accessLegs = []) {
       type: 'line',
       source: 'route-access',
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: {
-        'line-color': token('--route'),
-        'line-width': 6,
-        'line-dasharray': [1.4, 1.1]
-      }
+      paint: { 'line-color': token('--gps-amarillo'), 'line-width': ROUTE_WIDTH }
     }, antesDeNombres);
   }
 
   fitTo(coordinates);
+}
+
+/**
+ * Dibuja la flecha blanca de la proxima maniobra sobre la calle.
+ *
+ * @param {{coordinates: number[][], bearing: number}|null} flecha
+ *   la salida de `maneuverArrowPath`, o null para sacarla
+ * @param {number|null} clave que maniobra es (su indice), para no redibujar
+ *   la misma en cada posicion del GPS
+ */
+export function showManeuver(flecha, clave = null) {
+  if (!map) return;
+
+  if (!flecha) {
+    ['maniobra-punta', 'maniobra-linea', 'maniobra-canto'].forEach((id) => map.getLayer(id) && map.removeLayer(id));
+    ['maniobra-fin', 'maniobra'].forEach((id) => map.getSource(id) && map.removeSource(id));
+    maniobraDibujada = null;
+    return;
+  }
+
+  if (clave !== null && clave === maniobraDibujada) return;
+
+  if (!map.isStyleLoaded() || !map.getLayer('route-line')) {
+    map.once('idle', () => showManeuver(flecha, clave));
+    return;
+  }
+
+  const linea = { type: 'Feature', geometry: { type: 'LineString', coordinates: flecha.coordinates } };
+  const fin = {
+    type: 'Feature',
+    properties: { rumbo: flecha.bearing },
+    geometry: { type: 'Point', coordinates: flecha.coordinates[flecha.coordinates.length - 1] }
+  };
+
+  if (map.getSource('maniobra')) {
+    map.getSource('maniobra').setData(linea);
+    map.getSource('maniobra-fin').setData(fin);
+    maniobraDibujada = clave;
+    return;
+  }
+
+  // `lineMetrics` habilita el degradado a lo largo de la linea: la cola de la
+  // flecha nace tenue sobre la ruta y se hace blanca hacia el giro.
+  //
+  // Estas tres capas van ENCIMA de todo, nombres incluidos: en el momento de
+  // la maniobra la flecha es lo unico que importa, y un rotulo que la tape es
+  // un rotulo que se lee despues de doblar.
+  map.addSource('maniobra', { type: 'geojson', lineMetrics: true, data: linea });
+  map.addSource('maniobra-fin', { type: 'geojson', data: fin });
+
+  map.addLayer({
+    id: 'maniobra-canto',
+    type: 'line',
+    source: 'maniobra',
+    layout: { 'line-join': 'round', 'line-cap': 'butt' },
+    paint: {
+      'line-width': 9,
+      'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(20,26,34,.25)', .2, 'rgba(20,26,34,.9)', 1, 'rgba(20,26,34,.9)']
+    }
+  });
+
+  map.addLayer({
+    id: 'maniobra-linea',
+    type: 'line',
+    source: 'maniobra',
+    layout: { 'line-join': 'round', 'line-cap': 'butt' },
+    paint: {
+      'line-width': 6,
+      'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(255,255,255,.3)', .2, 'rgba(255,255,255,1)', 1, 'rgba(255,255,255,1)']
+    }
+  });
+
+  ensureArrowHead();
+
+  map.addLayer({
+    id: 'maniobra-punta',
+    type: 'symbol',
+    source: 'maniobra-fin',
+    layout: {
+      'icon-image': 'maniobra-punta',
+      'icon-size': 1,
+      'icon-rotate': ['get', 'rumbo'],
+      'icon-rotation-alignment': 'map',
+      'icon-pitch-alignment': 'map',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      // La punta se apoya en el final de la linea: el ancla va abajo.
+      'icon-anchor': 'bottom'
+    }
+  });
+
+  maniobraDibujada = clave;
+}
+
+/**
+ * La punta de la flecha, dibujada en un canvas una sola vez: blanca con el
+ * mismo canto oscuro que la linea. Apunta al norte; la capa la rota.
+ */
+function ensureArrowHead() {
+  if (map.hasImage('maniobra-punta')) return;
+
+  const escala = window.devicePixelRatio || 1;
+  const ancho = 22;
+  const alto = 18;
+  const canvas = document.createElement('canvas');
+  canvas.width = ancho * escala;
+  canvas.height = alto * escala;
+
+  const g = canvas.getContext('2d');
+  g.scale(escala, escala);
+  g.lineJoin = 'round';
+
+  const punta = () => {
+    g.beginPath();
+    g.moveTo(ancho / 2, 1);
+    g.lineTo(ancho - 1, alto - 1);
+    g.lineTo(ancho / 2, alto - 6);
+    g.lineTo(1, alto - 1);
+    g.closePath();
+  };
+
+  punta();
+  g.strokeStyle = 'rgba(20,26,34,.9)';
+  g.lineWidth = 3;
+  g.stroke();
+
+  punta();
+  g.fillStyle = '#ffffff';
+  g.fill();
+
+  map.addImage('maniobra-punta', g.getImageData(0, 0, canvas.width, canvas.height), { pixelRatio: escala });
 }
 
 function fitTo(coordinates) {
@@ -652,17 +791,25 @@ export function followVehicle(coords, bearing) {
 
 function placeVehicle(coords, bearing) {
   if (!vehicleMarker) {
+    // El chevron de Waze (waze-06, medido): 40 x 39, celeste con canto blanco
+    // y una base clara que lo hace ver apoyado sobre el mapa, encima de un
+    // disco de 82 apenas mas claro que la calle. Se apilan en una grilla y no
+    // con `position: absolute`, que a un marcador de MapLibre lo saca del mapa.
     const element = document.createElement('div');
-    element.className = 'vehicle';
+    element.className = 'gps-chevron';
     element.innerHTML =
-      '<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">' +
-      '<path d="M12 2 L20 21 L12 17 L4 21 Z" fill="currentColor"/></svg>';
+      '<div class="gps-chevron-disco"></div>' +
+      '<svg viewBox="0 0 40 44" width="40" height="44" aria-hidden="true">' +
+      '<path d="M20 9 L35 35 L20 29 L5 35 Z" fill="#d7e0e3" stroke="#d7e0e3" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M20 4 L35 30 L20 24 L5 30 Z" fill="var(--gps-chevron)" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>' +
+      '</svg>';
 
     vehicleMarker = new maplibregl.Marker({
       element,
       // El marcador rota con el mapa para que la flecha apunte siempre hacia
-      // donde avanza el camion.
-      rotationAlignment: 'map'
+      // donde avanza el camion; se mantiene de pie con la camara inclinada.
+      rotationAlignment: 'map',
+      pitchAlignment: 'viewport'
     }).setLngLat([coords.lng, coords.lat]).addTo(map);
   }
 
