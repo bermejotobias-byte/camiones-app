@@ -24,6 +24,8 @@ import {
 import * as gl from '../map.js';
 import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso } from '../mapa/viaje.js';
 import { porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta } from '../mapa/rutas.js';
+import { hojaReposo } from '../mapa/reposo.js';
+import { hojaBuscar, cuerpoDeBusqueda } from '../mapa/buscar.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
   html, raw, icon, wire, q, qa, render, debounce, withBusy,
@@ -37,7 +39,7 @@ export function navigateView(host, { openDrawer, go }) {
   let route = null;
   let routeOptions = [];      // la recomendada y sus alternativas, ya ordenadas
   let chosenRoute = 0;        // cuál de todas se está mirando
-  let stage = 'search';       // 'search' | 'route' | 'delivery' | 'navigation'
+  let stage = 'search';       // 'search' (reposo) | 'buscar' | 'route' | 'delivery' | 'navigation'
 
   // --- modo reparto ---
   let stops = [];             // paradas como las cargó el usuario
@@ -69,7 +71,6 @@ export function navigateView(host, { openDrawer, go }) {
     <div id="map"></div>
     <div class="map-overlay">
       <div class="map-top">
-        <button class="fab" id="menu" aria-label="Menú">${raw(icon('menu'))}</button>
         <div class="grow"></div>
         <button class="fab fab-panic" id="panic" aria-label="Emergencia">SOS</button>
       </div>
@@ -119,6 +120,7 @@ export function navigateView(host, { openDrawer, go }) {
       updateLayerButton();
       updateRiskButton();
       locate({ silent: true });
+      cargarLugares();
     },
     onTap: (feature) => { hideSuggestions(); explicarSimbolo(feature); },
     onLongPress: (point) => setPointFromMap(point),
@@ -184,7 +186,6 @@ export function navigateView(host, { openDrawer, go }) {
   }
 
   wire(host, {
-    '#menu': openDrawer,
     '#locate': () => locate({ silent: false }),
     '#panic': () => go('emergencia'),
     '#layers': () => toggleTruckLayers(),
@@ -337,12 +338,39 @@ export function navigateView(host, { openDrawer, go }) {
     if (stage === 'navigation') return drawNavigation();
     if (stage === 'route') return drawRoute();
     if (stage === 'delivery') return drawDelivery();
-    drawSearch();
+    if (stage === 'buscar') return drawBuscar();
+    drawReposo();
   }
 
-  // --- buscar ---------------------------------------------------------------
+  /* ------------------------------------------------------------------------
+     Reposo y busqueda (waze-03 y waze-05)
 
-  function drawSearch() {
+     En reposo hay una hoja de 150 con la pildora "¿Adónde vas?" y los atajos
+     de Casa, Deposito y Nuevo. Tocar cualquiera abre la busqueda, que cubre el
+     mapa: categorias, Casa y Deposito, recientes, mas opciones y, desde la
+     tercera letra, las sugerencias del geocoder (AD-10). Elegir un destino
+     calcula la ruta directo: no hay boton de "Calcular".
+  ------------------------------------------------------------------------ */
+
+  // Casa y Deposito viven en el servidor (AD-43); los recientes salen de los viajes.
+  let lugares = { Home: null, Depot: null };
+  let recientes = [];
+  let busqueda = null;   // { objetivo, texto, sugerencias } mientras la hoja esta abierta
+
+  async function cargarLugares() {
+    try {
+      const [guardados, ultimos] = await Promise.all([api.savedPlaces(), api.recentPlaces()]);
+      lugares = { Home: null, Depot: null };
+      for (const lugar of guardados ?? []) lugares[lugar.kind] = lugar;
+      recientes = ultimos ?? [];
+    } catch {
+      // Sin sesion o sin red: la hoja anda igual, sin atajos.
+    }
+
+    if (stage === 'search' || stage === 'buscar') drawSheet();
+  }
+
+  function drawReposo() {
     const truck = selectedTruck();
 
     // El mismo puente pasa de informativo a peligroso al cambiar de vehiculo, y
@@ -350,63 +378,145 @@ export function navigateView(host, { openDrawer, go }) {
     // vuelve a esta pantalla, que es por donde se pasa despues de elegir camion.
     gl.useTruckHeight(truck?.heightMeters);
 
-    render(sheetAs('sheet'), html`
-      <div class="sheet-grab"></div>
+    const hoja = sheetAs('gps-hoja-reposo');
+    hoja.innerHTML = hojaReposo({ casa: lugares.Home, deposito: lugares.Depot });
 
-      <button class="row card-tap" id="pick-truck"
-              style="background:none;border:0;padding:4px 2px;color:inherit;width:100%">
-        <span style="color:var(--brand)">${raw(icon('truck', 20))}</span>
-        <span class="grow truncate" style="text-align:left;font-weight:600;font-size:14.5px">
-          ${truck ? truck.name : 'Elegí un camión'}
-        </span>
-        <span class="muted">${truck ? formatTruck(truck) : 'Tocá para elegir'}</span>
-      </button>
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
 
-      <div class="waypoint">
-        <span class="dot dot-a"></span>
-        <input id="origin" placeholder="Origen" autocomplete="off"
-               value="${origin?.label ?? ''}">
-        <button class="waypoint-clear" id="clear-origin" type="button"
-                aria-label="Borrar el origen"
-                ${origin?.label ? '' : 'hidden'}>${raw(icon('close', 16))}</button>
-      </div>
+      const { accion, kind } = boton.dataset;
+      if (accion === 'buscar') abrirBusqueda('destination');
+      if (accion === 'fijar-guardado') abrirBusqueda(kind);
+      if (accion === 'ir-a-guardado') elegirLugar(lugares[kind]);
+    };
+  }
 
-      <div class="waypoint">
-        <span class="dot dot-b"></span>
-        <input id="destination" placeholder="¿A dónde vas?" autocomplete="off"
-               value="${destination?.label ?? ''}">
-        <button class="waypoint-clear" id="clear-destination" type="button"
-                aria-label="Borrar el destino"
-                ${destination?.label ? '' : 'hidden'}>${raw(icon('close', 16))}</button>
-      </div>
+  function abrirBusqueda(objetivo) {
+    stage = 'buscar';
+    busqueda = { objetivo, texto: '', sugerencias: null };
+    host0.classList.add('is-buscando');
+    drawSheet();
+    q(host0, '#gps-buscar-texto')?.focus();
+  }
 
-      <div id="suggestions"></div>
+  function cerrarBusqueda() {
+    busqueda = null;
+    stage = 'search';
+    host0.classList.remove('is-buscando');
+    drawSheet();
+  }
 
-      <button class="btn btn-primary btn-block" id="calc"
-              ${origin && destination && truck ? '' : 'disabled'}>
-        Calcular ruta
-      </button>
+  const estadoDeBusqueda = () => ({
+    ...busqueda,
+    casa: lugares.Home,
+    deposito: lugares.Depot,
+    recientes,
+    origen: origin?.label ?? null,
+    categorias: prefs.lugares?.categorias ?? []
+  });
 
-      <button class="btn btn-ghost btn-block" id="delivery-mode">
-        Modo reparto · hasta 10 paradas
-      </button>
+  function drawBuscar() {
+    const hoja = sheetAs('gps-hoja-buscar');
+    hoja.innerHTML = hojaBuscar(estadoDeBusqueda());
 
-      <p class="hint" style="text-align:center">
-        Mantené apretado el mapa para fijar un punto.
-      </p>
-    `);
+    const input = q(hoja, '#gps-buscar-texto');
 
-    wire(sheet(), {
-      '#pick-truck': () => go('camiones'),
-      '#calc': (event) => calculate(event.currentTarget),
-      '#origin@input': onInput('origin'),
-      '#destination@input': onInput('destination'),
-      '#origin@focus': () => { editing = 'origin'; },
-      '#destination@focus': () => { editing = 'destination'; },
-      '#clear-origin': () => clearPoint('origin'),
-      '#clear-destination': () => clearPoint('destination'),
-      '#delivery-mode': () => entrarEnReparto()
+    // Mientras se escribe se rehace solo el cuerpo: rehacer la pildora le
+    // sacaria el foco al teclado en cada letra.
+    input.addEventListener('input', () => {
+      busqueda.texto = input.value;
+      q(hoja, '.gps-buscar-borrar').hidden = !input.value;
+      buscarSugerencias(input.value);
+      pintarCuerpoDeBusqueda();
     });
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, kind, indice, id } = boton.dataset;
+
+      if (accion === 'volver') cerrarBusqueda();
+      if (accion === 'borrar') { input.value = ''; input.dispatchEvent(new Event('input')); input.focus(); }
+      if (accion === 'sugerencia') elegirLugar(busqueda.sugerencias?.[Number(indice)]);
+      if (accion === 'reciente') elegirLugar(recientes[Number(indice)]);
+      if (accion === 'ir-a-guardado') elegirLugar(lugares[kind]);
+      if (accion === 'fijar-guardado') abrirBusqueda(kind);
+      if (accion === 'origen') abrirBusqueda('origin');
+      if (accion === 'reparto') { cerrarBusqueda(); entrarEnReparto(); }
+      if (accion === 'fijar-en-mapa') { cerrarBusqueda(); toast('Mantené apretado el mapa donde querés ir.'); }
+
+      if (accion === 'categoria') {
+        // Se recuerda que categorias mira el camionero; la capa de lugares
+        // (etapa 7) las va a prender sobre el mapa.
+        const activas = new Set(prefs.lugares?.categorias ?? []);
+        activas.has(id) ? activas.delete(id) : activas.add(id);
+        savePrefs({ lugares: { ...(prefs.lugares ?? {}), categorias: [...activas] } });
+        pintarCuerpoDeBusqueda();
+      }
+    };
+  }
+
+  function pintarCuerpoDeBusqueda() {
+    const cuerpo = q(host0, '.gps-buscar-cuerpo');
+    if (cuerpo && busqueda) cuerpo.innerHTML = cuerpoDeBusqueda(estadoDeBusqueda());
+  }
+
+  /**
+   * Se espera a que deje de escribir y se exigen tres caracteres: el geocoder
+   * es un servicio publico y gratuito, consultar en cada tecla seria abusar
+   * de el (AD-10). Si la respuesta llega para un texto que ya no es el que
+   * esta escrito, se descarta.
+   */
+  const buscarSugerencias = debounce(async (texto) => {
+    const consulta = texto.trim();
+    if (!busqueda || consulta.length < 3) return;
+
+    busqueda.sugerencias = null;
+
+    try {
+      const lugares = await api.searchPlaces(consulta);
+      if (busqueda?.texto.trim() !== consulta) return;
+      busqueda.sugerencias = lugares.map((p) => ({ label: p.label, secondary: p.secondary, latitude: p.latitude, longitude: p.longitude }));
+    } catch {
+      if (busqueda) busqueda.sugerencias = [];
+    }
+
+    pintarCuerpoDeBusqueda();
+  }, 350);
+
+  /**
+   * Un lugar elegido en la busqueda, segun que se buscaba: el destino se
+   * rutea directo; el origen se fija y se sigue buscando el destino; Casa y
+   * Deposito se guardan una vez y se va ("Establecer una vez e ir").
+   */
+  async function elegirLugar(lugar) {
+    if (!lugar) return;
+
+    const punto = { lat: lugar.latitude, lng: lugar.longitude, label: lugar.label };
+    const objetivo = busqueda?.objetivo ?? 'destination';
+
+    if (objetivo === 'origin') {
+      origin = punto;
+      gl.setOrigin(punto);
+      abrirBusqueda('destination');
+      return;
+    }
+
+    if (objetivo === 'Home' || objetivo === 'Depot') {
+      try {
+        lugares[objetivo] = await api.savePlace(objetivo, { label: lugar.label, latitude: lugar.latitude, longitude: lugar.longitude });
+        toastOk(objetivo === 'Home' ? 'Casa guardada.' : 'Depósito guardado.');
+      } catch (error) {
+        toastError(`No se pudo guardar: ${error.message}`);
+        return;
+      }
+    }
+
+    cerrarBusqueda();
+    setPoint('destination', punto);
+    await calculate(null);
   }
 
   /* ------------------------------------------------------------------------
@@ -601,27 +711,6 @@ export function navigateView(host, { openDrawer, go }) {
   function showClear(which, visible) {
     const button = q(host0, `#clear-${which}`);
     if (button) button.hidden = !visible;
-  }
-
-  /**
-   * Borra un extremo del viaje.
-   *
-   * Borra las tres cosas que forman ese extremo —el texto, el punto guardado y
-   * el marcador del mapa—, no solo la que se ve. Borrar el texto y dejar el
-   * marcador puesto seria peor que no borrar nada: la pantalla diria una cosa y
-   * el mapa otra.
-   *
-   * No hace falta ocuparse de la ruta: con una calculada la hoja muestra el
-   * resumen, que no tiene estos campos. Para volver acá hay que descartarla
-   * antes, y de eso se encarga su propio boton.
-   */
-  function clearPoint(which) {
-    editing = which;
-    setPoint(which, null);
-
-    // El teclado queda listo para escribir el reemplazo. Borrar casi siempre es
-    // el primer paso de corregir, no un fin en si mismo.
-    q(host0, `#${which}`)?.focus();
   }
 
   // --- ruta calculada -------------------------------------------------------
@@ -1103,6 +1192,11 @@ export function navigateView(host, { openDrawer, go }) {
       setPoint(which, { ...point, label });
     } catch {
       setPoint(which, { ...point, label: `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}` });
+    }
+
+    // En reposo no hay boton de calcular: el destino fijado se rutea directo.
+    if (which === 'destination' && stage === 'search' && origin) {
+      await calculate(null);
     }
   }
 

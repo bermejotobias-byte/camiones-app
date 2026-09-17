@@ -663,6 +663,10 @@ button { font-family: inherit; font-size: inherit; }
   pointer-events: none;
   padding: calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom));
 
+  /* Por encima de los controles de MapLibre (z-index 2): la atribucion
+     quedaba pintada sobre la hoja de reposo. */
+  z-index: 2;
+
   /* El `gap` es lo que garantiza que los tres bloques —SOS, controles del mapa y
      hoja— no se toquen NUNCA.
 
@@ -1286,6 +1290,225 @@ button { font-family: inherit; font-size: inherit; }
 
 /* La bandera a cuadros del destino, en viaje. */
 .gps-bandera { line-height: 0; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .6)); }
+
+/* ============================================================================
+   Reposo y busqueda — la piel de Waze, medida
+   ----------------------------------------------------------------------------
+   waze-03: la hoja de reposo de 150 de borde a borde, con la pildora de 50 y
+   los atajos de 45. waze-05: la busqueda como hoja llena, con la pildora de
+   52, los chips de 82 x 65 y las filas de 65. Los controles del mapa son
+   circulos negros de 52.
+   ========================================================================== */
+
+/* Los controles del reposo: circulos negros de 52 (S.O.S. rojo), como los de
+   Waze, en lugar de los fab del sistema. */
+.map-screen .map-side .fab,
+.map-screen .map-top .fab {
+  width: 52px; height: 52px;
+  border: 0;
+  background: var(--gps-banda);
+  color: var(--gps-ink);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+}
+
+.map-screen .fab svg { width: 24px; height: 24px; }
+.map-screen .map-top .fab-panic { background: var(--gps-rojo); color: #fff; font-size: 13px; letter-spacing: .02em; }
+
+/* --- la hoja de reposo ----------------------------------------------------- */
+
+/* Va de borde a borde: la capa tiene 10 px de aire y la hoja los anula. */
+.gps-hoja-reposo {
+  flex: none;
+  margin: auto -10px calc(-10px - var(--safe-bottom)) -10px;
+  height: calc(150px + var(--safe-bottom));
+  box-sizing: border-box;
+  padding: 12px 15px var(--safe-bottom);
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  font-family: var(--gps-ui);
+}
+
+.gps-manija.ancha { width: 50px; margin-bottom: 14px; }
+
+.gps-buscar-reposo {
+  width: 100%;
+  height: 50px;
+  border: 0;
+  border-radius: 25px;
+  background: var(--gps-pildora);
+  color: var(--gps-ink-3);
+  font: inherit;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-atajos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+
+.gps-atajo {
+  height: 45px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--gps-pildora);
+  color: var(--gps-ink);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-atajo:active { transform: scale(.97); }
+.gps-atajo.nuevo { color: var(--gps-celeste); }
+.gps-atajo svg { flex: none; }
+
+/* --- la hoja de busqueda --------------------------------------------------- */
+
+/* Cubre el mapa entero mientras se busca; los controles se van. */
+.map-screen.is-buscando .map-top,
+.map-screen.is-buscando .map-side { display: none; }
+
+.gps-hoja-buscar {
+  position: absolute;
+  inset: var(--safe-top) 0 0 0;
+  padding: 14px 15px calc(14px + var(--safe-bottom));
+  box-sizing: border-box;
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 14px 14px 0 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--gps-ui);
+  z-index: 6;
+}
+
+.gps-buscar-pildora {
+  flex: none;
+  height: 52px;
+  border-radius: 26px;
+  background: var(--gps-pildora);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 6px;
+}
+
+.gps-buscar-pildora input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--gps-ink);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+  caret-color: var(--gps-celeste);
+}
+
+.gps-buscar-pildora input::placeholder { color: var(--gps-ink-3); }
+.gps-buscar-pildora input::-webkit-search-cancel-button { display: none; }
+
+.gps-buscar-volver,
+.gps-buscar-borrar {
+  flex: none;
+  width: 40px; height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gps-ink-3);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-buscar-borrar[hidden] { display: none; }
+
+.gps-desde {
+  flex: none;
+  margin-top: 10px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--gps-ink-2);
+  font: inherit;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-desde b { font-weight: 500; color: var(--gps-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-desde svg { flex: none; }
+
+.gps-buscar-cuerpo { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; }
+
+/* Chips de categoria, medidos: 82 x 65, radio 12, icono 20, rotulo 14. */
+.gps-chips { display: flex; gap: 11px; overflow-x: auto; scrollbar-width: none; margin: 10px 0 4px; padding-bottom: 2px; }
+.gps-chips::-webkit-scrollbar { display: none; }
+
+.gps-chip-cat {
+  flex: none;
+  width: 82px; height: 65px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  background: var(--gps-pildora);
+  color: var(--gps-ink);
+  font: inherit;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-chip-cat.is-on { border-color: var(--gps-celeste); color: var(--gps-celeste); }
+
+/* Filas de 65: icono de 30, titulo 18 negrita, subtitulo 14. */
+.gps-fila {
+  width: 100%;
+  min-height: 65px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  background: transparent;
+  color: var(--gps-ink);
+  font: inherit;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 2px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-fila:last-child { border-bottom: 0; }
+.gps-fila:active { background: rgba(255, 255, 255, .04); }
+.gps-fila-ico { flex: none; width: 40px; display: grid; place-items: center; color: var(--gps-ink-2); line-height: 0; }
+.gps-fila-texto { flex: 1; min-width: 0; }
+.gps-fila-texto b { display: block; font-size: 18px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-fila-texto span { display: block; font-size: 14px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-fila-texto .celeste { color: var(--gps-celeste); }
+.gps-fila-texto .gris { color: var(--gps-ink-3); }
+
+.gps-seccion { font-size: 14px; color: var(--gps-ink-3); margin: 16px 0 2px; }
 
 /* ============================================================================
    Hoja inferior — el patron principal de la pantalla de busqueda
