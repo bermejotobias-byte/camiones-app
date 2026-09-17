@@ -128,6 +128,18 @@ export function createMap(container, handlers = {}) {
   // no existe.
   map.on('click', (event) => handlers.onTap?.(featureAt(event.point)));
 
+  // Durante el viaje, si el usuario arrastra o pellizca el mapa, la camara deja
+  // de seguir al camion hasta que toque "Volver a centrar" (waze-08). Solo los
+  // gestos del usuario cuentan: easeTo tambien dispara estos eventos, pero sin
+  // originalEvent, y ese es el que mueve la camara para seguir al vehiculo.
+  for (const gesto of ['dragstart', 'zoomstart']) {
+    map.on(gesto, (event) => {
+      if (!navigating || !following || !event.originalEvent) return;
+      following = false;
+      handlers.onPan?.();
+    });
+  }
+
   // Con estilo vectorial, cambiar de estilo vuelve a disparar 'load'. Las capas
   // de camion se reinstalan solas porque installTruckLayers es idempotente.
   map.on('load', async () => {
@@ -858,6 +870,10 @@ const VEHICLE_SCREEN_OFFSET = 0.22;
 let vehicleMarker = null;
 let navigating = false;
 
+/** Si la camara sigue al camion. Se suelta con un gesto y se retoma a pedido. */
+let following = true;
+let lastVehicle = null;
+
 /**
  * Pone el mapa en modo viaje.
  *
@@ -873,6 +889,7 @@ let navigating = false;
 export function enterNavigationMode(from) {
   if (!map) return;
   navigating = true;
+  following = true;
 
   // Los pasos a nivel aparecen recien ahora. Son 312 en la Ciudad y fuera del
   // viaje no cambian ninguna decision: solo llenan de chapas la pantalla en la
@@ -898,6 +915,8 @@ export function enterNavigationMode(from) {
 export function exitNavigationMode() {
   if (!map) return;
   navigating = false;
+  following = true;
+  lastVehicle = null;
 
   setCrossingsVisible(map, false);
 
@@ -920,8 +939,9 @@ export function followVehicle(coords, bearing) {
   if (!map) return;
 
   placeVehicle(coords, bearing);
+  lastVehicle = { coords, bearing };
 
-  if (!navigating) return;
+  if (!navigating || !following) return;
 
   map.easeTo({
     center: [coords.lng, coords.lat],
@@ -937,6 +957,21 @@ export function followVehicle(coords, bearing) {
     duration: 900,
     easing: (t) => t
   });
+}
+
+/** Si la camara esta siguiendo al camion. */
+export const isFollowing = () => following;
+
+/**
+ * Vuelve a seguir al camion: la camara va a donde esta ahora, con la
+ * perspectiva del viaje, y el proximo latido del GPS ya la encuentra ahi.
+ */
+export function setFollowing(si) {
+  following = Boolean(si);
+
+  if (following && navigating && lastVehicle) {
+    followVehicle(lastVehicle.coords, lastVehicle.bearing);
+  }
 }
 
 function placeVehicle(coords, bearing) {

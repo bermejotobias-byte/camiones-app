@@ -22,7 +22,7 @@
  * y esta probado en tests/web/viaje.test.mjs.
  */
 
-import { iconoDeManiobra, calcomania, circulo, dibujo } from './piezas.js';
+import { iconoDeManiobra, calcomania, circulo, dibujo, pildora } from './piezas.js';
 import { formatDistance, formatDuration, arrivalTime } from '../ui.js';
 
 /* ---------------------------------------------------------------------------
@@ -231,6 +231,19 @@ const costadoMarkup = (vozApagada) => `
     ${circulo('SOS', { clase: 'sos', id: 'gps-sos', etiqueta: 'Emergencia' })}
   </div>`;
 
+/**
+ * "Volver a centrar", medida en waze-08: 62 dp, radio 20, el circulo claro de
+ * 36 con la cruceta, el texto en 20 y el resto en 16 gris, y la pildora de
+ * "Vista general" de 132 x 37. Reemplaza a la hoja mientras el mapa esta
+ * movido.
+ */
+const recentrarMarkup = () => `
+  <div class="gps-recentrar" id="gps-recentrar" hidden>
+    ${circulo(dibujo('centrar', 22), { clase: 'claro', id: 'gps-recentrar-boton', etiqueta: 'Volver a centrar' })}
+    <div class="gps-recentrar-texto"><b>Volver a centrar</b><span id="gps-recentrar-restante"></span></div>
+    ${pildora('Vista general', { clase: 'chip', id: 'gps-recentrar-general' })}
+  </div>`;
+
 const hojaMarkup = () => `
   <div class="gps-hoja-viaje" id="gps-hoja">
     <div class="gps-manija"></div>
@@ -248,7 +261,7 @@ const hojaMarkup = () => `
  * @param {object} acciones    que hacer al tocar: alSalir, alVistaGeneral, alAportar, alSos, alVoz
  * @param {boolean} vozApagada si la voz arranca silenciada
  */
-export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, alVoz, vozApagada = false } = {}) {
+export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, alVoz, alRecentrar, vozApagada = false } = {}) {
   const capa = document.createElement('div');
   capa.className = 'gps-viaje';
   capa.innerHTML = `
@@ -261,6 +274,7 @@ export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, a
       ${circulo(dibujo('cerrar', 22), { clase: 'chico plano', id: 'gps-aviso-cerrar', etiqueta: 'Cerrar el aviso' })}
     </div>
     <button type="button" class="gps-aportar" id="gps-aportar" aria-label="Aportar un lugar">${calcomania('lugarMas', 36)}</button>
+    ${recentrarMarkup()}
     ${hojaMarkup()}`;
 
   host.appendChild(capa);
@@ -276,6 +290,8 @@ export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, a
   tocar('#gps-aportar', alAportar);
   tocar('#gps-sos', alSos);
   tocar('#gps-voz', alVoz);
+  tocar('#gps-recentrar-boton', alRecentrar);
+  tocar('#gps-recentrar-general', alVistaGeneral);
 
   // La tarjeta de aviso se va sola a los 6 s, o antes si se la cierra. Un
   // aviso nuevo reemplaza al anterior y reinicia el reloj.
@@ -332,6 +348,16 @@ export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, a
     hoja({ segundos = null, metros = null } = {}) {
       poner('#gps-hora', segundos === null ? '—' : arrivalTime(segundos));
       poner('#gps-restante', resumenRestante(segundos, metros));
+      poner('#gps-recentrar-restante', resumenRestante(segundos, metros));
+    },
+
+    /**
+     * El mapa esta movido por el usuario: la hoja, la pildora de la calle y el
+     * boton de aportar dejan lugar a la tarjeta de "Volver a centrar".
+     */
+    movido(si) {
+      capa.classList.toggle('movido', Boolean(si));
+      q('#gps-recentrar').hidden = !si;
     },
 
     /** La calle por la que se va. Sin nombre, la pildora se esconde. */

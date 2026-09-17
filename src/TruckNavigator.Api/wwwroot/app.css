@@ -1080,6 +1080,69 @@ button { font-family: inherit; font-size: inherit; }
   padding: 0 5px;
 }
 
+/* ----------------------------------------------------------------------------
+   "Volver a centrar" (waze-08, medido): cuando el usuario mueve el mapa, la
+   hoja deja lugar a esta, de borde a borde y con radio 20 arriba: 66 dp con
+   el circulo claro de 36 a 15 del borde, "Volver a centrar" en 18, el
+   restante en 16 gris, y la pildora "Vista general" de 132 x 37 a 16 del
+   borde derecho. En 18 y no en 20 porque a 20 no entra: medido, el texto
+   ocupa 131 dp y la pildora arranca a 212.
+   -------------------------------------------------------------------------- */
+.gps-recentrar {
+  pointer-events: auto;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: calc(66px + var(--safe-bottom));
+  box-sizing: border-box;
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 20px 20px 0 0;
+  padding: 0 16px var(--safe-bottom) 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  z-index: 4;
+}
+
+.gps-recentrar[hidden] { display: none; }
+
+.gps-circulo.claro { flex: none; width: 36px; height: 36px; background: var(--gps-claro); color: #111418; box-shadow: none; }
+
+.gps-recentrar-texto { flex: 1; min-width: 0; }
+.gps-recentrar-texto b { display: block; font-size: 18px; font-weight: 400; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-recentrar-texto span { display: block; font-size: 16px; color: var(--gps-ink-2); margin-top: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Pildoras de accion: 48 dp y 16 sp negrita; gris con texto celeste o celeste
+   con texto oscuro. La de "Vista general" es mas chica: 132 x 37. */
+.gps-pildora {
+  pointer-events: auto;
+  height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--gps-pildora);
+  color: var(--gps-celeste);
+  font-size: 16px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-pildora:active { transform: scale(.97); }
+.gps-pildora.celeste { background: var(--gps-accion); color: var(--gps-sobre-accion); }
+.gps-recentrar .gps-pildora { flex: none; width: 132px; height: 37px; padding: 0; font-weight: 500; }
+
+.gps-viaje.movido .gps-hoja-viaje,
+.gps-viaje.movido .gps-calle,
+.gps-viaje.movido .gps-aportar,
+.gps-viaje.movido .gps-aviso { display: none; }
+
 .gps-eta { text-align: center; flex: 1; min-width: 0; padding: 0 8px; }
 .gps-eta b { display: block; font-size: 25px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .gps-eta span { display: block; font-size: 20px; color: var(--gps-ink-2); margin-top: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }

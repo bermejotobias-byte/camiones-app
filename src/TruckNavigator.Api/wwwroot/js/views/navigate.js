@@ -120,7 +120,10 @@ export function navigateView(host, { openDrawer, go }) {
       locate({ silent: true });
     },
     onTap: (feature) => { hideSuggestions(); explicarSimbolo(feature); },
-    onLongPress: (point) => setPointFromMap(point)
+    onLongPress: (point) => setPointFromMap(point),
+    // El usuario movio el mapa durante el viaje: la camara deja de seguir al
+    // camion y aparece "Volver a centrar" (waze-08).
+    onPan: () => viaje?.movido(true)
   });
 
   /**
@@ -744,6 +747,7 @@ export function navigateView(host, { openDrawer, go }) {
         alAportar: () => toast('Aportar un lugar llega en la próxima etapa.'),
         alSos: () => go('emergencia'),
         alVoz: () => alternarVoz(),
+        alRecentrar: () => { gl.setFollowing(true); viaje?.movido(false); },
         vozApagada: prefs.voz === false
       });
     }
