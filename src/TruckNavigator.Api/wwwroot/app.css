@@ -1143,6 +1143,120 @@ button { font-family: inherit; font-size: inherit; }
 .gps-viaje.movido .gps-aportar,
 .gps-viaje.movido .gps-aviso { display: none; }
 
+/* ----------------------------------------------------------------------------
+   La vista general (waze-02 y waze-01, medidas): el conmutador Mapa / Lista
+   de 155 x 40 a 20 de la banda compacta, con el activo en azul oscuro y texto
+   celeste; las tarjetas de ruta de radio 16 con el tiempo en 27 negrita, la
+   pildora de accion de 44, "20:06 • 32 km" en 19, "Por…" en 18 y la linea de
+   tiempo con lo que hay en el camino. En modo Lista el mapa se atenua y las
+   tarjetas se apilan con 20 entre ellas.
+   -------------------------------------------------------------------------- */
+.gps-viaje.general .gps-hoja-viaje,
+.gps-viaje.general .gps-calle,
+.gps-viaje.general .gps-aportar,
+.gps-viaje.general .gps-aviso,
+.gps-viaje.general .gps-recentrar,
+.gps-viaje.general .gps-costado { display: none; }
+
+.gps-viaje.lista::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .5);
+}
+
+.gps-conmutador {
+  pointer-events: auto;
+  position: absolute;
+  top: calc(57px + var(--safe-top) + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 155px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 3px;
+  border-radius: 20px;
+  background: #1b1d21;
+  display: flex;
+  z-index: 5;
+}
+
+.gps-conmutador[hidden] { display: none; }
+
+.gps-conmutador button {
+  flex: 1;
+  border: 0;
+  border-radius: 17px;
+  background: transparent;
+  color: var(--gps-ink-3);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-conmutador button.is-on { background: #164a7a; color: var(--gps-celeste); }
+
+.gps-tarjetas {
+  pointer-events: auto;
+  position: absolute;
+  left: 15px; right: 15px;
+  bottom: calc(16px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 4;
+}
+
+.gps-tarjetas[hidden] { display: none; }
+
+/* En la lista las tarjetas cuelgan de arriba y scrollean si no entran. */
+.gps-viaje.lista .gps-tarjetas {
+  top: calc(57px + var(--safe-top) + 80px);
+  bottom: calc(16px + var(--safe-bottom));
+  overflow-y: auto;
+  justify-content: flex-start;
+}
+
+.gps-tarjeta-ruta {
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 16px;
+  padding: 16px 16px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  flex: none;
+}
+
+.gps-tarjeta-ruta-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.gps-tarjeta-ruta-cabeza b { font-size: 27px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.gps-tarjeta-ruta-sub { font-size: 19px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.gps-tarjeta-ruta-sub i { font-style: normal; color: var(--gps-ink-3); margin: 0 4px; font-size: .8em; }
+.gps-tarjeta-ruta-por { font-size: 18px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* La pildora chica de las tarjetas: 44 de alto, 18 sp; "Reanudar" mide 134. */
+.gps-pildora.chica { height: 44px; padding: 0 20px; font-size: 18px; min-width: 88px; }
+.gps-pildora.chica svg { flex: none; }
+
+/* La linea de tiempo: el triangulo de "vos", la linea de 3 con los tramos
+   amarillos encima y las calcomanias de 16 donde caen los avisos. */
+.gps-lt { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding-right: 6px; }
+.gps-lt-vos {
+  flex: none;
+  width: 0; height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 13px solid var(--gps-ink-3);
+}
+.gps-lt-barra { position: relative; flex: 1; height: 3px; border-radius: 2px; background: var(--gps-ruta); }
+.gps-lt-barra i { position: absolute; top: 0; height: 3px; background: var(--gps-amarillo); }
+.gps-lt-barra em {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  line-height: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5));
+}
+
 .gps-eta { text-align: center; flex: 1; min-width: 0; padding: 0 8px; }
 .gps-eta b { display: block; font-size: 25px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .gps-eta span { display: block; font-size: 20px; color: var(--gps-ink-2); margin-top: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -1169,6 +1283,9 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 .gps-chevron svg { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .5)); }
+
+/* La bandera a cuadros del destino, en viaje. */
+.gps-bandera { line-height: 0; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .6)); }
 
 /* ============================================================================
    Hoja inferior — el patron principal de la pantalla de busqueda

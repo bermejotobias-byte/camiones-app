@@ -23,6 +23,7 @@ import {
 } from '../navigation.js';
 import * as gl from '../map.js';
 import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso } from '../mapa/viaje.js';
+import { porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta } from '../mapa/rutas.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
   html, raw, icon, wire, q, qa, render, debounce, withBusy,
@@ -743,7 +744,10 @@ export function navigateView(host, { openDrawer, go }) {
 
       viaje = montarViaje(host0, {
         alSalir: () => askToStop(),
-        alVistaGeneral: () => toast('La vista general llega en la próxima etapa.'),
+        alVistaGeneral: () => entrarVistaGeneral(),
+        alModo: (modo) => cambiarModoGeneral(modo),
+        alReanudar: () => salirVistaGeneral(),
+        alIr: (indice) => irPorOpcion(indice),
         alAportar: () => toast('Aportar un lugar llega en la próxima etapa.'),
         alSos: () => go('emergencia'),
         alVoz: () => alternarVoz(),
@@ -770,9 +774,13 @@ export function navigateView(host, { openDrawer, go }) {
 
     viaje.hoja(navState
       ? { segundos: navState.remainingSeconds, metros: navState.remainingMeters }
-      : { segundos: trip?.plannedDurationSeconds ?? null, metros: trip?.plannedDistanceMeters ?? null });
+      // Sin posicion todavia, lo que dice la ruta que se sigue (o el viaje, si
+      // tampoco hay ruta): asi cambiar de ruta se refleja antes del primer fix.
+      : { segundos: route?.durationSeconds ?? trip?.plannedDurationSeconds ?? null, metros: route?.distanceMeters ?? trip?.plannedDistanceMeters ?? null });
 
     viaje.calle(navState?.step?.streetName ?? null);
+
+    if (vistaGeneral) pintarVistaGeneral();
   }
 
   /**
@@ -817,8 +825,176 @@ export function navigateView(host, { openDrawer, go }) {
     closeTrip(null, choice === 'arrived');
   }
 
+  /* ------------------------------------------------------------------------
+     La vista general del viaje (waze-02 y waze-01)
+
+     La ruta entera, cenital, con la tarjeta de lo que falta; o la lista con
+     las otras rutas posibles desde donde esta el camion, cada una con "Ir".
+     Cambiar de ruta no cierra el viaje: el viaje guarda origen, destino y
+     paradas, no la ruta (AD-45).
+  ------------------------------------------------------------------------ */
+
+  let vistaGeneral = null;   // { modo: 'mapa' | 'lista', opciones: [...] } mientras esta abierta
+
+  function entrarVistaGeneral() {
+    if (!viaje || !route) return;
+
+    gl.setFollowing(false);
+    viaje.movido(false);
+    vistaGeneral = { modo: 'mapa', opciones: [] };
+    pintarVistaGeneral();
+
+    // Aire para la banda compacta y el conmutador arriba, y la tarjeta abajo.
+    gl.fitRoute(route.geometry.coordinates, { top: 150, bottom: 260, left: 40, right: 40 });
+  }
+
+  function salirVistaGeneral() {
+    vistaGeneral = null;
+    viaje?.general(null);
+    gl.setFollowing(true);
+  }
+
+  async function cambiarModoGeneral(modo) {
+    if (!vistaGeneral) return;
+
+    vistaGeneral.modo = modo;
+    pintarVistaGeneral();
+
+    if (modo === 'lista' && vistaGeneral.opciones.length === 0) {
+      await cargarOpcionesDeRuta();
+    }
+  }
+
+  /** La tarjeta de la ruta que se esta siguiendo, con lo que falta. */
+  function tarjetaDeLaRutaActual() {
+    const segundos = navState?.remainingSeconds ?? state.activeTrip?.plannedDurationSeconds ?? null;
+    const metros = navState?.remainingMeters ?? state.activeTrip?.plannedDistanceMeters ?? null;
+
+    return {
+      accion: 'reanudar',
+      tiempo: formatDuration(segundos),
+      hora: segundos === null ? '—' : arrivalTime(segundos),
+      km: formatDistance(metros),
+      por: porDonde(route.instructions, navState?.stepIndex ?? 0),
+      linea: lineaDeTiempo(prepared, {
+        travelled: navState?.travelledMeters ?? 0,
+        alerts: routeAlerts,
+        accessLegs: route.accessLegs ?? []
+      })
+    };
+  }
+
+  /** La tarjeta de una ruta alternativa calculada desde donde esta el camion. */
+  function tarjetaDeOpcion(opcion, indice) {
+    const preparada = prepareRoute(opcion);
+
+    return {
+      accion: 'ir',
+      indice,
+      tiempo: formatDuration(opcion.durationSeconds),
+      hora: arrivalTime(opcion.durationSeconds),
+      km: formatDistance(opcion.distanceMeters),
+      por: porDonde(opcion.instructions),
+      linea: lineaDeTiempo(preparada, {
+        alerts: alertsAlongRoute(preparada, gl.datasets()),
+        accessLegs: opcion.accessLegs ?? []
+      })
+    };
+  }
+
+  function pintarVistaGeneral() {
+    if (!viaje || !vistaGeneral) return;
+
+    const tarjetas = [tarjetaDeLaRutaActual()];
+
+    if (vistaGeneral.modo === 'lista') {
+      tarjetas.push(...vistaGeneral.opciones.map(({ ruta, indice }) => tarjetaDeOpcion(ruta, indice)));
+    }
+
+    viaje.general({ modo: vistaGeneral.modo, tarjetas });
+  }
+
+  /**
+   * Las otras rutas posibles desde donde esta el camion, para la lista.
+   *
+   * Se piden recien al abrir la lista, y desde la posicion actual: las
+   * alternativas que se calcularon al planificar salian del origen y ya no
+   * dicen nada. El servidor las devuelve ordenadas para camion y filtradas
+   * (AD-47), como siempre.
+   */
+  async function cargarOpcionesDeRuta() {
+    const desde = navState?.snapped ?? origin;
+    if (!desde || !destination) return;
+
+    try {
+      const respuesta = await api.route(
+        selectedTruck().id,
+        { latitude: desde.lat, longitude: desde.lng },
+        { latitude: destination.lat, longitude: destination.lng }
+      );
+
+      if (!vistaGeneral) return;   // se cerro mientras se calculaba
+
+      // La recomendada desde aca suele ser la ruta que ya se sigue: ofrecer
+      // "Ir" por ella seria ofrecer nada. Se la reconoce por sus vias y su
+      // largo, y se la deja afuera; las demas conservan su posicion.
+      const actual = {
+        por: porDonde(route.instructions, navState?.stepIndex ?? 0),
+        metros: navState?.remainingMeters ?? route.distanceMeters
+      };
+
+      vistaGeneral.opciones = opcionesDeRuta(respuesta)
+        .map((ruta, indice) => ({ ruta, indice }))
+        .filter(({ ruta }) => !mismaRuta(actual, { por: porDonde(ruta.instructions), metros: ruta.distanceMeters }));
+      vistaGeneral.respuesta = respuesta;
+      pintarVistaGeneral();
+    } catch (error) {
+      toastError(`No se pudieron calcular otras rutas: ${error.message}`);
+    }
+  }
+
+  /**
+   * "Ir" por otra ruta, sin cerrar el viaje.
+   *
+   * Es el mismo movimiento que recalcular al salirse de la ruta, con la ruta
+   * elegida en vez de la recomendada: todo lo que estaba calculado sobre la
+   * ruta anterior deja de valer.
+   */
+  function irPorOpcion(indice) {
+    const elegida = elegirAlternativa(vistaGeneral?.respuesta, indice);
+    if (!elegida) return;
+
+    seguirRuta(elegida, navState?.snapped ?? origin);
+    setState({ activeRoute: elegida });
+    salirVistaGeneral();
+    pintarViaje();
+    decir('Nueva ruta.');
+  }
+
+  /** Pasa a guiar por otra ruta desde un punto dado. */
+  function seguirRuta(nueva, desde) {
+    route = nueva;
+    prepared = prepareRoute(nueva);
+
+    // La ruta nueva pasa por otro lado: lo que había sobre la anterior no
+    // sirve, y las claves de los avisos ya dados apuntan a otros índices.
+    routeAlerts = alertsAlongRoute(prepared, gl.datasets());
+    alerted = new Set();
+
+    // El estado arranca de cero: los indices de la ruta vieja no significan
+    // nada sobre la nueva, y los avisos ya dichos son de otras maniobras.
+    navState = null;
+    previousNav = null;
+    announced = new Set();
+
+    gl.drawRoute(nueva, nueva.accessLegs ?? []);
+
+    if (desde) origin = { lat: desde.lat, lng: desde.lng, label: 'Tu ubicación actual' };
+  }
+
   /** Saca la pantalla del viaje y devuelve los controles del reposo. */
   function desmontarViaje() {
+    vistaGeneral = null;
     viaje?.destruir();
     viaje = null;
     host0.classList.remove('is-viaje');
@@ -1161,6 +1337,12 @@ export function navigateView(host, { openDrawer, go }) {
     // tocar el boton y el primer fix pueden pasar decenas de segundos, y sin
     // ningun cambio en pantalla la app parece no haber hecho nada.
     gl.enterNavigationMode(origin);
+
+    // En viaje el destino es la bandera a cuadros (waze-02) y el pin del
+    // origen sobra: el camion ya arranco de ahi.
+    gl.setOrigin(null);
+    gl.setDestination(null);
+    gl.setDestinationFlag(destination);
     showZoomControls(false);
     keepScreenAwake(true);
     avisarViaje(true);
@@ -1197,6 +1379,7 @@ export function navigateView(host, { openDrawer, go }) {
 
     keepScreenAwake(false);
     gl.exitNavigationMode();
+    gl.setDestinationFlag(null);
     showZoomControls(true);
     desmontarViaje();
     avisarViaje(false);
@@ -1361,22 +1544,7 @@ export function navigateView(host, { openDrawer, go }) {
         { latitude: destination.lat, longitude: destination.lng }
       );
 
-      route = fresh;
-      prepared = prepareRoute(fresh);
-
-      // La ruta nueva pasa por otro lado: lo que había sobre la anterior no
-      // sirve, y las claves de los avisos ya dados apuntan a otros índices.
-      routeAlerts = alertsAlongRoute(prepared, gl.datasets());
-      alerted = new Set();
-
-      // El estado arranca de cero: los indices de la ruta vieja no significan
-      // nada sobre la nueva, y los avisos ya dichos son de otras maniobras.
-      navState = null;
-      previousNav = null;
-      announced = new Set();
-
-      gl.drawRoute(fresh, fresh.accessLegs ?? []);
-      origin = { ...fix, label: 'Tu ubicación actual' };
+      seguirRuta(fresh, fix);
     } catch (error) {
       toastError(`No se pudo recalcular: ${error.message}`);
     } finally {

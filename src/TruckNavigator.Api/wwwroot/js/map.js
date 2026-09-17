@@ -8,6 +8,7 @@
 
 import { installTruckLayers, setTruckLayersVisible, setRiskZonesVisible, setCrossingsVisible, setTruckHeight, refreshLayerColors, truckDataset } from './layers.js';
 import { registerPmtilesProtocol, buildBasemapStyle } from './mapa/estilo-mapa.js';
+import { calcomania } from './mapa/piezas.js';
 import { currentApiBase } from './api.js';
 
 const CABA_CENTER = [-58.4370, -34.6083];
@@ -22,7 +23,7 @@ const CABA_CENTER = [-58.4370, -34.6083];
 const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 let map = null;
-let markers = { origin: null, destination: null, gps: null };
+let markers = { origin: null, destination: null, gps: null, flag: null };
 let onLongPress = null;
 
 /** Ya se cayo al raster de respaldo una vez; no hace falta repetirlo. */
@@ -164,7 +165,7 @@ export function createMap(container, handlers = {}) {
 export function destroyMap() {
   map?.remove();
   map = null;
-  markers = { origin: null, destination: null, gps: null };
+  markers = { origin: null, destination: null, gps: null, flag: null };
 }
 
 /* ---------------------------------------------------------------------------
@@ -287,6 +288,30 @@ function place(kind, coords, className, label) {
 
 export const setOrigin = (coords) => place('origin', coords, 'pin-origin', 'A');
 export const setDestination = (coords) => place('destination', coords, 'pin-destination', 'B');
+
+/**
+ * La bandera a cuadros del destino, durante el viaje (waze-02). Reemplaza al
+ * pin "B" del planificador: en viaje el destino es la llegada, no un punto
+ * que se este eligiendo. Con null se saca.
+ */
+export function setDestinationFlag(coords) {
+  if (!map) return;
+
+  markers.flag?.remove();
+  markers.flag = null;
+
+  if (!coords) return;
+
+  const element = document.createElement('div');
+  element.className = 'gps-bandera';
+  element.innerHTML = calcomania('bandera', 32);
+
+  // El mastil esta a 8 px del borde izquierdo de la calcomania: se corre el
+  // marcador para que su base caiga justo sobre el punto.
+  markers.flag = new maplibregl.Marker({ element, anchor: 'bottom', offset: [8, 2] })
+    .setLngLat([coords.lng, coords.lat])
+    .addTo(map);
+}
 
 /**
  * Las paradas de un reparto, numeradas en el orden de visita.
@@ -790,7 +815,9 @@ function ensureBalloonImage() {
   });
 }
 
-function fitTo(coordinates) {
+function fitTo(coordinates, padding = { top: 90, bottom: 320, left: 40, right: 40 }, camara = {}) {
+  if (!map || !coordinates?.length) return;
+
   const bounds = coordinates.reduce(
     (box, coord) => box.extend(coord),
     new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
@@ -798,9 +825,19 @@ function fitTo(coordinates) {
 
   map.fitBounds(bounds, {
     // Deja aire arriba para la barra y abajo para la hoja inferior.
-    padding: { top: 90, bottom: 320, left: 40, right: 40 },
-    duration: 600
+    padding,
+    duration: 600,
+    ...camara
   });
+}
+
+/**
+ * Encuadra la ruta entera, cenital y mirando al norte: la vista general del
+ * viaje (waze-02). El aire de arriba y de abajo lo dice quien llama, porque
+ * sabe que tiene puesto sobre el mapa.
+ */
+export function fitRoute(coordinates, padding) {
+  fitTo(coordinates, padding, { pitch: 0, bearing: 0 });
 }
 
 /**

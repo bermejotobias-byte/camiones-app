@@ -24,6 +24,7 @@
 
 import { iconoDeManiobra, calcomania, circulo, dibujo, pildora } from './piezas.js';
 import { formatDistance, formatDuration, arrivalTime } from '../ui.js';
+import { tarjetaDeRutaMarkup } from './rutas.js';
 
 /* ---------------------------------------------------------------------------
    Que dice la banda
@@ -244,6 +245,18 @@ const recentrarMarkup = () => `
     ${pildora('Vista general', { clase: 'chip', id: 'gps-recentrar-general' })}
   </div>`;
 
+/**
+ * La vista general (waze-02 y waze-01): el conmutador Mapa / Lista de
+ * 155 x 40 debajo de la banda compacta, y las tarjetas de ruta abajo — una
+ * sola sobre el mapa, o todas apiladas sobre el mapa atenuado.
+ */
+const generalMarkup = () => `
+  <div class="gps-conmutador" id="gps-conmutador" hidden>
+    <button type="button" data-modo="mapa" class="is-on">Mapa</button>
+    <button type="button" data-modo="lista">Lista</button>
+  </div>
+  <div class="gps-tarjetas" id="gps-tarjetas" hidden></div>`;
+
 const hojaMarkup = () => `
   <div class="gps-hoja-viaje" id="gps-hoja">
     <div class="gps-manija"></div>
@@ -261,7 +274,7 @@ const hojaMarkup = () => `
  * @param {object} acciones    que hacer al tocar: alSalir, alVistaGeneral, alAportar, alSos, alVoz
  * @param {boolean} vozApagada si la voz arranca silenciada
  */
-export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, alVoz, alRecentrar, vozApagada = false } = {}) {
+export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, alVoz, alRecentrar, alModo, alReanudar, alIr, vozApagada = false } = {}) {
   const capa = document.createElement('div');
   capa.className = 'gps-viaje';
   capa.innerHTML = `
@@ -275,6 +288,7 @@ export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, a
     </div>
     <button type="button" class="gps-aportar" id="gps-aportar" aria-label="Aportar un lugar">${calcomania('lugarMas', 36)}</button>
     ${recentrarMarkup()}
+    ${generalMarkup()}
     ${hojaMarkup()}`;
 
   host.appendChild(capa);
@@ -292,6 +306,19 @@ export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, a
   tocar('#gps-voz', alVoz);
   tocar('#gps-recentrar-boton', alRecentrar);
   tocar('#gps-recentrar-general', alVistaGeneral);
+
+  for (const boton of capa.querySelectorAll('#gps-conmutador button')) {
+    boton.addEventListener('click', () => alModo?.(boton.dataset.modo));
+  }
+
+  // Las tarjetas se rehacen en cada estado; sus botones se atienden por
+  // delegacion para no volver a enganchar cada vez.
+  q('#gps-tarjetas').addEventListener('click', (event) => {
+    const boton = event.target.closest('button[data-accion]');
+    if (!boton) return;
+    if (boton.dataset.accion === 'reanudar') alReanudar?.();
+    else alIr?.(Number(boton.dataset.indice));
+  });
 
   // La tarjeta de aviso se va sola a los 6 s, o antes si se la cierra. Un
   // aviso nuevo reemplaza al anterior y reinicia el reloj.
@@ -349,6 +376,33 @@ export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, a
       poner('#gps-hora', segundos === null ? '—' : arrivalTime(segundos));
       poner('#gps-restante', resumenRestante(segundos, metros));
       poner('#gps-recentrar-restante', resumenRestante(segundos, metros));
+    },
+
+    /**
+     * La vista general del viaje, o nada para volver al viaje.
+     *
+     * @param {{modo: 'mapa'|'lista', tarjetas: object[]}|null} estado
+     *   cada tarjeta: { tiempo, hora, km, por, linea, accion: 'reanudar'|'ir', indice }
+     */
+    general(estado) {
+      const activa = Boolean(estado);
+      capa.classList.toggle('general', activa);
+      capa.classList.toggle('lista', activa && estado.modo === 'lista');
+      q('#gps-conmutador').hidden = !activa;
+      q('#gps-tarjetas').hidden = !activa;
+      q('#gps-banda').classList.toggle('compacta', activa);
+
+      if (!activa) return;
+
+      for (const boton of capa.querySelectorAll('#gps-conmutador button')) {
+        boton.classList.toggle('is-on', boton.dataset.modo === estado.modo);
+      }
+
+      q('#gps-tarjetas').innerHTML = (estado.tarjetas ?? []).map((t) => tarjetaDeRutaMarkup({
+        ...t,
+        accion: t.accion === 'reanudar' ? 'Reanudar' : 'Ir',
+        datos: t.accion === 'reanudar' ? 'data-accion="reanudar"' : `data-accion="ir" data-indice="${t.indice}"`
+      })).join('');
     },
 
     /**

@@ -140,8 +140,8 @@ export function dibujo(nombre, t = 24, grosor = 2.4) {
  * accion principal (texto oscuro sobre celeste); sin clase, la gris con texto
  * celeste. El texto viene de afuera y se escapa.
  */
-export function pildora(texto, { clase = '', id = '', icono = '' } = {}) {
-  return `<button type="button" class="gps-pildora ${clase}"${id ? ` id="${id}"` : ''}>${icono}<span>${escapar(texto)}</span></button>`;
+export function pildora(texto, { clase = '', id = '', icono = '', datos = '' } = {}) {
+  return `<button type="button" class="gps-pildora ${clase}"${id ? ` id="${id}"` : ''}${datos ? ` ${datos}` : ''}>${icono}<span>${escapar(texto)}</span></button>`;
 }
 
 /** Un boton redondo de 52 dp (Waze) con un dibujo adentro. */
