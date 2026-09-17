@@ -37,6 +37,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<EmergencyContact> EmergencyContacts => Set<EmergencyContact>();
 
+    public DbSet<SavedPlace> SavedPlaces => Set<SavedPlace>();
+
     public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
 
     public DbSet<DriverTrackProgress> TrackProgress => Set<DriverTrackProgress>();
@@ -252,6 +254,23 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
         // Se leen siempre los de un camionero, en orden de carga.
         contact.HasIndex(c => new { c.OwnerId, c.AddedAt });
+
+        var place = modelBuilder.Entity<SavedPlace>();
+
+        place.HasKey(p => p.Id);
+        place.Property(p => p.Kind).HasConversion<string>().HasMaxLength(16);
+        place.Property(p => p.Label).IsRequired().HasMaxLength(SavedPlaceRules.MaxLabelLength);
+        place.Property(p => p.SavedAt).HasConversion(UtcTicks);
+
+        // Uno por tipo y por camionero: guardar Casa de nuevo la reemplaza. El
+        // indice unico es la garantia; el endpoint solo decide si crea o pisa.
+        place.HasIndex(p => new { p.OwnerId, p.Kind }).IsUnique();
+
+        // Borrar la cuenta borra sus lugares: son de esa persona.
+        place.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(p => p.OwnerId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         var trip = modelBuilder.Entity<Trip>();
 

@@ -207,6 +207,14 @@ export const api = {
     post('/api/profile/emergency-contacts', { name, phone }),
   deleteEmergencyContact: (id) => del(`/api/profile/emergency-contacts/${id}`),
 
+  // lugares del camionero — Casa y Deposito en el servidor, por lo mismo que
+  // los contactos; los recientes salen de los viajes
+  savedPlaces: () => get('/api/profile/places'),
+  savePlace: (kind, { label, latitude, longitude }) =>
+    put(`/api/profile/places/${kind}`, { label, latitude, longitude }),
+  deletePlace: (kind) => del(`/api/profile/places/${kind}`),
+  recentPlaces: () => get('/api/profile/recent-places'),
+
   // camiones
   trucks: () => get('/api/trucks'),
   truckTemplates: () => get('/api/trucks/templates'),

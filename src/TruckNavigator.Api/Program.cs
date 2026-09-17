@@ -547,6 +547,141 @@ profiles.MapDelete("/emergency-contacts/{id:guid}", async (
 })
 .WithSummary("Borra un contacto de emergencia propio.");
 
+// ------------------------------------------------------- lugares del camionero
+//
+// Casa y Deposito, y los destinos recientes. Cuelgan del grupo de perfil por lo
+// mismo que los contactos: son datos de la cuenta, y viven en el servidor
+// porque un atajo que se pierde al reinstalar la app es un atajo que no esta
+// el dia que se necesita.
+
+profiles.MapGet("/places", async (
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    var places = await db.SavedPlaces
+        .Where(p => p.OwnerId == userId)
+        .AsNoTracking()
+        .ToListAsync(ct);
+
+    // Casa antes que Deposito: el orden del enum, no el del texto guardado.
+    return Results.Ok(places.OrderBy(p => p.Kind).Select(SavedPlaceDto.From));
+})
+.WithSummary("Casa y Deposito del camionero, los que tenga guardados.");
+
+profiles.MapPut("/places/{kind}", async (
+    string kind,
+    SaveSavedPlaceRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<SavedPlaceKind>(kind, ignoreCase: true, out var parsedKind))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["kind"] = ["El lugar tiene que ser Home o Depot."]
+        });
+    }
+
+    var validation = SavedPlaceRules.Validate(request.Label, request.Latitude, request.Longitude);
+
+    if (!validation.IsValid)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["lugar"] = [validation.Error!]
+        });
+    }
+
+    // Uno por tipo: si ya hay, se pisa. El indice unico de la tabla lo
+    // garantiza aunque dos pedidos lleguen juntos.
+    var place = await db.SavedPlaces
+        .FirstOrDefaultAsync(p => p.OwnerId == userId && p.Kind == parsedKind, ct);
+
+    if (place is null)
+    {
+        place = new SavedPlace { OwnerId = userId, Kind = parsedKind };
+        db.SavedPlaces.Add(place);
+    }
+
+    place.Label = validation.Label!;
+    place.Latitude = request.Latitude;
+    place.Longitude = request.Longitude;
+    place.SavedAt = DateTimeOffset.UtcNow;
+
+    await db.SaveChangesAsync(ct);
+
+    return Results.Ok(SavedPlaceDto.From(place));
+})
+.WithSummary("Guarda o reemplaza Casa o Deposito.");
+
+profiles.MapDelete("/places/{kind}", async (
+    string kind,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<SavedPlaceKind>(kind, ignoreCase: true, out var parsedKind))
+    {
+        return Results.NotFound();
+    }
+
+    var place = await db.SavedPlaces
+        .FirstOrDefaultAsync(p => p.OwnerId == userId && p.Kind == parsedKind, ct);
+
+    if (place is null)
+    {
+        return Results.NotFound();
+    }
+
+    db.SavedPlaces.Remove(place);
+    await db.SaveChangesAsync(ct);
+
+    return Results.NoContent();
+})
+.WithSummary("Borra Casa o Deposito.");
+
+profiles.MapGet("/recent-places", async (
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    // Salen de los viajes: no hay tabla propia que se pueda desincronizar. Se
+    // traen los ultimos por fecha y el dominio deja los ocho destinos distintos
+    // mas nuevos; el tope de lectura cubre a alguien que va siempre al mismo
+    // lugar sin traerse el historial entero.
+    var trips = await db.Trips
+        .Where(t => t.DriverId == userId)
+        .OrderByDescending(t => t.StartedAt)
+        .Take(60)
+        .AsNoTracking()
+        .ToListAsync(ct);
+
+    return Results.Ok(RecentPlaces.From(trips).Select(RecentPlaceDto.From));
+})
+.WithSummary("Los ultimos destinos distintos del camionero, el mas nuevo primero.");
+
 // ---------------------------------------------------------------- camiones
 //
 // Un camion pertenece a una cuenta. Las tres plantillas del catalogo no son de

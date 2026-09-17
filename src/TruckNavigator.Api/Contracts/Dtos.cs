@@ -834,6 +834,29 @@ public sealed record EmergencyContactDto(Guid Id, string Name, string Phone)
 public sealed record SaveEmergencyContactRequest(string? Name, string? Phone);
 
 /// <summary>
+/// Un lugar guardado del camionero: Casa o Deposito. El tipo viaja como texto
+/// ("Home" / "Depot") y es la clave: hay uno por tipo.
+/// </summary>
+public sealed record SavedPlaceDto(string Kind, string Label, double Latitude, double Longitude, DateTimeOffset SavedAt)
+{
+    public static SavedPlaceDto From(SavedPlace place) =>
+        new(place.Kind.ToString(), place.Label, place.Latitude, place.Longitude, place.SavedAt);
+}
+
+/// <summary>
+/// Guardar (o reemplazar) Casa o Deposito. El tipo va en la ruta; lo valida el
+/// dominio (<see cref="SavedPlaceRules"/>).
+/// </summary>
+public sealed record SaveSavedPlaceRequest(string? Label, double Latitude, double Longitude);
+
+/// <summary>Un destino reciente, sacado de los viajes. Ver <see cref="RecentPlaces"/>.</summary>
+public sealed record RecentPlaceDto(string Label, double Latitude, double Longitude, DateTimeOffset LastUsedAt)
+{
+    public static RecentPlaceDto From(RecentPlace place) =>
+        new(place.Label, place.Latitude, place.Longitude, place.LastUsedAt);
+}
+
+/// <summary>
 /// Pedido de equipar una recompensa.
 /// </summary>
 /// <remarks>
