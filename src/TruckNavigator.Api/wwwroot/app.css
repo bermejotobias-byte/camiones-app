@@ -986,6 +986,48 @@ button { font-family: inherit; font-size: inherit; }
 .gps-calle[hidden] { display: none; }
 
 /* ----------------------------------------------------------------------------
+   La tarjeta de aviso: como las alertas de Waze. Fondo de hoja, radio 16, el
+   pin de 44 con la calcomania, que es en 18 negrita y a cuanto esta en 14
+   gris. Ocupa el lugar de la pildora y del boton de aportar mientras dura.
+   -------------------------------------------------------------------------- */
+.gps-aviso {
+  pointer-events: auto;
+  position: absolute;
+  left: 15px; right: 15px;
+  bottom: calc(150px + var(--safe-bottom));
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 16px;
+  padding: 12px 8px 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  z-index: 4;
+}
+
+.gps-aviso[hidden] { display: none; }
+
+.gps-aviso-pin {
+  flex: none;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--gps-pildora);
+  display: grid;
+  place-items: center;
+}
+
+.gps-aviso-texto { flex: 1; min-width: 0; }
+.gps-aviso-texto b { display: block; font-size: 18px; font-weight: 700; line-height: 1.15; }
+.gps-aviso-texto span { display: block; font-size: 14px; color: var(--gps-ink-2); margin-top: 3px; line-height: 1.3; }
+
+/* La cruz de cerrar: un circulo sin fondo. */
+.gps-circulo.plano { background: transparent; color: var(--gps-ink-3); width: 40px; height: 40px; }
+
+.gps-viaje.con-aviso .gps-calle,
+.gps-viaje.con-aviso .gps-aportar { display: none; }
+
+/* ----------------------------------------------------------------------------
    Aportar: donde Waze pone reportar. 63 dp, radio 16, ambar oscuro, con la
    calcomania amarilla; a 15 del borde derecho y 155 del de abajo.
    -------------------------------------------------------------------------- */

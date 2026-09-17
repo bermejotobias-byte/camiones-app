@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { estadoDeBanda, resumenRestante } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/viaje.js';
+import { estadoDeBanda, resumenRestante, textoDeAviso } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/viaje.js';
 import { ICONOS, dibujo } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/piezas.js';
 import { arrivalTime } from '../../src/TruckNavigator.Api/wwwroot/js/ui.js';
 
@@ -90,6 +90,42 @@ test('la hora de llegada va en 24 horas, sin "p. m."', () => {
   assert.equal(arrivalTime(0, tarde), '20:06');
   assert.equal(arrivalTime(0, madrugada), '00:05');
   assert.equal(arrivalTime(39 * 60, tarde), '20:45');
+});
+
+/* ---------------------------------------------------------------------------
+   La tarjeta de aviso
+--------------------------------------------------------------------------- */
+
+const camion = { name: 'El Rayo', heightMeters: 4.2 };
+
+test('un gálibo sobre la ruta se avisa como informativo: se pasa', () => {
+  const aviso = textoDeAviso({ tipo: 'galibo', metres: 3.9, meters: 150, name: 'Avenida Sáenz' }, camion);
+
+  assert.equal(aviso.calcomania, 'galiboOk');
+  assert.equal(aviso.titulo, 'Gálibo de 3,90 m en 150 m');
+  assert.match(aviso.sub, /Pasás/);
+  assert.match(aviso.sub, /El Rayo/);
+});
+
+test('un paso a nivel dice qué barrera tiene y pide bajar la velocidad', () => {
+  assert.equal(textoDeAviso({ tipo: 'paso', meters: 150, barrier: 'half' }).titulo, 'Paso a nivel en 150 m');
+  assert.equal(textoDeAviso({ tipo: 'paso', meters: 150, barrier: 'half' }).sub, 'Con media barrera · Bajá la velocidad');
+  assert.equal(textoDeAviso({ tipo: 'paso', meters: 80, barrier: 'no' }).sub, 'Sin barrera · Bajá la velocidad');
+  assert.equal(textoDeAviso({ tipo: 'paso', meters: 80, barrier: null }).sub, 'Bajá la velocidad');
+  assert.equal(textoDeAviso({ tipo: 'paso', meters: 80 }).calcomania, 'paso');
+});
+
+test('un radar dice dónde está', () => {
+  const aviso = textoDeAviso({ tipo: 'radar', meters: 200, ubicacion: 'AV. SÁENZ - 1200' });
+
+  assert.equal(aviso.calcomania, 'radar');
+  assert.equal(aviso.titulo, 'Radar de velocidad en 200 m');
+  assert.equal(aviso.sub, 'AV. SÁENZ - 1200');
+});
+
+test('un aviso que no se conoce no arma tarjeta', () => {
+  assert.equal(textoDeAviso({ tipo: 'loquesea', meters: 10 }), null);
+  assert.equal(textoDeAviso(null), null);
 });
 
 /* ---------------------------------------------------------------------------

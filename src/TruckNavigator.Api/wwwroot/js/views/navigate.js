@@ -22,7 +22,7 @@ import {
   alertsAlongRoute, pendingRouteAlert, speakableAlert, maneuverArrowPath
 } from '../navigation.js';
 import * as gl from '../map.js';
-import { montarViaje, estadoDeBanda, globosDeRuta } from '../mapa/viaje.js';
+import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso } from '../mapa/viaje.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
   html, raw, icon, wire, q, qa, render, debounce, withBusy,
@@ -1287,12 +1287,11 @@ export function navigateView(host, { openDrawer, go }) {
     if (frase) decir(frase);
 
     // Además del sonido y la vibración, queda escrito: si el teléfono está en
-    // silencio o el motor tapó la voz, el aviso tiene que poder leerse. Es
-    // informativo —el motor ya excluyó los gálibos que no se pasan—, así que
-    // va como aviso y no como error.
-    if (alerta.tipo === 'galibo') {
-      toast(`Gálibo de ${alerta.metres.toFixed(2).replace('.', ',')} m a ${alerta.meters} m. Pasás.`);
-    }
+    // silencio o el motor tapó la voz, el aviso tiene que poder leerse. Va en
+    // la tarjeta del viaje, como las alertas de Waze, y se va sola. Es
+    // informativo —el motor ya excluyó los gálibos que no se pasan (AD-47)—.
+    const tarjeta = textoDeAviso(alerta, selectedTruck());
+    if (tarjeta) viaje?.avisar(tarjeta);
   }
 
   /**

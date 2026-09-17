@@ -151,6 +151,68 @@ export function globosDeRuta(route, navState) {
 }
 
 /* ---------------------------------------------------------------------------
+   La tarjeta de aviso
+
+   Un aviso de la ruta —galibo, paso a nivel, radar— aparece como Waze muestra
+   sus alertas: una tarjeta entre el mapa y la hoja, con la calcomania, que es
+   en 18 sp negrita y a cuanto esta en 14 gris. El galibo es informativo por
+   construccion: uno por el que el camion no pasa no llega a la ruta (AD-47).
+--------------------------------------------------------------------------- */
+
+const BARRERAS = {
+  no: 'Sin barrera',
+  yes: 'Con barrera',
+  full: 'Con barrera completa',
+  half: 'Con media barrera',
+  double_half: 'Con doble media barrera'
+};
+
+const metrosConComa = (valor) => Number(valor).toFixed(2).replace('.', ',');
+
+/**
+ * Que dice la tarjeta de un aviso de `pendingRouteAlert`.
+ *
+ * @returns {{calcomania: string, titulo: string, sub: string}|null}
+ */
+export function textoDeAviso(alerta, camion = null) {
+  if (!alerta) return null;
+
+  const distancia = `en ${Math.round(alerta.meters ?? 0)} m`;
+
+  if (alerta.tipo === 'galibo') {
+    const pasa = camion?.name
+      ? `Pasás: ${camion.name} mide ${metrosConComa(camion.heightMeters)} m`
+      : 'Pasás';
+
+    return {
+      calcomania: 'galiboOk',
+      titulo: `Gálibo de ${metrosConComa(alerta.metres)} m ${distancia}`,
+      sub: alerta.name ? `${pasa} · ${alerta.name}` : pasa
+    };
+  }
+
+  if (alerta.tipo === 'paso') {
+    const barrera = BARRERAS[alerta.barrier];
+
+    return {
+      calcomania: 'paso',
+      titulo: `Paso a nivel ${distancia}`,
+      sub: barrera ? `${barrera} · Bajá la velocidad` : 'Bajá la velocidad'
+    };
+  }
+
+  if (alerta.tipo === 'radar') {
+    return {
+      calcomania: 'radar',
+      titulo: `Radar de velocidad ${distancia}`,
+      sub: alerta.ubicacion || 'Controlá la velocidad'
+    };
+  }
+
+  return null;
+}
+
+/* ---------------------------------------------------------------------------
    El marcado
 --------------------------------------------------------------------------- */
 
@@ -193,6 +255,11 @@ export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, a
     ${bandaMarkup()}
     ${costadoMarkup(vozApagada)}
     <div class="gps-calle" id="gps-calle" hidden></div>
+    <div class="gps-aviso" id="gps-aviso" hidden role="status">
+      <div class="gps-aviso-pin"></div>
+      <div class="gps-aviso-texto"><b></b><span></span></div>
+      ${circulo(dibujo('cerrar', 22), { clase: 'chico plano', id: 'gps-aviso-cerrar', etiqueta: 'Cerrar el aviso' })}
+    </div>
     <button type="button" class="gps-aportar" id="gps-aportar" aria-label="Aportar un lugar">${calcomania('lugarMas', 36)}</button>
     ${hojaMarkup()}`;
 
@@ -209,6 +276,19 @@ export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, a
   tocar('#gps-aportar', alAportar);
   tocar('#gps-sos', alSos);
   tocar('#gps-voz', alVoz);
+
+  // La tarjeta de aviso se va sola a los 6 s, o antes si se la cierra. Un
+  // aviso nuevo reemplaza al anterior y reinicia el reloj.
+  let temporizadorDeAviso = null;
+
+  const esconderAviso = () => {
+    clearTimeout(temporizadorDeAviso);
+    temporizadorDeAviso = null;
+    q('#gps-aviso').hidden = true;
+    capa.classList.remove('con-aviso');
+  };
+
+  tocar('#gps-aviso-cerrar', esconderAviso);
 
   const poner = (selector, texto) => {
     const nodo = q(selector);
@@ -276,8 +356,26 @@ export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, a
       boton.classList.toggle('apagado', Boolean(apagada));
     },
 
+    /**
+     * Muestra la tarjeta de un aviso de la ruta (ver `textoDeAviso`).
+     * Mientras esta, la pildora de la calle y el boton de aportar se corren:
+     * ocupan el mismo lugar y el aviso es lo que hay que leer.
+     */
+    avisar({ calcomania: nombre, titulo, sub }, ms = 6000) {
+      const tarjeta = q('#gps-aviso');
+      tarjeta.querySelector('.gps-aviso-pin').innerHTML = calcomania(nombre, 28);
+      poner('.gps-aviso-texto b', titulo);
+      poner('.gps-aviso-texto span', sub ?? '');
+      tarjeta.hidden = false;
+      capa.classList.add('con-aviso');
+
+      clearTimeout(temporizadorDeAviso);
+      temporizadorDeAviso = setTimeout(esconderAviso, ms);
+    },
+
     /** Saca la pantalla del viaje. */
     destruir() {
+      clearTimeout(temporizadorDeAviso);
       capa.remove();
     },
 
