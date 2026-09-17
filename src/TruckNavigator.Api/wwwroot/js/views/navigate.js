@@ -22,7 +22,7 @@ import {
   alertsAlongRoute, pendingRouteAlert, speakableAlert, maneuverArrowPath
 } from '../navigation.js';
 import * as gl from '../map.js';
-import { montarViaje, estadoDeBanda } from '../mapa/viaje.js';
+import { montarViaje, estadoDeBanda, globosDeRuta } from '../mapa/viaje.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
   html, raw, icon, wire, q, qa, render, debounce, withBusy,
@@ -1224,6 +1224,7 @@ export function navigateView(host, { openDrawer, go }) {
     gl.followVehicle(navState.snapped, navState.bearing);
     gl.trimRoute(route.geometry.coordinates, navState.index, navState.snapped);
     marcarManiobra();
+    gl.showBalloons(globosDeRuta(route, navState), navState.stepIndex);
 
     const announcement = pendingAnnouncement(navState, previousNav, announced);
 

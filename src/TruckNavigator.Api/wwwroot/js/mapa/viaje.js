@@ -67,6 +67,90 @@ export function resumenRestante(segundos, metros) {
 }
 
 /* ---------------------------------------------------------------------------
+   Los globos de las calles que vienen
+
+   Waze clava sobre el mapa el nombre de la calle a la que se va a doblar, y
+   el de la siguiente (waze-06, waze-08): un globo de 30 dp en 18 sp negrita,
+   con la cola en el vertice donde empieza esa calle. Aca se decide cuales y
+   donde; el mapa los dibuja.
+--------------------------------------------------------------------------- */
+
+const ABREVIATURAS = [
+  [/^Avenida\b/, 'Av.'],
+  [/^Diagonal\b/, 'Diag.'],
+  [/^Autopista\b/, 'Au.'],
+  [/^Boulevard\b/, 'Bv.'],
+  [/\bDoctor\b/, 'Dr.'],
+  [/\bDoctora\b/, 'Dra.'],
+  [/\bGeneral\b/, 'Gral.'],
+  [/\bPresidente\b/, 'Pte.'],
+  [/\bIngeniero\b/, 'Ing.'],
+  [/\bTeniente\b/, 'Tte.'],
+  [/\bCoronel\b/, 'Cnel.'],
+  [/\bCapitán\b/, 'Cap.']
+];
+
+/** El nombre como en los carteles: "Av. Gral. Paz". Solo el tipo de via y los titulos. */
+export function abreviarCalle(nombre) {
+  return ABREVIATURAS.reduce((texto, [patron, corto]) => texto.replace(patron, corto), nombre ?? '');
+}
+
+/**
+ * Parte un nombre en una o dos lineas de hasta `max` caracteres, por el
+ * espacio mas cercano al medio. Lo que no entra en dos lineas se corta con
+ * puntos suspensivos: un globo es una etiqueta, no un parrafo.
+ */
+export function partirNombre(nombre, max = 14) {
+  const texto = (nombre ?? '').trim();
+  if (texto.length <= max) return [texto];
+
+  const espacios = [...texto.matchAll(/ /g)].map((m) => m.index);
+  const medio = texto.length / 2;
+  const corte = espacios.length
+    ? espacios.reduce((mejor, i) => (Math.abs(i - medio) < Math.abs(mejor - medio) ? i : mejor))
+    : -1;
+
+  const lineas = corte > 0
+    ? [texto.slice(0, corte), texto.slice(corte + 1)]
+    : [texto];
+
+  return lineas.map((linea) => (linea.length > max + 1 ? `${linea.slice(0, max)}…` : linea));
+}
+
+/**
+ * Hasta dos globos: las proximas calles con nombre, distintas de la actual y
+ * entre si, cada una en el vertice donde arranca su instruccion.
+ *
+ * @returns {{nombre: string, lineas: string[], punto: number[]}[]}
+ */
+export function globosDeRuta(route, navState) {
+  if (!route?.instructions || !route.geometry?.coordinates || !navState) return [];
+
+  const { instructions } = route;
+  const coordinates = route.geometry.coordinates;
+  const actual = instructions[navState.stepIndex]?.streetName ?? '';
+  const globos = [];
+  const vistos = new Set([actual]);
+
+  for (let i = (navState.stepIndex ?? 0) + 1; i < instructions.length && globos.length < 2; i++) {
+    const instruccion = instructions[i];
+    const nombre = (instruccion.streetName ?? '').trim();
+
+    if (!nombre || instruccion.kind === 'Finish' || vistos.has(nombre)) continue;
+
+    const punto = coordinates[instruccion.fromPointIndex];
+    if (!punto) continue;
+
+    vistos.add(nombre);
+
+    const corto = abreviarCalle(nombre);
+    globos.push({ nombre: corto, lineas: partirNombre(corto), punto });
+  }
+
+  return globos;
+}
+
+/* ---------------------------------------------------------------------------
    El marcado
 --------------------------------------------------------------------------- */
 

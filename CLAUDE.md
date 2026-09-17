@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 439 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 100 tests: guiado, avisos de ruta, piezas, pantalla del viaje y flecha de maniobra, agenda, mascota e insignias
+node --test "tests/web/*.test.mjs"             # 108 tests: guiado, avisos de ruta, piezas, pantalla del viaje, flecha de maniobra y globos, agenda, mascota e insignias
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -383,6 +383,15 @@ node --test "tests/web/*.test.mjs"             # 100 tests: guiado, avisos de ru
   `line-progress` —que exige `lineMetrics: true` en la fuente— y la punta como imagen
   rotada por el rumbo del último tramo. Se redibuja sólo cuando cambia la maniobra
   (`showManeuver(flecha, clave)`), no en cada latido.
+- **Los globos de las calles que vienen son UNA imagen de nueve partes, no un marcador
+  HTML.** `globosDeRuta` (viaje.js, con tests) elige hasta dos calles con nombre, distintas
+  de la actual, y `showBalloons` (map.js) las dibuja con `icon-text-fit: both` sobre una
+  imagen de 48 × 40 dibujada en canvas: `stretchX`/`stretchY` estiran el medio de la caja,
+  `content` es la caja **menos un marco de 5 px** —ese marco es el aire del texto, con
+  `icon-text-fit-padding` en cero: así mide 30 con una línea y 48 con dos, como Waze— y la
+  cola queda fuera de `content`, apuntando al punto blanco. `text-anchor: bottom-right` con
+  `text-offset` negativo cuelga el globo arriba y a la izquierda del punto sin taparlo. Van
+  encima de la flecha de la maniobra (`antesDeGlobos`).
 - **El mapa se dibuja después de que el estilo cargue**: `drawRoute` reintenta con `once("idle")`
   si `isStyleLoaded()` es falso. Sin eso la ruta no aparece, de forma intermitente.
 - **SQLite no ordena por `DateTimeOffset`**: los instantes se guardan como ticks UTC con un

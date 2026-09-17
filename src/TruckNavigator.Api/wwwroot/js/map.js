@@ -402,8 +402,8 @@ function gpsElement() {
    Waze dibuja ademas de la banda, y se mueve cuando cambia la maniobra.
 --------------------------------------------------------------------------- */
 
-const ROUTE_LAYERS = ['route-casing', 'route-line', 'route-access', 'maniobra-canto', 'maniobra-linea', 'maniobra-punta'];
-const ROUTE_SOURCES = ['route', 'route-access', 'maniobra', 'maniobra-fin'];
+const ROUTE_LAYERS = ['route-casing', 'route-line', 'route-access', 'maniobra-canto', 'maniobra-linea', 'maniobra-punta', 'globo', 'globo-punto'];
+const ROUTE_SOURCES = ['route', 'route-access', 'maniobra', 'maniobra-fin', 'globos'];
 
 /** Ancho de la ruta en px de pantalla y de su canto (1 dp por lado). */
 const ROUTE_WIDTH = 8;
@@ -412,12 +412,16 @@ const ROUTE_CASING = ROUTE_WIDTH + 2;
 /** Que maniobra tiene la flecha puesta, para no rehacerla en cada latido. */
 let maniobraDibujada = null;
 
+/** Que paso del viaje tiene los globos puestos, por lo mismo. */
+let globosDibujados = null;
+
 export function clearRoute() {
   if (!map) return;
 
   ROUTE_LAYERS.forEach((id) => map.getLayer(id) && map.removeLayer(id));
   ROUTE_SOURCES.forEach((id) => map.getSource(id) && map.removeSource(id));
   maniobraDibujada = null;
+  globosDibujados = null;
 }
 
 /**
@@ -545,6 +549,9 @@ export function showManeuver(flecha, clave = null) {
   map.addSource('maniobra', { type: 'geojson', lineMetrics: true, data: linea });
   map.addSource('maniobra-fin', { type: 'geojson', data: fin });
 
+  // Los globos de las calles, si ya estan, quedan encima de la flecha.
+  const antesDeGlobos = map.getLayer('globo-punto') ? 'globo-punto' : undefined;
+
   map.addLayer({
     id: 'maniobra-canto',
     type: 'line',
@@ -554,7 +561,7 @@ export function showManeuver(flecha, clave = null) {
       'line-width': 9,
       'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(20,26,34,.25)', .2, 'rgba(20,26,34,.9)', 1, 'rgba(20,26,34,.9)']
     }
-  });
+  }, antesDeGlobos);
 
   map.addLayer({
     id: 'maniobra-linea',
@@ -565,7 +572,7 @@ export function showManeuver(flecha, clave = null) {
       'line-width': 6,
       'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(255,255,255,.3)', .2, 'rgba(255,255,255,1)', 1, 'rgba(255,255,255,1)']
     }
-  });
+  }, antesDeGlobos);
 
   ensureArrowHead();
 
@@ -584,7 +591,7 @@ export function showManeuver(flecha, clave = null) {
       // La punta se apoya en el final de la linea: el ancla va abajo.
       'icon-anchor': 'bottom'
     }
-  });
+  }, antesDeGlobos);
 
   maniobraDibujada = clave;
 }
@@ -626,6 +633,149 @@ function ensureArrowHead() {
   g.fill();
 
   map.addImage('maniobra-punta', g.getImageData(0, 0, canvas.width, canvas.height), { pixelRatio: escala });
+}
+
+/* ---------------------------------------------------------------------------
+   Los globos de las calles que vienen
+
+   Como en waze-06: un globo de 30 dp con radio 7 en el azul del globo, el
+   nombre en 18 sp negrita blanco, y la cola apuntando al punto de la calle
+   donde arranca, marcado con un punto blanco. El globo es UNA imagen de nueve
+   partes que MapLibre estira alrededor del texto (`icon-text-fit`), asi que
+   sirve para "Junin" y para "Av. de los / Constituyentes" en dos lineas.
+--------------------------------------------------------------------------- */
+
+/**
+ * Dibuja los globos que devuelve `globosDeRuta`.
+ *
+ * @param {{lineas: string[], punto: number[]}[]} globos
+ * @param {number|null} clave el paso del viaje; con la misma clave no se redibuja
+ */
+export function showBalloons(globos, clave = null) {
+  if (!map) return;
+
+  if (!globos?.length) {
+    ['globo', 'globo-punto'].forEach((id) => map.getLayer(id) && map.removeLayer(id));
+    if (map.getSource('globos')) map.removeSource('globos');
+    globosDibujados = null;
+    return;
+  }
+
+  if (clave !== null && clave === globosDibujados) return;
+
+  if (!map.isStyleLoaded()) {
+    map.once('idle', () => showBalloons(globos, clave));
+    return;
+  }
+
+  const data = {
+    type: 'FeatureCollection',
+    features: globos.map((globo) => ({
+      type: 'Feature',
+      properties: { texto: globo.lineas.join('\n') },
+      geometry: { type: 'Point', coordinates: globo.punto }
+    }))
+  };
+
+  if (map.getSource('globos')) {
+    map.getSource('globos').setData(data);
+    globosDibujados = clave;
+    return;
+  }
+
+  ensureBalloonImage();
+  map.addSource('globos', { type: 'geojson', data });
+
+  // El punto blanco en la calle, con un canto oscuro para que se vea sobre la ruta.
+  map.addLayer({
+    id: 'globo-punto',
+    type: 'circle',
+    source: 'globos',
+    paint: {
+      'circle-radius': 4.5,
+      'circle-color': '#ffffff',
+      'circle-stroke-color': 'rgba(20,26,34,.9)',
+      'circle-stroke-width': 2
+    }
+  });
+
+  map.addLayer({
+    id: 'globo',
+    type: 'symbol',
+    source: 'globos',
+    layout: {
+      'icon-image': 'globo',
+      'icon-text-fit': 'both',
+      // El aire alrededor del texto lo pone el marco de la imagen (5 px, ver
+      // ensureBalloonImage): asi el globo mide 30 con una linea y 48 con dos,
+      // como en Waze.
+      'icon-text-fit-padding': [0, 0, 0, 0],
+      'text-field': ['get', 'texto'],
+      'text-font': ['NotoSans-Bold'],
+      'text-size': 18,
+      'text-line-height': 1.05,
+      'text-justify': 'center',
+      // El globo cuelga arriba y a la izquierda del punto, con la cola en el punto.
+      'text-anchor': 'bottom-right',
+      // La cola termina 8 px arriba y a la izquierda del punto, para no taparlo.
+      'text-offset': [-0.56, -1.22],
+      'text-allow-overlap': true,
+      'icon-allow-overlap': true,
+      'text-ignore-placement': true,
+      'icon-ignore-placement': true
+    },
+    paint: { 'text-color': '#ffffff' }
+  });
+
+  globosDibujados = clave;
+}
+
+/**
+ * La imagen del globo: caja redondeada con la cola abajo a la derecha. Se
+ * dibuja una vez, en un canvas, y se registra con las zonas estirables (todo
+ * menos las esquinas y la cola) y el rectangulo donde va el texto.
+ */
+function ensureBalloonImage() {
+  if (map.hasImage('globo')) return;
+
+  const escala = window.devicePixelRatio || 1;
+  const ancho = 48;
+  const caja = 30;     // alto de la caja sin la cola
+  const cola = 10;     // lo que baja la cola por debajo de la caja
+  const radio = 7;
+  const marco = 5;     // aire entre el texto y el borde de la caja, medido en waze-06
+  const alto = caja + cola;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = ancho * escala;
+  canvas.height = alto * escala;
+
+  const g = canvas.getContext('2d');
+  g.scale(escala, escala);
+  g.fillStyle = token('--gps-globo') || '#1d7699';
+
+  // La caja.
+  g.beginPath();
+  g.roundRect(0, 0, ancho, caja, radio);
+  g.fill();
+
+  // La cola: un triangulo que sale del borde de abajo, a la derecha, y
+  // termina en la esquina inferior derecha de la imagen.
+  g.beginPath();
+  g.moveTo(ancho - 16, caja - 1);
+  g.lineTo(ancho - 1, alto - 1);
+  g.lineTo(ancho - 5, caja - 1);
+  g.closePath();
+  g.fill();
+
+  map.addImage('globo', g.getImageData(0, 0, canvas.width, canvas.height), {
+    pixelRatio: escala,
+    // Se estira el medio de la caja; las esquinas y la cola quedan como estan.
+    stretchX: [[radio + 1, ancho - 16]],
+    stretchY: [[radio + 1, caja - radio - 1]],
+    // El texto va adentro de la caja, a 5 px del borde, nunca sobre la cola.
+    content: [marco, marco, ancho - marco, caja - marco]
+  });
 }
 
 function fitTo(coordinates) {
