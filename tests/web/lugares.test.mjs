@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 
 import {
   estadoDelPin, contadorDelPin, featuresDeLugares, pinSvg, categoriasParaPedir, calcomaniaDeCategoria,
-  metrosEntre, fichaDeLugar, fichaLugar
+  metrosEntre, fichaDeLugar, fichaLugar, nombresDePines, instalarLugares, mostrarLugares
 } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/lugares.js';
 
 const sinVotos = { suitable: 0, notSuitable: 0, seal: 'NoVotesYet', forYourTruck: null, yourVote: null, contributed: null };
@@ -223,4 +223,20 @@ test('la ficha dibujada: cerrar, los dos votos (el propio en celeste), Llamar s�
 test('lo que viene del servidor se escapa en la ficha', () => {
   const html = fichaLugar(fichaDeLugar(lugar({ name: 'Gomería <b>x</b>' }), { camion }));
   assert.ok(!html.includes('<b>x</b>'));
+});
+
+test('los pines se dibujan de antemano: uno por categoría y estado, más el contador', () => {
+  const nombres = nombresDePines();
+
+  assert.equal(nombres.length, 6 * 3 + 1);
+  assert.ok(nombres.includes('pin-gomeria-verificado'));
+  assert.ok(nombres.includes('pin-playa-sin'));
+  assert.ok(nombres.includes('lugar-badge'));
+});
+
+test('instalar sobre un mapa que ya no existe no rompe (medido en el teléfono: "Invalid value used in weak set")', () => {
+  // Al cambiar de pantalla el mapa se destruye y su estilo todavia dispara
+  // eventos; el anfitrion llega con null y antes explotaba en el WeakSet.
+  assert.doesNotThrow(() => instalarLugares(null));
+  assert.doesNotThrow(() => mostrarLugares(null, []));
 });

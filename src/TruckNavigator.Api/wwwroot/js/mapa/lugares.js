@@ -112,6 +112,16 @@ const badgeSvg = () =>
   '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 18 18">' +
   '<circle cx="9" cy="9" r="7.5" fill="#6e7378" stroke="#ffffff" stroke-width="2"/></svg>';
 
+const ESTADOS = ['verificado', 'comunidad', 'sin'];
+
+/** Todas las imagenes que la capa puede pedir: un pin por categoria y estado, mas el contador. */
+export function nombresDePines() {
+  return [
+    ...CATEGORIAS.flatMap((c) => ESTADOS.map((estado) => `pin-${c.calcomania}-${estado}`)),
+    'lugar-badge'
+  ];
+}
+
 /* ---------------------------------------------------------------------------
    MapLibre
 --------------------------------------------------------------------------- */
@@ -144,17 +154,31 @@ function registrarImagen(map, nombre, svg) {
  * estilo (el raster de respaldo, el dia) las capas se pierden y map.js las
  * vuelve a instalar en cada 'style.load'.
  */
+/** Dibuja un pin (o el contador) y lo registra, si todavia no esta. */
+function pedirImagen(map, id) {
+  if (id === 'lugar-badge') return registrarImagen(map, id, badgeSvg());
+
+  const partes = /^pin-([a-z]+)-(verificado|comunidad|sin)$/i.exec(id);
+  if (partes) registrarImagen(map, id, pinSvg(partes[1], partes[2]));
+}
+
 export function instalarLugares(map) {
+  // Al cambiar de pantalla el mapa se destruye y su estilo todavia dispara
+  // eventos: el anfitrion puede llegar sin mapa (medido en el telefono el
+  // 18/09/2026: "Invalid value used in weak set").
+  if (!map) return;
+
   if (!escuchando.has(map)) {
     escuchando.add(map);
-
-    map.on('styleimagemissing', ({ id }) => {
-      if (id === 'lugar-badge') return registrarImagen(map, id, badgeSvg());
-
-      const partes = /^pin-([a-z]+)-(verificado|comunidad|sin)$/i.exec(id);
-      if (partes) registrarImagen(map, id, pinSvg(partes[1], partes[2]));
-    });
+    map.on('styleimagemissing', ({ id }) => pedirImagen(map, id));
   }
+
+  // Se dibujan todos de antemano: son 19 imagenes chicas y cargan mucho
+  // antes de que lleguen los lugares del servidor. Sin esto MapLibre pide
+  // cada una al encontrarla, la carga tarda un instante y avisa por consola
+  // "could not be loaded" (medido en el telefono el 18/09/2026). El oyente
+  // queda de respaldo: un estilo nuevo pierde las imagenes.
+  for (const id of nombresDePines()) pedirImagen(map, id);
 
   if (map.getSource(FUENTE)) return;
 
@@ -208,7 +232,7 @@ export function instalarLugares(map) {
 
 /** Pone estos lugares en el mapa (o ninguno). */
 export function mostrarLugares(map, pois) {
-  map.getSource(FUENTE)?.setData(featuresDeLugares(pois));
+  map?.getSource(FUENTE)?.setData(featuresDeLugares(pois));
 }
 
 /* ---------------------------------------------------------------------------

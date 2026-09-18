@@ -142,10 +142,22 @@ export function createMap(container, handlers = {}) {
     });
   }
 
+  // Los oyentes actuan SOLO si este sigue siendo el mapa de la app. Al cambiar
+  // de pantalla y volver, el mapa viejo se destruye pero su estilo, que venia
+  // cargando, todavia dispara 'load' y 'style.load'; el oyente miraba la
+  // variable `map` y le instalaba capas al mapa NUEVO con el estilo a medio
+  // cargar — o a ningun mapa. Medido en el telefono el 18/09/2026: "use of
+  // text-field requires a style glyphs property" e "Invalid value used in
+  // weak set", con el mapa sin Red ni lugares.
+  const propio = map;
+  const sigueVivo = () => map === propio;
+
   // Las capas de camion se agregan apenas carga el estilo y antes de que
   // exista una ruta, para que la ruta quede dibujada por encima.
   map.on('load', async () => {
+    if (!sigueVivo()) return;
     await installTruckLayers(map);
+    if (!sigueVivo()) return;
     instalarLugares(map);
     handlers.onReady?.();
   });
@@ -162,7 +174,9 @@ export function createMap(container, handlers = {}) {
       return;
     }
 
+    if (!sigueVivo()) return;
     await installTruckLayers(map);
+    if (!sigueVivo()) return;
     instalarLugares(map);
   });
 
