@@ -893,3 +893,58 @@ formulario, naranja si es festejo**; **un cromo por pantalla** — si todo brill
 nada brilla; **el mono habla, no decora** — una pose por momento, siempre la
 misma; **el vacío vende la próxima acción** — el mono pregunta, el botón
 responde; **los números cuentan la historia** — grandes, tabulares, con unidad.
+
+## 17. El GPS, medido sobre Waze — 16/09/2026, en construcción
+
+**Es la excepción de §2 hecha sistema.** El usuario aprobó el prototipo del
+mapa (`docs/diseno/prototipo-gps/`, generado por `gps.mjs`; lienzo
+https://claude.ai/artifact/42KH4a8piCQSCb5xez2K4H) con *"ahora sí, aprobado,
+vamos a implementarlo"*, después de descartar cuatro versiones anteriores por
+*"pobres"* y *"baratas"*. La diferencia entre las descartadas y la aprobada fue
+una sola: **medir en píxeles sus capturas de Waze** (`docs/referencias/waze/`,
+720 × 1600, ÷2 = dp) y copiar las medidas textuales, sin redondear a "razonable".
+Es la misma lección de §7bis: primero se copia exacto, después se eleva.
+
+**Qué se copia y qué no.** Patrones, jerarquía, tamaños y colores de Waze; el
+lenguaje visual del tráfico. **No** la marca, los Wazers, las ilustraciones ni
+la tipografía de marca: las calcomanías son dibujos propios (`piezas.js`). De
+Google Maps **sólo** la hoja de capas (cuadros para activar y desactivar
+lugares y datos). Todo lo demás de la app sigue en §1–§16.
+
+**Los tokens** (en `app.css`, `--gps-*` y `--map-*`, noche medida y día
+derivado — falta la captura de día): banda `#000`; hoja y tarjetas `#202125`;
+píldoras y círculos `#3c4043`; ruta `#2ddcff` de 8 dp con canto blanco al
+35 %; acción `#32ccfe` con texto `#0a1f2a`; celeste de texto `#32c8fb`;
+chevrón `#00b5d0`; globo `#1d7699`; aportar `#4e411e` con calcomanía
+`#f9c531` (**el amarillo significa "fuera de la Red"** y es el único color de
+advertencia sobre una ruta; **el rojo nunca va sobre una ruta**, AD-47).
+Mapa: tierra `#272d39`, manzanas `#252e3d`/`#233041`, predios `#2e3d50`, agua
+`#22467a`, parque `#216a4f`, calle `#40546c` (10 dp de cerca, 2,5 de lejos),
+avenida `#4d6179`, **la Red `#6d89a8` es la vía más clara y ancha, con el
+nombre en mayúsculas espaciadas**, autopista `#7494b4` con carriles y centro
+punteado, ferrocarril a rayas; rótulos de calle 12 sp, barrios 17 sp gris.
+
+**Las medidas** (spec `docs/superpowers/specs/2026-09-16-gps-waze-design.md`
+§2, y las correcciones medidas al construir): banda 95 + barra de estado
+(57 compacta), flecha 40 × 46 de trazo 5,5, distancia 27 sp / 400, calle
+24 sp / 500; hoja del viaje 137 con la hora 25 sp / 700 y "39 min • 32 km" en
+20; **píldora de la calle actual 18 sp / 700** (la spec decía 20; medido, 18),
+negra, a 155 del borde; aportar 63; círculos 52 (hoja: 45); globos 30 / 48 en
+18 sp / 700 con radio 7; chevrón 40 × 39 sobre disco de 82 al 6 %; "Volver a
+centrar" **18 sp** (a 20 no entra: 131 dp de texto, píldora a 212) con
+píldora 132 × 37; conmutador 155 × 40; tarjetas de ruta radio 16, tiempo
+27 / 700, píldora 44; reposo 150 (píldora 50, atajos 45); búsqueda píldora
+52, chips 82 × 65, filas 65 con 18 / 700. Roboto (`system-ui`) sólo dentro de
+`.map-screen`.
+
+**Las reglas del prototipo**, que gobiernan lo que falta construir: una cifra
+manda por pantalla; el celeste es acción y ruta, el amarillo salir de la Red;
+la Red se lee sola; lo de la comunidad no se ve igual que lo verificado; nada
+del registro expresivo en movimiento —**el mono habla una vez, en los
+detalles de la ruta, antes de arrancar**—; donde falta el dato, se dice.
+
+**Dónde está cada cosa**: un módulo por superficie en `wwwroot/js/mapa/`
+(`estilo-mapa`, `piezas`, `viaje`, `rutas`, `reposo`, `buscar`; faltan
+`capas`, `lugares`, `aportar`) con `navigate.js` de anfitrión. El estado de
+avance, tarea por tarea, está en `docs/superpowers/plans/2026-09-16-gps-waze.md`
+y en `estado-camiones-app` §8, punto 0.

@@ -847,6 +847,33 @@ Tres secciones sirven, y conviene mirarlas en este orden:
   visual antes de tener las referencias del usuario. Cuando existan los dibujos, el
   catálogo mapea código a asset sin tocar arquitectura.
 
+**El GPS con la piel de Waze — decididas el 16/09/2026:**
+
+- **Waze es la referencia visual principal del GPS; Google Maps sólo inspira
+  la hoja de capas** (activar/desactivar lugares y datos). Textual: *"imites a
+  waze idénticamente en concepto de viaje, fuentes y tamaños, y todos los
+  criterios visuales de las calles, avisos, etc."* Se copian **patrones y
+  medidas**, medidos sobre sus 16 capturas de noche
+  (`docs/referencias/waze/`); nunca la marca, los Wazers, las ilustraciones ni
+  la tipografía de marca. Las calcomanías son dibujos propios.
+- **Lo más importante es el mapa en reposo y en viaje**, y **la ruta se corrige
+  en el origen, no con otra alerta**: un tramo por el que el camión no pasa
+  queda excluido del cálculo (AD-47). Prioridades que dio, en orden: ruteo
+  seguro → legibilidad de la Red → globos clavados en la calle → calle actual
+  clara → espacios verdes → logos (aparte, después).
+- **Sacar la letra verde de la calle actual**: *"es algo que te pedí yo pero no
+  queda bien"*. Va en la píldora negra, como en Waze (AD-37 reemplazada).
+- **Sin velocímetro** (Waze lo tiene; el usuario dijo que no). Sin micrófono.
+  **Sin hamburguesa en el mapa**: el zócalo tiene "Más".
+- **En viaje**: "Volver a centrar" + "Vista general", y **cambiar de ruta en
+  viaje** con Mapa/Lista e "Ir". El botón de aportar del viaje **sólo agrega un
+  lugar** (los reportes son de la Fase 5).
+- **Casa, Depósito y los recientes viven en el servidor**, como los contactos.
+- **Roboto (la del sistema) sólo dentro del GPS**; Nunito en el resto.
+- **Un módulo por superficie** en `js/mapa/*` con `navigate.js` de anfitrión.
+- **El tema de día se derivó, no se midió**: falta que mande una captura de
+  Waze de día. Y **los logos y la identidad** quedan para una aprobación aparte.
+
 ---
 
 ## 6. Trampas del entorno — releer antes de perder tiempo
@@ -952,6 +979,49 @@ Tres secciones sirven, y conviene mirarlas en este orden:
   de una captura anterior puede caer en el botón de al lado —pasó: cayó en
   *Cancelar* en vez de *Guardar*, y pareció que el alta estaba rota—. Para
   interactuar, `find` / `read_page` y clic **por `ref`**, que no se desplaza.
+
+**Lo aprendido el 16–17/09/2026 verificando el GPS a 360 × 800** (viewport
+emulado con `resize_window`; el panel se pasa la mayor parte del tiempo
+escondido):
+
+- **Con el panel escondido `requestAnimationFrame` no corre y MapLibre no
+  carga el estilo nunca** (`isStyleLoaded()` queda en `false`, el mapa negro,
+  sin error). Se destraba desde `javascript_tool`:
+  `window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), 16);`
+  y después `tnMap.setStyle((await import('/js/mapa/estilo-mapa.js')).buildBasemapStyle(''))`,
+  `await once('idle')`, `installTruckLayers(tnMap)` y `refreshLayerColors(tnMap)`
+  de `layers.js`. `window.tnMap` existe sólo en localhost.
+- **Los clics por coordenada NO llegan al panel emulado** (ni por `ref` en
+  algunos diálogos): "Calcular ruta" y "Abandonar el viaje" no reaccionaban y
+  parecía la app rota. Se dispara con `.click()` desde JS; para escribir en un
+  input, `form_input` por `ref` (sí dispara `input`).
+- **El GPS del viaje se simula con `window.TN_setPosition(lat, lng, 5, 9, 0)`**
+  (el puente nativo; empuja a todos los `watchers`). Las coordenadas de la ruta
+  salen de `tnMap.getSource('route')._data.geometry.coordinates`; dos o tres
+  posiciones seguidas alcanzan para ver la banda, la flecha y los globos.
+- **`import('/js/map.js')` sin cache-buster devuelve LA MISMA instancia que usa
+  la app** (misma URL): sirve para llamar `drawRoute`, `showBalloons`, etc.
+  con el mapa real. Con `?v=` es otra instancia, sin `map`.
+- **El `screenshot` a veces sale en mosaico de 2 × 2 o con el mapa a medio
+  pintar**: es un artefacto del panel escondido, no de la app; se repite y sale
+  bien. Y el `zoom` por región no está soportado (devuelve la captura entera).
+- **Con el preview `api` corriendo, `dotnet build`, `dotnet test` y
+  `dotnet ef` fallan con `MSB3027` (DLL bloqueada)**: `preview_stop` antes, y
+  `preview_start` de nuevo después. Los estáticos de `wwwroot` sí se sirven
+  en caliente; el CSS se refresca cambiando el `href` del `<link>` con `?v=`.
+- **La pestaña del panel puede resumir el viaje abierto** (`/api/trips/active`)
+  al recargar: para ver el reposo hay que abandonarlo primero (`#stop-nav` →
+  "Abandonar el viaje" con `.click()`).
+- **Medir las capturas de Waze**: son 720 × 1600 (÷2 = dp). Con PowerShell y
+  `System.Drawing` (`GetPixel`) se recorren filas/columnas listando tramos de
+  color y cajas de píxeles blancos/celestes; la altura de mayúsculas ÷ 0,711 da
+  el tamaño en sp de Roboto (la "l" mide 0,75). Los scripts vivieron en el
+  scratchpad de la sesión (`medir.ps1`, `extension.ps1`), no en el repo:
+  rehacerlos si hace falta, son 40 líneas.
+- **Bash rompe backticks, comillas y barras al pasar código por `-e` o
+  heredoc**: los parches a archivos grandes se hacen con un `.mjs` en el
+  scratchpad (leer → `replace` con marcas exactas → escribir respetando CRLF),
+  y los mensajes de commit con `git commit -F archivo`.
 
 ### Overpass
 
