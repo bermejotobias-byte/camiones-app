@@ -153,3 +153,8 @@ export function circulo(dibujo, { clase = '', id = '', etiqueta = '' } = {}) {
 export function chip(color, texto) {
   return `<span class="gps-chip"><i style="background:${color}"></i>${escapar(texto)}</span>`;
 }
+
+/** El triangulo de "Ir" de las pildoras de Waze. */
+export function flechaIr(t = 16) {
+  return `<svg viewBox="0 0 24 24" width="${t}" height="${t}" aria-hidden="true"><path d="M12 3l8 18-8-4.5L4 21z" fill="currentColor"/></svg>`;
+}

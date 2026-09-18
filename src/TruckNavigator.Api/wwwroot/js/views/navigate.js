@@ -14,7 +14,7 @@
 import { api } from '../api.js';
 import {
   getPosition, watchPosition, watchHeading, speak, keepScreenAwake, onTrackingFailed,
-  vibrate, VIBRACION
+  vibrate, VIBRACION, call
 } from '../platform.js';
 import {
   prepareRoute, advance, shouldReroute, pendingAnnouncement,
@@ -30,7 +30,7 @@ import {
 } from '../mapa/rutas.js';
 import { hojaReposo } from '../mapa/reposo.js';
 import { hojaBuscar, cuerpoDeBusqueda } from '../mapa/buscar.js';
-import { categoriasParaPedir } from '../mapa/lugares.js';
+import { categoriasParaPedir, fichaDeLugar, fichaLugar } from '../mapa/lugares.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
   html, raw, icon, wire, q, qa, render, debounce, withBusy,
@@ -45,7 +45,7 @@ export function navigateView(host, { openDrawer, go }) {
   let routeOptions = [];      // la recomendada y sus alternativas, ya ordenadas
   let avisosPorOpcion = [];   // lo que hay en el camino de cada una: radares, galibos, pasos
   let chosenRoute = 0;        // cuál de todas se está mirando
-  let stage = 'search';       // 'search' (reposo) | 'buscar' | 'route' | 'detalles' | 'delivery' | 'navigation'
+  let stage = 'search';       // 'search' (reposo) | 'buscar' | 'route' | 'detalles' | 'ficha' | 'delivery' | 'navigation'
 
   // --- modo reparto ---
   let stops = [];             // paradas como las cargó el usuario
@@ -354,6 +354,7 @@ export function navigateView(host, { openDrawer, go }) {
     if (stage === 'navigation') return drawNavigation();
     if (stage === 'route') return drawRutas();
     if (stage === 'detalles') return drawDetalles();
+    if (stage === 'ficha') return drawFicha();
     if (stage === 'delivery') return drawDelivery();
     if (stage === 'buscar') return drawBuscar();
     drawReposo();
@@ -403,10 +404,96 @@ export function navigateView(host, { openDrawer, go }) {
     }
   }
 
-  /** Tocar un pin abre su ficha (tarea 23); por ahora dice que es. */
+  /* ------------------------------------------------------------------------
+     La ficha de un lugar y el voto (el prototipo, tableros "Lugar")
+
+     Tocar un pin en reposo abre la ficha como hoja inferior: lo verificado
+     separado de lo comunitario, el voto propio, Llamar e Ir. Votar de nuevo
+     cambia el voto; tocar el voto que ya esta lo retira. Lo que paga lo dice
+     el servidor (`earned`): el toast del voto es lo unico que dice EXP en el
+     mapa. Los votos nunca tocan lo verificado (AD-46).
+  ------------------------------------------------------------------------ */
+
+  let ficha = null;   // el lugar abierto, mientras la hoja esta
+  let ultimaPosicion = null;
+
   function abrirFicha(id) {
     const lugar = lugaresEnMapa.find((p) => p.id === id);
-    if (lugar) toast(lugar.name, 'info');
+    if (!lugar) return;
+
+    // Con una ruta en pantalla o en viaje el pin solo se nombra: la ficha
+    // taparia lo que se esta mirando.
+    if (stage !== 'search' && stage !== 'ficha') {
+      toast(lugar.name, 'info');
+      return;
+    }
+
+    ficha = lugar;
+    stage = 'ficha';
+    drawSheet();
+  }
+
+  function cerrarFicha() {
+    ficha = null;
+    stage = 'search';
+    drawSheet();
+  }
+
+  function drawFicha() {
+    const hoja = sheetAs('gps-hoja-ficha');
+    hoja.innerHTML = fichaLugar(fichaDeLugar(ficha, { camion: selectedTruck(), desde: ultimaPosicion }));
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, veredicto } = boton.dataset;
+      if (accion === 'cerrar') cerrarFicha();
+      if (accion === 'votar') votarLugar(veredicto, boton);
+      if (accion === 'llamar') call(ficha.phone);
+      if (accion === 'ir') irAlLugar();
+    };
+  }
+
+  async function votarLugar(veredicto, boton) {
+    const camion = selectedTruck();
+    if (!camion) { toast('Elegí un camión para votar: el voto dice para qué tipo vale.'); return; }
+
+    const lugar = ficha;
+    const retirar = lugar.community?.yourVote === veredicto;
+
+    await withBusy(boton, retirar ? 'Retirando' : 'Guardando', async () => {
+      try {
+        if (retirar) {
+          await api.retirePoiVote(lugar.id);
+          lugar.community = await comunidadActualizada(lugar);
+          toast('Voto retirado.');
+        } else {
+          const { community, earned } = await api.votePoi(lugar.id, camion.id, veredicto);
+          lugar.community = community;
+          toast(earned?.contributionExperience ? `Voto guardado • +${earned.contributionExperience} EXP` : 'Voto guardado.');
+        }
+      } catch (error) {
+        toastError(`No se pudo votar: ${error.message}`);
+        return;
+      }
+
+      // El pin puede cambiar de estado (de "sin confirmar" a "de la comunidad").
+      gl.showPlaces(lugaresEnMapa);
+      if (ficha === lugar) drawFicha();
+    });
+  }
+
+  /** Despues de retirar el voto el servidor no devuelve la ficha: se vuelve a pedir. */
+  async function comunidadActualizada(lugar) {
+    const actual = (await api.pois(lugar.category, selectedTruck()?.id)).find((p) => p.id === lugar.id);
+    return actual?.community ?? { ...lugar.community, yourVote: null };
+  }
+
+  function irAlLugar() {
+    const destino = { label: ficha.name, latitude: ficha.latitude, longitude: ficha.longitude };
+    cerrarFicha();
+    elegirLugar(destino);
   }
 
   async function cargarLugares() {
@@ -1294,6 +1381,7 @@ export function navigateView(host, { openDrawer, go }) {
     }
 
     gl.setGpsPosition(point);
+    ultimaPosicion = point;
 
     // Solo se toma como origen si todavia no hay uno elegido a mano.
     if (origin) {
@@ -1580,6 +1668,7 @@ export function navigateView(host, { openDrawer, go }) {
     waitingForGps = false;
     trackingProblem = null;
 
+    ultimaPosicion = { lat: fix.lat, lng: fix.lng };
     previousNav = navState;
     navState = advance(prepared, fix, navState);
 

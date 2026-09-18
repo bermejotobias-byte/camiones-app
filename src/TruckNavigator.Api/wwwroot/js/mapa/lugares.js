@@ -6,15 +6,17 @@
  * calcomania de la categoria adentro. Lo comunitario no se ve igual que lo
  * verificado (AD-46), tampoco en el pin.
  *
- * Lo puro —que pin le toca a cada lugar, como viaja al mapa, como se pide—
- * esta probado en tests/web/lugares.test.mjs. Lo de MapLibre va abajo:
- * `instalarLugares` deja la fuente y la capa listas y `mostrarLugares` las
- * llena; los pines se dibujan a pedido cuando el mapa los reclama
- * (`styleimagemissing`), asi que no hay que registrar 6 x 3 imagenes de
- * antemano. Como los otros iconos del mapa, van con colores fijos.
+ * Lo puro —que pin le toca a cada lugar, como viaja al mapa, como se pide,
+ * que dice la ficha— esta probado en tests/web/lugares.test.mjs. Lo de
+ * MapLibre va en el medio: `instalarLugares` deja la fuente y la capa listas
+ * y `mostrarLugares` las llena; los pines se dibujan a pedido cuando el mapa
+ * los reclama (`styleimagemissing`), asi que no hay que registrar 6 x 3
+ * imagenes de antemano. Como los otros iconos del mapa, van con colores
+ * fijos. Al final, la ficha y el voto; navigate.js los engancha.
  */
 
-import { CALCOMANIAS } from './piezas.js';
+import { CALCOMANIAS, calcomania, dibujo, pildora, flechaIr } from './piezas.js';
+import { escapeHtml } from '../ui.js';
 import { CATEGORIAS } from './buscar.js';
 
 /* ---------------------------------------------------------------------------
@@ -201,4 +203,197 @@ export function instalarLugares(map) {
 /** Pone estos lugares en el mapa (o ninguno). */
 export function mostrarLugares(map, pois) {
   map.getSource(FUENTE)?.setData(featuresDeLugares(pois));
+}
+
+/* ---------------------------------------------------------------------------
+   La ficha (el prototipo, tableros "Lugar verificado" y "Lugar de la comunidad")
+
+   La tarjeta de Waze: la calcomania en una caja de 48, el nombre en 22
+   negrita, la categoria, la distancia y la direccion en 14 gris, y "Ir"
+   celeste. Lo que Waze no tiene: lo verificado separado de lo comunitario.
+   Arriba la evidencia con su fecha —en verde porque es un si; en rojo si la
+   fuente dice que NO recibe tu camion; en gris lo probable—, abajo cuantos
+   camioneros con un camion como el tuyo lo recomiendan, el total y tu voto.
+   Los votos nunca tocan lo verificado (AD-46).
+--------------------------------------------------------------------------- */
+
+const CATEGORIA_EN_SINGULAR = {
+  TyreShop: 'Gomería',
+  RepairShop: 'Taller',
+  FuelStation: 'Estación de servicio',
+  TruckFriendlyEatery: 'Comida',
+  HeavyRoadsideAssistance: 'Auxilio pesado',
+  TruckParking: 'Playa de camiones'
+};
+
+const EVIDENCIA = {
+  Operator: 'Lo declara el comercio',
+  Official: 'Lo dice una fuente oficial',
+  Reviews: 'Lo cuentan conductores en reseñas'
+};
+
+const RECIBE = [
+  ['suitableForLightTruck', 'livianos'],
+  ['suitableForHeavyTruck', 'pesados'],
+  ['suitableForSemiTrailer', 'semis'],
+  ['suitableForTrailer', 'acoplados']
+];
+
+/** La distancia en linea recta entre dos puntos {lat, lng}, en metros. */
+export function metrosEntre(a, b) {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6_371_000 * Math.asin(Math.sqrt(h));
+}
+
+const distanciaLegible = (metros) => (metros < 1000
+  ? `a ${Math.round(metros)} m`
+  : `a ${(metros / 1000).toFixed(1).replace('.', ',')} km`);
+
+/** "2026-09-15" → "15/09/2026". */
+const fechaLegible = (iso) => {
+  const [a, m, d] = String(iso ?? '').split('-');
+  return a && m && d ? `${d}/${m}/${a}` : '';
+};
+
+/** "camiones livianos y pesados", "camiones pesados, semis y acoplados", "semis". */
+function loQueRecibe(poi) {
+  const tipos = RECIBE.filter(([campo]) => poi[campo] === true).map(([, nombre]) => nombre);
+  if (tipos.length === RECIBE.length) return 'todo tipo de camión';
+  if (tipos.length === 0) return 'camiones';
+
+  // "camiones" va una sola vez, adelante, si lo que recibe son camiones
+  // livianos o pesados; semis y acoplados se nombran solos.
+  const lista = tipos.length === 1 ? tipos[0] : `${tipos.slice(0, -1).join(', ')} y ${tipos.at(-1)}`;
+  return /^(livianos|pesados)/.test(lista) ? `camiones ${lista}` : lista;
+}
+
+const conFecha = (texto, poi) => {
+  const fecha = fechaLegible(poi.sourceRetrievedOn);
+  return fecha ? `${texto} · ${fecha}` : texto;
+};
+
+/** El bloque de lo verificado, o null si nadie confirmo nada. */
+function bloqueVerificado(poi) {
+  if (poi.verificationLevel === 'Probable') {
+    return {
+      nivel: 'probable',
+      titulo: 'Probable · hay señales de que recibe camiones',
+      sub: conFecha('Por el nombre, una etiqueta o fotos; nadie lo confirmó', poi)
+    };
+  }
+
+  if (poi.verificationLevel !== 'Confirmed') return null;
+
+  const evidencia = EVIDENCIA[poi.suitabilityEvidenceKind] ?? 'Lo confirma la fuente';
+
+  if (poi.suitableForSelectedTruck === false) {
+    const recibe = loQueRecibe(poi);
+    return {
+      nivel: 'no-apto',
+      titulo: 'Verificado · no recibe tu camión',
+      sub: conFecha(`Recibe ${recibe} · ${evidencia.charAt(0).toLowerCase()}${evidencia.slice(1)}`, poi)
+    };
+  }
+
+  return { nivel: 'confirmado', titulo: `Verificado · recibe ${loQueRecibe(poi)}`, sub: conFecha(evidencia, poi) };
+}
+
+const camioneros = (n) => `${n} ${n === 1 ? 'camionero' : 'camioneros'}`;
+
+/** Lo que dice la comunidad, con los votos de camiones como el tuyo adelante. */
+function bloqueComunidad(poi) {
+  const c = poi.community ?? {};
+  const total = (c.suitable ?? 0) + (c.notSuitable ?? 0);
+  const tuyo = c.forYourTruck;
+
+  if (total === 0) return { titulo: 'Nadie votó todavía', sub: 'Sé el primero: ¿es apto para tu camión?' };
+
+  let titulo;
+  if (!tuyo) {
+    titulo = c.suitable > 0
+      ? `${camioneros(c.suitable)} lo ${c.suitable === 1 ? 'recomienda' : 'recomiendan'}`
+      : `${camioneros(c.notSuitable)} lo ${c.notSuitable === 1 ? 'desaconseja' : 'desaconsejan'}`;
+  } else if (tuyo.suitable > 0) {
+    titulo = `${camioneros(tuyo.suitable)} con un camión como el tuyo lo ${tuyo.suitable === 1 ? 'recomienda' : 'recomiendan'}`;
+  } else if (tuyo.notSuitable > 0) {
+    titulo = `${camioneros(tuyo.notSuitable)} con un camión como el tuyo lo ${tuyo.notSuitable === 1 ? 'desaconseja' : 'desaconsejan'}`;
+  } else {
+    titulo = 'Nadie con un camión como el tuyo votó todavía';
+  }
+
+  const enContra = c.notSuitable > 0 ? `${c.notSuitable} lo ${c.notSuitable === 1 ? 'desaconseja' : 'desaconsejan'}` : 'nadie lo desaconseja';
+  const sinVerificar = poi.verificationLevel === 'Confirmed' || poi.verificationLevel === 'Probable'
+    ? ''
+    : (c.notSuitable > 0 ? ' · sin verificar' : ' · sin verificar: nadie confirmó el dato todavía');
+
+  const sub = c.notSuitable > 0 || !sinVerificar
+    ? `${total} en total · ${enContra}${sinVerificar}`
+    : `${total} en total${sinVerificar}`;
+
+  return { titulo, sub };
+}
+
+/**
+ * Lo que dice la ficha de un lugar, listo para dibujar.
+ *
+ * @param {object} poi                            el PoiDto
+ * @param {{camion?: object, desde?: {lat, lng}}} contexto  el camion elegido y donde esta uno
+ */
+export function fichaDeLugar(poi, { camion = null, desde = null } = {}) {
+  const partes = [CATEGORIA_EN_SINGULAR[poi.category] ?? 'Lugar'];
+  if (desde) partes.push(distanciaLegible(metrosEntre(desde, { lat: poi.latitude, lng: poi.longitude })));
+  if (poi.address) partes.push(poi.address);
+
+  const aporte = poi.community?.contributed;
+
+  return {
+    id: poi.id,
+    calcomania: calcomaniaDeCategoria(poi.category),
+    nombre: poi.name,
+    sub: partes.join(' · '),
+    aportado: aporte ? `Aportado por la comunidad · @${aporte.byAlias ?? 'anónimo'} · ${fechaLegible(aporte.at)}` : null,
+    verificado: bloqueVerificado(poi),
+    comunidad: bloqueComunidad(poi),
+    voto: poi.community?.yourVote ?? null,
+    pregunta: camion ? `¿Es apto para ${camion.name}?` : '¿Es apto para tu camión?',
+    telefono: poi.phone ?? null
+  };
+}
+
+/** La ficha dibujada; navigate.js la engancha por data-accion. */
+export function fichaLugar(f) {
+  const voto = (veredicto, texto) => pildora(texto, {
+    clase: f.voto === veredicto ? 'celeste chica' : 'chica',
+    icono: f.voto === veredicto ? dibujo('check', 16, 3) : '',
+    datos: `data-accion="votar" data-veredicto="${veredicto}"`
+  });
+
+  return `
+  <div class="gps-manija"></div>
+  <div class="gps-ficha-cabeza">
+    <div class="gps-ficha-ico">${calcomania(f.calcomania, 32)}</div>
+    <div class="gps-ficha-titulo"><b>${escapeHtml(f.nombre)}</b><span>${escapeHtml(f.sub)}</span></div>
+    <button type="button" class="gps-ficha-cerrar" data-accion="cerrar" aria-label="Cerrar">${dibujo('cerrar', 22, 2.4)}</button>
+  </div>
+  ${f.aportado ? `<div class="gps-etiqueta-comunidad">${calcomania('comunidad', 16)}<span>${escapeHtml(f.aportado)}</span></div>` : ''}
+  ${f.verificado ? `
+  <div class="gps-bloque gps-bloque-${f.verificado.nivel}">
+    <div class="gps-bloque-titulo"><i>${dibujo(f.verificado.nivel === 'no-apto' ? 'cerrar' : 'check', 14, 3.2)}</i><b>${escapeHtml(f.verificado.titulo)}</b></div>
+    <span>${escapeHtml(f.verificado.sub)}</span>
+  </div>` : ''}
+  <div class="gps-bloque gps-bloque-comunidad">
+    <div class="gps-bloque-titulo">${calcomania('comunidad', 20)}<b>${escapeHtml(f.comunidad.titulo)}</b></div>
+    <span>${escapeHtml(f.comunidad.sub)}</span>
+  </div>
+  <div class="gps-voto">
+    <span>${escapeHtml(f.pregunta)}</span>
+    <div class="gps-voto-botones">${voto('Suitable', 'Apto')}${voto('NotSuitable', 'No apto')}</div>
+  </div>
+  <div class="gps-acciones">
+    ${f.telefono ? pildora('Llamar', { icono: dibujo('telefono', 18, 2.4), datos: 'data-accion="llamar"' }) : ''}
+    ${pildora('Ir', { clase: 'celeste', icono: flechaIr(16), datos: 'data-accion="ir"' })}
+  </div>`;
 }

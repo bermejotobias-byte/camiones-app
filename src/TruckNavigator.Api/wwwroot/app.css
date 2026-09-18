@@ -1716,6 +1716,92 @@ button { font-family: inherit; font-size: inherit; }
 .gps-mono b { display: block; font-size: 18px; font-weight: 500; line-height: 1.2; }
 .gps-mono span { display: block; font-size: 15px; color: var(--gps-ink-2); line-height: 1.35; margin-top: 3px; }
 
+/* --- la ficha de un lugar ---------------------------------------------------- */
+
+/* Hoja inferior de borde a borde, del alto de lo que dice. Va clavada abajo
+   y no en el flujo de la capa: mas alta que la hoja de reposo, en el flujo
+   quedaba empujada por los controles y se salia de la pantalla. Si no entra,
+   scrollea. El prototipo, tableros "Lugar verificado" y "Lugar de la comunidad". */
+.gps-hoja-ficha {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  max-height: calc(100% - 70px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 0 15px calc(15px + var(--safe-bottom));
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  font-family: var(--gps-ui);
+}
+
+.gps-hoja-ficha .gps-manija { margin: 10px auto 12px; }
+
+.gps-ficha-cabeza { display: flex; gap: 12px; align-items: center; padding-bottom: 12px; }
+.gps-ficha-ico { width: 48px; height: 48px; border-radius: 14px; background: var(--gps-pildora); display: grid; place-items: center; flex: none; line-height: 0; }
+.gps-ficha-titulo { flex: 1; min-width: 0; }
+.gps-ficha-titulo b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 22px; font-weight: 700; line-height: 1.15; }
+.gps-ficha-titulo span { display: block; font-size: 14px; color: var(--gps-ink-3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.gps-ficha-cerrar {
+  flex: none;
+  width: 36px; height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gps-ink-3);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-etiqueta-comunidad {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  background: #0f2f3f;
+  color: #8fdcf7;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+/* Los bloques: verde es un si verificado, rojo es "no recibe tu camion",
+   gris lo probable, celeste lo que dice la comunidad. El color dice de donde
+   sale el dato y que tan seguro es; nunca se mezclan. */
+.gps-bloque { border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+.gps-bloque-titulo { display: flex; gap: 8px; align-items: center; }
+.gps-bloque-titulo b { font-size: 16px; font-weight: 500; line-height: 1.3; }
+.gps-bloque-titulo i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #0d1418; }
+.gps-bloque-titulo svg { flex: none; }
+.gps-bloque > span { display: block; font-size: 14px; margin-top: 5px; line-height: 1.3; }
+
+.gps-bloque-confirmado { background: #0f2a1f; border: 1px solid #1c7d51; }
+.gps-bloque-confirmado i { background: #43c98b; }
+.gps-bloque-confirmado > span { color: #9fd8b8; }
+
+.gps-bloque-no-apto { background: #2e1416; border: 1px solid #8a2f2a; }
+.gps-bloque-no-apto i { background: var(--gps-rojo); color: #fff; }
+.gps-bloque-no-apto > span { color: #f0a09a; }
+
+.gps-bloque-probable { background: #2b3035; border: 1px solid #4a525a; }
+.gps-bloque-probable i { background: #8e959c; }
+.gps-bloque-probable > span { color: var(--gps-ink-2); }
+
+.gps-bloque-comunidad { background: #0f2f3f; border: 1px solid #1a6f9a; }
+.gps-bloque-comunidad > span { color: #8fdcf7; }
+
+.gps-voto { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0 4px; }
+.gps-voto > span { font-size: 16px; color: var(--gps-ink-2); }
+.gps-voto-botones { display: flex; gap: 8px; flex: none; }
+.gps-voto-botones .gps-pildora.chica { height: 40px; min-width: 0; padding: 0 16px; font-size: 17px; }
+
+.gps-hoja-ficha .gps-acciones { padding: 8px 0 0; }
+
 /* Las filas de los detalles se leen enteras: sin recorte, 60 de alto minimo. */
 .gps-detalles .gps-fila { min-height: 60px; padding: 9px 0; cursor: default; }
 .gps-detalles .gps-fila-texto b { font-size: 18px; font-weight: 500; white-space: normal; }

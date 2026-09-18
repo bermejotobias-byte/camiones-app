@@ -14,7 +14,7 @@
  */
 
 import { abreviarCalle } from './viaje.js';
-import { calcomania, chip, dibujo, pildora } from './piezas.js';
+import { calcomania, chip, dibujo, pildora, flechaIr } from './piezas.js';
 import { escapeHtml } from '../ui.js';
 import { mascota } from '../mascota.js';
 
@@ -194,10 +194,6 @@ export function lineaDeTiempo(preparada, { travelled = 0, alerts = [], accessLeg
 /* ---------------------------------------------------------------------------
    La tarjeta
 --------------------------------------------------------------------------- */
-
-/** El triangulo de "Ir" de las pildoras de Waze. */
-const flechaIr = (t = 16) =>
-  `<svg viewBox="0 0 24 24" width="${t}" height="${t}" aria-hidden="true"><path d="M12 3l8 18-8-4.5L4 21z" fill="currentColor"/></svg>`;
 
 /**
  * La linea de tiempo dibujada: el triangulo de "vos", la linea celeste con
