@@ -294,3 +294,31 @@ test('una geometría rota se saltea sin tumbar el resto', () => {
 
   assert.equal(alerts.length, 1, 'la buena tiene que sobrevivir a la rota');
 });
+
+/* ---------------------------------------------------------------------------
+   La calle de la ruta en cada aviso
+
+   Los detalles de la ruta dicen dónde está cada radar y cada paso a nivel
+   ("Av. J. M. Moreno km 0,5"): es la calle por la que va la ruta ahí, que ya
+   se conoce al ubicar el aviso.
+--------------------------------------------------------------------------- */
+
+test('un radar y un paso a nivel llevan la calle de la ruta donde caen', () => {
+  const prepared = rectaPor('Avenida José María Moreno');
+  const alerts = alertsAlongRoute(prepared, {
+    radares: capa(punto(500, 10, { ubicacion: 'AV. JOSE MARÍA MORENO - 1657' })),
+    pasos: capa(punto(900, 5, { barrier: 'yes' }))
+  });
+
+  assert.deepEqual(alerts.map((a) => [a.tipo, a.calle]), [
+    ['radar', 'Avenida José María Moreno'],
+    ['paso', 'Avenida José María Moreno']
+  ]);
+});
+
+test('sin calle conocida el aviso la deja en null', () => {
+  const alerts = alertsAlongRoute(rectaAlEste(), { pasos: capa(punto(900, 5, { barrier: 'yes' })) });
+
+  assert.equal(alerts.length, 1);
+  assert.equal(alerts[0].calle, null);
+});

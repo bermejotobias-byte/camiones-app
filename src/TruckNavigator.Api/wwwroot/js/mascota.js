@@ -55,6 +55,7 @@ export const MOMENTOS = {
   nivel:    { pose: 'festejo',     alt: 'El mono festeja tu nuevo nivel' },                 // 😎
   racha:    { pose: 'mate',        alt: 'El mono toma un mate: un dia mas de racha' },      // 🔥
   alerta:   { pose: 'binoculares', alt: 'El mono mira adelante con binoculares' },          // 👀
+  ruta:     { pose: 'mapa',        alt: 'El mono lee el mapa: la ruta esta lista' },        // 🗺️
   radar:    { pose: 'radar',       alt: 'El mono avisa que hay un radar adelante' },        // 👀
   error:    { pose: 'rueda',       alt: 'El mono cambia una rueda: esto se arregla' },      // 😅
   motivar:  { pose: 'neutro',      alt: 'El mono te acompaña' },                            // 💪

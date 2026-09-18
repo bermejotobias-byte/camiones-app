@@ -16,6 +16,7 @@
 import { abreviarCalle } from './viaje.js';
 import { calcomania, chip, dibujo, pildora } from './piezas.js';
 import { escapeHtml } from '../ui.js';
+import { mascota } from '../mascota.js';
 
 /* ---------------------------------------------------------------------------
    Las opciones que devuelve el servidor
@@ -304,6 +305,236 @@ export function hojaRutas({ rutas = [], elegida = 0 } = {}) {
   <div class="gps-rutas">${rutas.map((r, i) => filaDeRuta(r, i, i === elegida)).join('')}</div>
   <div class="gps-acciones">
     ${pildora('Detalles', { datos: 'data-accion="detalles"' })}
+    ${pildora('Arrancar', { clase: 'celeste', id: 'gps-arrancar', datos: 'data-accion="arrancar"' })}
+  </div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   Los detalles de la ruta (el prototipo, tablero "Detalles")
+
+   Lo que en la hoja vieja era prosa pasa a filas como las de Waze: las
+   cifras, el mono diciendo lo unico que importa de esta ruta —habla una
+   vez, aca, antes de arrancar—, lo que hay en el camino y las fuentes.
+   Donde falta el dato, se dice.
+--------------------------------------------------------------------------- */
+
+const metrosEnM = (metros) => `${metros.toFixed(2).replace('.', ',')} m`;
+const kmDeRuta = (metros) => `km ${(metros / 1000).toFixed(1).replace('.', ',')}`;
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+
+/** Las calles de los tramos fuera de la Red, una vez cada una y en orden. */
+function callesDeLosTramos(route) {
+  const calles = [];
+
+  for (const leg of route.accessLegs ?? []) {
+    const nombre = (leg.streetName ?? '').trim();
+    if (!nombre || /^tramo sin nombre$/i.test(nombre) || calles.includes(nombre)) continue;
+    calles.push(nombre);
+  }
+
+  return calles;
+}
+
+/** "A, B, C y 17 más". */
+function listaCorta(nombres, max = 3) {
+  const resto = nombres.length - max;
+  const cabeza = nombres.slice(0, max).join(', ');
+  return resto > 0 ? `${cabeza} y ${resto} más` : cabeza;
+}
+
+/**
+ * "Av. J. B. Justo km 3,2 · km 9,1 y 2 más": donde cae cada aviso sobre la
+ * ruta. Dos en el mismo lugar —los radares vienen de a pares, uno por mano;
+ * un paso a nivel por cada via— se nombran una vez.
+ */
+function dondeCaen(avisos, max = 3) {
+  const lugares = [...new Set(avisos.map((a) => (a.calle ? `${abreviarCalle(a.calle)} ${kmDeRuta(a.at)}` : kmDeRuta(a.at))))];
+  const resto = lugares.length - max;
+  const cabeza = lugares.slice(0, max).join(' · ');
+  return resto > 0 ? `${cabeza} y ${resto} más` : cabeza;
+}
+
+const pasaElCamion = (camion, terminal = '.') => (camion?.heightMeters
+  ? `${camion.name} mide ${metrosEnM(camion.heightMeters)}: pasás${terminal}`
+  : `Pasás${terminal}`);
+
+/**
+ * Lo unico que importa de esta ruta, para la tarjeta del mono: salir de la
+ * Red antes que nada; si no, el galibo mas bajo; si no, los radares; si no,
+ * los pasos a nivel; y si no hay nada, que esta todo en orden.
+ *
+ * @returns {{momento: string, titulo: string, texto: string}}
+ */
+export function loQueImporta(route, alerts, camion) {
+  const tramos = (route.accessLegs ?? []).length;
+
+  if (tramos) {
+    return {
+      momento: 'alerta',
+      titulo: `Ojo: ${plural(tramos, 'tramo', 'tramos')} fuera de la Red`,
+      texto: `Son ${metrosLegibles(fueraDeLaRed(route))}. La norma admite salir de la Red sólo para llegar al destino y volver por el camino más corto.`
+    };
+  }
+
+  const galibos = alerts.filter((a) => a.tipo === 'galibo');
+  if (galibos.length) {
+    const masBajo = metrosEnM(Math.min(...galibos.map((g) => g.metres)));
+    return {
+      momento: 'alerta',
+      titulo: galibos.length === 1 ? `Un gálibo de ${masBajo} en el camino` : `${galibos.length} gálibos en el camino, el más bajo de ${masBajo}`,
+      texto: pasaElCamion(camion)
+    };
+  }
+
+  const radares = alerts.filter((a) => a.tipo === 'radar').length;
+  if (radares) {
+    return {
+      momento: 'radar',
+      titulo: `${plural(radares, 'radar', 'radares')} en el camino`,
+      texto: 'Te aviso antes de cada uno. Manejá a la velocidad de la vía y listo.'
+    };
+  }
+
+  const pasos = alerts.filter((a) => a.tipo === 'paso').length;
+  if (pasos) {
+    return {
+      momento: 'alerta',
+      titulo: `${plural(pasos, 'paso a nivel', 'pasos a nivel')} en el camino`,
+      texto: 'Bajá la velocidad al cruzarlos: te aviso antes de cada uno.'
+    };
+  }
+
+  return {
+    momento: 'ruta',
+    titulo: 'Todo en orden',
+    texto: 'Va toda por la Red y no hay nada que avisar en el camino.'
+  };
+}
+
+/**
+ * Las filas de "En el camino": fuera de la Red con sus calles, los radares y
+ * los pasos a nivel con la calle y el km donde caen, y los galibos con el
+ * mas bajo.
+ *
+ * @returns {{icono: string, titulo: string, sub: string}[]}
+ */
+export function filasDelCamino(route, alerts, camion) {
+  const filas = [];
+
+  if ((route.accessLegs ?? []).length) {
+    const calles = callesDeLosTramos(route);
+    filas.push({
+      icono: 'red',
+      titulo: `Fuera de la Red · ${metrosLegibles(fueraDeLaRed(route))}`,
+      sub: calles.length ? listaCorta(calles) : 'Tramos sin nombre'
+    });
+  }
+
+  const radares = alerts.filter((a) => a.tipo === 'radar');
+  if (radares.length) {
+    filas.push({ icono: 'radar', titulo: `${plural(radares.length, 'radar', 'radares')} de velocidad`, sub: dondeCaen(radares) });
+  }
+
+  const galibos = alerts.filter((a) => a.tipo === 'galibo');
+  if (galibos.length) {
+    const masBajo = metrosEnM(Math.min(...galibos.map((g) => g.metres)));
+    filas.push({
+      icono: 'galiboOk',
+      titulo: galibos.length === 1 ? `1 gálibo · ${masBajo}` : `${galibos.length} gálibos · el más bajo ${masBajo}`,
+      sub: pasaElCamion(camion, '')
+    });
+  }
+
+  const pasos = alerts.filter((a) => a.tipo === 'paso');
+  if (pasos.length) {
+    filas.push({ icono: 'paso', titulo: plural(pasos.length, 'paso a nivel', 'pasos a nivel'), sub: dondeCaen(pasos) });
+  }
+
+  return filas;
+}
+
+/* Las fuentes de lo que no viene con su referencia en la ruta. Ver
+   docs/data-sources.md; la de la Red la trae cada hallazgo del servidor. */
+const FUENTE_RED = {
+  titulo: 'Ley 2148, arts. 9.10.1 y 9.10.5 (mod. Ley 6.401/2020)',
+  sub: 'Red de Tránsito Pesado · transcripción comunitaria en OpenStreetMap (hgv=designated)'
+};
+
+const FUENTES_DE_AVISOS = {
+  radar: { titulo: 'Radares: Buenos Aires Data', sub: 'Cámaras fijas de control vehicular, GCBA · CC-BY-2.5-AR' },
+  galibo: { titulo: 'Gálibos: OpenStreetMap', sub: 'Alturas máximas declaradas (maxheight) · ODbL' },
+  paso: { titulo: 'Pasos a nivel: OpenStreetMap', sub: 'Cruces ferroviarios (railway=level_crossing) · ODbL' }
+};
+
+/**
+ * Las fuentes de esta ruta: la norma y el dato de la Red —tal como los
+ * declara el servidor en cada hallazgo, o la referencia fija si la ruta va
+ * toda por la Red— y una por cada cosa que aparece en el camino.
+ *
+ * @returns {{titulo: string, sub: string}[]}
+ */
+export function fuentesDeLaRuta(route, alerts) {
+  const fuentes = [];
+  const vistas = new Set();
+
+  for (const leg of route.accessLegs ?? []) {
+    for (const hallazgo of leg.findings ?? []) {
+      const titulo = (hallazgo.ruleReference ?? '').trim();
+      if (!titulo || vistas.has(titulo)) continue;
+      vistas.add(titulo);
+      fuentes.push({ titulo, sub: (hallazgo.dataReference ?? '').trim() });
+    }
+  }
+
+  if (fuentes.length === 0) fuentes.push(FUENTE_RED);
+
+  for (const tipo of ['radar', 'galibo', 'paso']) {
+    if (alerts.some((a) => a.tipo === tipo)) fuentes.push(FUENTES_DE_AVISOS[tipo]);
+  }
+
+  return fuentes;
+}
+
+/** Una cabecera de 55 con solo la flecha de volver y un titulo. */
+export function cabeceraSimple(titulo) {
+  return `
+  <div class="gps-cabecera">
+    <button type="button" class="gps-cabecera-volver" data-accion="volver" aria-label="Volver">${dibujo('atras', 22, 2.4)}</button>
+    <div class="gps-cabecera-titulo"><span class="gps-cabecera-solo">${escapeHtml(titulo)}</span></div>
+  </div>`;
+}
+
+const filaDeDetalle = ({ icono = '', titulo, sub }) => `
+  <div class="gps-fila">
+    ${icono ? `<div class="gps-fila-ico">${calcomania(icono, 30)}</div>` : ''}
+    <div class="gps-fila-texto"><b>${escapeHtml(titulo)}</b>${sub ? `<span class="gris">${escapeHtml(sub)}</span>` : ''}</div>
+  </div>`;
+
+/**
+ * La hoja de detalles: lo que se lee —las cifras, el mono con lo que
+ * importa, "En el camino" y "Fuentes"— en un cuerpo que scrollea, y
+ * "Arrancar" pegado abajo.
+ *
+ * @param {{tiempo, hora, km, red, mono: {momento, titulo, texto}, camino: Array, fuentes: Array}} d
+ */
+export function hojaDetalles({ tiempo, hora, km, red, mono, camino = [], fuentes = [] }) {
+  const nada = { titulo: 'Nada que avisar', sub: 'Ni radares, ni gálibos, ni pasos a nivel en el camino' };
+
+  return `
+  <div class="gps-detalles">
+    <div class="gps-cifras">
+      <div><b>${escapeHtml(tiempo)}</b><span>${escapeHtml(hora)}</span></div>
+      <div><b>${escapeHtml(km)}</b><span>${escapeHtml(red)}</span></div>
+    </div>
+    <div class="gps-mono">
+      ${mascota(mono.momento, { escala: 1 })}
+      <div><b>${escapeHtml(mono.titulo)}</b><span>${escapeHtml(mono.texto)}</span></div>
+    </div>
+    <p class="gps-seccion">En el camino</p>
+    ${(camino.length ? camino : [nada]).map(filaDeDetalle).join('')}
+    ${fuentes.length ? `<p class="gps-seccion">Fuentes</p>${fuentes.map(filaDeDetalle).join('')}` : ''}
+  </div>
+  <div class="gps-acciones">
     ${pildora('Arrancar', { clase: 'celeste', id: 'gps-arrancar', datos: 'data-accion="arrancar"' })}
   </div>`;
 }

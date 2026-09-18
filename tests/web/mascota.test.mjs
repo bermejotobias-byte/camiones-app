@@ -55,3 +55,8 @@ test('un momento sin pose disponible deja el hueco, sin imagen rota', () => {
 test('un momento desconocido cae en motivar, no en una excepción', () => {
   assert.match(mascota('no-existe'), /aria-label="El mono te acompaña"/);
 });
+
+test('los detalles de la ruta tienen su momento: el mono lee el mapa', () => {
+  assert.equal(MOMENTOS.ruta.pose, 'mapa');
+  assert.ok(mascota('ruta', { escala: 1 }).includes('/img/mascota/mapa.png'));
+});

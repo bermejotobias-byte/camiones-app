@@ -25,7 +25,8 @@ import * as gl from '../map.js';
 import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso } from '../mapa/viaje.js';
 import {
   porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta,
-  textoDeEstado, chipsDeRuta, cabeceraDeRutas, pildoraDelCamion, hojaRutas
+  textoDeEstado, chipsDeRuta, cabeceraDeRutas, pildoraDelCamion, hojaRutas,
+  cabeceraSimple, hojaDetalles, loQueImporta, filasDelCamino, fuentesDeLaRuta
 } from '../mapa/rutas.js';
 import { hojaReposo } from '../mapa/reposo.js';
 import { hojaBuscar, cuerpoDeBusqueda } from '../mapa/buscar.js';
@@ -43,7 +44,7 @@ export function navigateView(host, { openDrawer, go }) {
   let routeOptions = [];      // la recomendada y sus alternativas, ya ordenadas
   let avisosPorOpcion = [];   // lo que hay en el camino de cada una: radares, galibos, pasos
   let chosenRoute = 0;        // cuál de todas se está mirando
-  let stage = 'search';       // 'search' (reposo) | 'buscar' | 'route' | 'delivery' | 'navigation'
+  let stage = 'search';       // 'search' (reposo) | 'buscar' | 'route' | 'detalles' | 'delivery' | 'navigation'
 
   // --- modo reparto ---
   let stops = [];             // paradas como las cargó el usuario
@@ -341,10 +342,11 @@ export function navigateView(host, { openDrawer, go }) {
   function drawSheet() {
     // Mientras se elige ruta, los controles del mapa se van: la pantalla es
     // la cabecera, la tira de mapa y la lista.
-    host0.classList.toggle('is-eligiendo', stage === 'route');
+    host0.classList.toggle('is-eligiendo', stage === 'route' || stage === 'detalles');
 
     if (stage === 'navigation') return drawNavigation();
     if (stage === 'route') return drawRutas();
+    if (stage === 'detalles') return drawDetalles();
     if (stage === 'delivery') return drawDelivery();
     if (stage === 'buscar') return drawBuscar();
     drawReposo();
@@ -806,9 +808,44 @@ export function navigateView(host, { openDrawer, go }) {
     drawSheet();
   }
 
-  /** Los detalles de la ruta que se esta mirando (llegan en la tarea 21). */
+  /* ------------------------------------------------------------------------
+     Los detalles de la ruta (el prototipo, tablero "Detalles")
+
+     Las cifras, el mono diciendo lo unico que importa de esta ruta —habla
+     una vez, aca, antes de arrancar—, lo que hay en el camino con la calle
+     y el km de cada cosa, y las fuentes. "Arrancar" arranca por esta ruta.
+  ------------------------------------------------------------------------ */
+
   function abrirDetalles() {
-    toast('Los detalles de la ruta llegan en el próximo paso.');
+    stage = 'detalles';
+    drawSheet();
+  }
+
+  function drawDetalles() {
+    const camion = selectedTruck();
+    const avisos = avisosPorOpcion[chosenRoute] ?? [];
+
+    const hoja = sheetAs('gps-detallando');
+    hoja.innerHTML = `
+      ${cabeceraSimple('Detalles de la ruta')}
+      ${hojaDetalles({
+        tiempo: formatDuration(route.durationSeconds),
+        hora: `llegás ${arrivalTime(route.durationSeconds)}`,
+        km: formatDistance(route.distanceMeters),
+        red: textoDeEstado(route, chosenRoute === 0).replace(/^Mejor ruta, /, ''),
+        mono: loQueImporta(route, avisos, camion),
+        camino: filasDelCamino(route, avisos, camion),
+        fuentes: fuentesDeLaRuta(route, avisos)
+      })}`;
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion } = boton.dataset;
+      if (accion === 'volver') { stage = 'route'; drawSheet(); }
+      if (accion === 'arrancar') startTrip(boton);
+    };
   }
 
   // --- viaje en curso: navegacion -------------------------------------------
@@ -1752,83 +1789,8 @@ export function navigateView(host, { openDrawer, go }) {
 }
 
 /* ---------------------------------------------------------------------------
-   Restricciones
+   Utilidades
 --------------------------------------------------------------------------- */
-
-/**
- * Agrupa los hallazgos por regla en vez de listar tramo por tramo.
- *
- * Una ruta larga puede traer decenas de notas que dicen todas lo mismo. Al
- * camionero le sirve "salís de la Red en 3 tramos, 2,1 km en total", no treinta
- * renglones iguales.
- */
-function groupNotes(route) {
-  const all = [...(route.restrictionNotes ?? []), ...(route.accessLegs ?? [])];
-  const groups = new Map();
-
-  for (const note of all) {
-    for (const finding of note.findings ?? []) {
-      const key = finding.kind;
-
-      if (!groups.has(key)) {
-        groups.set(key, {
-          kind: finding.kind,
-          description: finding.description,
-          ruleReference: finding.ruleReference,
-          dataReference: finding.dataReference,
-          isAccess: note.requiresAccessException,
-          segments: 0,
-          meters: 0,
-          streets: new Set()
-        });
-      }
-
-      const group = groups.get(key);
-      group.segments += 1;
-      group.meters += note.distanceMeters ?? 0;
-      if (note.streetName) group.streets.add(note.streetName);
-    }
-  }
-
-  return [...groups.values()];
-}
-
-const KIND_TITLES = {
-  OutsideHeavyTrafficNetwork: 'Salís de la Red de Tránsito Pesado',
-  MaxHeight: 'Altura limitada',
-  MaxWeight: 'Peso limitado',
-  MaxWidth: 'Ancho limitado',
-  MaxLength: 'Largo limitado',
-  HgvProhibited: 'Camiones prohibidos'
-};
-
-function notesMarkup(groups) {
-  return `<div class="notes">${groups.map((group) => {
-    const title = KIND_TITLES[group.kind] ?? group.kind;
-    const streets = [...group.streets].slice(0, 3).join(', ');
-
-    return `
-      <div class="note ${group.isAccess ? 'note-access' : 'note-blocked'}">
-        <div class="note-title">${escapeText(title)}</div>
-        <div class="note-body">${escapeText(group.description)}</div>
-        <div class="note-source">
-          ${group.segments} ${group.segments === 1 ? 'tramo' : 'tramos'} ·
-          ${formatDistance(group.meters)}${streets ? ` · ${escapeText(streets)}` : ''}
-        </div>
-        <details class="sources">
-          <summary></summary>
-          <div class="note-source">
-            <b>Regla:</b> ${escapeText(group.ruleReference)}<br>
-            <b>Dato:</b> ${escapeText(group.dataReference)}
-          </div>
-        </details>
-      </div>
-    `;
-  }).join('')}</div>`;
-}
-
-const formatTruck = (truck) =>
-  `${(truck.grossWeightKg / 1000).toFixed(1).replace('.0', '')} t · ${truck.heightMeters} m`;
 
 function escapeText(value) {
   return String(value ?? '')

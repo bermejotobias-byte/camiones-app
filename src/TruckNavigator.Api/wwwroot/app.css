@@ -1574,7 +1574,7 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 .gps-cabecera-titulo span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gps-cabecera-titulo span:first-child { flex: none; max-width: 45%; }
+.gps-cabecera-titulo span:first-child:not(:only-child) { flex: none; max-width: 45%; }   /* el origen no se come al destino */
 .gps-cabecera-titulo i { font-style: normal; color: var(--gps-ink-3); flex: none; }
 
 .gps-pildora-camion {
@@ -1669,6 +1669,57 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 .gps-acciones .gps-pildora { flex: 1; }
+
+/* --- los detalles de la ruta ----------------------------------------------- */
+
+/* Cubre la pantalla: la cabecera negra, el cuerpo que scrollea y "Arrancar"
+   pegado abajo. El prototipo, tablero "Detalles". */
+.map-overlay > #sheet.gps-detallando {
+  position: absolute;
+  inset: var(--safe-top) 0 0 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  font-family: var(--gps-ui);
+  z-index: 6;
+}
+
+.gps-detallando .gps-cabecera { position: static; flex: none; }
+.gps-cabecera-solo { flex: 1; text-align: center; }
+
+.gps-detalles {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 15px 8px;
+}
+
+/* Las cifras: 27 negrita y debajo la hora y cuanto va por la Red en 16 gris. */
+.gps-cifras { display: flex; gap: 28px; padding: 4px 0 12px; }
+.gps-cifras b { display: block; font-size: 27px; font-weight: 700; line-height: 32px; font-variant-numeric: tabular-nums; }
+.gps-cifras span { display: block; font-size: 16px; color: var(--gps-ink-3); margin-top: 2px; }
+
+/* La tarjeta del mono: la unica vez que habla en el GPS, antes de arrancar. */
+.gps-mono {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin: 4px 0 6px;
+  border-radius: 16px;
+  background: var(--gps-pildora);
+}
+
+.gps-mono .mascota { flex: none; margin: 0; }
+.gps-mono > div { flex: 1; min-width: 0; }
+.gps-mono b { display: block; font-size: 18px; font-weight: 500; line-height: 1.2; }
+.gps-mono span { display: block; font-size: 15px; color: var(--gps-ink-2); line-height: 1.35; margin-top: 3px; }
+
+/* Las filas de los detalles se leen enteras: sin recorte, 60 de alto minimo. */
+.gps-detalles .gps-fila { min-height: 60px; padding: 9px 0; cursor: default; }
+.gps-detalles .gps-fila-texto b { font-size: 18px; font-weight: 500; white-space: normal; }
+.gps-detalles .gps-fila-texto span { font-size: 15px; white-space: normal; line-height: 1.3; }
 
 /* ============================================================================
    Hoja inferior — el patron principal de la pantalla de busqueda
@@ -1851,45 +1902,11 @@ button { font-family: inherit; font-size: inherit; }
 
 .network-bar i { display: block; height: 100%; background: var(--brand); }
 
-.notes { display: flex; flex-direction: column; gap: 8px; }
-
-.note {
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--brand);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  background: var(--surface-2);
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* Fuera de la Red no es una prohibicion: la norma admite salir para llegar al
-   destino. Va en celeste y no en rojo ni naranja, que leerian como infraccion. */
-.note-access { border-left-color: var(--brand); }
-.note-blocked { border-left-color: var(--danger); }
-
-.note-title { font-size: 14px; font-weight: 700; }
-.note-body  { font-size: 13px; color: var(--ink-2); }
-
 .note-source {
   font-size: 11.5px;
   color: var(--ink-3);
   line-height: 1.35;
 }
-
-details.sources > summary {
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--brand-ink);
-  font-weight: 600;
-  padding: 6px 0;
-  list-style: none;
-}
-
-details.sources > summary::-webkit-details-marker { display: none; }
-details.sources > summary::before { content: "Ver fuentes  ▾"; }
-details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
 
 /* ============================================================================
    Menu lateral

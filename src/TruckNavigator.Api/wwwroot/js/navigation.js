@@ -636,7 +636,9 @@ export function alertsAlongRoute(prepared, features = {}) {
       const aviso = decidir(feature.properties ?? {}, sobre);
       if (!aviso) continue;
 
-      alerts.push({ tipo, at: sobre.at, ...aviso });
+      // La calle de la ruta en ese punto: los detalles de la ruta dicen donde
+      // esta cada cosa ("Av. J. M. Moreno km 0,5").
+      alerts.push({ tipo, at: sobre.at, calle: streetAt(prepared, sobre.index), ...aviso });
     }
   };
 
