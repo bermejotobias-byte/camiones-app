@@ -30,6 +30,7 @@ import {
 } from '../mapa/rutas.js';
 import { hojaReposo } from '../mapa/reposo.js';
 import { hojaBuscar, cuerpoDeBusqueda } from '../mapa/buscar.js';
+import { categoriasParaPedir } from '../mapa/lugares.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
   html, raw, icon, wire, q, qa, render, debounce, withBusy,
@@ -126,6 +127,7 @@ export function navigateView(host, { openDrawer, go }) {
       updateRiskButton();
       locate({ silent: true });
       cargarLugares();
+      cargarLugaresDelMapa();
     },
     onTap: (feature) => { hideSuggestions(); explicarSimbolo(feature); },
     onLongPress: (point) => setPointFromMap(point),
@@ -145,6 +147,11 @@ export function navigateView(host, { openDrawer, go }) {
     if (!feature) return;
 
     const p = feature.properties ?? {};
+
+    if (feature.layer?.id === 'lugar-pin') {
+      abrirFicha(p.id);
+      return;
+    }
 
     if (feature.layer?.id === 'altura-senal') {
       const altura = Number(p.metres).toFixed(2).replace('.', ',');
@@ -367,6 +374,41 @@ export function navigateView(host, { openDrawer, go }) {
   let recientes = [];
   let busqueda = null;   // { objetivo, texto, sugerencias } mientras la hoja esta abierta
 
+  /* ------------------------------------------------------------------------
+     La capa de lugares (js/mapa/lugares.js)
+
+     Los puntos de interes de las categorias que el camionero tiene
+     prendidas (prefs.lugares.categorias, los chips de la busqueda) como pines
+     sobre el mapa. Se piden con el camion elegido: asi cada lugar vuelve con
+     los votos de camiones como el suyo y con el voto propio. "Solo aptos"
+     arranca apagado; la hoja de capas lo prende (tarea 24).
+  ------------------------------------------------------------------------ */
+
+  let lugaresEnMapa = [];   // los ultimos pedidos, para abrir la ficha por id
+
+  async function cargarLugaresDelMapa() {
+    const categorias = categoriasParaPedir(prefs.lugares?.categorias ?? []);
+
+    if (!categorias) {
+      lugaresEnMapa = [];
+      gl.showPlaces([]);
+      return;
+    }
+
+    try {
+      lugaresEnMapa = await api.pois(categorias, selectedTruck()?.id, prefs.lugares?.soloAptos ? true : undefined);
+      gl.showPlaces(lugaresEnMapa);
+    } catch (error) {
+      toastError(`No se pudieron traer los lugares: ${error.message}`);
+    }
+  }
+
+  /** Tocar un pin abre su ficha (tarea 23); por ahora dice que es. */
+  function abrirFicha(id) {
+    const lugar = lugaresEnMapa.find((p) => p.id === id);
+    if (lugar) toast(lugar.name, 'info');
+  }
+
   async function cargarLugares() {
     try {
       const [guardados, ultimos] = await Promise.all([api.savedPlaces(), api.recentPlaces()]);
@@ -458,11 +500,12 @@ export function navigateView(host, { openDrawer, go }) {
       if (accion === 'fijar-en-mapa') { cerrarBusqueda(); toast('Mantené apretado el mapa donde querés ir.'); }
 
       if (accion === 'categoria') {
-        // Se recuerda que categorias mira el camionero; la capa de lugares
-        // (etapa 7) las va a prender sobre el mapa.
+        // Las categorias que mira el camionero se recuerdan, y la capa de
+        // lugares las prende sobre el mapa.
         const activas = new Set(prefs.lugares?.categorias ?? []);
         activas.has(id) ? activas.delete(id) : activas.add(id);
         savePrefs({ lugares: { ...(prefs.lugares ?? {}), categorias: [...activas] } });
+        cargarLugaresDelMapa();
         pintarCuerpoDeBusqueda();
       }
     };

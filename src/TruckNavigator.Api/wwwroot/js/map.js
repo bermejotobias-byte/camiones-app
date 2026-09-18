@@ -9,6 +9,7 @@
 import { installTruckLayers, setTruckLayersVisible, setRiskZonesVisible, setCrossingsVisible, setTruckHeight, refreshLayerColors, truckDataset } from './layers.js';
 import { registerPmtilesProtocol, buildBasemapStyle } from './mapa/estilo-mapa.js';
 import { calcomania } from './mapa/piezas.js';
+import { instalarLugares, mostrarLugares, CAPA_LUGARES } from './mapa/lugares.js';
 import { currentApiBase } from './api.js';
 
 const CABA_CENTER = [-58.4370, -34.6083];
@@ -147,6 +148,7 @@ export function createMap(container, handlers = {}) {
     // Las capas de camion se agregan apenas carga el estilo y antes de que
     // exista una ruta, para que la ruta quede dibujada por encima.
     await installTruckLayers(map);
+    instalarLugares(map);
     handlers.onReady?.();
   });
 
@@ -1079,6 +1081,22 @@ export const useTruckHeight = (metres) => setTruckHeight(map, metres);
 export const refreshColors = () => refreshLayerColors(map);
 
 /**
+ * Los lugares (puntos de interes) sobre el mapa, como pines. Con el estilo a
+ * medio cargar se espera, como con la ruta: la fuente todavia no existe.
+ */
+export function showPlaces(pois) {
+  if (!map) return;
+
+  if (!map.isStyleLoaded()) {
+    map.once('idle', () => showPlaces(pois));
+    return;
+  }
+
+  instalarLugares(map);
+  mostrarLugares(map, pois);
+}
+
+/**
  * Que hay en un punto del mapa, de nuestras capas.
  *
  * Sirve para que tocar un galibo o un paso a nivel diga que es, en lugar de ser
@@ -1091,7 +1109,7 @@ export function featureAt(point) {
   // riesgo cubre 250 m por lado, asi que cualquier toque adentro de una tambien
   // le pega a la zona. Si ganara la zona, un puente bajo parado encima de ella
   // dejaria de poder consultarse. Primero lo puntual, la zona al final.
-  const orden = ['altura-senal', 'paso-senal', 'radar-punto', 'zona-riesgo-senal', 'zona-riesgo'];
+  const orden = [CAPA_LUGARES, 'altura-senal', 'paso-senal', 'radar-punto', 'zona-riesgo-senal', 'zona-riesgo'];
 
   for (const id of orden) {
     if (!map.getLayer(id)) continue;
