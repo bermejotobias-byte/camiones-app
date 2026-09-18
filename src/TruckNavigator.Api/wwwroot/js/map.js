@@ -1081,6 +1081,13 @@ export const datasets = () => ({
 export const useTruckHeight = (metres) => setTruckHeight(map, metres);
 export const refreshColors = () => refreshLayerColors(map);
 
+/** El centro del mapa, donde cae el pin fijo al marcar un lugar. */
+export function center() {
+  if (!map) return null;
+  const { lat, lng } = map.getCenter();
+  return { lat, lng };
+}
+
 /**
  * Los lugares (puntos de interes) sobre el mapa, como pines. Con el estilo a
  * medio cargar se espera, como con la ruta: la fuente todavia no existe.

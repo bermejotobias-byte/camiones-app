@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 451 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 178 tests: guiado, avisos de ruta, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha y voto), hoja de capas, flecha de maniobra, agenda, mascota e insignias
+node --test "tests/web/*.test.mjs"             # 182 tests: guiado, avisos de ruta, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), hoja de capas, flecha de maniobra, agenda, mascota e insignias
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior

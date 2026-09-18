@@ -189,12 +189,26 @@ cambiar el voto no pague, que retirarlo no devuelva —el libro no resta— y qu
 volver a votar no cobre. **Sin tope diario** por decisión del usuario del
 15/09/2026: se revisa con datos.
 
+### La interfaz (desde el 17/09/2026)
+
+Vive en el mapa, en `wwwroot/js/mapa/`:
+
+- **La capa** (`lugares.js`): un pin de 32 por lugar, con el anillo que dice de
+  dónde sale el dato —blanco lo confirmado, celeste lo de la comunidad con el
+  contador de votos, gris y apagado lo que nadie confirmó—. Las categorías que
+  se ven se eligen en los chips de la búsqueda o en la hoja de capas
+  (`capas.js`), donde también está **"Sólo aptos para este camión"** con cuántos
+  lugares oculta.
+- **La ficha y el voto** (`lugares.js`): tocar un pin en reposo abre la hoja
+  con lo verificado separado de lo comunitario, Apto / No apto (votar de nuevo
+  cambia el voto; tocar el que ya está lo retira), Llamar e Ir.
+- **Aportar** (`aportar.js`): "¿Qué hay acá?" con las seis categorías, el pin
+  fijo en el centro del mapa y el nombre; desde el botón amarillo del viaje y
+  desde la hoja de capas. Un 409 ofrece votar el existente en vez de duplicarlo.
+
 ### Lo que todavía no hay
 
-La ficha con el botón de votar y el formulario para agregar: van con la
-interfaz de POIs, que hoy no existe. `api.js` ya tiene `pois`, `addPoi`,
-`votePoi` y `retirePoiVote`, y `logros.js` la insignia de `lugares`. Tampoco hay
-moderación ni edición de lo aportado: un lugar mal puesto queda mal puesto
+Moderación ni edición de lo aportado: un lugar mal puesto queda mal puesto
 hasta que exista.
 
 ## Los datos

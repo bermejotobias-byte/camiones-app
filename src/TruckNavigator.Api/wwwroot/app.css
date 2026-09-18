@@ -1892,6 +1892,107 @@ button { font-family: inherit; font-size: inherit; }
 
 .gps-hoja-capas .gps-acciones { padding: 12px 0 0; }
 
+/* --- aportar un lugar ------------------------------------------------------- */
+
+/* Otra capa sobre la pantalla, como la del viaje: sirve en reposo y en viaje.
+   Transparente y sin tocar el mapa salvo en sus hojas. */
+.gps-aporte {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  color: var(--gps-ink);
+  font-family: var(--gps-ui);
+}
+
+.gps-aporte > * { pointer-events: auto; }
+.gps-aporte .gps-cabecera { top: var(--safe-top); }
+
+/* "¿Qué hay acá?" (waze-07, medida): titulo 21 negrita; circulos de 75 con
+   la calcomania de 40 y el rotulo en 14. */
+.gps-hoja-aportar,
+.gps-hoja-marcar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 0 15px calc(14px + var(--safe-bottom));
+  background: var(--gps-hoja);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+}
+
+.gps-hoja-aportar .gps-manija,
+.gps-hoja-marcar .gps-manija { margin: 10px auto 8px; }
+
+.gps-aportar-titulo { display: flex; justify-content: space-between; align-items: center; padding: 6px 0 2px; }
+.gps-aportar-titulo b { font-size: 21px; font-weight: 700; }
+.gps-aportar-titulo .gps-ficha-cerrar { margin-right: -8px; color: var(--gps-ink); }
+
+.gps-redondos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 8px; padding: 10px 0 4px; }
+
+.gps-redondo-grande {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-redondo-grande:active .gps-redondo-ico { transform: scale(.95); }
+.gps-redondo-ico { width: 75px; height: 75px; border-radius: 50%; background: var(--gps-pildora); display: grid; place-items: center; line-height: 0; }
+
+.gps-pie { font-size: 15px; color: var(--gps-ink-3); text-align: center; margin: 14px 0 2px; line-height: 1.4; }
+.gps-pie b { color: var(--gps-ink); font-weight: 500; }
+
+/* Marcar: el pin fijo al centro del mapa (la punta en el centro exacto), el
+   chip de la categoria en linea, el campo del nombre y Guardar. */
+.gps-pin-fijo {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -100%);
+  line-height: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, .5));
+}
+
+.gps-chip-elegido {
+  width: auto; height: 44px;
+  flex-direction: row;
+  display: inline-flex;
+  gap: 8px;
+  padding: 0 12px 0 14px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.gps-chip-elegido svg:last-child { color: var(--gps-ink-3); }
+
+.gps-campo { display: block; background: #2b3035; border-radius: 14px; padding: 10px 14px; margin-top: 12px; }
+.gps-campo > span { display: block; font-size: 12px; color: var(--gps-ink-3); text-transform: uppercase; letter-spacing: .06em; }
+.gps-campo input {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  margin-top: 2px;
+  background: transparent;
+  color: var(--gps-ink);
+  font: inherit;
+  font-size: 20px;
+  outline: none;
+}
+
+.gps-campo input::placeholder { color: var(--gps-ink-3); }
+.gps-hoja-marcar .gps-acciones { padding: 8px 0 0; }
+
 /* Las filas de los detalles se leen enteras: sin recorte, 60 de alto minimo. */
 .gps-detalles .gps-fila { min-height: 60px; padding: 9px 0; cursor: default; }
 .gps-detalles .gps-fila-texto b { font-size: 18px; font-weight: 500; white-space: normal; }

@@ -23,15 +23,16 @@ import {
 } from '../navigation.js';
 import * as gl from '../map.js';
 import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso } from '../mapa/viaje.js';
-import { dibujo } from '../mapa/piezas.js';
+import { dibujo, calcomania } from '../mapa/piezas.js';
 import {
   porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta,
   textoDeEstado, chipsDeRuta, cabeceraDeRutas, pildoraDelCamion, hojaRutas,
   cabeceraSimple, hojaDetalles, loQueImporta, filasDelCamino, fuentesDeLaRuta
 } from '../mapa/rutas.js';
 import { hojaReposo } from '../mapa/reposo.js';
-import { hojaBuscar, cuerpoDeBusqueda } from '../mapa/buscar.js';
+import { hojaBuscar, cuerpoDeBusqueda, CATEGORIAS } from '../mapa/buscar.js';
 import { hojaCapas, capasActivas } from '../mapa/capas.js';
+import { hojaAportar, hojaMarcar, nombreValido } from '../mapa/aportar.js';
 import { categoriasParaPedir, fichaDeLugar, fichaLugar } from '../mapa/lugares.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
@@ -450,9 +451,130 @@ export function navigateView(host, { openDrawer, go }) {
     if (stage === 'capas') drawSheet();
   }
 
-  /** Aportar un lugar desde la hoja de capas (llega en la tarea 25). */
+  /* ------------------------------------------------------------------------
+     Aportar un lugar (js/mapa/aportar.js)
+
+     Es OTRA capa sobre la pantalla, como la del viaje: se abre desde el
+     boton amarillo del viaje y desde "Aportar un lugar" de la hoja de capas,
+     y tiene que verse igual en los dos casos. Primero "¿Qué hay acá?" con
+     las seis categorias; elegida una, el pin fijo en el centro del mapa —se
+     mueve el mapa, no el pin— y la hoja corta con la categoria, el nombre y
+     Guardar. El lugar nace de la comunidad con el voto de quien lo carga
+     (AD-46); lo que paga lo dice el servidor.
+  ------------------------------------------------------------------------ */
+
+  let aporte = null;   // { capa, categoria, nombre } mientras se aporta
+
   function aportarLugar() {
-    toast('Aportar un lugar llega en el próximo paso.');
+    if (stage === 'capas') cerrarCapas();
+    if (aporte) return;
+
+    const capa = document.createElement('div');
+    capa.className = 'gps-aporte';
+    host0.appendChild(capa);
+
+    aporte = { capa, categoria: null, nombre: '' };
+    pintarAporte();
+  }
+
+  function cerrarAporte() {
+    if (!aporte) return;
+    aporte.capa.remove();
+    aporte = null;
+
+    // Marcando durante el viaje la camara dejo de seguir al camion.
+    if (stage === 'navigation') viaje?.movido(!gl.isFollowing());
+  }
+
+  function pintarAporte() {
+    const { capa, categoria, nombre } = aporte;
+
+    capa.innerHTML = categoria
+      ? `${cabeceraSimple('Nuevo lugar')}
+         <div class="gps-pin-fijo" aria-hidden="true">${calcomania('lugarMas', 44)}</div>
+         <div class="gps-hoja-marcar">${hojaMarcar({ categoria, nombre })}</div>`
+      : `<div class="gps-hoja-aportar">${hojaAportar()}</div>`;
+
+    capa.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, id } = boton.dataset;
+      if (accion === 'cerrar') cerrarAporte();
+      if (accion === 'volver') { aporte.categoria = null; pintarAporte(); }
+      if (accion === 'guardar') guardarAporte(boton);
+
+      if (accion === 'categoria') {
+        // Desde la grilla se elige; desde el chip de la hoja de marcar se
+        // vuelve a la grilla, guardando lo escrito.
+        aporte.nombre = q(capa, '#gps-aportar-nombre')?.value ?? aporte.nombre;
+        aporte.categoria = id ?? null;
+        pintarAporte();
+      }
+    };
+
+    if (categoria) {
+      const input = q(capa, '#gps-aportar-nombre');
+      input.addEventListener('input', () => { aporte.nombre = input.value; });
+      input.addEventListener('keydown', (event) => { if (event.key === 'Enter') guardarAporte(q(capa, '#gps-aportar-guardar')); });
+      input.focus();
+    }
+  }
+
+  async function guardarAporte(boton) {
+    const { categoria, nombre } = aporte;
+    const camion = selectedTruck();
+    const motivo = nombreValido(nombre);
+
+    if (motivo) { toastError(motivo); return; }
+    if (!camion) { toastError('Elegí un camión: el aporte lleva tu voto, y el voto dice para qué tipo vale.'); return; }
+
+    const centro = gl.center();
+    if (!centro) return;
+
+    const lugar = {
+      name: nombre.trim(),
+      category: CATEGORIAS.find((c) => c.id === categoria)?.categoria ?? categoria,
+      latitude: centro.lat,
+      longitude: centro.lng,
+      truckId: camion.id
+    };
+
+    await withBusy(boton, 'Guardando', async () => {
+      try {
+        const { earned } = await api.addPoi(lugar);
+        toastOk(earned?.contributionExperience ? `Listo • +${earned.contributionExperience} EXP` : 'Listo, lugar guardado.');
+        cerrarAporte();
+        cargarLugaresDelMapa();
+      } catch (error) {
+        // 409: ya hay uno igual a menos de 25 m. Se ofrece votarlo en vez
+        // de duplicarlo: el voto dice lo mismo que el aporte queria decir.
+        if (error.status === 409 && error.problem?.existingId) {
+          const votar = await askConfirm({
+            title: 'Ya hay un lugar ahí',
+            message: 'Hay uno de la misma categoría a menos de 25 metros. ¿Lo votás como apto para tu camión en vez de cargarlo de nuevo?',
+            confirmLabel: 'Votarlo',
+            cancelLabel: 'Dejarlo'
+          });
+
+          if (votar) await votarExistente(error.problem.existingId, camion);
+          cerrarAporte();
+          return;
+        }
+
+        toastError(error.message);
+      }
+    });
+  }
+
+  async function votarExistente(id, camion) {
+    try {
+      const { earned } = await api.votePoi(id, camion.id, 'Suitable');
+      toastOk(earned?.contributionExperience ? `Voto guardado • +${earned.contributionExperience} EXP` : 'Voto guardado.');
+      cargarLugaresDelMapa();
+    } catch (error) {
+      toastError(`No se pudo votar: ${error.message}`);
+    }
   }
 
   /* ------------------------------------------------------------------------
@@ -1043,7 +1165,7 @@ export function navigateView(host, { openDrawer, go }) {
         alModo: (modo) => cambiarModoGeneral(modo),
         alReanudar: () => salirVistaGeneral(),
         alIr: (indice) => irPorOpcion(indice),
-        alAportar: () => toast('Aportar un lugar llega en la próxima etapa.'),
+        alAportar: () => aportarLugar(),
         alSos: () => go('emergencia'),
         alVoz: () => alternarVoz(),
         alRecentrar: () => { gl.setFollowing(true); viaje?.movido(false); },
@@ -1290,6 +1412,7 @@ export function navigateView(host, { openDrawer, go }) {
   /** Saca la pantalla del viaje y devuelve los controles del reposo. */
   function desmontarViaje() {
     vistaGeneral = null;
+    cerrarAporte();
     viaje?.destruir();
     viaje = null;
     host0.classList.remove('is-viaje');
