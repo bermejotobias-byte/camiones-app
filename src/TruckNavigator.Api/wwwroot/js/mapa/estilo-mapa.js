@@ -144,12 +144,18 @@ export function buildBasemapStyle(apiBase = '') {
     lugar: token('--map-lugar')
   };
 
-  const linea = (id, filtro, color, width, extra = {}) => ({
+  // Desde que zoom se ve cada clase (medido en el telefono el 18/09/2026: con
+  // todas en 11, al alejar para ver la Ciudad entera quedaba la Red sola
+  // flotando sin calles). Como en Waze: de lejos, autopistas y vias
+  // principales; las calles chicas al acercarse.
+  const DESDE = { autopista: 8, principal: 9, avenida: 10, calle: 12, sendero: 14, ferrocarril: 11 };
+
+  const linea = (id, filtro, color, width, extra = {}, desde = 11) => ({
     id,
     type: 'line',
     source: 'base',
     'source-layer': 'roads',
-    minzoom: 11,
+    minzoom: desde,
     filter: filtro,
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: { 'line-color': color, 'line-width': width, ...extra }
@@ -210,14 +216,14 @@ export function buildBasemapStyle(apiBase = '') {
       { id: 'agua', type: 'fill', source: 'base', 'source-layer': 'water', paint: { 'fill-color': t.agua } },
 
       /* -- calles: sin borde de noche, con filete de dia -------------------- */
-      linea('calles-borde', esCalle, t.calleBorde, conBorde('calle')),
-      linea('avenidas-borde', esAvenida, t.calleBorde, conBorde('avenida')),
-      linea('principales-borde', esPrincipal, t.calleBorde, conBorde('principal')),
+      linea('calles-borde', esCalle, t.calleBorde, conBorde('calle'), {}, DESDE.calle),
+      linea('avenidas-borde', esAvenida, t.calleBorde, conBorde('avenida'), {}, DESDE.avenida),
+      linea('principales-borde', esPrincipal, t.calleBorde, conBorde('principal'), {}, DESDE.principal),
 
-      linea('senderos', esSendero, t.sendero, ANCHO.sendero, { 'line-opacity': ['interpolate', ['linear'], ['zoom'], 15, 0, 16, 1] }),
-      linea('calles', esCalle, t.calle, ANCHO.calle),
-      linea('avenidas', esAvenida, t.avenida, ANCHO.avenida),
-      linea('principales', esPrincipal, t.avenida, ANCHO.principal),
+      linea('senderos', esSendero, t.sendero, ANCHO.sendero, { 'line-opacity': ['interpolate', ['linear'], ['zoom'], 15, 0, 16, 1] }, DESDE.sendero),
+      linea('calles', esCalle, t.calle, ANCHO.calle, {}, DESDE.calle),
+      linea('avenidas', esAvenida, t.avenida, ANCHO.avenida, {}, DESDE.avenida),
+      linea('principales', esPrincipal, t.avenida, ANCHO.principal, {}, DESDE.principal),
 
       // El tren: linea gris con rayas claras, como "Ferrocarril Mitre" en
       // waze-09. Explica los pasos a nivel: un sapito suelto no se entiende.
@@ -226,7 +232,7 @@ export function buildBasemapStyle(apiBase = '') {
         { 'line-dasharray': [1.5, 3] }),
 
       /* -- la autopista: banda clara, dos carriles y el centro punteado ----- */
-      linea('autopista', esAutopista, t.autopista, ANCHO.autopista),
+      linea('autopista', esAutopista, t.autopista, ANCHO.autopista, {}, DESDE.autopista),
       linea('autopista-carril-a', esAutopista, t.carril, 1, { 'line-offset': ancho(PARADAS.autopista, { por: 0.28 }), 'line-opacity': 0.8 }),
       linea('autopista-carril-b', esAutopista, t.carril, 1, { 'line-offset': ancho(PARADAS.autopista, { por: -0.28 }), 'line-opacity': 0.8 }),
       linea('autopista-centro', esAutopista, t.centro, 1.2, { 'line-dasharray': [4, 5], 'line-opacity': 0.9 }),
