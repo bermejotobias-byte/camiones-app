@@ -23,8 +23,8 @@
  */
 
 import { iconoDeManiobra, calcomania, circulo, dibujo, pildora } from './piezas.js';
-import { formatDistance, formatDuration, arrivalTime } from '../ui.js';
-import { tarjetaDeRutaMarkup } from './rutas.js';
+import { formatDistance, formatDuration, arrivalTime, escapeHtml } from '../ui.js';
+import { tarjetaDeRutaMarkup, nombreCorto } from './rutas.js';
 
 /* ---------------------------------------------------------------------------
    Que dice la banda
@@ -211,6 +211,35 @@ export function textoDeAviso(alerta, camion = null) {
   }
 
   return null;
+}
+
+/* ---------------------------------------------------------------------------
+   Reanudar (waze-03 y el prototipo)
+
+   Al abrir la app con un viaje abierto en el servidor, en vez de meterse en
+   la navegacion de golpe: la tarjeta con la pregunta en 22 negrita, la "i"
+   arriba a la derecha y dos pildoras de 42, "No" gris con texto celeste y
+   "Continuar viaje" celeste. "No" abre las tres salidas de siempre —llegue,
+   abandono, sigo—, porque cerrar un viaje decide si suma o no.
+--------------------------------------------------------------------------- */
+
+/** "¿Seguís yendo a Puerto de Buenos Aires?", con el destino en corto. */
+export function preguntaDeReanudar(trip) {
+  const destino = nombreCorto(trip?.destinationLabel);
+  return destino ? `¿Seguís yendo a ${destino}?` : '¿Seguís con el viaje que quedó abierto?';
+}
+
+export function tarjetaReanudar(trip) {
+  return `
+  <div class="gps-pregunta-cabeza">
+    ${calcomania('lugar', 30)}
+    <b>${escapeHtml(preguntaDeReanudar(trip))}</b>
+    <button type="button" class="gps-pregunta-info" data-accion="info" aria-label="Qué es esto">${dibujo('info', 22, 2)}</button>
+  </div>
+  <div class="gps-acciones">
+    ${pildora('No', { datos: 'data-accion="no"' })}
+    ${pildora('Continuar viaje', { clase: 'celeste', datos: 'data-accion="continuar"' })}
+  </div>`;
 }
 
 /* ---------------------------------------------------------------------------

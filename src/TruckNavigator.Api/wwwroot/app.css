@@ -1993,6 +1993,46 @@ button { font-family: inherit; font-size: inherit; }
 .gps-campo input::placeholder { color: var(--gps-ink-3); }
 .gps-hoja-marcar .gps-acciones { padding: 8px 0 0; }
 
+/* --- "¿Seguís yendo a…?" ----------------------------------------------------- */
+
+/* La tarjeta de waze-03, medida: radio 16, el pin de 30, la pregunta en 22
+   negrita, la "i" arriba a la derecha y dos pildoras de 42. Flota sobre la
+   hoja de reposo, a 12 de ella. */
+.gps-pregunta {
+  position: absolute;
+  left: 15px; right: 15px;
+  bottom: calc(150px + 12px + var(--safe-bottom));
+  z-index: 3;
+  padding: 14px 14px 4px;
+  border-radius: 16px;
+  background: #2b3035;
+  color: var(--gps-ink);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  font-family: var(--gps-ui);
+}
+
+.gps-pregunta[hidden] { display: none; }
+.gps-pregunta-cabeza { display: flex; gap: 12px; align-items: center; }
+.gps-pregunta-cabeza > svg { flex: none; }
+.gps-pregunta-cabeza b { flex: 1; min-width: 0; font-size: 22px; font-weight: 700; line-height: 1.2; }
+
+.gps-pregunta-info {
+  flex: none;
+  width: 36px; height: 36px;
+  margin: -7px -7px -7px 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #d7dee5;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-pregunta .gps-acciones { padding: 12px 0 8px; gap: 14px; background: transparent; }
+.gps-pregunta .gps-pildora { height: 42px; font-size: 15px; }
+
 /* Las filas de los detalles se leen enteras: sin recorte, 60 de alto minimo. */
 .gps-detalles .gps-fila { min-height: 60px; padding: 9px 0; cursor: default; }
 .gps-detalles .gps-fila-texto b { font-size: 18px; font-weight: 500; white-space: normal; }

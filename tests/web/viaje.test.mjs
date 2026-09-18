@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { estadoDeBanda, resumenRestante, textoDeAviso } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/viaje.js';
+import { estadoDeBanda, resumenRestante, textoDeAviso, preguntaDeReanudar, tarjetaReanudar } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/viaje.js';
 import { ICONOS, dibujo } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/piezas.js';
 import { arrivalTime } from '../../src/TruckNavigator.Api/wwwroot/js/ui.js';
 
@@ -142,4 +142,23 @@ test('cada dibujo de interfaz que usan las hojas existe y va en el color del tex
 
 test('un dibujo que no existe no dibuja nada', () => {
   assert.equal(dibujo('inexistente'), '');
+});
+
+/* ---------------------------------------------------------------------------
+   Reanudar (waze-03 y el prototipo): al abrir la app con un viaje abierto
+--------------------------------------------------------------------------- */
+
+test('la pregunta nombra el destino en corto; sin nombre, pregunta igual', () => {
+  assert.equal(preguntaDeReanudar({ destinationLabel: 'Puerto de Buenos Aires, Retiro, CABA' }), '¿Seguís yendo a Puerto de Buenos Aires?');
+  assert.equal(preguntaDeReanudar({ destinationLabel: 'Avenida Sáenz 1200, Nueva Pompeya' }), '¿Seguís yendo a Av. Sáenz 1200?');
+  assert.equal(preguntaDeReanudar({ destinationLabel: null }), '¿Seguís con el viaje que quedó abierto?');
+});
+
+test('la tarjeta: la pregunta, la "i", y las píldoras No y Continuar viaje', () => {
+  const html = tarjetaReanudar({ destinationLabel: 'Puerto <b>x</b>' });
+
+  assert.ok(html.includes('¿Seguís yendo a Puerto &lt;b&gt;x&lt;/b&gt;?'));
+  assert.ok(html.includes('data-accion="info"'));
+  assert.ok(html.includes('data-accion="no"'));
+  assert.ok(html.includes('data-accion="continuar"'));
 });

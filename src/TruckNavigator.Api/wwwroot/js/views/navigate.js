@@ -22,7 +22,7 @@ import {
   alertsAlongRoute, pendingRouteAlert, speakableAlert, maneuverArrowPath
 } from '../navigation.js';
 import * as gl from '../map.js';
-import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso } from '../mapa/viaje.js';
+import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso, tarjetaReanudar } from '../mapa/viaje.js';
 import { dibujo, calcomania } from '../mapa/piezas.js';
 import {
   porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta,
@@ -66,6 +66,7 @@ export function navigateView(host, { openDrawer, go }) {
   let rerouting = false;
   let lastRerouteAt = null;
   let viaje = null;           // la pantalla del viaje (js/mapa/viaje.js), mientras dura
+  let pregunta = null;        // la tarjeta de "¿Seguís yendo a…?", mientras esta
 
   // Si el viaje arranco pero todavia no llego ninguna posicion. Lo unico que
   // cambia es lo que dice la pantalla, y no es poco: sin esto mostraba un guion
@@ -300,6 +301,7 @@ export function navigateView(host, { openDrawer, go }) {
     // Mientras se elige ruta, los controles del mapa se van: la pantalla es
     // la cabecera, la tira de mapa y la lista.
     host0.classList.toggle('is-eligiendo', stage === 'route' || stage === 'detalles');
+    if (pregunta) pregunta.hidden = stage !== 'search';
 
     if (stage === 'navigation') return drawNavigation();
     if (stage === 'route') return drawRutas();
@@ -1995,6 +1997,53 @@ export function navigateView(host, { openDrawer, go }) {
    * El origen y el destino salen del viaje registrado, no de lo que hubiera
    * quedado escrito en los campos de busqueda.
    */
+  /* ------------------------------------------------------------------------
+     "¿Seguís yendo a…?" (waze-03 y el prototipo)
+
+     La tarjeta sobre la hoja de reposo, con la pregunta y dos pildoras:
+     "No" abre las tres salidas de siempre —llegue, abandono, sigo— porque
+     cerrar un viaje decide si suma o no; "Continuar viaje" retoma la
+     navegacion. La tarjeta se queda mientras el viaje siga abierto y la
+     pantalla en reposo.
+  ------------------------------------------------------------------------ */
+
+
+  function preguntarPorElViaje() {
+    if (pregunta) return;
+
+    pregunta = document.createElement('div');
+    pregunta.className = 'gps-pregunta';
+    pregunta.innerHTML = tarjetaReanudar(state.activeTrip);
+    host0.appendChild(pregunta);
+
+    pregunta.onclick = async (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion } = boton.dataset;
+
+      if (accion === 'info') {
+        toast('El viaje quedó abierto cuando se cerró la app. Si llegaste, se acreditan los kilómetros; si lo abandonás, no suma nada.', 'info', 6000);
+      }
+
+      if (accion === 'continuar') {
+        quitarPregunta();
+        resumeTrip();
+      }
+
+      if (accion === 'no') {
+        await askToStop();
+        // Si eligio seguir, el viaje sigue abierto y la pregunta tambien.
+        if (!state.activeTrip) quitarPregunta();
+      }
+    };
+  }
+
+  function quitarPregunta() {
+    pregunta?.remove();
+    pregunta = null;
+  }
+
   function resumeTrip() {
     const trip = state.activeTrip;
 
@@ -2071,9 +2120,10 @@ export function navigateView(host, { openDrawer, go }) {
   // bateria y ninguna otra pantalla la muestra.
   const stopListeningHeading = watchHeading(onHeading);
 
-  // Si quedo un viaje abierto de una sesion anterior, se retoma.
+  // Si quedo un viaje abierto de una sesion anterior, se pregunta antes de
+  // meterse en la navegacion de golpe (waze-03).
   if (state.activeTrip) {
-    resumeTrip();
+    preguntarPorElViaje();
   }
 
   drawSheet();
