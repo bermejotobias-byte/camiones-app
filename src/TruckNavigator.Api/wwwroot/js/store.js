@@ -16,21 +16,23 @@ const defaults = {
   selectedTruckId: null,
 
   /**
-   * Si se muestran sobre el mapa la Red de Transito Pesado, los galibos y los
-   * pasos a nivel.
-   *
-   * Arranca encendido: es la informacion por la que existe este producto. Se
-   * puede apagar porque a veces hace falta ver la calle limpia.
+   * Las capas del mapa, una por una: { red, galibo, paso, radar, zona }, lo
+   * que se elige en la hoja de capas (js/mapa/capas.js, `capasActivas`).
+   * Hasta que se toque una, rigen los dos valores viejos de abajo.
    */
-  truckLayers: true,
+  capas: null,
 
   /**
-   * Mapa de zonas peligrosas.
+   * Los dos botones de antes: la Red, los galibos y los pasos a nivel juntos,
+   * y las zonas peligrosas aparte. Se siguen leyendo para que lo que alguien
+   * apago siga apagado; lo nuevo se guarda en `capas`.
    *
-   * Arranca APAGADO, al reves que las capas de camion, y es a proposito: es un
-   * dato de la comunidad y no oficial, cubre area en vez de marcar puntos, y no
-   * es lo que uno necesita para manejar. Que aparezca solo si se lo pide.
+   * Las capas de camion arrancan encendidas: es la informacion por la que
+   * existe este producto. Las zonas arrancan APAGADAS, a proposito: es un
+   * dato de la comunidad y no oficial, cubre area en vez de marcar puntos, y
+   * no es lo que uno necesita para manejar.
    */
+  truckLayers: true,
   riskZones: false,
 
   /**

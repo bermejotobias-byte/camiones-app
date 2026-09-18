@@ -18,43 +18,38 @@ const SOURCES = {
 };
 
 /**
- * Ids de las capas de CAMION, para prenderlas y apagarlas juntas.
+ * Las capas que se prenden y apagan desde la hoja de capas, por grupo: cada
+ * cuadro de la hoja es uno de estos. Antes habia dos botones —"capas de
+ * camion" y "zonas"— y los radares no se apagaban; ahora cada dato va solo.
  *
- * Los radares quedan afuera a proposito: no son un dato de camion sino de
- * transito, le sirven igual a cualquiera y no tienen por que apagarse junto con
- * los galibos. Waze y Maps tampoco los esconden.
+ * Los pasos a nivel dependen de DOS cosas a la vez: de su cuadro y ademas de
+ * que haya un viaje en curso. Se guardan los dos estados por separado porque
+ * cada uno llega por su lado y ninguno sabe del otro; si el bucle generico
+ * los tocara, prender la capa los haria aparecer fuera del viaje.
  */
-const LAYER_IDS = [
-  'red-linea', 'red-nombre',
-  'altura-senal'
-];
+const GRUPOS = {
+  red: ['red-linea', 'red-nombre'],
+  galibo: ['altura-senal'],
+  paso: ['paso-senal'],
+  radar: ['radar-punto'],
+  zona: ['zona-riesgo-calor', 'zona-riesgo', 'zona-riesgo-senal']
+};
 
-/**
- * Los pasos a nivel dependen de DOS cosas a la vez, y por eso no estan en
- * `LAYER_IDS`: del boton de capas de camion, como el resto, y ademas de que haya
- * un viaje en curso. Se guardan los dos estados por separado porque cada uno
- * llega por su lado y ninguno sabe del otro; si el bucle generico los tocara,
- * prender las capas de camion los haria aparecer fuera del viaje.
- */
-let truckLayersOn = true;
+/** Lo ultimo que se pidio para cada grupo: se vuelve a aplicar al reinstalar. */
+const visibles = { red: true, galibo: true, paso: true, radar: true, zona: false };
 let navigating = false;
 
-function aplicarPasos(map) {
-  if (!map?.getLayer('paso-senal')) return;
+function aplicarGrupo(map, grupo) {
+  const visible = grupo === 'paso' ? visibles.paso && navigating : visibles[grupo];
 
-  map.setLayoutProperty('paso-senal', 'visibility',
-    truckLayersOn && navigating ? 'visible' : 'none');
+  for (const id of GRUPOS[grupo]) {
+    if (map?.getLayer(id)) {
+      map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+    }
+  }
 }
 
-/**
- * Las capas de zonas peligrosas, que se prenden y apagan APARTE.
- *
- * Tienen su propio boton y no viajan con las de camion. Son dos cosas distintas:
- * los galibos y la Red son datos oficiales sobre por donde puede pasar el
- * vehiculo; esto es el juicio de gente que trabaja en la calle sobre donde no
- * conviene parar. Quien quiera una no necesariamente quiere la otra.
- */
-const RISK_LAYER_IDS = ['zona-riesgo-calor', 'zona-riesgo', 'zona-riesgo-senal'];
+const aplicarPasos = (map) => aplicarGrupo(map, 'paso');
 
 const token = (name) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -152,6 +147,10 @@ export async function installTruckLayers(map) {
       console.error(`No se pudieron instalar las capas de ${nombre}: ${error.message}`);
     }
   }
+
+  // Lo que el usuario dejo prendido o apagado sobrevive a reinstalar (cambio
+  // de estilo): las capas nacen visibles y aca se les aplica lo elegido.
+  for (const grupo of Object.keys(GRUPOS)) aplicarGrupo(map, grupo);
 }
 
 /* ---------------------------------------------------------------------------
@@ -316,14 +315,19 @@ function addRiskZoneLayers(map) {
   });
 }
 
-/** Prende o apaga el mapa de zonas peligrosas. */
-export function setRiskZonesVisible(map, visible) {
-  if (!map) return;
+/** Prende o apaga un grupo de capas (uno de los cuadros de la hoja de capas). */
+export function setLayerGroupVisible(map, grupo, visible) {
+  if (!(grupo in GRUPOS)) return;
 
-  for (const id of RISK_LAYER_IDS) {
-    if (map.getLayer(id)) {
-      map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
-    }
+  visibles[grupo] = !!visible;
+  aplicarGrupo(map, grupo);
+}
+
+/** Aplica de una vez lo que dice la hoja de capas: { red, galibo, paso, radar, zona }. */
+export function applyLayerGroups(map, capas) {
+  for (const grupo of Object.keys(GRUPOS)) {
+    if (grupo in capas) visibles[grupo] = !!capas[grupo];
+    aplicarGrupo(map, grupo);
   }
 }
 
@@ -463,44 +467,25 @@ function rectangulo(ctx, x, y, ancho, alto, radio) {
 function senalGalibo(anillo) {
   const { canvas, ctx, c } = chapa(anillo);
 
-  // EL MISMO DIBUJO que el boton de capas de camion, que usa `icon('bridge')`
-  // de ui.js: `M3 8h18 · M5 8v10 · M19 8v10 · M9 18v-5a3 3 0 0 1 6 0v5`.
+  // EL MISMO DIBUJO que el cuadro de galibos de la hoja de capas: el arco de
+  // la calcomania `galiboOk` (js/mapa/piezas.js), en su caja de 32.
   //
-  // Que el boton que prende los galibos y la señal que aparece en el mapa sean
-  // el mismo puente no es un detalle estetico: es lo que hace que uno entienda
-  // sin leer nada que ese boton controla estas señales. Antes eran dos puentes
-  // distintos, dibujados cada uno por su lado.
+  // Que el cuadro que prende los galibos y la señal que aparece en el mapa
+  // sean el mismo arco no es un detalle estetico: es lo que hace que uno
+  // entienda sin leer nada que ese cuadro controla estas señales. Antes eran
+  // dos puentes distintos, dibujados cada uno por su lado.
   //
-  // Se traduce del viewBox de 24 al lienzo de la chapa. La escala y el centro se
-  // calculan aca para que el dibujo siga al tamaño de la chapa si cambia.
-  const escala = 1.05;
-  const px = (x) => c + (x - 12) * escala;
-  const py = (y) => c + (y - 13) * escala;
+  // Se traduce de la caja de 32 al lienzo de la chapa. La escala y el centro
+  // se calculan aca para que el dibujo siga al tamaño de la chapa si cambia.
+  const escala = 0.8;
+  const arco = new Path2D('M3 27V12a13 13 0 0 1 26 0v15h-6V14a7 7 0 0 0-14 0v13z');
 
-  ctx.strokeStyle = SENAL.tinta;
-  ctx.lineWidth = 2.2 * escala;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  ctx.beginPath();
-
-  // El tablero.
-  ctx.moveTo(px(3), py(8));
-  ctx.lineTo(px(21), py(8));
-
-  // Los dos pilares.
-  ctx.moveTo(px(5), py(8));
-  ctx.lineTo(px(5), py(18));
-  ctx.moveTo(px(19), py(8));
-  ctx.lineTo(px(19), py(18));
-
-  // El vano: sube, media vuelta y baja. Es el `a3 3 0 0 1 6 0` del path.
-  ctx.moveTo(px(9), py(18));
-  ctx.lineTo(px(9), py(13));
-  ctx.arc(px(12), py(13), 3 * escala, Math.PI, 0);
-  ctx.lineTo(px(15), py(18));
-
-  ctx.stroke();
+  ctx.save();
+  ctx.translate(c - 16 * escala, c - 16.5 * escala);
+  ctx.scale(escala, escala);
+  ctx.fillStyle = SENAL.tinta;
+  ctx.fill(arco);
+  ctx.restore();
 
   return imagen({ canvas, ctx });
 }
@@ -906,22 +891,6 @@ export function setTruckHeight(map, metres) {
   if (map?.getLayer('altura-senal')) {
     map.setLayoutProperty('altura-senal', 'icon-image', senalDeGalibo());
   }
-}
-
-/** Prende o apaga todas las capas de camion. */
-export function setTruckLayersVisible(map, visible) {
-  if (!map) return;
-
-  truckLayersOn = visible;
-
-  for (const id of LAYER_IDS) {
-    if (map.getLayer(id)) {
-      map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
-    }
-  }
-
-  // Los pasos a nivel van aparte: ademas del boton, necesitan que haya viaje.
-  aplicarPasos(map);
 }
 
 /** Vuelve a leer los colores del tema. Se llama al cambiar entre dia y noche. */

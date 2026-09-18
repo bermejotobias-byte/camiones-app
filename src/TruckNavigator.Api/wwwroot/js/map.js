@@ -6,7 +6,7 @@
  * manana se cambia de biblioteca de mapas, se reescribe este archivo y nada mas.
  */
 
-import { installTruckLayers, setTruckLayersVisible, setRiskZonesVisible, setCrossingsVisible, setTruckHeight, refreshLayerColors, truckDataset } from './layers.js';
+import { installTruckLayers, setLayerGroupVisible, applyLayerGroups, setCrossingsVisible, setTruckHeight, refreshLayerColors, truckDataset } from './layers.js';
 import { registerPmtilesProtocol, buildBasemapStyle } from './mapa/estilo-mapa.js';
 import { calcomania } from './mapa/piezas.js';
 import { instalarLugares, mostrarLugares, CAPA_LUGARES } from './mapa/lugares.js';
@@ -1068,8 +1068,9 @@ export function resize() {
    al mapa y no tengan que saber que las capas viven en otro archivo.
 --------------------------------------------------------------------------- */
 
-export const showTruckLayers = (visible) => setTruckLayersVisible(map, visible);
-export const showRiskZones = (visible) => setRiskZonesVisible(map, visible);
+/** Un cuadro de la hoja de capas: red, galibo, paso, radar o zona. */
+export const showLayerGroup = (grupo, visible) => setLayerGroupVisible(map, grupo, visible);
+export const applyLayers = (capas) => applyLayerGroups(map, capas);
 
 /** Los datasets de camion, para que el motor de avisos los cruce con la ruta. */
 export const datasets = () => ({

@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 451 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 171 tests: guiado, avisos de ruta, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha y voto), flecha de maniobra, agenda, mascota e insignias
+node --test "tests/web/*.test.mjs"             # 178 tests: guiado, avisos de ruta, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha y voto), hoja de capas, flecha de maniobra, agenda, mascota e insignias
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -126,13 +126,19 @@ node --test "tests/web/*.test.mjs"             # 171 tests: guiado, avisos de ru
   eso choca con el rojo de los gálibos, que significa **"tu camión no pasa"**. El mismo
   color con dos significados, en la pantalla que se mira de reojo. Hoy hay una sola chapa
   en pizarra y el tipo de barrera se lee al tocarla. Ver AD-38.
-- **Los pasos a nivel se muestran SÓLO durante el viaje**, y por eso `paso-senal` **no está
-  en `LAYER_IDS`**: depende del botón de capas *y* de que haya viaje, y el bucle genérico lo
-  prendía fuera del viaje. Son 312 y afuera del viaje sólo tapan el mapa donde se arma la
-  ruta. **No se filtran por tamaño del camión porque el dato no existe**: OSM trae `barrier`,
-  `name` y `osm`, ninguna dimensión.
-- **El gálibo del mapa usa el mismo dibujo que el botón de capas** (`icon('bridge')`). Antes
-  eran dos puentes distintos y no se entendía que ese botón controlara esas señales.
+- **Las capas del mapa se prenden una por una desde la hoja de capas** (`js/mapa/capas.js`,
+  desde el 17/09/2026): `GRUPOS` en `layers.js` —red, galibo, paso, radar, zona— y
+  `prefs.capas`; los dos botones viejos (`truckLayers`, `riskZones`) se siguen leyendo
+  con `capasActivas(prefs)` para que lo apagado siga apagado. Las capas nacen visibles y
+  `installTruckLayers` les aplica lo elegido al final, así sobreviven a un cambio de estilo.
+- **Los pasos a nivel se muestran SÓLO durante el viaje**: `paso-senal` depende de su
+  cuadro *y* de que haya viaje, y son dos estados que llegan por caminos distintos; el
+  bucle genérico los prendía fuera del viaje. Son 312 y afuera del viaje sólo tapan el
+  mapa donde se arma la ruta. **No se filtran por tamaño del camión porque el dato no
+  existe**: OSM trae `barrier`, `name` y `osm`, ninguna dimensión.
+- **El gálibo del mapa usa el mismo dibujo que su cuadro de la hoja de capas**
+  (`calcomania('galiboOk')`). Antes eran dos puentes distintos y no se entendía que ese
+  botón controlara esas señales.
 - **Un ícono del mapa no puede ser un emoji.** Los glifos vendorizados llegan hasta el
   carácter 511: cualquier cosa por encima —una cámara 📷 está en U+1F4F7— **no se dibuja, sin
   error**. Los íconos van como imagen (`map.addImage` sobre un canvas), y con colores
@@ -424,9 +430,9 @@ node --test "tests/web/*.test.mjs"             # 171 tests: guiado, avisos de ru
   Hay dos estados —marcada y no marcada—, y **la app nunca dice "zona segura"**: que un
   lugar no aparezca significa que nadie lo marcó. El toque lo aclara cada vez y no muestra
   números: no son accionables manejando e invitan a una precisión que la fuente no tiene.
-- **Las zonas se prenden con su propio botón (`#risk`) y arrancan APAGADAS**, aparte de las
-  capas de camión. Son datos de otra naturaleza: los gálibos dicen por dónde puede pasar
-  el vehículo, esto es un juicio de la comunidad sobre dónde no conviene parar.
+- **Las zonas se prenden con su propio cuadro en la hoja de capas y arrancan APAGADAS**,
+  aparte de las capas de camión. Son datos de otra naturaleza: los gálibos dicen por dónde
+  puede pasar el vehículo, esto es un juicio de la comunidad sobre dónde no conviene parar.
 - **El heatmap se alimenta con PUNTOS, nunca con una grilla.** Normaliza por densidad de
   puntos: con una grilla regular la redibuja como lunares alineados, y agrandar el radio
   sólo da lunares más grandes. El script rellena cada zona con puntos cada 60 m y los

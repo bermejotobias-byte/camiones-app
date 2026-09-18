@@ -23,6 +23,7 @@ import {
 } from '../navigation.js';
 import * as gl from '../map.js';
 import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso } from '../mapa/viaje.js';
+import { dibujo } from '../mapa/piezas.js';
 import {
   porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta,
   textoDeEstado, chipsDeRuta, cabeceraDeRutas, pildoraDelCamion, hojaRutas,
@@ -30,6 +31,7 @@ import {
 } from '../mapa/rutas.js';
 import { hojaReposo } from '../mapa/reposo.js';
 import { hojaBuscar, cuerpoDeBusqueda } from '../mapa/buscar.js';
+import { hojaCapas, capasActivas } from '../mapa/capas.js';
 import { categoriasParaPedir, fichaDeLugar, fichaLugar } from '../mapa/lugares.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
@@ -45,7 +47,7 @@ export function navigateView(host, { openDrawer, go }) {
   let routeOptions = [];      // la recomendada y sus alternativas, ya ordenadas
   let avisosPorOpcion = [];   // lo que hay en el camino de cada una: radares, galibos, pasos
   let chosenRoute = 0;        // cuál de todas se está mirando
-  let stage = 'search';       // 'search' (reposo) | 'buscar' | 'route' | 'detalles' | 'ficha' | 'delivery' | 'navigation'
+  let stage = 'search';       // 'search' (reposo) | 'buscar' | 'route' | 'detalles' | 'ficha' | 'capas' | 'delivery' | 'navigation'
 
   // --- modo reparto ---
   let stops = [];             // paradas como las cargó el usuario
@@ -104,8 +106,7 @@ export function navigateView(host, { openDrawer, go }) {
           <span class="compass-facing" id="compass-facing">—</span>
         </div>
 
-        <button class="fab" id="layers" aria-label="Capas de camión">${raw(icon('bridge'))}</button>
-        <button class="fab" id="risk" aria-label="Zonas peligrosas">${raw(icon('warning'))}</button>
+        <button class="fab" id="capas" aria-label="Capas">${raw(dibujo('capas', 24, 2.2))}</button>
         <button class="fab" id="locate" aria-label="Mi ubicación">${raw(icon('gps'))}</button>
       </div>
 
@@ -120,11 +121,8 @@ export function navigateView(host, { openDrawer, go }) {
       // Las capas de camion ya estan puestas. Se aplican la preferencia
       // guardada y la altura del camion elegido, que es la que decide de que
       // color se pinta cada galibo.
-      gl.showTruckLayers(prefs.truckLayers);
-      gl.showRiskZones(prefs.riskZones);
+      gl.applyLayers(capasActivas(prefs));
       gl.useTruckHeight(selectedTruck()?.heightMeters);
-      updateLayerButton();
-      updateRiskButton();
       locate({ silent: true });
       cargarLugares();
       cargarLugaresDelMapa();
@@ -200,60 +198,11 @@ export function navigateView(host, { openDrawer, go }) {
   wire(host, {
     '#locate': () => locate({ silent: false }),
     '#panic': () => go('emergencia'),
-    '#layers': () => toggleTruckLayers(),
-    '#risk': () => toggleRiskZones(),
+    '#capas': () => abrirCapas(),
     '#compass-dial': () => explainHeading(),
     '#zoom-in': () => gl.zoomIn(),
     '#zoom-out': () => gl.zoomOut()
   });
-
-  /**
-   * Prende y apaga las capas de camion.
-   *
-   * Se puede apagar a proposito: con la Red, los galibos y los pasos a nivel
-   * encendidos el mapa dice mucho, y a veces lo que hace falta es ver la calle
-   * limpia. La eleccion se recuerda.
-   */
-  function toggleTruckLayers() {
-    savePrefs({ truckLayers: !prefs.truckLayers });
-    gl.showTruckLayers(prefs.truckLayers);
-    updateLayerButton();
-
-    toastOk(prefs.truckLayers
-      ? 'Red, puentes y pasos a nivel a la vista.'
-      : 'Capas de camión apagadas.');
-  }
-
-  /** El boton se pinta segun si las capas estan encendidas. */
-  function updateLayerButton() {
-    const button = q(host, '#layers');
-    if (button) button.style.color = prefs.truckLayers ? 'var(--brand)' : 'var(--ink-3)';
-  }
-
-  /**
-   * Prende y apaga el mapa de zonas peligrosas.
-   *
-   * Va aparte de las capas de camión a propósito: son datos de naturaleza
-   * distinta. La Red y los gálibos son oficiales y dicen por dónde puede pasar
-   * el vehículo; las zonas peligrosas son el juicio de gente que trabaja en la
-   * calle sobre dónde no conviene parar. Quien quiere una no necesariamente
-   * quiere la otra, y el sombreado cubre área, así que es lo primero que uno
-   * quiere sacar del medio para leer el mapa.
-   */
-  function toggleRiskZones() {
-    savePrefs({ riskZones: !prefs.riskZones });
-    gl.showRiskZones(prefs.riskZones);
-    updateRiskButton();
-
-    toastOk(prefs.riskZones
-      ? 'Zonas peligrosas a la vista.'
-      : 'Zonas peligrosas apagadas.');
-  }
-
-  function updateRiskButton() {
-    const button = q(host, '#risk');
-    if (button) button.style.color = prefs.riskZones ? 'var(--danger)' : 'var(--ink-3)';
-  }
 
   /* ------------------------------------------------------------------------
      Brujula
@@ -355,6 +304,7 @@ export function navigateView(host, { openDrawer, go }) {
     if (stage === 'route') return drawRutas();
     if (stage === 'detalles') return drawDetalles();
     if (stage === 'ficha') return drawFicha();
+    if (stage === 'capas') return drawCapas();
     if (stage === 'delivery') return drawDelivery();
     if (stage === 'buscar') return drawBuscar();
     drawReposo();
@@ -402,6 +352,107 @@ export function navigateView(host, { openDrawer, go }) {
     } catch (error) {
       toastError(`No se pudieron traer los lugares: ${error.message}`);
     }
+  }
+
+  /* ------------------------------------------------------------------------
+     La hoja de capas (js/mapa/capas.js)
+
+     Un solo boton flotante en vez de los dos de antes: la hoja prende y
+     apaga cada dato para el camion por separado, las categorias de lugares
+     —los mismos chips que la busqueda— y "solo aptos para este camion", que
+     dice cuantos lugares oculta. Lo elegido se recuerda en prefs.capas y
+     prefs.lugares.
+  ------------------------------------------------------------------------ */
+
+  let ocultosPorSoloAptos = null;   // cuantos lugares esconde el filtro, cuando se sabe
+
+  function abrirCapas() {
+    if (stage !== 'search' && stage !== 'ficha') return;
+    stage = 'capas';
+    drawSheet();
+    contarOcultos();
+  }
+
+  function cerrarCapas() {
+    stage = 'search';
+    drawSheet();
+  }
+
+  function drawCapas() {
+    const hoja = sheetAs('gps-hoja-capas');
+    hoja.innerHTML = hojaCapas({
+      capas: capasActivas(prefs),
+      categorias: prefs.lugares?.categorias ?? [],
+      soloAptos: !!prefs.lugares?.soloAptos,
+      camion: selectedTruck(),
+      ocultos: ocultosPorSoloAptos
+    });
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, id } = boton.dataset;
+      if (accion === 'cerrar') cerrarCapas();
+      if (accion === 'capa') alternarCapa(id);
+      if (accion === 'categoria') { alternarCategoria(id); contarOcultos(); }
+      if (accion === 'solo-aptos') alternarSoloAptos();
+      if (accion === 'aportar') aportarLugar();
+    };
+  }
+
+  function alternarCapa(id) {
+    const capas = capasActivas(prefs);
+    capas[id] = !capas[id];
+    savePrefs({ capas });
+    gl.showLayerGroup(id, capas[id]);
+    drawSheet();
+  }
+
+  /** Prende o apaga una categoria de lugares; lo usan la busqueda y la hoja de capas. */
+  function alternarCategoria(id) {
+    const activas = new Set(prefs.lugares?.categorias ?? []);
+    activas.has(id) ? activas.delete(id) : activas.add(id);
+    savePrefs({ lugares: { ...(prefs.lugares ?? {}), categorias: [...activas] } });
+    cargarLugaresDelMapa();
+    if (stage === 'capas') drawSheet();
+  }
+
+  function alternarSoloAptos() {
+    if (!selectedTruck()) return;
+    savePrefs({ lugares: { ...(prefs.lugares ?? {}), soloAptos: !prefs.lugares?.soloAptos } });
+    cargarLugaresDelMapa();
+    drawSheet();
+  }
+
+  /**
+   * Cuantos lugares de las categorias prendidas esconde "solo aptos": la
+   * diferencia entre pedirlos con y sin el filtro. Se cuenta al abrir la hoja
+   * y al cambiar de categoria; sin camion no hay filtro que contar.
+   */
+  async function contarOcultos() {
+    const camion = selectedTruck();
+    const categorias = categoriasParaPedir(prefs.lugares?.categorias ?? []);
+
+    if (!camion || !categorias) {
+      ocultosPorSoloAptos = categorias ? null : 0;
+      if (stage === 'capas') drawSheet();
+      return;
+    }
+
+    try {
+      const [todos, aptos] = await Promise.all([api.pois(categorias, camion.id), api.pois(categorias, camion.id, true)]);
+      ocultosPorSoloAptos = todos.length - aptos.length;
+    } catch {
+      ocultosPorSoloAptos = null;
+    }
+
+    if (stage === 'capas') drawSheet();
+  }
+
+  /** Aportar un lugar desde la hoja de capas (llega en la tarea 25). */
+  function aportarLugar() {
+    toast('Aportar un lugar llega en el próximo paso.');
   }
 
   /* ------------------------------------------------------------------------
@@ -586,15 +637,7 @@ export function navigateView(host, { openDrawer, go }) {
       if (accion === 'reparto') { cerrarBusqueda(); entrarEnReparto(); }
       if (accion === 'fijar-en-mapa') { cerrarBusqueda(); toast('Mantené apretado el mapa donde querés ir.'); }
 
-      if (accion === 'categoria') {
-        // Las categorias que mira el camionero se recuerdan, y la capa de
-        // lugares las prende sobre el mapa.
-        const activas = new Set(prefs.lugares?.categorias ?? []);
-        activas.has(id) ? activas.delete(id) : activas.add(id);
-        savePrefs({ lugares: { ...(prefs.lugares ?? {}), categorias: [...activas] } });
-        cargarLugaresDelMapa();
-        pintarCuerpoDeBusqueda();
-      }
+      if (accion === 'categoria') { alternarCategoria(id); pintarCuerpoDeBusqueda(); }
     };
   }
 

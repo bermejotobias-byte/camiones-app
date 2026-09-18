@@ -1802,6 +1802,96 @@ button { font-family: inherit; font-size: inherit; }
 
 .gps-hoja-ficha .gps-acciones { padding: 8px 0 0; }
 
+/* --- la hoja de capas ------------------------------------------------------- */
+
+/* De Maps se toma solo esta hoja: cuadros de 52 con radio 12 y rotulo en
+   12,5, el prendido con borde de 3 y rotulo del color; celestes sobre la hoja
+   de Waze. Misma hoja clavada abajo que la ficha. */
+.gps-hoja-capas {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 0 15px calc(14px + var(--safe-bottom));
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  font-family: var(--gps-ui);
+}
+
+.gps-hoja-capas .gps-manija { margin: 10px auto 0; }
+
+.gps-capas-titulo { display: flex; justify-content: space-between; align-items: center; padding: 4px 0 0; }
+.gps-capas-titulo b { font-size: 24px; font-weight: 400; }
+.gps-capas-titulo .gps-ficha-cerrar { margin-right: -8px; color: var(--gps-ink); }
+
+.gps-capas-seccion { font-size: 18px; color: #d7dee5; margin: 10px 0 0; }
+
+.gps-cuadros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
+
+.gps-cuadro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-cuadro-ico {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #2b3035;
+  border: 3px solid transparent;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+
+.gps-cuadro.is-on .gps-cuadro-ico { border-color: var(--gps-accion); }
+.gps-cuadro-nombre { font-size: 12.5px; text-align: center; line-height: 1.2; color: var(--gps-ink-2); }
+.gps-cuadro.is-on .gps-cuadro-nombre { color: var(--gps-celeste); }
+.gps-cuadro small { font-size: 10.5px; color: #6b7480; margin-top: -3px; }
+
+.gps-interruptor {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 0 0;
+  border: 0;
+  border-top: 1px solid #3a4046;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-interruptor:disabled { opacity: .55; cursor: default; }
+.gps-interruptor-texto { flex: 1; min-width: 0; }
+.gps-interruptor-texto b { display: block; font-size: 18px; font-weight: 500; }
+.gps-interruptor-texto span { display: block; font-size: 15px; color: var(--gps-ink-3); margin-top: 2px; }
+
+.gps-interruptor-perilla { width: 46px; height: 26px; border-radius: 13px; background: #3a4046; position: relative; flex: none; display: block; transition: background .15s; }
+.gps-interruptor-perilla::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .15s; }
+.gps-interruptor-perilla.is-on { background: var(--gps-accion); }
+.gps-interruptor-perilla.is-on::after { left: 23px; }
+
+.gps-hoja-capas .gps-acciones { padding: 12px 0 0; }
+
 /* Las filas de los detalles se leen enteras: sin recorte, 60 de alto minimo. */
 .gps-detalles .gps-fila { min-height: 60px; padding: 9px 0; cursor: default; }
 .gps-detalles .gps-fila-texto b { font-size: 18px; font-weight: 500; white-space: normal; }
