@@ -25,8 +25,10 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 17/09/2026: el GPS con la piel de Waze, en curso** (`c2f8cca`, 33 commits
-desde `92a8ed3`, sin pushear; ver §8, punto 0). Antes, **al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; doce
+**Punta al 18/09/2026: el GPS con la piel de Waze, etapas 1 a 9 hechas y
+verificadas, docs de la etapa 10 en curso** (`642d40f` y lo que siga; **67
+commits sin pushear** sobre `origin/cuentas-de-usuario`, uno por tarea; ver §8,
+punto 0). Antes, **al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; doce
 commits desde la spec `5298239`, uno por tarea), **sin pushear**. Antes, ese
 mismo día, el relevamiento de POIs y los talleres de mecánica pesada
 (`d0b6ddd`, diecisiete commits desde `b5dc4d3`, de la spec `c16cef1` al cierre en docs). Los
@@ -476,7 +478,7 @@ bind a `0.0.0.0:5080`— también son esperados.
   reintentos, 11 del orden de alternativas, 14 del orden del reparto y 20 de los
   contactos; **tres de esos grupos enlazan archivos de Mobile**, que a propósito no
   depende de MAUI.
-- **62 tests de JS** (`node --test`): motor de guiado, avisos de ruta, el puente de
+- **184 tests de JS** (`node --test`; eran 62 antes del GPS de Waze): motor de guiado, avisos de ruta, las pantallas del mapa (piezas, viaje, rutas, búsqueda, lugares, capas, aportar, reanudar), el puente de
   la agenda y el número listo para marcar. Fue un test —y no el teléfono— el que
   encontró que `Number(null)` es 0 y no `NaN`, con lo que un gálibo sin altura
   declarada se habría avisado como *"puente de 0,00 m, no pasás"*.
@@ -1072,8 +1074,8 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 ```powershell
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
-dotnet test                              # 295 tests (.NET)
-node --test "tests/web/*.test.mjs"       # 62 tests de JS — correr desde bash
+dotnet test                              # 451 tests (.NET)
+node --test "tests/web/*.test.mjs"       # 184 tests de JS — correr desde bash
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
 ```
@@ -1142,18 +1144,32 @@ vamos a implementarlo. arrancá pantalla por pantalla"*. Spec:
 la nota "Dónde quedamos":** `docs/superpowers/plans/2026-09-16-gps-waze.md`
 — leer esa nota antes que nada.
 
-Al cortar (17/09, 00:10, por límite semanal de uso): **etapas 1 a 5 hechas y
-verificadas en el navegador** (ruteo seguro AD-47; tokens y mapa base con la
+**Al 18/09/2026: etapas 1 a 9 hechas y verificadas en el navegador a
+360 × 800**, una por commit: ruteo seguro (AD-47); tokens y mapa base con la
 jerarquía de Waze; la pantalla del viaje entera —banda, hoja, píldora de la
-calle, ruta de 8 con canto, chevrón, flecha de maniobra sobre la calle, globos
-de nueve partes, tarjeta de aviso—; volver a centrar; vista general Mapa/Lista
-con línea de tiempo y cambiar de ruta en viaje; Casa/Depósito y recientes en el
-servidor; la hoja de reposo y la de búsqueda). **En curso: Task 20**, la lista
-de rutas: lo puro está (`textoDeEstado`, `chipsDeRuta` en `js/mapa/rutas.js`),
-**falta la hoja** que reemplaza al `drawRoute()` viejo de `navigate.js`.
-Después: Task 21 (detalles con el mono) y las etapas 7 a 10 (lugares, ficha y
-voto, hoja de capas, aportar, reanudar, día, docs/AD-48, verificación y APK).
-Punta: `c2f8cca`, **sin pushear** (33 commits desde `92a8ed3`, uno por tarea).
+calle, ruta de 8 con canto, chevrón, flecha de maniobra, globos de nueve
+partes, tarjeta de aviso—; volver a centrar; vista general Mapa/Lista con
+línea de tiempo y cambiar de ruta en viaje; Casa/Depósito y recientes en el
+servidor; reposo y búsqueda; **la lista de rutas** (`250fbb4`) y **los
+detalles con el mono** (`1de346f`); **la capa de lugares** con pines de 32
+(`e609a0b`, y el nivel es `Confirmed`, no `Verified`: `1ae030c`); **la ficha
+y el voto** (`bb681c3`); **la hoja de capas** con un solo botón flotante
+(`e2f53e6`); **aportar un lugar** desde el viaje y desde capas (`399cdfd`);
+**"¿Seguís yendo a…?"** al abrir con viaje abierto (`49ead2e`); y **el día**,
+derivado y verificado (`642d40f`). **En curso: Task 28** (docs, AD-48,
+CLAUDE.md, README del prototipo, estas skills). **Falta la Task 29**:
+`dotnet test` completo, recorrido de las pantallas noche y día, y el APK con
+`build-apk.ps1` para que el usuario lo toque en el teléfono. **Nada
+pusheado**: 67 commits sobre `origin/cuentas-de-usuario`; `gh` quedó
+logueado como `bermejotobias-byte` el 18/09 y el usuario no pidió el push.
+
+Lo que apareció verificando las etapas 6 a 9 y se corrigió en el origen: el
+nivel de verificación real de la API es `Confirmed`; `load` de MapLibre se
+dispara una sola vez por mapa (las capas se reinstalan en `style.load`); las
+hojas altas van clavadas abajo y no en el flujo de `.map-overlay`; el nombre
+`gps-aportar` ya era el botón amarillo del viaje (la capa es `gps-aporte`);
+dos radares en el mismo lugar se nombran una vez en los detalles; la chapa
+del gálibo del mapa pasó a dibujar el mismo arco que su cuadro de capas.
 
 Dos cosas que aparecieron verificando y se corrigieron **en el origen**, no
 con un parche: `POST /api/trips` pedía una sola ruta al motor y el viaje

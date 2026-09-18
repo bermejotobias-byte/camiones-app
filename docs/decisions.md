@@ -2869,3 +2869,76 @@ el pedido de arranque lleva `routeIndex` con la posición que se eligió en
 pantalla y `RouteOffer.Chosen` cae en la recomendada si esa posición ya no
 existe. Sin ruta apta, 422 al arrancar; al retomar, el viaje vuelve sin ruta y
 con el motivo, porque cerrarlo no necesita rutear.
+
+## AD-48 · La piel de Waze para el GPS: se copian patrones y medidas, nunca la marca
+
+**Fecha:** 16/09/2026 (prototipo aprobado) — 18/09/2026 (implementado)
+**Estado:** aceptada
+
+### Contexto
+
+El GPS es "lo más importante de la app; sin ella no tenemos clientes", y el
+usuario pidió que el viaje se sintiera **idéntico a Waze**: mismo concepto de
+pantalla, mismas fuentes y tamaños. Hasta entonces la pantalla del mapa era la
+hoja inferior genérica del sistema —tipografía Nunito, botones del resto de la
+app, un rótulo verde con la calle actual que el propio usuario después pidió
+sacar porque "no queda bien"— y cada pantalla se había diseñado por separado.
+
+Se midieron 16 capturas de Waze (Android, noche, 720 × 1600 = 360 dp) y una de
+Google Maps, píxel por píxel, y se armó un prototipo de 17 tableros
+(`docs/diseno/prototipo-gps/`, lienzo aprobado el 16/09/2026). La spec está en
+`docs/superpowers/specs/2026-09-16-gps-waze-design.md` y el plan, tarea por
+tarea, en `docs/superpowers/plans/2026-09-16-gps-waze.md`.
+
+### Decisión
+
+- **Se copian patrones y medidas; no la marca.** Ni el logo de Waze, ni los
+  Wazers, ni sus ilustraciones, ni su tipografía de marca. Las calcomanías son
+  dibujos propios (`js/mapa/piezas.js`), el mono es nuestro, la Red es nuestra.
+  De Google Maps se toma **sólo** la hoja de capas (la grilla de cuadros).
+- **Las medidas son las de Waze**, en dp = px CSS, y viven en un solo lugar:
+  los tokens `--gps-*` y `--map-*` de `app.css` y la sección "El GPS, medido
+  sobre Waze" de la skill de diseño. Banda de 95 + safe-top, hoja del viaje de
+  137, píldora de calle 18/700 a 155 del borde, círculos de 52 y 45, ruta de 8
+  con canto, globos de 30/48, chevrón 40 × 39, lista de rutas en filas de 145
+  con el tiempo en 27/700, hoja de reposo de 150, píldora de búsqueda de 52,
+  círculos de aportar de 75, pines de lugar de 32, cuadros de capas de 52.
+- **Roboto sólo dentro del GPS** (`--gps-ui`); Nunito en el zócalo y en el
+  resto de la app, que sigue con el registro Duolingo + camioneros + arcade.
+  **Nada del registro expresivo en movimiento**: el mono habla una vez, en los
+  detalles de la ruta, antes de arrancar.
+- **Tráfico → restricciones.** Donde Waze pinta el tráfico, acá se pinta la
+  Red: celeste por la Red, amarillo fuera de ella, **el rojo nunca sobre una
+  ruta** (AD-47). Donde Waze dice "Tráfico habitual", acá cuánto va por la
+  Red; donde dice "Evitar", el camión.
+- **Un módulo por superficie** en `wwwroot/js/mapa/`: `estilo-mapa.js`,
+  `piezas.js`, `viaje.js`, `rutas.js`, `reposo.js`, `buscar.js`,
+  `lugares.js`, `capas.js`, `aportar.js`. Lo que se calcula sale a funciones
+  puras con tests en `tests/web/`; `navigate.js` queda como anfitrión —estado,
+  mapa, GPS, viaje— y engancha cada hoja por `data-accion`.
+- **La pantalla del viaje es otra capa**, no la hoja: `.gps-viaje` sobre el
+  mapa, con `.map-overlay` escondida mientras dura. Lo mismo aportar
+  (`.gps-aporte`), que sirve en reposo y en viaje.
+- **Lo que decidió el usuario sobre la marcha**, y rige: sin velocímetro, sin
+  micrófono y sin hamburguesa en el mapa (el zócalo tiene "Más"); el nombre de
+  la calle actual en la píldora negra y no en verde sobre el mapa; en viaje,
+  "Volver a centrar" y "Vista general" con Mapa/Lista e "Ir"; el botón de
+  aportar del viaje sólo agrega un lugar; Casa, Depósito y los recientes en el
+  servidor; el día **derivado** hasta que haya una captura de Waze de día;
+  logos e identidad se aprueban aparte.
+
+### Consecuencias
+
+- Cada pantalla se verificó en el navegador a 360 × 800 contra el prototipo
+  antes de su commit; el criterio de "está bien" es la medida, no el gusto.
+- El sistema de diseño de la app tiene ahora **dos registros con frontera
+  nítida**: el GPS (sobrio, Waze, Roboto) y el resto (Duolingo, Nunito). Un
+  componente no cruza de un lado al otro: las píldoras `.gps-pildora` no se
+  usan en el perfil, ni los botones con reborde en el mapa.
+- Lo que el prototipo mostró que no existía en la API se construyó en el
+  origen y no con parches de pantalla: los gálibos en la ruta (`hazards`), el
+  filtro de ofrecibles y el viaje por la ruta elegida (AD-47), los lugares
+  guardados y los recientes en el servidor.
+- Queda pendiente, y anotado: la captura de Waze de día para medir el tema
+  claro; la Fase 5 (reportes de la comunidad) entra a la grilla de "¿Qué hay
+  acá?" cuando se decida.

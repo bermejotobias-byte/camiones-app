@@ -120,9 +120,10 @@ abierto — la única que muestra el activo y cómo se abre "más":
    de la mascota reservado y la trivia anunciada. Una pestaña apagada se lee como
    rota, y una que falta cambia la forma del zócalo cuando aparece.
 
-**Lo que quedó sin resolver, a propósito:** el **menú hamburguesa del mapa sigue
-ahí** y hoy duplica a "Más". Sacarlo es una línea, pero es decisión de producto:
-durante el viaje el zócalo no está, y el hamburguesa era la única salida del mapa.
+**Resuelto el 16/09/2026 con el GPS de Waze:** el menú hamburguesa del mapa se
+sacó (decisión del usuario, con "sin velocímetro ni micrófono"); la salida del
+mapa es "Más" del zócalo, y durante el viaje el S.O.S. y "Salir" están en la
+pantalla del viaje misma (§17).
 
 ### Logros
 
@@ -894,7 +895,7 @@ nada brilla; **el mono habla, no decora** — una pose por momento, siempre la
 misma; **el vacío vende la próxima acción** — el mono pregunta, el botón
 responde; **los números cuentan la historia** — grandes, tabulares, con unidad.
 
-## 17. El GPS, medido sobre Waze — 16/09/2026, en construcción
+## 17. El GPS, medido sobre Waze — 16/09/2026, construido el 17–18/09
 
 **Es la excepción de §2 hecha sistema.** El usuario aprobó el prototipo del
 mapa (`docs/diseno/prototipo-gps/`, generado por `gps.mjs`; lienzo
@@ -944,7 +945,55 @@ del registro expresivo en movimiento —**el mono habla una vez, en los
 detalles de la ruta, antes de arrancar**—; donde falta el dato, se dice.
 
 **Dónde está cada cosa**: un módulo por superficie en `wwwroot/js/mapa/`
-(`estilo-mapa`, `piezas`, `viaje`, `rutas`, `reposo`, `buscar`; faltan
-`capas`, `lugares`, `aportar`) con `navigate.js` de anfitrión. El estado de
+(`estilo-mapa`, `piezas`, `viaje`, `rutas`, `reposo`, `buscar`, `lugares`,
+`capas`, `aportar`) con `navigate.js` de anfitrión (AD-48). El estado de
 avance, tarea por tarea, está en `docs/superpowers/plans/2026-09-16-gps-waze.md`
 y en `estado-camiones-app` §8, punto 0.
+
+### Construido el 17–18/09/2026: lo que cambió al pasar del prototipo al código
+
+Las etapas 6 a 9 se construyeron y verificaron a 360 × 800 contra los
+tableros. Medidas que rigen (las de la spec, no las del CSS del prototipo,
+que en la lista de rutas usaba 32 donde la captura dice 27):
+
+- **Lista de rutas**: cabecera negra de 55 con "Mi ubicación → destino" en 18
+  (el origen del GPS se llama "Mi ubicación" aunque ya tenga dirección; el
+  destino, lo que va antes de la primera coma, abreviado); tira de mapa de
+  117 con la píldora del camión de 42 (`El Rayo · 40 t`, 18 / 500); filas de
+  145 con el tiempo en 27 / 700 —celeste, borde celeste de 4 y fondo
+  `--gps-elegida` en la elegida: negro de noche, `#eef1f4` de día—, km 18
+  gris, "Por…" 18, estado 16 gris, chips de 25 con punto y 14; píldoras de 48.
+- **Detalles**: cifras 27 / 700 con hora y Red en 16 gris; la tarjeta del mono
+  (64 px, `mascota()`; momentos `alerta`, `radar` y el nuevo `ruta` = "lee el
+  mapa" para cuando no hay nada que avisar) con lo único que importa —salir
+  de la Red antes que nada, después el gálibo más bajo, los radares, los
+  pasos a nivel—; filas de 60 mínimo con calcomanía de 30, título 18 / 500 y
+  sub 15 con la calle y el km de cada cosa; las fuentes tal como las declara
+  cada hallazgo del servidor.
+- **Pines de lugar**: 32 × 38 con la cola, disco `#2b3035`, anillo de 3
+  (blanco confirmado / celeste comunidad con contador de 17 / gris y al 72 %
+  sin confirmar) **más un halo oscuro de 1 px** para que el blanco se lea de
+  día; calcomanía de 18 adentro; desde el zoom 13. Dibujados a pedido
+  (`styleimagemissing`) como SVG al doble.
+- **Ficha**: caja de 48 con calcomanía de 32, nombre 22 / 700 en dos líneas
+  como mucho, sub 14 gris; bloques de radio 14: verde `#0f2a1f` un sí
+  verificado, **rojo `#2e1416` cuando la fuente dice que NO recibe tu camión**,
+  gris `#2b3035` lo probable, celeste `#0f2f3f` la comunidad; votos en
+  píldoras de 40 / 17; Llamar sólo con teléfono.
+- **Capas**: cuadros de **52** (no 73: la spec manda) con radio 12 y borde
+  celeste de 3 al estar prendidos, rótulo 12,5; interruptor de 46 × 26.
+- **Aportar**: título 21 / 700, círculos de 75 con calcomanía de 40 y rótulo
+  14; marcar con el pin `lugarMas` de 44 con la punta en el centro exacto,
+  chip de categoría en línea de 44, campo con etiqueta 12 en mayúsculas y
+  valor 20.
+- **Reanudar**: tarjeta `#2b3035` radio 16 a 12 de la hoja de reposo, pin de
+  30, pregunta 22 / 700, píldoras de 42 / 15.
+- **Día**: sigue derivado (sin captura); verificado que funciona en reposo,
+  rutas y viaje. **Pedir la captura de Waze de día** antes de medirlo.
+
+Tres reglas de construcción que salieron de verificar: **las hojas más altas
+que la de reposo van clavadas abajo** (`position: absolute`, con scroll), no
+en el flujo de la capa del mapa; **los nombres de clase `gps-*` se buscan
+antes de crearlos** (`gps-aportar` ya era el botón amarillo); y las
+capturas del panel del navegador se leen con el DOM al lado (rects), porque
+salen recortadas o en mosaico.

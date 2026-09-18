@@ -369,6 +369,29 @@ node --test "tests/web/*.test.mjs"             # 184 tests: guiado, avisos de ru
   95 + safe-top, distancia 27 sp / 400, calle 24 sp / 500 celeste; hoja de 137, hora
   25 sp / 700; píldora negra 18 sp / 700 a 155 del borde; aportar 63; círculos 52 y 45.
   Está en `docs/superpowers/specs/2026-09-16-gps-waze-design.md`.
+- **Un módulo por superficie en `js/mapa/`, y `navigate.js` sólo engancha** (AD-48):
+  `viaje.js`, `rutas.js` (la lista y los detalles), `reposo.js`, `buscar.js`,
+  `lugares.js` (la capa, la ficha y el voto), `capas.js`, `aportar.js`, y lo compartido en
+  `piezas.js`. Cada hoja es marcado con `data-accion`, lo que se calcula es puro y tiene
+  test en `tests/web/`; el estado y el mapa quedan en `navigate.js` (`stage`: search,
+  buscar, route, detalles, ficha, capas, delivery, navigation). Las medidas son las de
+  Waze y viven en los tokens `--gps-*` de `app.css` y en la skill de diseño §17.
+- **Las hojas más altas que la de reposo van CLAVADAS abajo (`position: absolute`), no
+  en el flujo de `.map-overlay`.** La ficha de un lugar, la de capas y las de aportar
+  empujadas por los controles del costado terminaban con las píldoras fuera de la
+  pantalla, medido: 61 px por debajo. Con `max-height` y `overflow-y: auto` scrollean.
+- **`load` se dispara UNA sola vez por mapa** (medido el 17/09/2026): cambiar de estilo
+  —el raster de respaldo, el día— no lo vuelve a disparar, y el mapa nuevo quedaba sin
+  la Red, sin gálibos y sin lugares. `createMap` reinstala las capas en cada
+  `style.load` (el primero lo cubre `load`). Y `installTruckLayers` aplica al final lo
+  que el usuario dejó prendido o apagado, porque las capas nacen visibles.
+- **`gps-aportar` es el botón amarillo del viaje; la capa de aportar se llama
+  `gps-aporte`.** Con el mismo nombre la hoja de "¿Qué hay acá?" salía dibujada como un
+  botón de 63 en la esquina.
+- **El nivel de verificación de un lugar se llama `Confirmed`, no `Verified`**
+  (`NotConfirmed` / `Probable` / `Confirmed`), y la evidencia `None` / `Operator` /
+  `Official` / `Reviews` / `Signals`. El pin blanco no apareció nunca hasta mirar los
+  datos reales: el test estaba escrito con el nombre inventado.
 - **El nombre de la calle actual va en la píldora negra, NO en verde sobre el mapa.** El
   rótulo verde (`calle-actual`, AD-37) se sacó el 16/09/2026 a pedido del usuario: "no
   queda bien". Sale de `navState.step.streetName` y lo pinta `viaje.calle()`; sin nombre

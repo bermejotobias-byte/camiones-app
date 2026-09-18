@@ -1,5 +1,12 @@
 # Prototipo del GPS — Waze como referencia, Maps para las capas
 
+> **Implementado el 17 y 18/09/2026** (AD-48): los diecisiete tableros están en
+> `wwwroot/js/mapa/*` y `app.css` (tokens `--gps-*` / `--map-*`), verificados en
+> el navegador a 360 × 800 contra estos tableros, tarea por tarea
+> (`docs/superpowers/plans/2026-09-16-gps-waze.md`). El prototipo sigue siendo
+> la referencia de medidas; lo que cambió al construirlo quedó anotado en la
+> spec y en la skill de diseño (§17). Falta la captura de Waze de día.
+
 **Es un prototipo, no código.** Diecisiete tableros de la pantalla del mapa,
 **medidos píxel por píxel** sobre las 16 capturas de Waze (Android, modo noche,
 720 × 1600) de `docs/referencias/waze/` y 1 de Google Maps, y adaptados a lo

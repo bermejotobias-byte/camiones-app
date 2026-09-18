@@ -144,6 +144,19 @@ sin pasar por el filtro. `GET /api/trips/active` retoma por la recomendada; si
 no hay ruta apta, devuelve el viaje sin ruta y con el motivo, porque cerrarlo no
 necesita rutear. Lo cubre `TripRoutesTests` (con GraphHopper levantado).
 
+### Cómo se eligen en pantalla
+
+Desde el 17/09/2026 la app muestra las opciones como la lista de Waze
+(`wwwroot/js/mapa/rutas.js`, AD-48): una fila por ruta en el orden del servidor
+—el tiempo manda; "Por A; B" son las dos vías más largas; "Mejor ruta, 85 % por
+la Red" / "Sale de la Red 9,3 km" / "Toda por la Red"; chips con lo que hay en
+el camino, contado una sola vez al calcular con `alertsAlongRoute`—, y
+"Detalles" con las cifras, el mono diciendo lo único que importa, las filas de
+lo que hay en el camino con la calle y el km, y las fuentes tal como las
+declara cada hallazgo (`ruleReference`, `dataReference`). Durante el viaje,
+"Vista general → Lista" pide otras rutas **desde donde está el camión** y "Ir"
+cambia de ruta sin cerrar el viaje (AD-45).
+
 ## Cómo se anota la ruta
 
 GraphHopper devuelve `path_details` como intervalos `[desde, hasta, valor]` sobre
