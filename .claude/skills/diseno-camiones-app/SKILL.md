@@ -1,6 +1,6 @@
 ---
 name: diseno-camiones-app
-description: El lenguaje visual de la app de camiones — Duolingo + camioneros + arcade, extraído de capturas reales — y la mascota, el mono camionero, con su brief textual y sus poses. Componentes, jerarquías, estructuras de pantalla y la frontera con el GPS, que queda sobrio y afuera. Invocar antes de diseñar, maquetar, animar o dibujar cualquier cosa que no sea el mapa.
+description: El lenguaje visual de la app de camiones — Duolingo + camioneros + arcade, extraído de capturas reales — y la mascota, el mono camionero, con su brief textual y sus poses. Componentes, jerarquías, estructuras de pantalla, y el GPS aparte: sobrio, con la piel de Waze medida sobre capturas (§17). Invocar antes de diseñar, maquetar, animar o dibujar cualquier pantalla, el mapa incluido.
 ---
 
 # Diseño — Navegador de Tránsito Pesado
