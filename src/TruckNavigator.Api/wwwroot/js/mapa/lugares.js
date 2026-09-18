@@ -26,12 +26,13 @@ const ANILLO = { verificado: '#ffffff', comunidad: '#32ccfe', sin: '#8b949e' };
 const votos = (poi) => (poi.community?.suitable ?? 0) + (poi.community?.notSuitable ?? 0);
 
 /**
- * 'verificado' si la fuente lo confirma; 'comunidad' si lo aporto alguien o
+ * 'verificado' si la fuente lo confirma (Confirmed: lo dice el operador, una
+ * fuente oficial o las reseñas); 'comunidad' si lo aporto alguien o
  * si hay votos; 'sin' cuando nadie dijo nada todavia. Lo verificado manda:
  * los votos nunca tocan lo verificado.
  */
 export function estadoDelPin(poi) {
-  if (poi.verificationLevel === 'Verified') return 'verificado';
+  if (poi.verificationLevel === 'Confirmed') return 'verificado';
   if (poi.community?.contributed || votos(poi) > 0) return 'comunidad';
   return 'sin';
 }

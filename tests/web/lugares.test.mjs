@@ -24,8 +24,8 @@ const lugar = (extra = {}) => ({
    El estado del pin
 --------------------------------------------------------------------------- */
 
-test('verificado, de la comunidad (aportado o con votos), o sin confirmar', () => {
-  assert.equal(estadoDelPin(lugar({ verificationLevel: 'Verified' })), 'verificado');
+test('confirmado por la fuente, de la comunidad (aportado o con votos), o sin confirmar', () => {
+  assert.equal(estadoDelPin(lugar({ verificationLevel: 'Confirmed' })), 'verificado');
   assert.equal(estadoDelPin(lugar({ community: { ...sinVotos, contributed: { at: '2026-09-12', byAlias: 'lauta' } } })), 'comunidad');
   assert.equal(estadoDelPin(lugar({ community: { ...sinVotos, suitable: 3, seal: 'Recommended' } })), 'comunidad');
   assert.equal(estadoDelPin(lugar()), 'sin');
@@ -33,13 +33,13 @@ test('verificado, de la comunidad (aportado o con votos), o sin confirmar', () =
 });
 
 test('lo verificado sigue siendo verificado aunque la comunidad vote', () => {
-  assert.equal(estadoDelPin(lugar({ verificationLevel: 'Verified', community: { ...sinVotos, suitable: 5 } })), 'verificado');
+  assert.equal(estadoDelPin(lugar({ verificationLevel: 'Confirmed', community: { ...sinVotos, suitable: 5 } })), 'verificado');
 });
 
 test('el contador es el total de votos, y sólo en los pines de la comunidad', () => {
   assert.equal(contadorDelPin(lugar({ community: { ...sinVotos, suitable: 2, notSuitable: 1, contributed: { at: '2026-09-12', byAlias: null } } })), 3);
   assert.equal(contadorDelPin(lugar({ community: { ...sinVotos, contributed: { at: '2026-09-12', byAlias: null } } })), null);
-  assert.equal(contadorDelPin(lugar({ verificationLevel: 'Verified', community: { ...sinVotos, suitable: 5 } })), null);
+  assert.equal(contadorDelPin(lugar({ verificationLevel: 'Confirmed', community: { ...sinVotos, suitable: 5 } })), null);
   assert.equal(contadorDelPin(lugar()), null);
 });
 
