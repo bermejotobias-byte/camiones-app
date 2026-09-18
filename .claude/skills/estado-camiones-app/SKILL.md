@@ -1181,8 +1181,8 @@ Decisiones tomadas en esta tanda (ver "Decisiones", más abajo, y CLAUDE.md):
 sin velocímetro, sin micrófono, sin hamburguesa en el mapa; Roboto sólo en el
 GPS; los lugares guardados en el servidor; el S.O.S. siempre visible en viaje;
 "Volver a centrar" en 18 sp porque a 20 no entra (medido); los logos y la
-identidad quedan para una aprobación aparte. **Pedirle al usuario una captura
-de Waze de día**: el tema claro se derivó, no se midió.
+identidad quedan para una aprobación aparte. El tema claro se derivó, no se
+midió, y **el usuario lo aprobó así el 18/09/2026**: no hace falta la captura.
 
 **Ya no hay nada de la Fase 1 que se pueda construir acá.** Lo único que queda es
 probarla en movimiento, y eso es del usuario. Orden que más rápido descarta

@@ -989,7 +989,7 @@ que en la lista de rutas usaba 32 donde la captura dice 27):
 - **Reanudar**: tarjeta `#2b3035` radio 16 a 12 de la hoja de reposo, pin de
   30, pregunta 22 / 700, píldoras de 42 / 15.
 - **Día**: sigue derivado (sin captura); verificado que funciona en reposo,
-  rutas y viaje. **Pedir la captura de Waze de día** antes de medirlo.
+  rutas y viaje. El usuario lo aprobó así el 18/09/2026: "el tema claro está bien así, no hace falta la captura de Waze".
 
 Tres reglas de construcción que salieron de verificar: **las hojas más altas
 que la de reposo van clavadas abajo** (`position: absolute`, con scroll), no

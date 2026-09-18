@@ -2939,6 +2939,7 @@ tarea, en `docs/superpowers/plans/2026-09-16-gps-waze.md`.
   origen y no con parches de pantalla: los gálibos en la ruta (`hazards`), el
   filtro de ofrecibles y el viaje por la ruta elegida (AD-47), los lugares
   guardados y los recientes en el servidor.
-- Queda pendiente, y anotado: la captura de Waze de día para medir el tema
-  claro; la Fase 5 (reportes de la comunidad) entra a la grilla de "¿Qué hay
-  acá?" cuando se decida.
+- El día queda **derivado y aprobado así** por el usuario el 18/09/2026 ("el
+  tema claro está bien así, no hace falta la captura de Waze"); la Fase 5
+  (reportes de la comunidad) entra a la grilla de "¿Qué hay acá?" cuando se
+  decida.
