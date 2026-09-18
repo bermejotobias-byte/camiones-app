@@ -464,8 +464,10 @@ export function clearRoute() {
 /**
  * @param {object} route respuesta de la API
  * @param {Array}  accessLegs tramos que usan la excepcion de acceso
+ * @param {{top:number,bottom:number,left:number,right:number}} [encuadre]
+ *   el aire alrededor de la ruta al encuadrarla; sin el, el de la hoja inferior
  */
-export function drawRoute(route, accessLegs = []) {
+export function drawRoute(route, accessLegs = [], encuadre = undefined) {
   if (!map || !route?.geometry?.coordinates?.length) return;
 
   // El estilo puede no haber terminado de cargar cuando llega la ruta: agregar
@@ -475,7 +477,7 @@ export function drawRoute(route, accessLegs = []) {
   // Es intermitente por naturaleza —depende de si contesto antes el servidor o
   // los tiles—, asi que se espera a que el mapa quede quieto y se reintenta.
   if (!map.isStyleLoaded()) {
-    map.once('idle', () => drawRoute(route, accessLegs));
+    map.once('idle', () => drawRoute(route, accessLegs, encuadre));
     return;
   }
 
@@ -535,7 +537,7 @@ export function drawRoute(route, accessLegs = []) {
     }, antesDeNombres);
   }
 
-  fitTo(coordinates);
+  fitTo(coordinates, encuadre);
 }
 
 /**

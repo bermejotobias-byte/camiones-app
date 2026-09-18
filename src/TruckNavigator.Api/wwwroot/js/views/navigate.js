@@ -23,7 +23,10 @@ import {
 } from '../navigation.js';
 import * as gl from '../map.js';
 import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso } from '../mapa/viaje.js';
-import { porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta } from '../mapa/rutas.js';
+import {
+  porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta,
+  textoDeEstado, chipsDeRuta, cabeceraDeRutas, pildoraDelCamion, hojaRutas
+} from '../mapa/rutas.js';
 import { hojaReposo } from '../mapa/reposo.js';
 import { hojaBuscar, cuerpoDeBusqueda } from '../mapa/buscar.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
@@ -38,6 +41,7 @@ export function navigateView(host, { openDrawer, go }) {
   let destination = null;
   let route = null;
   let routeOptions = [];      // la recomendada y sus alternativas, ya ordenadas
+  let avisosPorOpcion = [];   // lo que hay en el camino de cada una: radares, galibos, pasos
   let chosenRoute = 0;        // cuál de todas se está mirando
   let stage = 'search';       // 'search' (reposo) | 'buscar' | 'route' | 'delivery' | 'navigation'
 
@@ -335,8 +339,12 @@ export function navigateView(host, { openDrawer, go }) {
   }
 
   function drawSheet() {
+    // Mientras se elige ruta, los controles del mapa se van: la pantalla es
+    // la cabecera, la tira de mapa y la lista.
+    host0.classList.toggle('is-eligiendo', stage === 'route');
+
     if (stage === 'navigation') return drawNavigation();
-    if (stage === 'route') return drawRoute();
+    if (stage === 'route') return drawRutas();
     if (stage === 'delivery') return drawDelivery();
     if (stage === 'buscar') return drawBuscar();
     drawReposo();
@@ -713,95 +721,80 @@ export function navigateView(host, { openDrawer, go }) {
     if (button) button.hidden = !visible;
   }
 
-  // --- ruta calculada -------------------------------------------------------
+  /* ------------------------------------------------------------------------
+     Elegir ruta (el prototipo, tablero "Rutas")
 
-  function drawRoute() {
-    const share = Math.round(route.heavyNetworkSharePercent);
-    const notes = groupNotes(route);
+     Cabecera negra con "origen → destino", la tira de mapa con la ruta que se
+     esta mirando y la pildora del camion, y una fila por ruta: el tiempo
+     manda, y debajo por donde va, cuanto va por la Red y que hay en el
+     camino. Tocar una fila la dibuja en el mapa; "Arrancar" arranca por la
+     que se esta mirando. Las rutas vienen del servidor ya ordenadas para
+     camion y filtradas (AD-47): la primera es la recomendada.
 
-    render(sheetAs('sheet'), html`
-      <div class="sheet-grab"></div>
+     La hoja es transparente en el medio: la tira de mapa es el mapa mismo,
+     encuadrado para que la ruta entre entre la cabecera y la lista.
+  ------------------------------------------------------------------------ */
 
-      ${routeOptions.length > 1 ? raw(alternativesMarkup()) : ''}
+  /** Lo que dice la fila de una opcion. */
+  function filaDeOpcion(ruta, indice) {
+    return {
+      tiempo: formatDuration(ruta.durationSeconds),
+      km: formatDistance(ruta.distanceMeters),
+      por: porDonde(ruta.instructions),
+      estado: textoDeEstado(ruta, indice === 0),
+      chips: chipsDeRuta(avisosPorOpcion[indice] ?? [], ruta)
+    };
+  }
 
-      <div class="row-between">
-        <div class="route-summary">
-          <div class="route-figure">
-            <b class="num">${formatDistance(route.distanceMeters)}</b>
-            <span>Distancia</span>
-          </div>
-          <div class="route-figure">
-            <b class="num">${formatDuration(route.durationSeconds)}</b>
-            <span>Llegás ${arrivalTime(route.durationSeconds)}</span>
-          </div>
-        </div>
-        <button class="fab" id="close-route" aria-label="Descartar">${raw(icon('close', 20))}</button>
-      </div>
+  function drawRutas() {
+    const hoja = sheetAs('gps-eligiendo');
+    hoja.innerHTML = `
+      ${cabeceraDeRutas({ origen: origin, destino: destination })}
+      ${pildoraDelCamion(selectedTruck())}
+      <div class="gps-hoja-rutas">${hojaRutas({ rutas: routeOptions.map(filaDeOpcion), elegida: chosenRoute })}</div>`;
 
-      <div class="stack-sm">
-        <div class="network-bar"><i style="width:${share}%"></i></div>
-        <p class="hint">
-          <b style="color:var(--brand-ink)">${share}%</b> del recorrido va por la Red
-          de Tránsito Pesado${route.truckName ? `, con ${route.truckName}` : ''}.
-        </p>
-      </div>
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
 
-      ${notes.length ? raw(notesMarkup(notes)) : raw(`
-        <div class="note" style="border-left-color:var(--ok)">
-          <div class="note-title">Sin restricciones en el camino</div>
-          <div class="note-body">Ningún tramo de esta ruta limita a tu vehículo.</div>
-        </div>
-      `)}
+      const { accion, indice } = boton.dataset;
+      if (accion === 'volver') descartarRuta();
+      if (accion === 'camion') go('camiones');
+      if (accion === 'elegir') elegirRuta(Number(indice));
+      if (accion === 'detalles') abrirDetalles();
+      if (accion === 'arrancar') startTrip(boton);
+    };
 
-      <div class="sheet-action">
-        <button class="btn btn-primary btn-block" id="start">Arrancar viaje</button>
-      </div>
-    `);
-
-    wire(sheet(), {
-      '#close-route': () => {
-        route = null;
-        routeOptions = [];
-        chosenRoute = 0;
-        stage = 'search';
-        gl.clearRoute();
-        drawSheet();
-      },
-      '#start': (event) => startTrip(event.currentTarget)
-    });
-
-    for (const boton of qa(sheet(), '.route-option')) {
-      boton.addEventListener('click', () => elegirRuta(Number(boton.dataset.index)));
-    }
+    gl.drawRoute(route, route.accessLegs ?? [], encuadreDeLaTira());
   }
 
   /**
-   * Las rutas posibles, para elegir mirando el mapa.
-   *
-   * Cada opción dice lo que decide: si obliga a pasar por donde el camión no
-   * puede, cuánto tarda y cuánto va por la Red. **El tiempo no va primero** —
-   * es lo que mira un GPS de auto, y acá una ruta cinco minutos más larga que
-   * no obliga a salir de la Red es mejor.
+   * El aire alrededor de la ruta para que entre en la tira de mapa: lo que
+   * tapan la cabecera y la hoja, medido en el DOM, mas un margen.
    */
-  function alternativesMarkup() {
-    return routeOptions.map((opcion, i) => {
-      const bloqueos = (opcion.restrictionNotes ?? []).filter((n) => !n.requiresAccessException).length;
-      const red = Math.round(opcion.heavyNetworkSharePercent);
-      const elegida = i === chosenRoute;
+  function encuadreDeLaTira() {
+    const pantalla = host0.getBoundingClientRect();
+    const cabecera = q(host0, '.gps-cabecera')?.getBoundingClientRect();
+    const hoja = q(host0, '.gps-hoja-rutas')?.getBoundingClientRect();
+    if (!cabecera || !hoja) return undefined;
 
-      const estado = bloqueos > 0
-        ? `<span style="color:var(--danger)">${bloqueos} tramo${bloqueos > 1 ? 's' : ''} que no podés transitar</span>`
-        : `<span style="color:var(--ok)">Sin tramos prohibidos</span>`;
+    return {
+      top: cabecera.bottom - pantalla.top + 12,
+      bottom: pantalla.bottom - hoja.top + 12,
+      left: 30,
+      right: 30
+    };
+  }
 
-      return `
-        <button class="route-option${elegida ? ' is-chosen' : ''}" data-index="${i}">
-          <div class="route-option-head">
-            <b>${i === 0 ? 'Recomendada' : `Alternativa ${i}`}</b>
-            <span>${formatDuration(opcion.durationSeconds)} · ${formatDistance(opcion.distanceMeters)}</span>
-          </div>
-          <div class="route-option-note">${estado} · ${red}% por la Red</div>
-        </button>`;
-    }).join('');
+  /** Volver atras: la ruta se descarta y queda el mapa en reposo. */
+  function descartarRuta() {
+    route = null;
+    routeOptions = [];
+    avisosPorOpcion = [];
+    chosenRoute = 0;
+    stage = 'search';
+    gl.clearRoute();
+    drawSheet();
   }
 
   /** Cambia la ruta que se está mirando, y la dibuja. */
@@ -810,9 +803,12 @@ export function navigateView(host, { openDrawer, go }) {
 
     chosenRoute = index;
     route = routeOptions[index];
-
-    gl.drawRoute(route, route.accessLegs ?? []);
     drawSheet();
+  }
+
+  /** Los detalles de la ruta que se esta mirando (llegan en la tarea 21). */
+  function abrirDetalles() {
+    toast('Los detalles de la ruta llegan en el próximo paso.');
   }
 
   // --- viaje en curso: navegacion -------------------------------------------
@@ -1228,7 +1224,9 @@ export function navigateView(host, { openDrawer, go }) {
       return;
     }
 
-    setPoint('origin', { ...point, label: 'Tu ubicación actual' });
+    // `actual` marca que el origen es la posicion del GPS: la lista de rutas
+    // lo llama "Mi ubicación" aunque ya tenga direccion.
+    setPoint('origin', { ...point, label: 'Tu ubicación actual', actual: true });
     editing = 'destination';
 
     try {
@@ -1238,7 +1236,7 @@ export function navigateView(host, { openDrawer, go }) {
       // resolver la direccion tarda, y pisarle lo que eligio seria peor que no
       // mostrar la calle.
       if (place && origin?.label === 'Tu ubicación actual') {
-        origin = { ...point, label: place.label };
+        origin = { ...point, label: place.label, actual: true };
         drawSheet();
       }
     } catch {
@@ -1266,11 +1264,14 @@ export function navigateView(host, { openDrawer, go }) {
         // `alternatives`, ya ordenadas por lo que le conviene a un camión:
         // primero las que menos tramos prohibidos tienen, después las que
         // menos dependen de la excepción de acceso, y recién ahí por tiempo.
-        routeOptions = [calculada, ...(calculada.alternatives ?? [])];
+        routeOptions = opcionesDeRuta(calculada);
         chosenRoute = 0;
         route = calculada;
 
-        gl.drawRoute(route, route.accessLegs ?? []);
+        // Lo que hay en el camino de cada una se cruza una sola vez, aca: es
+        // lo que cuentan los chips de la lista y los detalles.
+        avisosPorOpcion = routeOptions.map((ruta) => alertsAlongRoute(prepareRoute(ruta), gl.datasets()));
+
         stage = 'route';
         drawSheet();
       } catch (error) {

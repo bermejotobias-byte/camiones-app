@@ -8,7 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta, textoDeEstado, chipsDeRuta } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/rutas.js';
+import { porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta, textoDeEstado, chipsDeRuta, nombreCorto, textoDelCamion, cabeceraDeRutas, hojaRutas } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/rutas.js';
 
 /* ---------------------------------------------------------------------------
    La línea de estado y los chips de una ruta
@@ -164,4 +164,65 @@ test('un tramo fuera de la Red que ya se pasó en parte se recorta', () => {
 test('sin ruta no hay línea', () => {
   assert.deepEqual(lineaDeTiempo(null, {}), { marcas: [], tramos: [] });
   assert.deepEqual(lineaDeTiempo({ cumulative: [0], totalMeters: 0 }, {}), { marcas: [], tramos: [] });
+});
+
+/* ---------------------------------------------------------------------------
+   La hoja de elegir ruta (el prototipo, tablero "Rutas")
+--------------------------------------------------------------------------- */
+
+test('el nombre corto de un lugar es lo que va antes de la primera coma, abreviado como en los carteles', () => {
+  assert.equal(nombreCorto('Avenida Sáenz 1200, Nueva Pompeya, Buenos Aires'), 'Av. Sáenz 1200');
+  assert.equal(nombreCorto('Puerto de Buenos Aires'), 'Puerto de Buenos Aires');
+  assert.equal(nombreCorto('  Junín 300 ,  Balvanera'), 'Junín 300');
+  assert.equal(nombreCorto(null), '');
+});
+
+test('la cabecera dice de dónde a dónde; el origen que es la posición del GPS se llama "Mi ubicación"', () => {
+  const desdeElGps = cabeceraDeRutas({
+    origen: { label: 'Avenida Sáenz 1200, Nueva Pompeya', actual: true },
+    destino: { label: 'Puerto de Buenos Aires, Retiro' }
+  });
+
+  assert.ok(desdeElGps.includes('Mi ubicación'));
+  assert.ok(desdeElGps.includes('Puerto de Buenos Aires'));
+  assert.ok(!desdeElGps.includes('Sáenz'));
+  assert.ok(desdeElGps.includes('data-accion="volver"'));
+
+  const desdeOtroLado = cabeceraDeRutas({ origen: { label: 'Avenida Sáenz 1200, Nueva Pompeya' }, destino: { label: 'Puerto' } });
+  assert.ok(desdeOtroLado.includes('Av. Sáenz 1200'));
+});
+
+test('la píldora del camión dice el nombre y las toneladas', () => {
+  assert.equal(textoDelCamion({ name: 'El Rayo', grossWeightKg: 40_000 }), 'El Rayo · 40 t');
+  assert.equal(textoDelCamion({ name: 'El Chico', grossWeightKg: 26_500 }), 'El Chico · 26,5 t');
+  assert.equal(textoDelCamion(null), 'Elegí un camión');
+});
+
+test('la hoja de rutas: una fila por ruta, la elegida marcada, sus chips, y las píldoras Detalles y Arrancar', () => {
+  const html = hojaRutas({
+    rutas: [
+      { tiempo: '39 min', km: '32 km', por: 'Por Au. Ricchieri; Au. 25 de Mayo', estado: 'Mejor ruta, 85% por la Red', chips: [{ color: '#4f6d8e', texto: '2 radares' }] },
+      { tiempo: '36 min', km: '29 km', por: 'Por Av. Gral. Paz', estado: 'Sale de la Red 9,3 km', chips: [] }
+    ],
+    elegida: 1
+  });
+
+  const filas = html.match(/class="gps-ruta( elegida)?"/g);
+  assert.equal(filas.length, 2);
+  assert.ok(!filas[0].includes('elegida'));
+  assert.ok(filas[1].includes('elegida'));
+
+  assert.ok(html.includes('data-accion="elegir" data-indice="0"'));
+  assert.ok(html.includes('data-accion="elegir" data-indice="1"'));
+  assert.ok(html.includes('class="gps-chip"'));
+  assert.ok(html.includes('2 radares'));
+  assert.ok(html.includes('data-accion="detalles"'));
+  assert.ok(html.includes('data-accion="arrancar"'));
+});
+
+test('lo que se escribe en una fila se escapa', () => {
+  const html = hojaRutas({ rutas: [{ tiempo: '1 min', km: '1 km', por: 'Por <b>x</b>', estado: '', chips: [] }], elegida: 0 });
+
+  assert.ok(!html.includes('<b>x</b>'));
+  assert.ok(html.includes('&lt;b&gt;x&lt;/b&gt;'));
 });

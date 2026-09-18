@@ -1511,6 +1511,166 @@ button { font-family: inherit; font-size: inherit; }
 .gps-seccion { font-size: 14px; color: var(--gps-ink-3); margin: 16px 0 2px; }
 
 /* ============================================================================
+   Elegir ruta — la piel de Waze, medida
+   ----------------------------------------------------------------------------
+   El prototipo, tablero "Rutas": cabecera negra de 55 con el titulo en 18;
+   tira de mapa de 117 —el mapa mismo, sin tapar— con la pildora del camion de
+   42 flotando; la hoja desde 172 con filas de 145 (el tiempo en 27 negrita,
+   celeste y sobre negro en la elegida; km 18 gris; "Por…" 18; estado 16 gris;
+   chips de 25 con 14) y las pildoras "Detalles" y "Arrancar" de 48.
+   ========================================================================== */
+
+.map-screen.is-eligiendo .map-top,
+.map-screen.is-eligiendo .map-side { display: none; }
+
+/* El contenedor es transparente y deja pasar los gestos: la tira de mapa es el
+   mapa. Solo la cabecera, la pildora y la hoja reciben toques. */
+.map-overlay > #sheet.gps-eligiendo {
+  position: absolute;
+  inset: var(--safe-top) 0 0 0;
+  pointer-events: none;
+  color: var(--gps-ink);
+  font-family: var(--gps-ui);
+  z-index: 6;
+}
+
+.gps-eligiendo > * { pointer-events: auto; }
+
+.gps-cabecera {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 55px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 15px;
+  background: var(--gps-banda);
+}
+
+.gps-cabecera-volver {
+  flex: none;
+  width: 36px; height: 36px;
+  margin-left: -7px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gps-ink);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-cabecera-titulo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-right: 29px;   /* el ancho de la flecha: el titulo queda centrado en la pantalla */
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.gps-cabecera-titulo span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-cabecera-titulo span:first-child { flex: none; max-width: 45%; }
+.gps-cabecera-titulo i { font-style: normal; color: var(--gps-ink-3); flex: none; }
+
+.gps-pildora-camion {
+  position: absolute;
+  top: 75px;             /* 20 por debajo de la cabecera */
+  left: 20px;
+  height: 42px;
+  padding: 0 14px 0 16px;
+  border: 0;
+  border-radius: 21px;
+  background: var(--gps-hoja);
+  color: var(--gps-celeste);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .4);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-pildora-camion svg { flex: none; }
+
+.gps-hoja-rutas {
+  position: absolute;
+  top: 172px; left: 0; right: 0; bottom: 0;
+  background: var(--gps-hoja);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  display: flex;
+  flex-direction: column;
+}
+
+.gps-manija.angosta { width: 30px; margin: 8px auto 4px; flex: none; }
+
+.gps-rutas { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* Una fila: 145 dp. Es un boton para que toda la fila responda. */
+.gps-ruta {
+  display: block;
+  width: 100%;
+  min-height: 145px;
+  box-sizing: border-box;
+  padding: 14px 19px 12px 15px;
+  border: 0;
+  border-bottom: 1px solid #3a4046;
+  border-left: 4px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-ruta.elegida { border-left-color: var(--gps-accion); background: var(--gps-banda); }
+
+.gps-ruta-cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.gps-ruta-cabeza b { font-size: 27px; font-weight: 700; line-height: 32px; font-variant-numeric: tabular-nums; }
+.gps-ruta.elegida .gps-ruta-cabeza b { color: var(--gps-celeste); }
+.gps-ruta-cabeza span { font-size: 18px; color: var(--gps-ink-2); white-space: nowrap; }
+
+.gps-ruta-por { display: block; font-size: 18px; line-height: 22px; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-ruta-estado { display: block; font-size: 16px; line-height: 20px; color: var(--gps-ink-2); margin-top: 4px; }
+.gps-ruta-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* Un chip de 25 con un punto de color y el texto en 14. */
+.gps-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 25px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--gps-pildora);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.gps-chip i { width: 8px; height: 8px; border-radius: 50%; display: block; flex: none; }
+
+/* Las dos pildoras, pegadas abajo, sobre el fondo de la hoja. */
+.gps-acciones {
+  flex: none;
+  display: flex;
+  gap: 15px;
+  padding: 12px 15px calc(15px + var(--safe-bottom));
+  background: var(--gps-hoja);
+}
+
+.gps-acciones .gps-pildora { flex: 1; }
+
+/* ============================================================================
    Hoja inferior — el patron principal de la pantalla de busqueda
    ========================================================================== */
 
@@ -1640,15 +1800,8 @@ button { font-family: inherit; font-size: inherit; }
 .suggestions .s-sub  { font-size: 12.5px; color: var(--ink-3); }
 
 /* ============================================================================
-   Resumen de ruta y restricciones
+   Reparto y restricciones
    ========================================================================== */
-
-.route-summary {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  flex-wrap: wrap;
-}
 
 /* Paradas de un reparto.
 
@@ -1685,42 +1838,6 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 .stop-label { flex: 1; min-width: 0; font-size: 14px; }
-
-/* Alternativas de ruta.
-
-   Cada opción es un botón ancho: se toca con el pulgar, sin apuntar. Y dice lo
-   que decide —si hay tramos prohibidos, cuánto tarda, cuánto va por la Red— para
-   que la elección se haga acá y no abriendo cada una. */
-.route-option {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
-.route-option + .route-option { margin-top: 6px; }
-
-/* La elegida se marca con el borde y un fondo tenue, no sólo con color de
-   texto: se mira de reojo y tiene que distinguirse sin leer. */
-.route-option.is-chosen {
-  border-color: var(--brand);
-  background: var(--brand-soft);
-}
-
-.route-option-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-.route-option-head b { font-size: 14px; }
-.route-option-head span { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
-.route-option-note { margin-top: 3px; font-size: 12px; color: var(--ink-3); }
-
-.route-figure { display: flex; flex-direction: column; }
-.route-figure b { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
-.route-figure span { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 
 /* Barra de proporcion sobre la Red de Transito Pesado. Es la medida propia del
    producto, asi que se muestra como dato y no como adorno. */

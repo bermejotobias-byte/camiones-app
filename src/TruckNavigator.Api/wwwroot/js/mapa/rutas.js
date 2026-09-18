@@ -1,18 +1,20 @@
 /**
- * Las tarjetas de ruta: lo que se dice de una ruta en una tarjeta, en la
- * vista general del viaje y al elegir ruta (waze-01, waze-02 y el prototipo).
+ * Las rutas: lo que se dice de una ruta en una tarjeta de la vista general
+ * del viaje, y la hoja de elegir ruta (waze-01, waze-02 y el prototipo).
  *
  *   · `porDonde`: "Por Av. Gral. Paz; Av. Lugones", las dos vias mas largas;
+ *   · `textoDeEstado` y `chipsDeRuta`: la linea de estado y los chips;
  *   · `lineaDeTiempo`: donde caen los avisos y los tramos fuera de la Red
- *     sobre una linea que representa lo que falta del recorrido.
+ *     sobre una linea que representa lo que falta del recorrido;
+ *   · `hojaRutas`, `cabeceraDeRutas`, `pildoraDelCamion`: la hoja de elegir.
  *
- * Todo puro y probado en tests/web/rutas.test.mjs. El marcado de la tarjeta
- * vive aca tambien, para que la vista general y la lista de rutas lo
- * compartan.
+ * Todo puro y probado en tests/web/rutas.test.mjs. El marcado vive aca
+ * tambien, para que la vista general y la lista de rutas lo compartan;
+ * navigate.js lo engancha.
  */
 
 import { abreviarCalle } from './viaje.js';
-import { calcomania, pildora } from './piezas.js';
+import { calcomania, chip, dibujo, pildora } from './piezas.js';
 import { escapeHtml } from '../ui.js';
 
 /* ---------------------------------------------------------------------------
@@ -229,5 +231,79 @@ export function tarjetaDeRutaMarkup({ tiempo, hora, km, por, accion, datos = '',
     <div class="gps-tarjeta-ruta-sub">${escapeHtml(hora)} <i>•</i> ${escapeHtml(km)}</div>
     ${por ? `<div class="gps-tarjeta-ruta-por">${escapeHtml(por)}</div>` : ''}
     ${lineaDeTiempoMarkup(linea)}
+  </div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   La hoja de elegir ruta (el prototipo, tablero "Rutas")
+
+   Cabecera negra de 55 con "origen → destino" en 18, la tira de mapa de 117
+   con la pildora del camion flotando, filas de 145 —el tiempo en 27 negrita,
+   celeste y sobre negro en la elegida; los km en 18 gris; "Por…" en 18; el
+   estado en 16 gris; los chips de 25— y abajo las pildoras "Detalles" y
+   "Arrancar" de 48. Donde Waze dice "Trafico habitual", aca cuanto va por la
+   Red; donde dice "Evitar", el camion.
+--------------------------------------------------------------------------- */
+
+/** Lo que va antes de la primera coma de una direccion, abreviado como en los carteles. */
+export function nombreCorto(label) {
+  return abreviarCalle(String(label ?? '').split(',')[0].trim());
+}
+
+/** "El Rayo · 40 t": la pildora que flota sobre la tira de mapa. */
+export function textoDelCamion(camion) {
+  if (!camion) return 'Elegí un camión';
+
+  const toneladas = (camion.grossWeightKg / 1000).toFixed(1).replace('.0', '').replace('.', ',');
+  return `${camion.name} · ${toneladas} t`;
+}
+
+/**
+ * La cabecera: la flecha de volver y "Mi ubicación → Puerto".
+ *
+ * El origen que salio del GPS se llama "Mi ubicación", como en Waze, aunque
+ * ya tenga direccion: es lo que el conductor entiende sin leer.
+ *
+ * @param {{origen: {label: string, actual?: boolean}|null, destino: {label: string}|null}} puntos
+ */
+export function cabeceraDeRutas({ origen, destino }) {
+  const desde = origen?.actual ? 'Mi ubicación' : nombreCorto(origen?.label);
+  const hasta = nombreCorto(destino?.label);
+
+  return `
+  <div class="gps-cabecera">
+    <button type="button" class="gps-cabecera-volver" data-accion="volver" aria-label="Volver">${dibujo('atras', 22, 2.4)}</button>
+    <div class="gps-cabecera-titulo"><span>${escapeHtml(desde)}</span><i>→</i><span>${escapeHtml(hasta)}</span></div>
+  </div>`;
+}
+
+/** La pildora de 42 con el camion elegido; tocarla lleva a cambiarlo. */
+export function pildoraDelCamion(camion) {
+  return `<button type="button" class="gps-pildora-camion" data-accion="camion">${dibujo('camion', 20, 2.4)}<span>${escapeHtml(textoDelCamion(camion))}</span>${dibujo('abajo', 18, 2.6)}</button>`;
+}
+
+/** Una fila de 145: el tiempo manda; los km, por donde, el estado y los chips lo acompañan. */
+function filaDeRuta({ tiempo, km, por = '', estado = '', chips = [] }, indice, elegida) {
+  return `
+  <button type="button" class="gps-ruta${elegida ? ' elegida' : ''}" data-accion="elegir" data-indice="${indice}">
+    <span class="gps-ruta-cabeza"><b>${escapeHtml(tiempo)}</b><span>${escapeHtml(km)}</span></span>
+    ${por ? `<span class="gps-ruta-por">${escapeHtml(por)}</span>` : ''}
+    ${estado ? `<span class="gps-ruta-estado">${escapeHtml(estado)}</span>` : ''}
+    ${chips.length ? `<span class="gps-ruta-chips">${chips.map((c) => chip(c.color, c.texto)).join('')}</span>` : ''}
+  </button>`;
+}
+
+/**
+ * La hoja: la manija, una fila por ruta y las dos pildoras.
+ *
+ * @param {{rutas: Array<{tiempo, km, por, estado, chips}>, elegida: number}} estado
+ */
+export function hojaRutas({ rutas = [], elegida = 0 } = {}) {
+  return `
+  <div class="gps-manija angosta"></div>
+  <div class="gps-rutas">${rutas.map((r, i) => filaDeRuta(r, i, i === elegida)).join('')}</div>
+  <div class="gps-acciones">
+    ${pildora('Detalles', { datos: 'data-accion="detalles"' })}
+    ${pildora('Arrancar', { clase: 'celeste', id: 'gps-arrancar', datos: 'data-accion="arrancar"' })}
   </div>`;
 }
