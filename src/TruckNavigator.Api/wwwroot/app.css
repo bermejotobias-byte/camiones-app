@@ -165,6 +165,7 @@
   --gps-ui:            Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
   --gps-banda:         #000000;   /* la banda de instruccion */
   --gps-hoja:          #202125;   /* hojas y tarjetas */
+  --gps-elegida:       #000000;   /* la fila elegida en la lista de rutas */
   --gps-pildora:       #3c4043;   /* pildoras grises, chips, circulos */
   --gps-claro:         #e8e9ed;   /* el circulo de "volver a centrar" */
   --gps-ruta:          #2ddcff;   /* la linea de la ruta */
@@ -281,6 +282,7 @@
      amarillo palido, como la pinta Waze de dia. */
   --gps-banda:         #ffffff;
   --gps-hoja:          #ffffff;
+  --gps-elegida:       #eef1f4;
   --gps-pildora:       #e6e9ed;
   --gps-claro:         #ffffff;
   --gps-ruta:          #1fb0ec;
@@ -1632,7 +1634,7 @@ button { font-family: inherit; font-size: inherit; }
   -webkit-tap-highlight-color: transparent;
 }
 
-.gps-ruta.elegida { border-left-color: var(--gps-accion); background: var(--gps-banda); }
+.gps-ruta.elegida { border-left-color: var(--gps-accion); background: var(--gps-elegida); }
 
 .gps-ruta-cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .gps-ruta-cabeza b { font-size: 27px; font-weight: 700; line-height: 32px; font-variant-numeric: tabular-nums; }

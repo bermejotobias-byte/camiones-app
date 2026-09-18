@@ -101,6 +101,7 @@ export function pinSvg(calcomania, estado) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${PIN_ANCHO * 2}" height="${PIN_ALTO * 2}" viewBox="0 0 ${PIN_ANCHO} ${PIN_ALTO}">` +
     `<path d="M11 28l5 9 5-9z" fill="${anillo}"/>` +
+    `<circle cx="16" cy="16" r="15.6" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1"/>` +
     `<circle cx="16" cy="16" r="14.5" fill="#2b3035" stroke="${anillo}" stroke-width="3"/>` +
     `<svg x="7" y="7" width="18" height="18" viewBox="0 0 32 32" overflow="visible">${inner}</svg>` +
     '</svg>';
@@ -139,8 +140,9 @@ function registrarImagen(map, nombre, svg) {
 }
 
 /**
- * Deja la fuente y las capas listas, vacias. Idempotente: con estilo vectorial,
- * cambiar de estilo vuelve a disparar 'load' y hay que reinstalar.
+ * Deja la fuente y las capas listas, vacias. Idempotente: al cambiar de
+ * estilo (el raster de respaldo, el dia) las capas se pierden y map.js las
+ * vuelve a instalar en cada 'style.load'.
  */
 export function instalarLugares(map) {
   if (!escuchando.has(map)) {
@@ -160,6 +162,9 @@ export function instalarLugares(map) {
 
   map.addLayer({
     id: CAPA_LUGARES,
+    // De lejos los pines se amontonan y no dicen nada: aparecen desde el zoom
+    // en que se distingue una cuadra, como en Waze y Maps.
+    minzoom: 13,
     type: 'symbol',
     source: FUENTE,
     layout: {
@@ -178,6 +183,7 @@ export function instalarLugares(map) {
   // El contador de votos, arriba a la derecha del pin, solo donde hay.
   map.addLayer({
     id: CAPA_CONTADOR,
+    minzoom: 13,
     type: 'symbol',
     source: FUENTE,
     filter: ['!=', ['get', 'contador'], ''],

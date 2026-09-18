@@ -142,14 +142,28 @@ export function createMap(container, handlers = {}) {
     });
   }
 
-  // Con estilo vectorial, cambiar de estilo vuelve a disparar 'load'. Las capas
-  // de camion se reinstalan solas porque installTruckLayers es idempotente.
+  // Las capas de camion se agregan apenas carga el estilo y antes de que
+  // exista una ruta, para que la ruta quede dibujada por encima.
   map.on('load', async () => {
-    // Las capas de camion se agregan apenas carga el estilo y antes de que
-    // exista una ruta, para que la ruta quede dibujada por encima.
     await installTruckLayers(map);
     instalarLugares(map);
     handlers.onReady?.();
+  });
+
+  // 'load' se dispara UNA sola vez por mapa (medido el 17/09/2026): cambiar de
+  // estilo —el raster de respaldo, el dia— no lo vuelve a disparar, y sin esto
+  // el mapa nuevo quedaba sin la Red, sin galibos y sin lugares. 'style.load'
+  // si se dispara en cada estilo; el primero ya lo cubre 'load'.
+  let primerEstilo = true;
+
+  map.on('style.load', async () => {
+    if (primerEstilo) {
+      primerEstilo = false;
+      return;
+    }
+
+    await installTruckLayers(map);
+    instalarLugares(map);
   });
 
   installLongPress();
