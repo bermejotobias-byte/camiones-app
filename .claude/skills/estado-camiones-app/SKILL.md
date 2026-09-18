@@ -400,6 +400,31 @@ repetida en su **rastreador en memoria** y tira `InvalidOperationException` ante
 de tocar la base. Para probar que el esquema lo impide hay que
 `ChangeTracker.Clear()` primero, y entonces sí llega el `DbUpdateException`.
 
+### Verificado en el teléfono el 18/09/2026 — el GPS de Waze, el usuario tocando y yo leyendo el log
+
+**Método:** el usuario navega la app en el teléfono; yo no puedo tocar la
+pantalla (ver la trampa de `input tap` en §6) y miro dos cosas a la vez:
+`adb logcat -v time -s Web:V Cascara:V Brujula:V` en un archivo y
+`adb exec-out screencap -p` cada tanto. Cada falla se reproduce **primero con
+un test en rojo**, después el arreglo, después el commit. Tres arreglos
+salieron de ahí y están en `origin` (`7b02bfd`, `0ea7228`, `5e78e25`):
+
+| Lo que se vio en el teléfono | Causa | Arreglo |
+|---|---|---|
+| Al cambiar de pantalla y volver al mapa, **ni la Red ni los lugares**; en el log `requires a style "glyphs" property` e `Invalid value used in weak set` | los oyentes `load`/`style.load` del **mapa destruido** seguían disparando y le instalaban capas al mapa nuevo (o a `null`) | guardia `sigueVivo()` en `createMap`; `instalarLugares(null)` no rompe; los pines se precalientan con `nombresDePines()` (antes MapLibre avisaba "could not be loaded" por el `styleimagemissing` asíncrono) |
+| Al alejar para ver la Ciudad entera **desaparecían todas las calles** y la Red quedaba flotando | todas las capas de calles nacían en zoom 11 | `minzoom` por clase en `estilo-mapa.js`: autopista 8, principales 9, avenidas 10, calles 12, senderos 14 |
+| Seis avisos `wire: no hay ningun nodo para "#c-…"` al abrir emergencia y perfil | botones que existen en **un solo modo** se enganchaban sin la marca de opcional | selectores `'#c-agenda?'` etc. en `app.js` y `views/profile.js` |
+
+Lo que se vio andar: el mapa de noche con la jerarquía nueva, la hoja "Más"
+del zócalo sobre el mapa, la pantalla de emergencia y el perfil, y volver al
+mapa sin perder capas después del arreglo. **No se probó en movimiento**: sin
+viaje real no hay banda, chevrón, avisos ni vibración medidos en este teléfono.
+
+**Y el "no veo los cambios en celular" del principio no era la app**: el APK
+nuevo nunca había llegado (ver `adb push` en §6, "Android"). Antes de buscar
+un bug en el código, confirmar con `adb shell pm dump` o con la fecha de
+instalación que lo que corre es lo que se compiló.
+
 ### Verificado en el teléfono el 01–02/09/2026 — el usuario tocando la app
 
 **Esta tanda la probó una persona, no un script**, y por eso vale distinto:
@@ -471,19 +496,23 @@ bind a `0.0.0.0:5080`— también son esperados.
   de GraphHopper (**4 m de error en 26 km**); robusto a ±30 m de ruido; detección
   de desvío 0→1→2→3 strikes con enfriamiento; avisos de 35 apelotonados a 26 con
   220 m de separación mínima.
-- **Backend completo**: **216 tests unitarios + 79 de integración** (11 contra
-  GraphHopper real). Flujos end-to-end por HTTP: alta, verificación, login,
-  perfil, alias único, camiones, propiedad, viajes, acreditación de km, contactos
-  de emergencia y paradas del reparto. Los unitarios incluyen 17 de la política de
-  reintentos, 11 del orden de alternativas, 14 del orden del reparto y 20 de los
-  contactos; **tres de esos grupos enlazan archivos de Mobile**, que a propósito no
-  depende de MAUI.
-- **184 tests de JS** (`node --test`; eran 62 antes del GPS de Waze): motor de guiado, avisos de ruta, las pantallas del mapa (piezas, viaje, rutas, búsqueda, lugares, capas, aportar, reanudar), el puente de
-  la agenda y el número listo para marcar. Fue un test —y no el teléfono— el que
+- **Backend completo**: **316 tests unitarios + 135 de integración** (13 contra
+  GraphHopper real; medido el 18/09/2026). Flujos end-to-end por HTTP: alta,
+  verificación, login, perfil, alias único, camiones, propiedad, viajes,
+  acreditación de km, contactos de emergencia, paradas del reparto, lugares
+  guardados y recientes, y los votos y aportes de la comunidad. Los unitarios
+  incluyen 17 de la política de reintentos, 11 del orden de alternativas, 14 del
+  orden del reparto y 20 de los contactos; **tres de esos grupos enlazan archivos
+  de Mobile**, que a propósito no depende de MAUI.
+- **189 tests de JS** (`node --test`; eran 62 antes del GPS de Waze): motor de
+  guiado, avisos de ruta, el estilo del mapa, las pantallas del mapa (piezas,
+  viaje, rutas, búsqueda, lugares, capas, aportar, reanudar), el puente de la
+  agenda y el número listo para marcar. Fue un test —y no el teléfono— el que
   encontró que `Number(null)` es 0 y no `NaN`, con lo que un gálibo sin altura
-  declarada se habría avisado como *"puente de 0,00 m, no pasás"*.
+  declarada se habría avisado como *"puente de 0,00 m, no pasás"*. Los cinco
+  últimos nacieron de fallas medidas en el teléfono el 18/09 (ver más abajo).
 
-**Lo que los tests SÍ atrapan y lo que no.** Los 265 cubren reglas de dominio y
+**Lo que los tests SÍ atrapan y lo que no.** Los 640 cubren reglas de dominio y
 lógica pura, y ahí son buenos. **No cubren nada de lo que cruza hacia Android ni
 de cómo se ve una pantalla**, y esa frontera es más ancha de lo que parece: no es
 sólo "el puente", es también qué apps existen en *ese* teléfono, qué acepta *ese*
@@ -1067,6 +1096,35 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 - **La página pide la configuración con `ready`**; el nativo no la empuja. El
   chequeo de conexión tarda menos que la carga del WebView y el mensaje se pierde.
 
+**El teléfono de prueba desde `adb` (Redmi Note 14, HyperOS, medido el
+18/09/2026).** `adb` está en `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`.
+
+- **`adb shell input tap` está BLOQUEADO**: `SecurityException … INJECT_EVENTS`.
+  HyperOS exige además *"Depuración USB (Ajustes de seguridad)"*, que el usuario
+  no activó. Consecuencia: **yo no puedo tocar la pantalla**; el usuario navega y
+  yo leo `logcat` y saco capturas con `adb exec-out screencap -p > foto.png`.
+- **`adb push` a `/sdcard/Download` dice "1 file pushed" y NO escribe** (scoped
+  storage): el APK viejo del 31/08 seguía ahí y el usuario instalaba ese — de ahí
+  el *"no veo los cambios en celular"*. **`adb install -r NavegadorCamiones.apk`
+  sí funciona** y actualiza en el lugar porque la clave de desarrollo es estable.
+  El plan B es servirlo por WiFi con un `node` de diez líneas en la IP de la
+  máquina, con `Content-Length` leído por pedido (con el `stat` al arrancar se
+  sirve el tamaño viejo cuando se recompila).
+- **`adb` se pone `unauthorized`/`offline` a ratos** al reconectar el cable; lo
+  destraba el usuario aceptando el cartel de autorización en el teléfono.
+- **El WebView de Release no expone devtools**; el log es la única ventana.
+  Los avisos *Mixed Content* son normales (origen `https` virtual → API `http`).
+  El círculo negro con flechas abajo a la izquierda en las capturas es el botón
+  de rotación de Android, no algo nuestro.
+- **El teléfono está logueado con otra cuenta, no con `demo@camiones.test`**:
+  tiene sus propios camiones ("Camion liviano" de 3,2 m y "Camion pesado" de
+  18 t). Lo que se haga desde el navegador de la sesión con la demo no aparece
+  ahí, y al revés.
+- **Los oyentes de un mapa destruido siguen disparando** (`load`, `style.load`)
+  y, sin guardia, le instalan capas al mapa nuevo o a `null`. En el navegador
+  de la sesión no pasaba porque el mapa no se recrea; en el teléfono, cambiar
+  de pantalla y volver lo recrea. `createMap` guarda `propio` y compara.
+
 ---
 
 ## 7. Cómo levantar todo
@@ -1075,7 +1133,7 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
 dotnet test                              # 451 tests (.NET)
-node --test "tests/web/*.test.mjs"       # 184 tests de JS — correr desde bash
+node --test "tests/web/*.test.mjs"       # 189 tests de JS — correr desde bash
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
 ```
@@ -1134,7 +1192,7 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-### 0. EN CURSO — el GPS con la piel de Waze (16–17/09/2026)
+### 0. HECHO Y EN EL TELÉFONO — el GPS con la piel de Waze (16–18/09/2026)
 
 **Es el frente vivo y va primero.** El usuario aprobó el prototipo medido
 sobre sus capturas de Waze (`docs/diseno/prototipo-gps/`, lienzo
@@ -1156,12 +1214,15 @@ detalles con el mono** (`1de346f`); **la capa de lugares** con pines de 32
 y el voto** (`bb681c3`); **la hoja de capas** con un solo botón flotante
 (`e2f53e6`); **aportar un lugar** desde el viaje y desde capas (`399cdfd`);
 **"¿Seguís yendo a…?"** al abrir con viaje abierto (`49ead2e`); y **el día**,
-derivado y verificado (`642d40f`). **En curso: Task 28** (docs, AD-48,
-CLAUDE.md, README del prototipo, estas skills). **Falta la Task 29**:
-`dotnet test` completo, recorrido de las pantallas noche y día, y el APK con
-`build-apk.ps1` para que el usuario lo toque en el teléfono. **Nada
-pusheado**: 67 commits sobre `origin/cuentas-de-usuario`; `gh` quedó
-logueado como `bermejotobias-byte` el 18/09 y el usuario no pidió el push.
+derivado y verificado (`642d40f`). **La Task 28** (docs, AD-48, CLAUDE.md,
+README del prototipo, estas skills) y **la Task 29** (451 tests .NET, 189 web,
+recorrido noche y día, el APK) están hechas: **el plan está completo**. El
+18/09 el usuario pidió el push —*"pushea la rama a origin"*— y la rama está
+en `origin/cuentas-de-usuario` con todo, incluidos los tres arreglos que
+salieron de probar en el teléfono ese mismo día (§4, "Verificado en el
+teléfono el 18/09/2026"). `gh` quedó logueado como `bermejotobias-byte`.
+**Lo que falta es probarlo en movimiento**, con un viaje real: eso es del
+usuario y es lo único que este frente tiene pendiente.
 
 Lo que apareció verificando las etapas 6 a 9 y se corrigió en el origen: el
 nivel de verificación real de la API es `Confirmed`; `load` de MapLibre se
