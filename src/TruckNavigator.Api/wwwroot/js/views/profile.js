@@ -526,7 +526,8 @@ export function profileView(host, { go }) {
       // La tarjeta de completar el perfil lleva al formulario, que esta mas abajo
       // en la misma pantalla. Enfoca el primer campo que falta: llevar hasta ahi y
       // dejar que el usuario busque cual era seria la mitad del trabajo.
-      '#to-form': () => {
+      // Con "?": el boton existe solo mientras falten pasos del perfil.
+      '#to-form?': () => {
         const primero = q(host, '#form')?.querySelector('input:placeholder-shown, select');
         q(host, '#form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         primero?.focus({ preventScroll: true });

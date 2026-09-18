@@ -343,10 +343,12 @@ function emergencyView(host, { go }) {
       // Adentro del WebView un `tel:` no abre el discador solo: lo resuelve la
       // cascara nativa por el puente.
       '#call-911': () => call('911'),
-      '#c-agenda': (event) => desdeLaAgenda(event.currentTarget),
-      '#c-manual': () => { adding = true; draw(); },
-      '#c-cancel': () => { adding = false; draw(); },
-      '#c-save': (event) => guardar(event.currentTarget)
+      // Con "?": la pantalla tiene dos modos (lista y alta) y cada boton existe
+      // en uno solo; sin la marca, wire avisaba por consola en cada dibujo.
+      '#c-agenda?': (event) => desdeLaAgenda(event.currentTarget),
+      '#c-manual?': () => { adding = true; draw(); },
+      '#c-cancel?': () => { adding = false; draw(); },
+      '#c-save?': (event) => guardar(event.currentTarget)
     });
 
     for (const boton of qa(host, '[data-llamar]')) {
