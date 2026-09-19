@@ -105,6 +105,7 @@ builder.Services.AddScoped<CommunityReader>();
 builder.Services.AddScoped<PoiVoting>();
 builder.Services.AddScoped<PoiContributing>();
 builder.Services.AddScoped<ReportWriter>();
+builder.Services.AddScoped<ReportReader>();
 
 var app = builder.Build();
 
