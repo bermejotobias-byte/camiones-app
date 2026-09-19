@@ -35,9 +35,9 @@
 **Interfaces:**
 - Produces: `enum ReportType { Accident, Traffic, Checkpoint, Police, Camera, Roadworks, Pothole, Hazard, RoadClosed, LowClearance }`; `enum ReportKind { Information, Restriction }`; `record ReportRule(ReportType Type, ReportKind Kind, TimeSpan Lifetime, bool ExtendsWithConfirmation, (double Min, double Max)? ValueRange, int? FixedAfterConfirmations)`; `ReportCatalog.Get(ReportType)`, `ReportCatalog.All`, `ReportCatalog.FixedThreshold = 5`.
 
-- [ ] **Step 1: Tests en rojo** — (a) todo valor del enum tiene regla (`Enum.GetValues` contra `All`); (b) las vidas útiles de la spec §3: Traffic 45 min, Police 1 h, Accident/Checkpoint/Hazard 2 h, Camera 6 h, RoadClosed 12 h, Pothole/Roadworks 7 días, LowClearance 30 días; (c) sólo RoadClosed y LowClearance son `Restriction`; (d) sólo LowClearance tiene `ValueRange` y es (2.0, 6.0); (e) sólo Camera tiene `FixedAfterConfirmations` y vale 5.
-- [ ] **Step 2: Rojo. Step 3:** el catálogo como diccionario construido en estático, con el comentario de por qué cada número es una constante ahí. **Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes: el catalogo de tipos, con vida util, clase y lo que se vuelve fijo`.
+- [x] **Step 1: Tests en rojo** — (a) todo valor del enum tiene regla (`Enum.GetValues` contra `All`); (b) las vidas útiles de la spec §3: Traffic 45 min, Police 1 h, Accident/Checkpoint/Hazard 2 h, Camera 6 h, RoadClosed 12 h, Pothole/Roadworks 7 días, LowClearance 30 días; (c) sólo RoadClosed y LowClearance son `Restriction`; (d) sólo LowClearance tiene `ValueRange` y es (2.0, 6.0); (e) sólo Camera tiene `FixedAfterConfirmations` y vale 5.
+- [x] **Step 2: Rojo. Step 3:** el catálogo como diccionario construido en estático, con el comentario de por qué cada número es una constante ahí. **Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes: el catalogo de tipos, con vida util, clase y lo que se vuelve fijo`.
 
 ### Task 2: El reporte y su voto
 
@@ -48,9 +48,9 @@
 **Interfaces:**
 - Produces: `Report` con las propiedades de la spec §3 (`ExpiresAt` **nullable**; `Status` `Active | Validated | Fixed | Rejected | ClosedByAuthor`); `record NewReport(ReportType Type, double Latitude, double Longitude, double? HeadingDegrees, double? SpeedMps, string? Street, double? Value)`; `Report.Create(Guid driverId, NewReport input, DateTimeOffset when)` que tira `ArgumentException` con el motivo para la persona; `ReportVote { ReportId, DriverId, Verdict, CastAt, UpdatedAt, DistanceMeters }`; `Report.MovingSpeedMps = 2`.
 
-- [ ] **Step 1: Tests en rojo** — (a) nace `Active`, `ExpiresAt = when + Lifetime`, contadores en 0; (b) fuera del rectángulo de `PoiContribution.IsInsideCoverage` → excepción "dentro de CABA o de su anillo"; (c) LowClearance sin valor → excepción; con 1,5 o 6,5 → excepción; con 3,8 → `Value = 3.8`; (d) un tipo sin valor recibe `Value` y lo ignora (queda `null`); (e) `HeadingDegrees` se guarda sólo si `SpeedMps >= 2`: a 1,5 m/s queda `null`; (f) el rumbo se normaliza a [0, 360); (g) la calle se recorta y vacía → `null`.
-- [ ] **Step 2: Rojo. Step 3:** implementar `Create` reutilizando `PoiContribution.IsInsideCoverage`. **Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes: el reporte nace en la posicion GPS, con rumbo solo en movimiento`.
+- [x] **Step 1: Tests en rojo** — (a) nace `Active`, `ExpiresAt = when + Lifetime`, contadores en 0; (b) fuera del rectángulo de `PoiContribution.IsInsideCoverage` → excepción "dentro de CABA o de su anillo"; (c) LowClearance sin valor → excepción; con 1,5 o 6,5 → excepción; con 3,8 → `Value = 3.8`; (d) un tipo sin valor recibe `Value` y lo ignora (queda `null`); (e) `HeadingDegrees` se guarda sólo si `SpeedMps >= 2`: a 1,5 m/s queda `null`; (f) el rumbo se normaliza a [0, 360); (g) la calle se recorta y vacía → `null`.
+- [x] **Step 2: Rojo. Step 3:** implementar `Create` reutilizando `PoiContribution.IsInsideCoverage`. **Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes: el reporte nace en la posicion GPS, con rumbo solo en movimiento`.
 
 ### Task 3: La confiabilidad
 
@@ -61,10 +61,10 @@
 **Interfaces:**
 - Produces: `enum ReliabilityLabel { New, Confirmed, Disputed }`; `ReportStanding.ScoreFor(Report report, int creatorReputation, DateTimeOffset now) : int` (0–100); `LabelFor(Report, int score) : ReliabilityLabel`; `IsValidated(Report, int score) : bool`; constantes `Base = 35`, `PerReputationPoint = 0.30`, `PerConfirmation = 12`, `MaxCountedConfirmations = 4`, `PerRejection = 18`, `FreshnessDrop = 0.40`, `ConfirmedFrom = 60`, `ValidatedFrom = 70`, `ValidatedConfirmations = 2`.
 
-- [ ] **Step 1: Tests en rojo** — los ejemplos exactos de la spec §4 con frescura 1 (recién creado): reputación 50 → 50; con 2 confirmaciones → 74; 2 y 1 rechazo → 56; reputación 90 → 62; reputación 10 → 38; reputación 10 con 2 confirmaciones → 62 (no validado), con 3 → 74 (validado); 5 confirmaciones cuentan como 4 (98 → tope 100 con reputación alta); frescura: a mitad de vida 50 → 40, al vencer 50 → 30; nunca fuera de 0–100; un reporte `Fixed` (sin `ExpiresAt`) tiene frescura 1 siempre.
-- [ ] Etiquetas: sin votos → `New` aunque la reputación sea 90; 1 confirmación y score 62 → `Confirmed`; 1 rechazo y 1 confirmación → `Disputed`; 1 rechazo y 0 confirmaciones → `Disputed`. Validado: 2 confirmaciones + score ≥ 70; 1 confirmación con score 80 → no.
-- [ ] **Step 2: Rojo. Step 3:** implementar como en la fórmula de §4, con `Math.Clamp` y `edad / vida útil` acotado a 1. **Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes: la confiabilidad, con los ejemplos de la spec fijados por test`.
+- [x] **Step 1: Tests en rojo** — los ejemplos exactos de la spec §4 con frescura 1 (recién creado): reputación 50 → 50; con 2 confirmaciones → 74; 2 y 1 rechazo → 56; reputación 90 → 62; reputación 10 → 38; reputación 10 con 2 confirmaciones → 62 (no validado), con 3 → 74 (validado); 5 confirmaciones cuentan como 4 (98 → tope 100 con reputación alta); frescura: a mitad de vida 50 → 40, al vencer 50 → 30; nunca fuera de 0–100; un reporte `Fixed` (sin `ExpiresAt`) tiene frescura 1 siempre.
+- [x] Etiquetas: sin votos → `New` aunque la reputación sea 90; 1 confirmación y score 62 → `Confirmed`; 1 rechazo y 1 confirmación → `Disputed`; 1 rechazo y 0 confirmaciones → `Disputed`. Validado: 2 confirmaciones + score ≥ 70; 1 confirmación con score 80 → no.
+- [x] **Step 2: Rojo. Step 3:** implementar como en la fórmula de §4, con `Math.Clamp` y `edad / vida útil` acotado a 1. **Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes: la confiabilidad, con los ejemplos de la spec fijados por test`.
 
 ### Task 4: Vencimiento y promoción
 
@@ -75,9 +75,9 @@
 **Interfaces:**
 - Produces: `ReportExpiry.IsExpired(Report, DateTimeOffset now)`; `ReportExpiry.Confirm(Report, now)` (estira: `max(ExpiresAt, now + Lifetime/2)` con tope `CreatedAt + 3 × Lifetime`; no toca un `Fixed`); `ReportExpiry.ShouldReject(Report)` (`Rejections >= 2 && Rejections > Confirmations`); `ReportExpiry.Reject(Report, now)` (`Status = Rejected`, `ExpiresAt = now`); `ReportExpiry.CloseByAuthor(Report, now)`; `ReportPromotion.ShouldFix(Report)` (tipo con umbral y `Confirmations >= 5`); `ReportPromotion.Fix(Report)` (`Status = Fixed`, `ExpiresAt = null`); `ReportPromotion.ShouldUnfix(Report)` (`Fixed && Rejections >= 5 && Rejections > Confirmations`). Constantes `ExtensionFraction = 0.5`, `MaxLifetimes = 3`, `RejectionsToKill = 2`.
 
-- [ ] **Step 1: Tests en rojo** — estirar una obra el día 6 → vence el día 10,5 (no antes de lo que ya tenía) con tope día 21; tránsito confirmado tres veces seguidas no pasa de 2 h 15; 2 rechazos y 1 confirmación → rechazado; 2 y 2 → no; cerrar el propio → `ClosedByAuthor` y vencido ya; una cámara con 5 confirmaciones → `Fixed` y `ExpiresAt null`, no vence nunca (`IsExpired` falso un año después); un accidente con 5 → no se fija; cámara fija con 5 rechazos y 4 confirmaciones → `ShouldUnfix`; con 5 y 6 → no.
-- [ ] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes: vencen solos, se estiran al confirmarlos y la camara muy confirmada es fija`.
+- [x] **Step 1: Tests en rojo** — estirar una obra el día 6 → vence el día 10,5 (no antes de lo que ya tenía) con tope día 21; tránsito confirmado tres veces seguidas no pasa de 2 h 15; 2 rechazos y 1 confirmación → rechazado; 2 y 2 → no; cerrar el propio → `ClosedByAuthor` y vencido ya; una cámara con 5 confirmaciones → `Fixed` y `ExpiresAt null`, no vence nunca (`IsExpired` falso un año después); un accidente con 5 → no se fija; cámara fija con 5 rechazos y 4 confirmaciones → `ShouldUnfix`; con 5 y 6 → no.
+- [x] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes: vencen solos, se estiran al confirmarlos y la camara muy confirmada es fija`.
 
 ### Task 5: Reputación y relevancia para el camión
 
@@ -88,9 +88,9 @@
 **Interfaces:**
 - Produces: `DriverReputation { DriverId, Score, UpdatedAt }`; `ReputationScale.Start = 50`, `OnValidated = +3`, `OnRejected = -5`, `Apply(int score, int delta) : int` (0–100); `enum TruckRelevance { NotApplicable, Compatible, Incompatible }`; `ReportRelevance.ForTruck(Report, TruckProfile) : TruckRelevance` (LowClearance: `truck.HeightMeters > Value` → Incompatible; RoadClosed → Incompatible para todos; el resto NotApplicable).
 
-- [ ] **Step 1: Tests en rojo** — 50 + 3 = 53; 2 − 5 = 0 (no negativo); 99 + 3 = 100; gálibo 3,80: camión 4,10 → Incompatible, 3,60 → Compatible, 3,80 → Compatible (igual pasa); accidente → NotApplicable; calle cerrada → Incompatible.
-- [ ] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes: reputacion del que reporta, y el galibo reportado contra el camion elegido`.
+- [x] **Step 1: Tests en rojo** — 50 + 3 = 53; 2 − 5 = 0 (no negativo); 99 + 3 = 100; gálibo 3,80: camión 4,10 → Incompatible, 3,60 → Compatible, 3,80 → Compatible (igual pasa); accidente → NotApplicable; calle cerrada → Incompatible.
+- [x] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes: reputacion del que reporta, y el galibo reportado contra el camion elegido`.
 
 ### Task 6: Contra el abuso
 
@@ -101,9 +101,9 @@
 **Interfaces:**
 - Produces: `record RecentReport(ReportType Type, double Latitude, double Longitude, DateTimeOffset CreatedAt, Guid Id, bool Active)`; `record AbuseVerdict(bool Allowed, int RetryAfterSeconds, Guid? DuplicateOf, string? Reason)`; `ReportAbuseGuard.Check(NewReport input, IReadOnlyList<RecentReport> mine, IReadOnlyList<RecentReport> nearby, int reputation, DateTimeOffset now)`; constantes `Cooldown = 45 s`, `LowReputationBelow = 25` (cooldown × 2), `MaxPerHour = 20`, `DuplicateMeters = 150`, `DuplicateWindow = 15 min`.
 
-- [ ] **Step 1: Tests en rojo** — un reporte mío hace 20 s → no permitido, `RetryAfterSeconds = 25`; hace 50 s → permitido; reputación 20 y hace 60 s → no (espera 90); 20 míos en la última hora → no; 19 → sí; uno ajeno del mismo tipo a 100 m hace 10 min y activo → `DuplicateOf` con su id; a 200 m → no es duplicado; hace 20 min → no; de otro tipo → no; inactivo → no. `Reason` viene escrito para la persona.
-- [ ] **Step 2: Rojo. Step 3:** implementar con `GeoDistance.Meters`. **Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes: espera entre reportes, tope por hora y duplicados cerca`.
+- [x] **Step 1: Tests en rojo** — un reporte mío hace 20 s → no permitido, `RetryAfterSeconds = 25`; hace 50 s → permitido; reputación 20 y hace 60 s → no (espera 90); 20 míos en la última hora → no; 19 → sí; uno ajeno del mismo tipo a 100 m hace 10 min y activo → `DuplicateOf` con su id; a 200 m → no es duplicado; hace 20 min → no; de otro tipo → no; inactivo → no. `Reason` viene escrito para la persona.
+- [x] **Step 2: Rojo. Step 3:** implementar con `GeoDistance.Meters`. **Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes: espera entre reportes, tope por hora y duplicados cerca`.
 
 ### Task 7: El bloqueo en el custom model
 
@@ -115,9 +115,9 @@
 **Interfaces:**
 - Produces: `record RouteBlockade(string Id, double Latitude, double Longitude, double? HeadingDegrees)` con `Polygon() : IReadOnlyList<(double Lon, double Lat)>` cerrado (rectángulo 40 × 16 m a lo largo del rumbo; cuadrado de 24 m sin rumbo; matemática plana con `cos(lat)`); `CustomModel.Areas` (`GeoJsonFeatureCollection` con `Type`, `Features[]` de `Id`, `Properties {}`, `Geometry { Type = "Polygon", Coordinates }`, `JsonPropertyName` en minúscula, `WhenWritingNull`); `ITruckRoutingPolicy.BuildCustomModel(truck, when, IReadOnlyList<RouteBlockade>)` y la de dos parámetros llama con `[]`; `interface IRouteBlockadeSource { Task<IReadOnlyList<RouteBlockade>> ActiveAsync(TruckProfile, DateTimeOffset, CancellationToken); }` y `NoRouteBlockades` (lista vacía, `NoRouteBlockades.Instance`).
 
-- [ ] **Step 1: Tests en rojo** — el polígono sin rumbo tiene 5 puntos, el primero igual al último, ±12 m en las dos direcciones (tolerancia 0,5 m); con rumbo 90° el rectángulo se extiende ±20 m en longitud y ±8 m en latitud; con rumbo 0°, al revés; la política con dos bloqueos serializa `"areas"` con ids `r1`, `r2` y agrega `{"if":"in_r1","multiply_by":"0"}` y `in_r2` **después** de las reglas físicas; sin bloqueos el JSON no lleva `"areas"` y es idéntico al de hoy (los tests existentes de la política no cambian).
-- [ ] **Step 2: Rojo. Step 3: implementar. Step 4: Verde**, `dotnet test` entero.
-- [ ] **Step 5: Commit** — `Ruteo: un cierre validado entra al custom model como area bloqueada`.
+- [x] **Step 1: Tests en rojo** — el polígono sin rumbo tiene 5 puntos, el primero igual al último, ±12 m en las dos direcciones (tolerancia 0,5 m); con rumbo 90° el rectángulo se extiende ±20 m en longitud y ±8 m en latitud; con rumbo 0°, al revés; la política con dos bloqueos serializa `"areas"` con ids `r1`, `r2` y agrega `{"if":"in_r1","multiply_by":"0"}` y `in_r2` **después** de las reglas físicas; sin bloqueos el JSON no lleva `"areas"` y es idéntico al de hoy (los tests existentes de la política no cambian).
+- [x] **Step 2: Rojo. Step 3: implementar. Step 4: Verde**, `dotnet test` entero.
+- [x] **Step 5: Commit** — `Ruteo: un cierre validado entra al custom model como area bloqueada`.
 
 ### Task 8: EXP y pista de reportes
 
@@ -125,9 +125,9 @@
 - Modify: `src/TruckNavigator.Domain/Progression/LedgerEntry.cs` (`ReportValidated = 4`, `ReportVoted = 5`), `ExperienceScale.cs` (`ReportValidated = 15`, `ReportVote = 2`, `ReportVotesPaidPerDay = 10`), `TrackCatalog.cs` (`Reports = "reportes"`, escalera de viajes)
 - Test: `tests/TruckNavigator.UnitTests/ExperienceScaleTests.cs`, `TrackCatalogTests.cs` (+ casos)
 
-- [ ] **Step 1: Tests en rojo** — la pista `reportes` existe con los 10 escalones `1 · 3 · 7 · 15 · 30 · 60 · 120 · 250 · 500 · 1_000` y recompensas `reportes-01…10`; ninguna recompensa se repite entre pistas (el test de invariante que ya existe la cubre al agregar la pista); `ExperienceScale.ReportValidated == 15`, `ReportVote == 2`, `ReportVotesPaidPerDay == 10`; el escalón (100) sigue ganándole al reporte validado.
-- [ ] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Progresion: la pista de reportes, y lo que paga validar y votar`.
+- [x] **Step 1: Tests en rojo** — la pista `reportes` existe con los 10 escalones `1 · 3 · 7 · 15 · 30 · 60 · 120 · 250 · 500 · 1_000` y recompensas `reportes-01…10`; ninguna recompensa se repite entre pistas (el test de invariante que ya existe la cubre al agregar la pista); `ExperienceScale.ReportValidated == 15`, `ReportVote == 2`, `ReportVotesPaidPerDay == 10`; el escalón (100) sigue ganándole al reporte validado.
+- [x] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
+- [x] **Step 5: Commit** — `Progresion: la pista de reportes, y lo que paga validar y votar`.
 
 ### Task 9: El lugar aportado se gradúa
 
@@ -139,9 +139,9 @@
 **Interfaces:**
 - Produces: `PoiPromotion.Threshold = 5`; `PoiPromotion.Apply(PointOfInterest poi, PoiSuitabilityField field, int suitable, int notSuitable, DateTimeOffset when) : bool` (devuelve si cambió algo).
 
-- [ ] **Step 1: Tests en rojo** — lugar aportado (`ManagedByDataset = false`, `NotConfirmed`) con 5 aptos de `HeavyTruck` → `Probable`, `SuitableForHeavyTruck = true`, `SuitabilityEvidenceKind.Community`, evidencia `"Confirmado apto para camion pesado por 5 camioneros de la comunidad (19/09/2026)"` (fecha local); los otros tres campos siguen `null`; con 4 → nada; 5 de *no apto* → `SuitableForHeavyTruck = false` y `Probable`; **un lugar del dataset con 5 aptos no cambia nada** y devuelve `false`; un lugar ya `Confirmed` no baja a `Probable`; volver a aplicar no reescribe la fecha.
-- [ ] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Lugares: con cinco votos de apto, el lugar aportado se incorpora a la base`.
+- [x] **Step 1: Tests en rojo** — lugar aportado (`ManagedByDataset = false`, `NotConfirmed`) con 5 aptos de `HeavyTruck` → `Probable`, `SuitableForHeavyTruck = true`, `SuitabilityEvidenceKind.Community`, evidencia `"Confirmado apto para camion pesado por 5 camioneros de la comunidad (19/09/2026)"` (fecha local); los otros tres campos siguen `null`; con 4 → nada; 5 de *no apto* → `SuitableForHeavyTruck = false` y `Probable`; **un lugar del dataset con 5 aptos no cambia nada** y devuelve `false`; un lugar ya `Confirmed` no baja a `Probable`; volver a aplicar no reescribe la fecha.
+- [x] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
+- [x] **Step 5: Commit** — `Lugares: con cinco votos de apto, el lugar aportado se incorpora a la base`.
 
 ---
 
