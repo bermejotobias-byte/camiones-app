@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using TruckNavigator.Domain.Pois;
 using TruckNavigator.Domain.Restrictions;
 using TruckNavigator.Domain.Routing;
 using TruckNavigator.Domain.Trucks;
@@ -21,7 +22,7 @@ public class TruckRoutingTests
 
     private static readonly CabaRestrictionEvaluator Evaluator = new();
 
-    private static GraphHopperRouteCalculator CreateCalculator()
+    private static GraphHopperRouteCalculator CreateCalculator(IRouteBlockadeSource? blockades = null)
     {
         var options = Options.Create(new GraphHopperOptions { BaseUrl = "http://localhost:8989" });
 
@@ -36,7 +37,8 @@ public class TruckRoutingTests
             new CabaTruckRoutingPolicy(),
             Evaluator,
             options,
-            NullLogger<GraphHopperRouteCalculator>.Instance);
+            NullLogger<GraphHopperRouteCalculator>.Instance,
+            blockades);
     }
 
     private static TruckProfile Heavy() => new()
@@ -178,5 +180,39 @@ public class TruckRoutingTests
         // Por debajo de 12 t la Red no es obligatoria, asi que no se reportan
         // tramos de acceso.
         Assert.Empty(route.AccessLegs);
+    }
+
+    // Un tramo corto por Palermo: la ruta pasa por una cuadra y un bloqueo
+    // validado en el medio de esa cuadra la hace cambiar de calle.
+    private static readonly GeoPoint PalermoFrom = new(-34.5967, -58.4405);
+    private static readonly GeoPoint PalermoTo = new(-34.5940, -58.4280);
+
+    /// <summary>
+    /// Un cierre de la comunidad validado entra al custom model como area y el
+    /// motor esquiva esa cuadra (spec de reportes del 19/09/2026). Sin validar no
+    /// existe para el motor.
+    /// </summary>
+    [GraphHopperFact]
+    public async Task A_validated_closure_makes_the_route_avoid_that_block_and_an_unvalidated_one_does_not()
+    {
+        var plain = await CreateCalculator().CalculateAsync(Light(), PalermoFrom, PalermoTo, Departure);
+        var middle = plain.Geometry[plain.Geometry.Count / 2];
+
+        var blocked = new FixedBlockades([new RouteBlockade("r1", middle.Latitude, middle.Longitude, null)]);
+        var detour = await CreateCalculator(blocked).CalculateAsync(Light(), PalermoFrom, PalermoTo, Departure);
+
+        var closest = detour.Geometry.Min(p => GeoDistance.Meters(p.Latitude, p.Longitude, middle.Latitude, middle.Longitude));
+        Assert.True(closest > 15, $"La ruta sigue pasando a {closest:0} m del bloqueo.");
+        Assert.True(detour.DistanceMeters >= plain.DistanceMeters);
+
+        // Sin bloqueos (lo que pasa con un reporte sin validar) la ruta es la misma.
+        var again = await CreateCalculator(NoRouteBlockades.Instance).CalculateAsync(Light(), PalermoFrom, PalermoTo, Departure);
+        Assert.Equal(plain.DistanceMeters, again.DistanceMeters);
+    }
+
+    private sealed class FixedBlockades(IReadOnlyList<RouteBlockade> blockades) : IRouteBlockadeSource
+    {
+        public Task<IReadOnlyList<RouteBlockade>> ActiveAsync(TruckProfile truck, DateTimeOffset when, CancellationToken cancellationToken = default) =>
+            Task.FromResult(blockades);
     }
 }

@@ -25,6 +25,7 @@ using TruckNavigator.Infrastructure.Persistence;
 using TruckNavigator.Infrastructure.Pois;
 using TruckNavigator.Infrastructure.Progression;
 using TruckNavigator.Infrastructure.Reports;
+using TruckNavigator.Infrastructure.Routing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -106,6 +107,10 @@ builder.Services.AddScoped<PoiVoting>();
 builder.Services.AddScoped<PoiContributing>();
 builder.Services.AddScoped<ReportWriter>();
 builder.Services.AddScoped<ReportReader>();
+
+// Los cierres y galibos validados por la comunidad entran a cada calculo de
+// ruta como areas del custom model; sin esta linea el calculador no los ve.
+builder.Services.AddScoped<IRouteBlockadeSource, RouteBlockades>();
 
 var app = builder.Build();
 

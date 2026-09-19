@@ -18,8 +18,21 @@ public sealed class GraphHopperRouteCalculator(
     ITruckRoutingPolicy routingPolicy,
     IRestrictionEvaluator restrictionEvaluator,
     IOptions<GraphHopperOptions> options,
-    ILogger<GraphHopperRouteCalculator> logger) : ITruckRouteCalculator
+    ILogger<GraphHopperRouteCalculator> logger,
+    IRouteBlockadeSource? blockades = null) : ITruckRouteCalculator
 {
+    // Los cierres y galibos que la comunidad valido: entran como areas del custom
+    // model en cada pedido (spec de reportes, 19/09/2026). Sin fuente —los tests
+    // que arman el calculador a mano— no hay bloqueos, y el modelo es el de siempre.
+    private readonly IRouteBlockadeSource _blockades = blockades ?? NoRouteBlockades.Instance;
+
+    private async Task<CustomModel> CustomModelForAsync(TruckProfile truck, DateTimeOffset departure, CancellationToken ct)
+    {
+        var activos = await _blockades.ActiveAsync(truck, departure, ct);
+
+        return routingPolicy.BuildCustomModel(truck, departure, activos);
+    }
+
     // max_weight_except va junto con max_weight: sin el, el evaluador no sabe que
     // el motor dejo pasar el tramo por una excepcion y lo marca como prohibido.
     private static readonly string[] RequestedDetails =
@@ -158,7 +171,7 @@ public sealed class GraphHopperRouteCalculator(
         CancellationToken cancellationToken)
     {
         var n = puntos.Count;
-        var customModel = routingPolicy.BuildCustomModel(truck, departure);
+        var customModel = await CustomModelForAsync(truck, departure, cancellationToken);
         var costos = new double[n][];
 
         for (var i = 0; i < n; i++)
@@ -266,7 +279,7 @@ public sealed class GraphHopperRouteCalculator(
     {
         ArgumentNullException.ThrowIfNull(truck);
 
-        var customModel = routingPolicy.BuildCustomModel(truck, departure);
+        var customModel = await CustomModelForAsync(truck, departure, cancellationToken);
 
         var request = new
         {
