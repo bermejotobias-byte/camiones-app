@@ -9,6 +9,8 @@
  * que la API ya decidió (`reliability`, `validated`, `forYourTruck`).
  */
 
+import { calcomania, dibujo, pildora } from './piezas.js';
+
 /* ---------------------------------------------------------------------------
    El catálogo, como lo ve la app
 --------------------------------------------------------------------------- */
@@ -165,4 +167,119 @@ export function bboxVisible(bounds) {
   const north = typeof bounds.getNorth === 'function' ? bounds.getNorth() : bounds.north;
 
   return [west, south, east, north].map((n) => String(n)).join(',');
+}
+
+/* ---------------------------------------------------------------------------
+   Las hojas: la sección de reportar, los metros del gálibo, la ficha y el
+   "¿sigue ahí?". Sólo marcado, con las piezas del GPS (círculos de 75,
+   píldoras de 48); navigate.js engancha por data-accion.
+--------------------------------------------------------------------------- */
+
+/** Los metros prearmados del gálibo: un toque, sin teclado. */
+export const METROS_GALIBO = [3.5, 3.8, 4.0, 4.3, 4.5];
+
+const escapar = (texto) => String(texto ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/** "Reportar": los diez tipos en círculos de 75, un toque cada uno. Va arriba de las categorías de lugar. */
+export function seccionReportar() {
+  return `
+  <p class="gps-seccion-titulo">Reportar</p>
+  <div class="gps-redondos">
+    ${TIPOS.map((t) => `
+    <button type="button" class="gps-redondo-grande" data-accion="reportar" data-tipo="${t.tipo}">
+      <span class="gps-redondo-ico">${calcomania(t.calcomania, 40)}</span>
+      <span>${escapar(t.nombre)}</span>
+    </button>`).join('')}
+  </div>`;
+}
+
+/** El segundo toque del gálibo: los metros prearmados y "otro" para escribirlos. */
+export function hojaGalibo({ valor = null } = {}) {
+  return `
+  <div class="gps-manija"></div>
+  <div class="gps-aportar-titulo">
+    <b>¿Cuánto mide el gálibo?</b>
+    <button type="button" class="gps-ficha-cerrar" data-accion="cerrar" aria-label="Cerrar">${dibujo('cerrar', 24, 2.4)}</button>
+  </div>
+  <div class="gps-metros">
+    ${METROS_GALIBO.map((m) => `<button type="button" class="gps-metro${valor === m ? ' is-on' : ''}" data-accion="galibo-valor" data-valor="${m}">${m.toFixed(1).replace('.', ',')}</button>`).join('')}
+    <button type="button" class="gps-metro gps-metro-otro" data-accion="galibo-otro">Otro</button>
+  </div>
+  <p class="gps-pie">Los metros que dice el cartel del puente. Se reporta en tu posición.</p>`;
+}
+
+/** Cuántas confirmaciones y rechazos, como se lee. */
+function conteos(r) {
+  const partes = [];
+  if (r.confirmations) partes.push(`${r.confirmations} ${r.confirmations === 1 ? 'confirmación' : 'confirmaciones'}`);
+  if (r.rejections) partes.push(`${r.rejections} ${r.rejections === 1 ? 'rechazo' : 'rechazos'}`);
+  return partes.join(' · ');
+}
+
+const ETIQUETAS = { new: 'Nuevo', confirmed: 'Confirmado', disputed: 'En duda' };
+
+/**
+ * La ficha de un reporte: tipo, calle o "cerca de acá", edad y conteos, quién,
+ * lo que le dice a tu camión, y los dos botones — o "Cerrar reporte" si es tuyo.
+ */
+export function fichaReporte(r, { ahora = Date.now() } = {}) {
+  const tipo = tipoDeReporte(r.type);
+  const titulo = r.fixed && r.type === 'Camera'
+    ? 'Cámara fija'
+    : tipo.pideValor && r.value != null ? `${tipo.nombre} ${metros(r.value)}` : tipo.nombre;
+  const edad = etiquetaEdad(r.createdAt, ahora, { fija: !!r.fixed });
+  const linea = [edad, conteos(r)].filter(Boolean).join(' · ');
+  const estado = r.fixed ? 'Dato de la app, confirmado por la comunidad' : ETIQUETAS[r.reliability?.label] ?? 'Nuevo';
+  const quien = `Reportado por @${r.reportedBy?.alias ?? 'anónimo'}`;
+
+  const restriccion = tipo.restriccion
+    ? (r.forYourTruck === 'incompatible'
+      ? { clase: 'no-apto', texto: 'Tu camión no pasa', sub: r.validated ? 'Confirmado: la ruta lo esquiva' : 'Sin confirmar: la ruta todavía no lo esquiva' }
+      : r.validated
+        ? { clase: 'confirmado', texto: 'Confirmado por la comunidad', sub: r.forYourTruck === 'compatible' ? 'Tu camión pasa' : 'Puede cambiar la ruta de otros camiones' }
+        : { clase: 'probable', texto: 'Sin confirmar', sub: 'Hacen falta dos confirmaciones para que cambie la ruta' })
+    : null;
+
+  const voto = (veredicto, texto) => pildora(texto, {
+    clase: r.yourVote === veredicto ? 'celeste chica' : 'chica',
+    icono: r.yourVote === veredicto ? dibujo('check', 16, 3) : '',
+    datos: `data-accion="voto" data-veredicto="${veredicto}"`
+  });
+
+  return `
+  <div class="gps-manija"></div>
+  <div class="gps-ficha-cabeza">
+    <div class="gps-ficha-ico">${calcomania(tipo.calcomania, 32)}</div>
+    <div class="gps-ficha-titulo"><b>${escapar(titulo)}</b><span>${escapar(r.street ?? 'cerca de acá')}</span></div>
+    <button type="button" class="gps-ficha-cerrar" data-accion="cerrar" aria-label="Cerrar">${dibujo('cerrar', 22, 2.4)}</button>
+  </div>
+  <div class="gps-etiqueta-comunidad">${calcomania('comunidad', 16)}<span>${escapar([estado, linea, quien].filter(Boolean).join(' · '))}</span></div>
+  ${restriccion ? `
+  <div class="gps-bloque gps-bloque-${restriccion.clase}">
+    <div class="gps-bloque-titulo"><i>${dibujo(restriccion.clase === 'no-apto' ? 'cerrar' : restriccion.clase === 'confirmado' ? 'check' : 'info', 14, 3.2)}</i><b>${escapar(restriccion.texto)}</b></div>
+    <span>${escapar(restriccion.sub)}</span>
+  </div>` : ''}
+  ${r.mine ? `
+  <div class="gps-acciones">
+    ${pildora('Cerrar reporte', { datos: 'data-accion="cerrar-reporte"' })}
+  </div>` : `
+  <div class="gps-voto">
+    <span>¿Sigue ahí?</span>
+    <div class="gps-voto-botones">${voto('StillThere', 'Sigue ahí')}${voto('Gone', 'Ya no está')}</div>
+  </div>`}`;
+}
+
+/** Los dos botones grandes que aparecen al pasar junto a un reporte, diez segundos. */
+export function promptSigueAhi(r) {
+  const tipo = tipoDeReporte(r.type);
+
+  return `
+  <div class="gps-sigue" data-reporte="${escapar(r.id)}">
+    <div class="gps-sigue-que">${calcomania(tipo.calcomania, 28)}<span>${escapar(tipo.nombre)}${r.street ? ` · ${escapar(r.street)}` : ''}</span></div>
+    <div class="gps-sigue-botones">
+      ${pildora('Sigue ahí', { clase: 'celeste', datos: 'data-accion="sigue" data-veredicto="StillThere"' })}
+      ${pildora('Ya no está', { datos: 'data-accion="sigue" data-veredicto="Gone"' })}
+    </div>
+  </div>`;
 }

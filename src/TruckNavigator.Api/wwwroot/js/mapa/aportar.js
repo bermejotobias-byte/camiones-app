@@ -1,11 +1,12 @@
 /**
- * Aportar un lugar (el prototipo, tableros "Aportar · ¿Qué hay acá?" y
- * "Marcar el lugar").
+ * Aportar (el prototipo, tableros "Aportar · ¿Qué hay acá?" y "Marcar el
+ * lugar"): reportar lo que se ve, o agregar un lugar.
  *
  * La hoja "¿Qué ves?" de waze-07, medida: titulo en 21 negrita, cruz a la
  * derecha, y la grilla de circulos de 75 en #3c4043 con calcomania de 40 y
- * rotulo debajo. Con lo que existe hoy: las seis categorias de lugar; los
- * reportes de la Fase 5 entran a esta misma grilla cuando se decidan.
+ * rotulo debajo. Desde el 19/09/2026 tiene dos secciones: arriba los diez
+ * tipos de reporte (un toque reporta en la posicion GPS; lo dibuja
+ * reportes.js) y abajo las seis categorias de lugar.
  *
  * Elegida la categoria, el mapa vuelve al frente con el pin fijo en el
  * centro —se mueve el mapa, no el pin, como en Maps— y una hoja corta: la
@@ -17,6 +18,7 @@
 
 import { calcomania, dibujo, pildora } from './piezas.js';
 import { CATEGORIAS } from './buscar.js';
+import { seccionReportar } from './reportes.js';
 import { escapeHtml } from '../ui.js';
 
 /** Los limites del nombre son los del dominio (PoiContribution). */
@@ -41,14 +43,16 @@ export function nombreValido(nombre) {
   return null;
 }
 
-/** "¿Qué hay acá?": la grilla de categorias. */
+/** "¿Qué ves?": reportar arriba, agregar un lugar abajo. */
 export function hojaAportar() {
   return `
   <div class="gps-manija"></div>
   <div class="gps-aportar-titulo">
-    <b>¿Qué hay acá?</b>
+    <b>¿Qué ves?</b>
     <button type="button" class="gps-ficha-cerrar" data-accion="cerrar" aria-label="Cerrar">${dibujo('cerrar', 24, 2.4)}</button>
   </div>
+  ${seccionReportar()}
+  <p class="gps-seccion-titulo">Agregar un lugar</p>
   <div class="gps-redondos">
     ${CATEGORIAS.map((c) => `
     <button type="button" class="gps-redondo-grande" data-accion="categoria" data-id="${c.id}">

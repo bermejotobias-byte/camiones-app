@@ -1965,6 +1965,46 @@ button { font-family: inherit; font-size: inherit; }
 .gps-pie { font-size: 15px; color: var(--gps-ink-3); text-align: center; margin: 14px 0 2px; line-height: 1.4; }
 .gps-pie b { color: var(--gps-ink); font-weight: 500; }
 
+/* Las dos secciones de "¿Qué ves?" (19/09/2026): reportar arriba, agregar un
+   lugar abajo. El rotulo es chico y en mayusculas, como los de la app. */
+.gps-seccion-titulo { margin: 12px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gps-ink-3); }
+
+/* Los metros del galibo: pastillas grandes de un toque, con "Otro" al final. */
+.gps-metros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 0 4px; }
+.gps-metro {
+  height: 56px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--gps-pildora);
+  color: var(--gps-ink);
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.gps-metro.is-on { background: var(--gps-celeste); color: #0b1a22; }
+.gps-metro-otro { font-size: 18px; font-weight: 500; color: var(--gps-celeste); }
+
+/* "¿Sigue ahi?": dos botones grandes que aparecen al pasar junto a un reporte,
+   en el mismo lugar que la tarjeta de aviso, diez segundos. */
+.gps-sigue {
+  pointer-events: auto;
+  position: absolute;
+  left: 15px; right: 15px;
+  bottom: calc(150px + var(--safe-bottom));
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  z-index: 5;
+}
+.gps-sigue-que { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500; margin-bottom: 10px; }
+.gps-sigue-que span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-sigue-botones { display: flex; gap: 10px; }
+.gps-sigue-botones .gps-pildora { flex: 1; }
+
 /* Marcar: el pin fijo al centro del mapa (la punta en el centro exacto), el
    chip de la categoria en linea, el campo del nombre y Guardar. */
 .gps-pin-fijo {

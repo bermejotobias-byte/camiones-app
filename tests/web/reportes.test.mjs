@@ -11,7 +11,8 @@ import assert from 'node:assert/strict';
 
 import {
   TIPOS, tipoDeReporte, etiquetaEdad, mismoSentido, estadoDelPin, featuresDeReportes,
-  textoDelToast, deberiaPreguntar, bboxDeRuta, bboxVisible
+  textoDelToast, deberiaPreguntar, bboxDeRuta, bboxVisible,
+  seccionReportar, hojaGalibo, fichaReporte, promptSigueAhi
 } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/reportes.js';
 
 const ahora = Date.parse('2026-09-19T15:00:00-03:00');
@@ -158,4 +159,77 @@ test('el recuadro de la ruta la envuelve con margen, en el orden que pide la API
 
 test('el recuadro visible sale de los límites del mapa', () => {
   assert.equal(bboxVisible({ west: -58.44, south: -34.61, east: -58.42, north: -34.59 }), '-58.44,-34.61,-58.42,-34.59');
+});
+
+/* ---------------------------------------------------------------------------
+   Las hojas
+--------------------------------------------------------------------------- */
+
+test('la sección de reportar: diez círculos, uno por tipo, con su nombre', () => {
+  const html = seccionReportar();
+
+  assert.equal((html.match(/data-accion="reportar" data-tipo="[A-Za-z]+"/g) ?? []).length, 10);
+  assert.ok(html.includes('data-tipo="LowClearance"'));
+  assert.ok(html.includes('Calle cerrada'));
+  assert.ok(html.includes('Reportar'));
+});
+
+test('el gálibo pide los metros con valores grandes prearmados y "otro"', () => {
+  const html = hojaGalibo({ valor: null });
+
+  for (const v of ['3,5', '3,8', '4,0', '4,3', '4,5']) assert.ok(html.includes(`>${v}<`), v);
+  assert.equal((html.match(/data-accion="galibo-valor" data-valor="[0-9.]+"/g) ?? []).length, 5);
+  assert.ok(html.includes('data-accion="galibo-otro"'));
+  assert.ok(html.includes('data-accion="cerrar"'));
+});
+
+test('la ficha: tipo, calle o "cerca de acá", edad y conteos, quién, y los dos botones', () => {
+  const html = fichaReporte(reporte({ confirmations: 2 }), { ahora });
+
+  assert.ok(html.includes('Accidente'));
+  assert.ok(html.includes('Av. Corrientes 5500'));
+  assert.ok(html.includes('hace 12 min'));
+  assert.ok(html.includes('2 confirmaciones'));
+  assert.ok(html.includes('@elgaucho'));
+  assert.ok(html.includes('data-accion="voto" data-veredicto="StillThere"'));
+  assert.ok(html.includes('data-accion="voto" data-veredicto="Gone"'));
+  assert.ok(!html.includes('data-accion="cerrar-reporte"'), 'no es mío: no se puede cerrar');
+  assert.ok(html.includes('data-accion="cerrar"'));
+});
+
+test('la ficha de lo mío ofrece cerrarlo y no votarlo; sin calle dice "cerca de acá"; sin alias, anónimo', () => {
+  const html = fichaReporte(reporte({ mine: true, street: null, reportedBy: { alias: null } }), { ahora });
+
+  assert.ok(html.includes('data-accion="cerrar-reporte"'));
+  assert.ok(!html.includes('data-veredicto='));
+  assert.ok(html.includes('cerca de acá'));
+  assert.ok(html.includes('@anónimo'));
+});
+
+test('la ficha de una restricción dice si está sin confirmar y si tu camión no pasa', () => {
+  const sinConfirmar = fichaReporte(reporte({ type: 'RoadClosed', kind: 'restriction', validated: false }), { ahora });
+  assert.match(sinConfirmar, /sin confirmar/i);
+
+  const noPasa = fichaReporte(reporte({ type: 'LowClearance', kind: 'restriction', value: 3.8, forYourTruck: 'incompatible', validated: true }), { ahora });
+  assert.ok(noPasa.includes('3,80 m'));
+  assert.ok(noPasa.includes('Tu camión no pasa'));
+  assert.doesNotMatch(noPasa, /sin confirmar/i);
+});
+
+test('la ficha marca el voto propio y una cámara fija no tiene edad', () => {
+  const votado = fichaReporte(reporte({ yourVote: 'StillThere' }), { ahora });
+  assert.ok(/data-veredicto="StillThere"[^>]*class="[^"]*celeste/.test(votado) || /class="[^"]*celeste[^"]*"[^>]*data-veredicto="StillThere"/.test(votado));
+
+  const fija = fichaReporte(reporte({ type: 'Camera', fixed: true, status: 'Fixed', createdAt: '2026-09-01T09:00:00-03:00' }), { ahora });
+  assert.ok(!fija.includes('hace '));
+  assert.ok(fija.includes('Cámara fija'));
+});
+
+test('el "¿sigue ahí?" son dos botones grandes con el id del reporte', () => {
+  const html = promptSigueAhi(reporte({ id: 'abc' }));
+
+  assert.ok(html.includes('data-reporte="abc"'));
+  assert.ok(html.includes('data-accion="sigue" data-veredicto="StillThere"'));
+  assert.ok(html.includes('data-accion="sigue" data-veredicto="Gone"'));
+  assert.ok(html.includes('Accidente'));
 });

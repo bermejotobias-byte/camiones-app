@@ -85,7 +85,21 @@ export const CALCOMANIAS = {
   lugarMas: `<path d="M16 3a9 9 0 0 1 9 9c0 7-9 17-9 17S7 19 7 12a9 9 0 0 1 9-9z" fill="${AMARILLO}" ${BORDE}/><path d="M16 8v8M12 12h8" stroke="#2b1405" stroke-width="2.8" stroke-linecap="round"/>`,
   aviso: `<path d="M16 4L30 28H2z" fill="${AMARILLO}" ${BORDE}/><path d="M16 12v7M16 22.5v.5" stroke="#2b1405" stroke-width="3" stroke-linecap="round"/>`,
   bandera: `<path d="M8 3v26" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M8 4h16l-3 5 3 5H8z" fill="#fff" stroke="#fff" stroke-width="1.5"/><path d="M8 4h4v3.5H8zM16 4h4v3.5h-4zM12 7.5h4V11h-4zM20 7.5h4V11h-4zM8 11h4v3H8zM16 11h4v3h-4z" fill="#111"/>`,
-  comunidad: `<circle cx="11" cy="11" r="5" fill="${CELESTE}" ${BORDE}/><circle cx="22" cy="12" r="4" fill="${CELESTE}" ${BORDE}/><path d="M3 27c0-6 4-9 8-9s8 3 8 9zM17 26c.5-4 2.5-6.5 5-6.5s6 2.5 6 6.5z" fill="${CELESTE}" ${BORDE}/>`
+  comunidad: `<circle cx="11" cy="11" r="5" fill="${CELESTE}" ${BORDE}/><circle cx="22" cy="12" r="4" fill="${CELESTE}" ${BORDE}/><path d="M3 27c0-6 4-9 8-9s8 3 8 9zM17 26c.5-4 2.5-6.5 5-6.5s6 2.5 6 6.5z" fill="${CELESTE}" ${BORDE}/>`,
+
+  // Los reportes de la comunidad (19/09/2026). Dibujos propios: un color por
+  // familia —rojo lo que corta, naranja lo que frena, azul lo que vigila— y
+  // formas que se leen a 40 px en la grilla y a 20 en el pin.
+  accidente: `<path d="M4 21l3-8h9l3 8h3v5H2v-5z" fill="${ROJO}" ${BORDE}/><path d="M8 13l1-3h6l1 3" fill="none" stroke="#fff" stroke-width="2"/><circle cx="7" cy="26" r="2.6" fill="#2b3035" stroke="#fff" stroke-width="1.6"/><circle cx="18" cy="26" r="2.6" fill="#2b3035" stroke="#fff" stroke-width="1.6"/><path d="M22 4l2 5 5-2-3 4 4 3-5 .5.5 5-3.5-3.5L19 18l1-5-4-1 4.5-1z" fill="${AMARILLO}" ${BORDE}/>`,
+  transito: `<path d="M3 20l2-6h8l2 6h2v5H1v-5z" fill="#f28c28" ${BORDE}/><path d="M15 15l2-6h8l2 6h2v5H13v-5z" fill="#f28c28" ${BORDE}/><circle cx="5" cy="25" r="2.2" fill="#2b3035" stroke="#fff" stroke-width="1.4"/><circle cx="13" cy="25" r="2.2" fill="#2b3035" stroke="#fff" stroke-width="1.4"/><circle cx="17" cy="20" r="2.2" fill="#2b3035" stroke="#fff" stroke-width="1.4"/><circle cx="25" cy="20" r="2.2" fill="#2b3035" stroke="#fff" stroke-width="1.4"/>`,
+  control: `<path d="M16 3l11 4v9c0 6-5 10-11 13C10 26 5 22 5 16V7z" fill="#4b7bec" ${BORDE}/><path d="M11 16l3.5 3.5L21 12" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`,
+  policia: `<path d="M16 3l11 4v9c0 6-5 10-11 13C10 26 5 22 5 16V7z" fill="#2f4f8f" ${BORDE}/><path d="M16 8l2 4.5 5 .5-3.7 3.4 1.1 5L16 19l-4.4 2.4 1.1-5L9 13l5-.5z" fill="${AMARILLO}"/>`,
+  camaraComunidad: `<rect x="4" y="9" width="20" height="15" rx="4" fill="#4f6d8e" ${BORDE}/><circle cx="14" cy="16.5" r="4.5" fill="#1b2632"/><circle cx="14" cy="16.5" r="2" fill="#8fdcf7"/><path d="M24 13l5-3v12l-5-3z" fill="#4f6d8e" ${BORDE}/><circle cx="24" cy="6" r="4.5" fill="${CELESTE}" ${BORDE}/><circle cx="24" cy="6" r="1.6" fill="#fff"/>`,
+  obra: `<path d="M16 4l3 9h-6z" fill="#f28c28" ${BORDE}/><path d="M11 13h10l3 9H8z" fill="#f28c28" ${BORDE}/><path d="M10 18h12" stroke="#fff" stroke-width="2.6"/><path d="M4 22h24v5H4z" fill="#2b3035" ${BORDE}/><path d="M6 27v2M26 27v2" stroke="#2b3035" stroke-width="2.6" stroke-linecap="round"/>`,
+  bache: `<ellipse cx="16" cy="20" rx="12" ry="7" fill="#55636f" ${BORDE}/><path d="M7 19c2-4 5-5 9-4s7 1 9 4c-2 3-6 4-9 4s-7-1-9-4z" fill="#1b2632"/><path d="M4 9l3 3M28 9l-3 3M16 4v4" stroke="${ROJO}" stroke-width="2.8" stroke-linecap="round" paint-order="stroke"/>`,
+  peligro: `<path d="M16 4L30 28H2z" fill="#f28c28" ${BORDE}/><path d="M16 12v7M16 22.5v.5" stroke="#2b1405" stroke-width="3" stroke-linecap="round"/>`,
+  calleCerrada: `<circle cx="16" cy="16" r="12.5" fill="${ROJO}" ${BORDE}/><rect x="7" y="13.5" width="18" height="5" rx="1.5" fill="#fff"/>`,
+  galiboReporte: `<path d="M3 27V12a13 13 0 0 1 26 0v15h-6V14a7 7 0 0 0-14 0v13z" fill="${ROJO}" ${BORDE}/><path d="M9 22h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M16 27v-9M13 21l3-3 3 3" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`
 };
 
 /** Una calcomania de `t` px. Si no existe, nada: mejor un hueco que un dibujo equivocado. */

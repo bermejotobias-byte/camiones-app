@@ -11,11 +11,14 @@ import assert from 'node:assert/strict';
 
 import { hojaAportar, hojaMarcar, nombreValido, LARGO_MAXIMO } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/aportar.js';
 
-test('"¿Qué hay acá?": un círculo por categoría, la cruz y lo que paga', () => {
+test('"¿Qué ves?": los diez tipos de reporte arriba, un círculo por categoría de lugar abajo, la cruz y lo que paga', () => {
   const html = hojaAportar();
 
-  assert.ok(html.includes('¿Qué hay acá?'));
+  assert.ok(html.includes('¿Qué ves?'));
+  assert.equal((html.match(/data-accion="reportar" data-tipo="[A-Za-z]+"/g) ?? []).length, 10);
   assert.equal((html.match(/data-accion="categoria" data-id="[a-z]+"/g) ?? []).length, 6);
+  assert.ok(html.indexOf('data-accion="reportar"') < html.indexOf('data-accion="categoria"'), 'reportar va primero');
+  assert.ok(html.includes('Agregar un lugar'));
   assert.ok(html.includes('data-accion="cerrar"'));
   assert.ok(html.includes('+10 EXP'));
 });

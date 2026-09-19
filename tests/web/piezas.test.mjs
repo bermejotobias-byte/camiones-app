@@ -49,7 +49,8 @@ test('la flecha lleva el trazo medido en Waze y se puede pedir de otro tamaño',
 
 test('cada categoría de lugar y cada dato del mapa tiene su calcomanía', () => {
   for (const nombre of ['gomeria', 'taller', 'estacion', 'comer', 'auxilio', 'playa',
-    'red', 'galibo', 'galiboOk', 'paso', 'radar', 'zona', 'casa', 'deposito', 'lugar', 'lugarMas', 'comunidad', 'bandera']) {
+    'red', 'galibo', 'galiboOk', 'paso', 'radar', 'zona', 'casa', 'deposito', 'lugar', 'lugarMas', 'comunidad', 'bandera',
+    'accidente', 'transito', 'control', 'policia', 'camaraComunidad', 'obra', 'bache', 'peligro', 'calleCerrada', 'galiboReporte']) {
     assert.ok(CALCOMANIAS[nombre], `falta la calcomanía ${nombre}`);
     assert.match(calcomania(nombre), /^<svg/);
   }
