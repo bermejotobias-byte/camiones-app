@@ -247,6 +247,26 @@ export const api = {
     request('PUT', `/api/pois/${id}/vote`, { body: { truckId, verdict } }),
   retirePoiVote: (id) => del(`/api/pois/${id}/vote`),
 
+  // reportes de la comunidad (spec del 19/09/2026)
+  //
+  // Leer no exige sesion pero va CON token si lo hay: asi cada reporte dice si
+  // es tuyo y que votaste. `bbox` es `minLon,minLat,maxLon,maxLat`; con truckId
+  // un galibo dice si tu camion pasa (`forYourTruck`).
+  reports: (bbox, truckId) => request('GET', `/api/reports${query({ bbox, truckId })}`),
+
+  // Se reporta en la posicion GPS: el tipo y el ultimo fix tal cual. 409 con
+  // `existingId` si ya hay uno igual cerca; 429 con `retryAfterSeconds` si hay
+  // que esperar; 400 con el motivo.
+  addReport: (report) => request('POST', '/api/reports', { body: report }),
+
+  // "Sigue ahi" o "ya no esta", con la posicion de quien vota: votar exige
+  // estar cerca (400 si no). `earned` viene null cuando el voto no pago.
+  voteReport: (id, verdict, latitude, longitude, truckId) =>
+    request('PUT', `/api/reports/${id}/vote${query({ truckId })}`, { body: { verdict, latitude, longitude } }),
+
+  // El creador cierra el suyo.
+  closeReport: (id) => del(`/api/reports/${id}`),
+
   // Ruteo sin registrar viaje (vista previa).
   //
   // Va CON token: el endpoint no exige sesion —asi el ruteo con las plantillas
