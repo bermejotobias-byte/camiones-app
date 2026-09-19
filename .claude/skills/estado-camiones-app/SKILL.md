@@ -106,7 +106,7 @@ Prioridad declarada:
 | **1 · Navegación** | 🔨 **Todo lo construible está hecho** — guiado, voz, GPS en segundo plano, brújula, nombre verde de la calle, vibración por patrón, alternativas de ruta y reintento al conectar. Falta lo único que no se puede hacer acá: **manejar** |
 | **2 · Usabilidad** | ✅ Completa — salió adelantada dentro de la mudanza del frontend |
 | **3 · Seguridad** | 🔨 Están el 911, las zonas peligrosas y los **3 contactos de emergencia**. Queda **compartir viaje por WhatsApp** —necesita endpoint público, tokens que venzan y decisiones de privacidad— y el S.O.S. del reporte, que depende de la Fase 5 |
-| **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). **La base de POIs para camiones se relevó el 15/09/2026** (gomerías, estaciones, lugares para comer y talleres de mecánica pesada; 180 puntos, 48 con evidencia). Queda **la interfaz de POIs en la app web** y la conversación sobre **POIs valorados por usuarios** |
+| **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). **La base de POIs para camiones se relevó el 15/09/2026** (gomerías, estaciones, lugares para comer y talleres de mecánica pesada; 180 puntos, 48 con evidencia). **La interfaz de POIs está desde el 17–18/09/2026** (capa de lugares, ficha con el voto, hoja de capas con «solo aptos» y aportar, dentro del GPS de Waze) y **los POIs valorados por usuarios son los votos de AD-46**: la fase queda ✅ salvo lo que L-11 congela fuera de CABA |
 | **5 · Reportes de comunidad** | ⬜ **Fase nueva del v2** — reportar y confirmar siniestros, radares y retenes. Es un sistema, no una función |
 | **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Falta lo que se apoya en él: **las pantallas**, el avatar combinable, la batería y los juegos |
 | **7 · Cáscara, entrada e idiomas** | 🔨 **El zócalo está** (12/09). Quedan intro → idioma → condiciones → acceso y el modo invitado. Ver `producto-camiones-app` |
@@ -1265,7 +1265,7 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
 - **Los 3 contactos de emergencia están hechos** (AD-42, AD-43) y verificados en
   el teléfono.
 
-**Lo que queda, al 14/09/2026:**
+**Lo que queda, al 19/09/2026:**
 
 **Del despliegue** — nada de esto depende de programar, y todo está bloqueando:
 
@@ -1293,8 +1293,8 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
 8. **De la Fase 7, el zócalo está hecho** (12/09, `js/dock.js`): cuatro accesos,
    se esconde durante el viaje, "Más" abre su hoja, y hay pantalla `juegos`
    "pronto". Ver `diseno-camiones-app` §4. **Queda** el flujo de entrada (intro →
-   idioma → condiciones → acceso) y el **modo invitado**. Y una decisión chica:
-   el **hamburguesa del mapa duplica a "Más"**; sacarlo es una línea.
+   idioma → condiciones → acceso) y el **modo invitado**. El hamburguesa del mapa **ya se sacó** con el GPS de Waze (16/09): el
+   zócalo tiene "Más".
 9. ~~La pantalla de fin de viaje~~ — **hecha el 12/09** (`views/fin-viaje.js`),
    con el sistema de momentos de la mascota (`js/mascota.js`) y las insignias
    en pixel art con la escala de Duolingo (`js/logros.js`). El cierre del viaje
@@ -1324,18 +1324,16 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
    no por código: cuánto dura un reporte, cuántas confirmaciones lo validan, qué
    pasa con los falsos. Con el motor hecho, sumarlas es **una pista más en el
    catálogo**.
-12b. **La interfaz de POIs en la app web** — la base está (15/09/2026, ver §4),
-   **el sistema de votos y aportes también**, y **ninguna vista los muestra**:
-   `api.js` tiene `pois`, `addPoi`, `votePoi` y `retirePoiVote`; no hay capa en
-   `layers.js`. Lo que hay que construir: el botón *Lugares* con filtros por
-   categoría, "solo aptos para mi camión" con el contador de ocultos, la ficha
-   con la evidencia y su fecha **y el bloque de la comunidad** ("N camioneros
-   como vos lo recomiendan", el voto propio, *aportado por la comunidad*), el
-   botón de votar, el formulario de agregar (con el 409 que ofrece votar el
-   existente), el festejo del aporte con `earned`, y marcadores distintos para
-   lo verificado, lo recomendado por la comunidad y lo sin confirmar — un dato
-   de la comunidad **no se ve igual** que uno oficial. Va sobre el prototipo
-   de diseño cuando el usuario lo pida.
+12b. ~~La interfaz de POIs en la app web~~ — **hecha el 17–18/09/2026 dentro
+   del GPS de Waze**: la capa de lugares con un pin por estado (`e609a0b`), la
+   ficha con la evidencia, el bloque de la comunidad y el voto (`bb681c3`), la
+   hoja de capas con "solo aptos para mi camión" y el contador de ocultos
+   (`e2f53e6`), y aportar desde el viaje y desde capas, con el 409 que ofrece
+   votar el existente y el `earned` en el toast (`399cdfd`). **Probado en el
+   teléfono el 18/09**: el usuario aportó "Kiosko 24HS" y votó desde su
+   cuenta; salió como "@anónimo" porque esa cuenta no tiene alias, que es lo
+   previsto. Lo que no hay es el festejo con la mascota por el aporte — hoy es
+   un toast.
    **Cómo seguir relevando** está en `data/relevamiento/README.md`: la
    herramienta de armado quedó en el scratchpad de la sesión, no en el repo;
    si hace falta otra tanda, rehacerla desde la plantilla del plan (Task 8).
