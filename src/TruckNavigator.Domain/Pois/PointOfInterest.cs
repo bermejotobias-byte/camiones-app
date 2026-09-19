@@ -74,7 +74,13 @@ public enum SuitabilityEvidenceKind
     Reviews = 3,
 
     /// <summary>Señales indirectas: nombre, etiqueta de OSM, fotos. Da Probable, no Confirmed.</summary>
-    Signals = 4
+    Signals = 4,
+
+    /// <summary>
+    /// Cinco camioneros del mismo tipo de camion lo votaron (19/09/2026). Da
+    /// Probable, no Confirmed, y solo sobre lugares aportados.
+    /// </summary>
+    Community = 5
 }
 
 /// <summary>
