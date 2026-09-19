@@ -24,6 +24,9 @@ public static class TrackCatalog
     /// <summary>Codigo de la pista de los aportes a los lugares: votos y lugares nuevos.</summary>
     public const string Places = "lugares";
 
+    /// <summary>Codigo de la pista de los reportes: cuenta los que la comunidad valido.</summary>
+    public const string Reports = "reportes";
+
     private static readonly Dictionary<string, Track> ByCode = Build();
 
     public static IReadOnlyList<Track> All { get; } = [.. ByCode.Values];
@@ -65,7 +68,13 @@ public static class TrackCatalog
             // no avanza manejando; entra por la misma puerta (el recorder) y sus
             // recompensas son las skins de la comunidad. Decision del usuario del
             // 15/09/2026.
-            Make(Places,      [1, 3, 7, 15, 30, 60, 120, 250, 500, 1_000])
+            Make(Places,      [1, 3, 7, 15, 30, 60, 120, 250, 500, 1_000]),
+
+            // Los reportes validados por otros, con la misma escalera: reportar es
+            // tan frecuente como viajar, y solo cuenta lo que la comunidad confirmo
+            // (spec del 19/09/2026). Sus recompensas son las skins de la comunidad
+            // de reportes, codigos sistematicos como los demas.
+            Make(Reports,     [1, 3, 7, 15, 30, 60, 120, 250, 500, 1_000])
         };
 
         return tracks.ToDictionary(track => track.Code);

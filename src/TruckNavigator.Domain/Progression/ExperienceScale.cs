@@ -60,6 +60,22 @@ public static class ExperienceScale
     /// </remarks>
     public const int PlaceVote = 2;
 
+    /// <summary>
+    /// EXP para quien creo un reporte, cuando OTROS lo validan. Crear no paga nada:
+    /// es lo que impide farmear sin complices (spec de reportes del 19/09/2026).
+    /// Se paga una vez por reporte, por el libro.
+    /// </summary>
+    public const int ReportValidated = 15;
+
+    /// <summary>EXP por votar un reporte ajeno, una vez por reporte y con tope diario.</summary>
+    public const int ReportVote = 2;
+
+    /// <summary>
+    /// Votos de reportes que pagan por dia local. A diferencia de los lugares, aca
+    /// hay tope: sin el, dos cuentas se turnan y cobran sin salir de casa.
+    /// </summary>
+    public const int ReportVotesPaidPerDay = 10;
+
     /// <summary>EXP que paga un viaje cerrado.</summary>
     public static int ForTrip(double creditedMeters)
     {

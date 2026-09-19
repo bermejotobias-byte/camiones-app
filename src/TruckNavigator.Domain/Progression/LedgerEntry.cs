@@ -22,7 +22,13 @@ public enum LedgerReason
     TripCompleted = 0,
     TierCompleted = 1,
     PlaceAdded = 2,
-    PlaceVoted = 3
+    PlaceVoted = 3,
+
+    /// <summary>Un reporte tuyo quedo validado por otros (19/09/2026).</summary>
+    ReportValidated = 4,
+
+    /// <summary>Votaste un reporte ajeno, cerca y dentro del tope diario.</summary>
+    ReportVoted = 5
 }
 
 /// <summary>

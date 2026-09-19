@@ -85,4 +85,20 @@ public class ExperienceScaleTests
         Assert.True(ExperienceScale.PlaceVote < ExperienceScale.TripBase);
         Assert.True(ExperienceScale.PlaceAdded <= ExperienceScale.TripBase);
     }
+
+    /// <remarks>
+    /// La EXP de un reporte se paga solo cuando OTROS lo validan —crear no paga
+    /// nada— y el voto lleva tope diario. Es lo que impide farmear sin complices
+    /// (spec de reportes del 19/09/2026). Validar paga mas que un viaje corto
+    /// porque hizo falta que alguien mas lo confirmara; el escalon sigue ganandole.
+    /// </remarks>
+    [Fact]
+    public void A_validated_report_pays_once_others_confirmed_it_and_votes_have_a_daily_cap()
+    {
+        Assert.Equal(15, ExperienceScale.ReportValidated);
+        Assert.Equal(2, ExperienceScale.ReportVote);
+        Assert.Equal(10, ExperienceScale.ReportVotesPaidPerDay);
+        Assert.True(ExperienceScale.ReportValidated > ExperienceScale.TripBase);
+        Assert.True(ExperienceScale.PerTier > ExperienceScale.ReportValidated);
+    }
 }
