@@ -154,9 +154,9 @@
 - Create: migración `AddCommunityReports` (`dotnet ef migrations add AddCommunityReports --project src/TruckNavigator.Infrastructure --startup-project src/TruckNavigator.Api --output-dir Persistence/Migrations`; parar el preview antes)
 - Test: `tests/TruckNavigator.IntegrationTests/ReportPersistenceTests.cs`
 
-- [ ] **Step 1: Tests en rojo** — ida y vuelta de un reporte con `ExpiresAt` null y con valor, fechas con offset −3 que vuelven iguales en UTC; dos votos del mismo camionero al mismo reporte → `DbUpdateException` (con `ChangeTracker.Clear()` antes, como enseñó el 10/09); la reputación se guarda por `DriverId`; ordenar por `ExpiresAt` no tira (`SQLite no ordena DateTimeOffset` es justamente lo que el conversor evita).
-- [ ] **Step 2: Rojo. Step 3:** configurar y generar la migración; revisar el `.cs` generado (que `ExpiresAt` sea `INTEGER NULL`). **Step 4: Verde**, y `dotnet run` arranca migrando sin error.
-- [ ] **Step 5: Commit** — `Reportes: las tres tablas, con las fechas en ticks`.
+- [x] **Step 1: Tests en rojo** — ida y vuelta de un reporte con `ExpiresAt` null y con valor, fechas con offset −3 que vuelven iguales en UTC; dos votos del mismo camionero al mismo reporte → `DbUpdateException` (con `ChangeTracker.Clear()` antes, como enseñó el 10/09); la reputación se guarda por `DriverId`; ordenar por `ExpiresAt` no tira (`SQLite no ordena DateTimeOffset` es justamente lo que el conversor evita).
+- [x] **Step 2: Rojo. Step 3:** configurar y generar la migración; revisar el `.cs` generado (que `ExpiresAt` sea `INTEGER NULL`). **Step 4: Verde**, y `dotnet run` arranca migrando sin error.
+- [x] **Step 5: Commit** — `Reportes: las tres tablas, con las fechas en ticks`.
 
 ### Task 11: El recorder paga reportes
 
@@ -164,9 +164,9 @@
 - Modify: `src/TruckNavigator.Infrastructure/Progression/ProgressionRecorder.cs` (`RecordReportValidatedAsync(Guid creatorId, Guid reportId, when)` → 15 + pista `reportes`; `RecordReportVoteAsync(Guid voterId, Guid reportId, when)` → 2 si los `ReportVoted` del día local son < 10, si no `null`)
 - Test: `tests/TruckNavigator.IntegrationTests/ProgressionRecorderTests.cs` (+ casos)
 
-- [ ] **Step 1: Tests en rojo** — validar paga 15 y avanza `reportes` a 1 (escalón 1 → +100 y `reportes-01`); validar dos veces el mismo reporte → la segunda `null`; el voto paga 2; el voto 11 del día → `null` y no escribe; el voto 1 del día siguiente (23:30 → 00:30 hora local) → paga; votar el mismo reporte dos veces → la segunda `null`.
-- [ ] **Step 2: Rojo. Step 3:** implementar sobre `Apply` como los aportes; el día local con el offset −3 fijo, como `PoiContribution.LocalOffset`. **Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Progresion: validar un reporte paga al creador; votar paga con tope diario`.
+- [x] **Step 1: Tests en rojo** — validar paga 15 y avanza `reportes` a 1 (escalón 1 → +100 y `reportes-01`); validar dos veces el mismo reporte → la segunda `null`; el voto paga 2; el voto 11 del día → `null` y no escribe; el voto 1 del día siguiente (23:30 → 00:30 hora local) → paga; votar el mismo reporte dos veces → la segunda `null`.
+- [x] **Step 2: Rojo. Step 3:** implementar sobre `Apply` como los aportes; el día local con el offset −3 fijo, como `PoiContribution.LocalOffset`. **Step 4: Verde.**
+- [x] **Step 5: Commit** — `Progresion: validar un reporte paga al creador; votar paga con tope diario`.
 
 ### Task 12: Crear un reporte
 
@@ -178,9 +178,9 @@
 **Interfaces:**
 - Produces: `record ReportView(Report Report, int Score, ReliabilityLabel Label, bool Validated, TruckRelevance Relevance, string? ReportedByAlias, ReportVerdict? YourVote, bool Mine)` (la arma `ReportViews.Build(report, reputation, truck, viewerId, alias, vote, now)`, pura sobre el dominio); `record CreateReportResult(Report? Report, Guid? DuplicateOf, int RetryAfterSeconds, string? Error)`; `ReportWriter(AppDbContext db, ProgressionRecorder progression, IPlaceSearch places)`; `CreateAsync(Guid driverId, NewReport input, DateTimeOffset when, CancellationToken ct)`; la calle: si `input.Street` es null, `places.ReverseAsync` con `CancellationTokenSource` de **1,5 s** enlazado a `ct`, y `null` si falla o tarda.
 
-- [ ] **Step 1: Tests en rojo** — crea y devuelve el reporte con `Status Active`; el segundo a los 10 s → `RetryAfterSeconds 35` y sin fila; mismo tipo a 50 m de otro activo → `DuplicateOf`; la calle viene de un `IPlaceSearch` falso (`"Av. Corrientes 5500"`); si el falso tarda 3 s, la calle queda `null` y el reporte igual se crea; fuera del área → `Error` con el motivo; la reputación de un usuario nuevo se lee como 50 sin fila.
-- [ ] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes: crear, con la calle de Photon si llega a tiempo y sin duplicar`.
+- [x] **Step 1: Tests en rojo** — crea y devuelve el reporte con `Status Active`; el segundo a los 10 s → `RetryAfterSeconds 35` y sin fila; mismo tipo a 50 m de otro activo → `DuplicateOf`; la calle viene de un `IPlaceSearch` falso (`"Av. Corrientes 5500"`); si el falso tarda 3 s, la calle queda `null` y el reporte igual se crea; fuera del área → `Error` con el motivo; la reputación de un usuario nuevo se lee como 50 sin fila.
+- [x] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes: crear, con la calle de Photon si llega a tiempo y sin duplicar`.
 
 ### Task 13: Votar, validar, fijar, cerrar
 
@@ -191,9 +191,9 @@
 **Interfaces:**
 - Produces: `enum VoteOutcome { Ok, OwnReport, TooFar, NotFound, Expired }`; `record ReportVoteResult(VoteOutcome Outcome, ReportView? View, ContributionEarnings? Earned)`; `VoteAsync(Guid driverId, Guid reportId, ReportVerdict verdict, double latitude, double longitude, TruckProfile? truck, DateTimeOffset when, ct)`; `CloseAsync(Guid driverId, Guid reportId, when, ct) : bool`; `ReportWriter.VoteMaxMeters = 500`.
 
-- [ ] **Step 1: Tests en rojo** — votar el propio → `OwnReport`; a 800 m → `TooFar`; vencido → `Expired`; *sigue ahí* de dos personas → `Validated`, `ValidatedAt` puesto, el creador cobra 15 **una vez** y su reputación pasa a 53, cada votante cobra 2; cambiar el voto de uno de ellos a *ya no está* → contadores 1/1, nada se paga, el status queda `Validated` (no se degrada por un cambio); dos *ya no está* contra uno → `Rejected`, `ExpiresAt = now`, reputación del creador 50 − 5; una cámara con 5 *sigue ahí* → `Fixed`, `ExpiresAt null`; cerrar el propio → `true` y `ClosedByAuthor`; cerrar el ajeno → `false`; el `DistanceMeters` del voto se guarda.
-- [ ] **Step 2: Rojo. Step 3:** implementar: upsert del voto, recuento desde las filas (no `++`), `ReportStanding` + `ReportExpiry` + `ReportPromotion`, reputación con `ReputationScale`, EXP por el recorder, todo en un `SaveChangesAsync`. **Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes: sigue ahi / ya no esta, con validacion, reputacion y EXP en una sola escritura`.
+- [x] **Step 1: Tests en rojo** — votar el propio → `OwnReport`; a 800 m → `TooFar`; vencido → `Expired`; *sigue ahí* de dos personas → `Validated`, `ValidatedAt` puesto, el creador cobra 15 **una vez** y su reputación pasa a 53, cada votante cobra 2; cambiar el voto de uno de ellos a *ya no está* → contadores 1/1, nada se paga, el status queda `Validated` (no se degrada por un cambio); dos *ya no está* contra uno → `Rejected`, `ExpiresAt = now`, reputación del creador 50 − 5; una cámara con 5 *sigue ahí* → `Fixed`, `ExpiresAt null`; cerrar el propio → `true` y `ClosedByAuthor`; cerrar el ajeno → `false`; el `DistanceMeters` del voto se guarda.
+- [x] **Step 2: Rojo. Step 3:** implementar: upsert del voto, recuento desde las filas (no `++`), `ReportStanding` + `ReportExpiry` + `ReportPromotion`, reputación con `ReputationScale`, EXP por el recorder, todo en un `SaveChangesAsync`. **Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes: sigue ahi / ya no esta, con validacion, reputacion y EXP en una sola escritura`.
 
 ### Task 14: Leer por bbox
 
@@ -205,9 +205,9 @@
 - Consumes: `ReportView` (Task 12).
 - Produces: `ReportReader.InBoxAsync(double minLon, double minLat, double maxLon, double maxLat, TruckProfile? truck, Guid? viewerId, DateTimeOffset now, ct)`; `ReportReader.MaxBoxDegrees = 0.25`; `ForOneAsync(Guid id, …)`.
 
-- [ ] **Step 1: Tests en rojo** — devuelve los activos del bbox (vigentes y los `Fixed`), no los vencidos ni los `Rejected`/`ClosedByAuthor`, no los de afuera; el alias del creador viene (`null` si no tiene); `YourVote` y `Mine` con `viewerId`; `Relevance` según el camión (gálibo 3,8 con camión de 4,1 → Incompatible); un bbox mayor a 0,25° se recorta al centro; ordenados por `CreatedAt` descendente.
-- [ ] **Step 2: Rojo. Step 3:** implementar; las reputaciones de los creadores en una sola consulta (`ContributorAliasesAsync` es el molde). **Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes: los vigentes del recuadro, con confiabilidad y relevancia para el camion`.
+- [x] **Step 1: Tests en rojo** — devuelve los activos del bbox (vigentes y los `Fixed`), no los vencidos ni los `Rejected`/`ClosedByAuthor`, no los de afuera; el alias del creador viene (`null` si no tiene); `YourVote` y `Mine` con `viewerId`; `Relevance` según el camión (gálibo 3,8 con camión de 4,1 → Incompatible); un bbox mayor a 0,25° se recorta al centro; ordenados por `CreatedAt` descendente.
+- [x] **Step 2: Rojo. Step 3:** implementar; las reputaciones de los creadores en una sola consulta (`ContributorAliasesAsync` es el molde). **Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes: los vigentes del recuadro, con confiabilidad y relevancia para el camion`.
 
 ### Task 15: Los bloqueos llegan al calculador
 
@@ -216,9 +216,9 @@
 - Modify: `src/TruckNavigator.Infrastructure/Routing/GraphHopperRouteCalculator.cs` (parámetro opcional `IRouteBlockadeSource? blockades = null`; en `RequestAsync`: `var activos = await (blockades ?? NoRouteBlockades.Instance).ActiveAsync(truck, departure, ct)` y `routingPolicy.BuildCustomModel(truck, departure, activos)`), `DependencyInjection.cs` o `Program.cs` (DI)
 - Test: `tests/TruckNavigator.IntegrationTests/RouteBlockadesTests.cs` (SQLite) y `TruckRoutingTests.cs` (+ un `[GraphHopperFact]`)
 
-- [ ] **Step 1: Tests en rojo** — (SQLite) sólo los `Validated`/`Fixed` vigentes de tipo restricción entran; un gálibo 3,8 entra para un camión de 4,1 y no para uno de 3,6; una calle cerrada entra para los dos; un cierre `Active` sin validar no entra; el id es `r{n}`. (GraphHopper) la ruta de prueba entre dos puntos fijos pasa por una cuadra conocida; con un bloqueo validado en el punto medio de su geometría, la ruta nueva **no pasa a menos de 15 m** de ese punto y es más larga o igual; con el mismo reporte sin validar, la ruta es idéntica.
-- [ ] **Step 2: Rojo. Step 3: implementar. Step 4: Verde** (los tres tests que construyen el calculador a mano siguen compilando por el parámetro opcional).
-- [ ] **Step 5: Commit** — `Ruteo: los cierres y galibos validados esquivan la cuadra, medido contra GraphHopper`.
+- [x] **Step 1: Tests en rojo** — (SQLite) sólo los `Validated`/`Fixed` vigentes de tipo restricción entran; un gálibo 3,8 entra para un camión de 4,1 y no para uno de 3,6; una calle cerrada entra para los dos; un cierre `Active` sin validar no entra; el id es `r{n}`. (GraphHopper) la ruta de prueba entre dos puntos fijos pasa por una cuadra conocida; con un bloqueo validado en el punto medio de su geometría, la ruta nueva **no pasa a menos de 15 m** de ese punto y es más larga o igual; con el mismo reporte sin validar, la ruta es idéntica.
+- [x] **Step 2: Rojo. Step 3: implementar. Step 4: Verde** (los tres tests que construyen el calculador a mano siguen compilando por el parámetro opcional).
+- [x] **Step 5: Commit** — `Ruteo: los cierres y galibos validados esquivan la cuadra, medido contra GraphHopper`.
 
 ### Task 16: `PoiVoting` gradúa el lugar
 
@@ -226,9 +226,9 @@
 - Modify: `src/TruckNavigator.Infrastructure/Pois/PoiVoting.cs` (después de guardar el voto, contar por `TruckClass` y `Verdict` para ese lugar y `PoiPromotion.Apply`)
 - Test: `tests/TruckNavigator.IntegrationTests/PoiVotingTests.cs` (+ casos)
 
-- [ ] **Step 1: Tests en rojo** — cinco camioneros con camión pesado votan apto un lugar aportado → `Probable`, `SuitableForHeavyTruck true`, `Community`; el mismo caso sobre un lugar del dataset → sin cambios; cuatro → sin cambios; el `CommunityView` que vuelve sigue diciendo el sello de siempre.
-- [ ] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Lugares: el quinto voto de apto gradua el lugar aportado`.
+- [x] **Step 1: Tests en rojo** — cinco camioneros con camión pesado votan apto un lugar aportado → `Probable`, `SuitableForHeavyTruck true`, `Community`; el mismo caso sobre un lugar del dataset → sin cambios; cuatro → sin cambios; el `CommunityView` que vuelve sigue diciendo el sello de siempre.
+- [x] **Step 2: Rojo. Step 3: implementar. Step 4: Verde.**
+- [x] **Step 5: Commit** — `Lugares: el quinto voto de apto gradua el lugar aportado`.
 
 ---
 
