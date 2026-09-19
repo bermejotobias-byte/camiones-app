@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,7 @@ using TruckNavigator.Domain.Places;
 using TruckNavigator.Domain.Pois;
 using TruckNavigator.Domain.Progression;
 using TruckNavigator.Domain.Restrictions;
+using TruckNavigator.Domain.Reports;
 using TruckNavigator.Domain.Routing;
 using TruckNavigator.Domain.Trips;
 using TruckNavigator.Domain.Trucks;
@@ -1131,6 +1133,195 @@ pois.MapDelete("/{id:guid}/vote", async (
 .RequireAuthorization()
 .WithSummary("Retira el voto propio sobre un lugar.");
 
+// ------------------------------------------------- reportes de la comunidad
+//
+// Lo que un camionero vio en su posicion: aparece, otros lo confirman o rechazan
+// al pasar, vive lo que su tipo dice y muere solo. Solo lo validado toca la ruta,
+// y eso lo lee el calculador, no estos endpoints (spec del 19/09/2026).
+
+var reports = app.MapGroup("/api/reports").WithTags("Reports");
+
+// Leer es anonimo, como los lugares; con sesion ademas dice cual es tuyo y que
+// votaste. El camion es opcional: sin el, un galibo no dice si pasas.
+reports.MapGet("/", async (
+    string? bbox,
+    Guid? truckId,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    ReportReader reader,
+    CancellationToken ct) =>
+{
+    if (!TryParseBox(bbox, out var box))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["bbox"] = ["Va como minLon,minLat,maxLon,maxLat, con punto decimal."]
+        });
+    }
+
+    var userId = CurrentUserId(principal);
+    TruckProfile? truck = null;
+
+    if (truckId is { } id)
+    {
+        truck = await FindUsableTruckAsync(db, id, userId, ct);
+
+        if (truck is null)
+        {
+            return Results.Problem(
+                title: "Camion inexistente",
+                detail: $"No existe un perfil de camion con id {id}.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+    }
+
+    var views = await reader.InBoxAsync(box.MinLon, box.MinLat, box.MaxLon, box.MaxLat, truck, userId, DateTimeOffset.UtcNow, ct);
+
+    return Results.Ok(views.Select(ReportDto.From).ToList());
+})
+.WithSummary("Los reportes vigentes de un recuadro, con su confiabilidad y lo que le dicen al camion.");
+
+// Crear: en la posicion GPS de quien reporta. No paga nada; lo que paga es que
+// otros lo validen. El duplicado devuelve el existente para ofrecer "sigue ahi";
+// la espera devuelve 429 con los segundos.
+reports.MapPost("/", async (
+    CreateReportRequest request,
+    ClaimsPrincipal principal,
+    HttpContext http,
+    ReportWriter writer,
+    ReportReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<ReportType>(request.Type, ignoreCase: true, out var type))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["type"] =
+            [
+                "Tipo de reporte desconocido. Valores validos: " +
+                string.Join(", ", Enum.GetNames<ReportType>()) + "."
+            ]
+        });
+    }
+
+    var input = new NewReport(type, request.Latitude, request.Longitude, request.HeadingDegrees, request.SpeedMps, request.Street, request.Value);
+    var result = await writer.CreateAsync(userId.Value, input, DateTimeOffset.UtcNow, ct);
+
+    if (result.DuplicateOf is { } existingId)
+    {
+        return Results.Problem(
+            title: "Ya hay un reporte igual cerca",
+            detail: result.Error,
+            statusCode: StatusCodes.Status409Conflict,
+            extensions: new Dictionary<string, object?> { ["existingId"] = existingId });
+    }
+
+    if (result.RetryAfterSeconds > 0)
+    {
+        http.Response.Headers.RetryAfter = result.RetryAfterSeconds.ToString(CultureInfo.InvariantCulture);
+
+        return Results.Problem(
+            title: "Muy seguido",
+            detail: result.Error,
+            statusCode: StatusCodes.Status429TooManyRequests,
+            extensions: new Dictionary<string, object?> { ["retryAfterSeconds"] = result.RetryAfterSeconds });
+    }
+
+    if (result.Report is null)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["report"] = [result.Error ?? "No se pudo crear el reporte."]
+        });
+    }
+
+    var view = await reader.ForOneAsync(result.Report.Id, null, userId, DateTimeOffset.UtcNow, ct);
+
+    return Results.Created($"/api/reports/{result.Report.Id}", ReportDto.From(view!));
+})
+.RequireAuthorization()
+.WithSummary("Reporta algo en tu posicion GPS. Un toque: el tipo y el ultimo fix.");
+
+// "Sigue ahi" o "ya no esta". Con la posicion de quien vota: votar exige estar
+// cerca. El camion es opcional y solo sirve para lo que el reporte le dice.
+reports.MapPut("/{id:guid}/vote", async (
+    Guid id,
+    ReportVoteRequest request,
+    Guid? truckId,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    ReportWriter writer,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<ReportVerdict>(request.Verdict, ignoreCase: true, out var verdict))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["verdict"] = ["Vale StillThere o Gone."]
+        });
+    }
+
+    TruckProfile? truck = truckId is { } tid ? await FindUsableTruckAsync(db, tid, userId, ct) : null;
+
+    var result = await writer.VoteAsync(userId.Value, id, verdict, request.Latitude, request.Longitude, truck, DateTimeOffset.UtcNow, ct);
+
+    return result.Outcome switch
+    {
+        VoteOutcome.NotFound => Results.NotFound(),
+        VoteOutcome.Expired => Results.Problem(
+            title: "Ese reporte ya vencio",
+            statusCode: StatusCodes.Status410Gone),
+        VoteOutcome.OwnReport => Results.Problem(
+            title: "Es tu reporte",
+            detail: "Lo tuyo no se vota: si ya no esta, cerralo.",
+            statusCode: StatusCodes.Status403Forbidden),
+        VoteOutcome.TooFar => Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["position"] = ["Tenes que estar cerca para confirmarlo."]
+        }),
+        _ => Results.Ok(new ReportVoteResultDto(
+            ReportDto.From(result.View!),
+            result.Earned is null ? null : ContributionEarnedDto.From(result.Earned)))
+    };
+})
+.RequireAuthorization()
+.WithSummary("Sigue ahi o ya no esta, desde cerca del lugar; cambiarlo es votar de nuevo.");
+
+// El creador cierra el suyo. Nadie mas puede, y un reporte vencido no se cierra.
+reports.MapDelete("/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    ReportWriter writer,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    return await writer.CloseAsync(userId.Value, id, DateTimeOffset.UtcNow, ct)
+        ? Results.NoContent()
+        : Results.NotFound();
+})
+.RequireAuthorization()
+.WithSummary("Cierra un reporte propio.");
+
 // ------------------------------------------------------------------- viajes
 //
 // El viaje es la unidad del historial y la fuente de los kilometros. Todo lo que
@@ -1861,6 +2052,37 @@ static async Task<Dictionary<Guid, string?>> ContributorAliasesAsync(
             .AsNoTracking()
             .Where(d => ids.Contains(d.Id))
             .ToDictionaryAsync(d => d.Id, d => d.Alias, ct);
+}
+
+/// <summary>El recuadro del mapa como lo manda la app: minLon,minLat,maxLon,maxLat con punto decimal.</summary>
+static bool TryParseBox(string? bbox, out (double MinLon, double MinLat, double MaxLon, double MaxLat) box)
+{
+    box = default;
+
+    var parts = (bbox ?? string.Empty).Split(',');
+
+    if (parts.Length != 4)
+    {
+        return false;
+    }
+
+    var values = new double[4];
+
+    for (var i = 0; i < 4; i++)
+    {
+        if (!double.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out values[i]))
+        {
+            return false;
+        }
+    }
+
+    if (values[0] >= values[2] || values[1] >= values[3])
+    {
+        return false;
+    }
+
+    box = (values[0], values[1], values[2], values[3]);
+    return true;
 }
 
 static Guid? CurrentUserId(ClaimsPrincipal principal) =>

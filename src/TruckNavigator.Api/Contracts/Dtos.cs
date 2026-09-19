@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using TruckNavigator.Domain.Pois;
 using TruckNavigator.Domain.Progression;
+using TruckNavigator.Domain.Reports;
 using TruckNavigator.Domain.Restrictions;
 using TruckNavigator.Domain.Routing;
 using TruckNavigator.Domain.Trips;
@@ -9,6 +10,7 @@ using TruckNavigator.Domain.Trucks;
 using TruckNavigator.Domain.Users;
 using TruckNavigator.Infrastructure.Identity;
 using TruckNavigator.Infrastructure.Pois;
+using TruckNavigator.Infrastructure.Reports;
 
 namespace TruckNavigator.Api.Contracts;
 
@@ -874,3 +876,89 @@ public sealed record RecentPlaceDto(string Label, double Latitude, double Longit
 public sealed record EquipRequest(
     [property: JsonConverter(typeof(JsonStringEnumConverter))] LoadoutSlot Slot,
     string RewardCode);
+
+// ------------------------------------------------- reportes de la comunidad
+
+/// <summary>Quien reporto: solo el alias, como en los lugares aportados. Null si no tiene.</summary>
+public sealed record ReportedByDto(string? Alias);
+
+/// <summary>La confiabilidad como la lee la app: el numero y la etiqueta en minuscula.</summary>
+/// <param name="Label"><c>new</c>, <c>confirmed</c> o <c>disputed</c>.</param>
+public sealed record ReliabilityDto(int Score, string Label);
+
+/// <summary>
+/// Un reporte de la comunidad, tal como lo ve quien pregunta (spec del 19/09/2026, §9).
+/// </summary>
+/// <param name="Kind"><c>info</c> o <c>restriction</c>: solo la segunda puede tocar la ruta.</param>
+/// <param name="ExpiresAt">Null en lo fijo: no vence.</param>
+/// <param name="Validated">Confirmado por otros por encima del umbral: lo unico que habilita a tocar la ruta.</param>
+/// <param name="ForYourTruck"><c>compatible</c>, <c>incompatible</c>, o null si es informacion o no se indico camion.</param>
+public sealed record ReportDto(
+    Guid Id,
+    string Type,
+    string Kind,
+    double Latitude,
+    double Longitude,
+    string? Street,
+    double? HeadingDegrees,
+    double? Value,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? ExpiresAt,
+    string Status,
+    bool Fixed,
+    ReliabilityDto Reliability,
+    int Confirmations,
+    int Rejections,
+    bool Validated,
+    ReportedByDto ReportedBy,
+    bool Mine,
+    string? YourVote,
+    string? ForYourTruck)
+{
+    public static ReportDto From(ReportView view) => new(
+        view.Report.Id,
+        view.Report.Type.ToString(),
+        ReportCatalog.Get(view.Report.Type).Kind == ReportKind.Restriction ? "restriction" : "info",
+        view.Report.Latitude,
+        view.Report.Longitude,
+        view.Report.Street,
+        view.Report.HeadingDegrees,
+        view.Report.Value,
+        view.Report.CreatedAt,
+        view.Report.ExpiresAt,
+        view.Report.Status.ToString(),
+        view.Report.Status == ReportStatus.Fixed,
+        new ReliabilityDto(view.Score, view.Label.ToString().ToLowerInvariant()),
+        view.Report.Confirmations,
+        view.Report.Rejections,
+        view.Validated,
+        new ReportedByDto(view.ReportedByAlias),
+        view.Mine,
+        view.YourVote?.ToString(),
+        view.Relevance switch
+        {
+            TruckRelevance.Compatible => "compatible",
+            TruckRelevance.Incompatible => "incompatible",
+            _ => null
+        });
+}
+
+/// <summary>
+/// Lo que manda el telefono al reportar: el tipo y el ultimo fix del GPS tal cual.
+/// El tipo va en texto, como todo enum del contrato; lo valida el endpoint.
+/// </summary>
+public sealed record CreateReportRequest(
+    string Type,
+    double Latitude,
+    double Longitude,
+    double? HeadingDegrees,
+    double? SpeedMps,
+    string? Street,
+    double? Value);
+
+/// <summary>"Sigue ahi" o "ya no esta", con la posicion de quien vota: votar exige estar cerca.</summary>
+/// <param name="Verdict"><c>StillThere</c> o <c>Gone</c>.</param>
+public sealed record ReportVoteRequest(string Verdict, double Latitude, double Longitude);
+
+/// <summary>Lo que vuelve despues de votar: el reporte como queda y lo que pago el voto (null si no pago).</summary>
+public sealed record ReportVoteResultDto(ReportDto Report, ContributionEarnedDto? Earned);
