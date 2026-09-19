@@ -240,9 +240,9 @@
 - Modify: `src/TruckNavigator.Api/Contracts/Dtos.cs` (`ReportDto` con la forma de la spec §9, `ReportDto.From(ReportView, now)`; `CreateReportRequest`), `Program.cs` (grupo `/api/reports`, `.WithTags("Reports")`)
 - Test: `tests/TruckNavigator.IntegrationTests/ReportContractsTests.cs`
 
-- [ ] **Step 1: Tests en rojo** — el DTO serializa `kind` como `"info"`/`"restriction"`, `reliability.label` como `"new" | "confirmed" | "disputed"`, `forYourTruck` como `"compatible" | "incompatible" | null`, `expiresAt` null en una fija, `fixed true`, `yourVote` `"StillThere"`; `CreateReportRequest` deserializa `type` por nombre (`"LowClearance"`) y rechaza uno desconocido con 400 legible.
-- [ ] **Step 2: Rojo. Step 3:** `GET` anónimo con `bbox` (400 si no tiene cuatro números o está fuera de rango) y `truckId` opcional (`FindUsableTruckAsync`); `POST` con sesión: 201 con `Location`, 400 `ValidationProblem` con el motivo, 409 con `existingId` en `extensions`, **429** con `retryAfterSeconds` en `extensions` y cabecera `Retry-After`. **Step 4: Verde** y probado a mano con `curl` (el cuerpo en archivo UTF-8) contra la API en Development.
-- [ ] **Step 5: Commit** — `API: leer y crear reportes, con 409 para el duplicado y 429 para la espera`.
+- [x] **Step 1: Tests en rojo** — el DTO serializa `kind` como `"info"`/`"restriction"`, `reliability.label` como `"new" | "confirmed" | "disputed"`, `forYourTruck` como `"compatible" | "incompatible" | null`, `expiresAt` null en una fija, `fixed true`, `yourVote` `"StillThere"`; `CreateReportRequest` deserializa `type` por nombre (`"LowClearance"`) y rechaza uno desconocido con 400 legible.
+- [x] **Step 2: Rojo. Step 3:** `GET` anónimo con `bbox` (400 si no tiene cuatro números o está fuera de rango) y `truckId` opcional (`FindUsableTruckAsync`); `POST` con sesión: 201 con `Location`, 400 `ValidationProblem` con el motivo, 409 con `existingId` en `extensions`, **429** con `retryAfterSeconds` en `extensions` y cabecera `Retry-After`. **Step 4: Verde** y probado a mano con `curl` (el cuerpo en archivo UTF-8) contra la API en Development.
+- [x] **Step 5: Commit** — `API: leer y crear reportes, con 409 para el duplicado y 429 para la espera`.
 
 ### Task 18: Votar y cerrar
 
@@ -250,9 +250,9 @@
 - Modify: `src/TruckNavigator.Api/Program.cs` (`PUT /api/reports/{id}/vote`, `DELETE /api/reports/{id}`), `Dtos.cs` (`ReportVoteRequest`, `ReportVoteResponse(ReportDto Report, ContributionEarningsDto? Earned)`)
 - Test: `tests/TruckNavigator.IntegrationTests/ReportContractsTests.cs` (+ casos)
 
-- [ ] **Step 1: Tests en rojo** — `ReportVoteRequest` deserializa `verdict` por nombre; la respuesta lleva `earned` con la misma forma que la del voto de lugares.
-- [ ] **Step 2: Rojo. Step 3:** `PUT` → 200 / 400 "Tenés que estar cerca para confirmarlo" / 403 / 404 / 410; `DELETE` → 204 / 403 / 404. **Step 4: Verde**, `curl` a mano: dos cuentas (demo y una segunda sembrada a mano en Development) validan un reporte y el `GET` lo devuelve `validated: true`.
-- [ ] **Step 5: Commit** — `API: sigue ahi / ya no esta, y cerrar el reporte propio`.
+- [x] **Step 1: Tests en rojo** — `ReportVoteRequest` deserializa `verdict` por nombre; la respuesta lleva `earned` con la misma forma que la del voto de lugares.
+- [x] **Step 2: Rojo. Step 3:** `PUT` → 200 / 400 "Tenés que estar cerca para confirmarlo" / 403 / 404 / 410; `DELETE` → 204 / 403 / 404. **Step 4: Verde**, `curl` a mano: dos cuentas (demo y una segunda sembrada a mano en Development) validan un reporte y el `GET` lo devuelve `validated: true`.
+- [x] **Step 5: Commit** — `API: sigue ahi / ya no esta, y cerrar el reporte propio`.
 
 ---
 
