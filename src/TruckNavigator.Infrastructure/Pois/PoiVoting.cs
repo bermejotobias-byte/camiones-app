@@ -52,6 +52,8 @@ public sealed class PoiVoting(AppDbContext db, ProgressionRecorder progression, 
 
         await db.SaveChangesAsync(ct);
 
+        await PromoteIfSettledAsync(poiId, truckClass, when, ct);
+
         var earned = await progression.RecordContributionAsync(
             driverId,
             LedgerReason.PlaceVoted,
@@ -62,6 +64,32 @@ public sealed class PoiVoting(AppDbContext db, ProgressionRecorder progression, 
         var view = (await community.ForPlacesAsync([poiId], truckClass, driverId, ct))[poiId];
 
         return new VoteResult(view, earned);
+    }
+
+    /// <summary>
+    /// Con cinco votos de un mismo tipo de camion, el lugar aportado se incorpora
+    /// a la base (decision del usuario del 19/09/2026). La regla es de
+    /// <see cref="PoiPromotion"/>; aca solo se cuentan las filas de ese tipo y se
+    /// guarda si cambio algo. Los lugares del dataset no se tocan.
+    /// </summary>
+    private async Task PromoteIfSettledAsync(Guid poiId, PoiSuitabilityField truckClass, DateTimeOffset when, CancellationToken ct)
+    {
+        var poi = await db.PointsOfInterest.FirstOrDefaultAsync(p => p.Id == poiId, ct);
+
+        if (poi is null || poi.ManagedByDataset)
+        {
+            return;
+        }
+
+        var suitable = await db.PoiVotes.CountAsync(
+            v => v.PoiId == poiId && v.TruckClass == truckClass && v.Verdict == PoiVerdict.Suitable, ct);
+        var notSuitable = await db.PoiVotes.CountAsync(
+            v => v.PoiId == poiId && v.TruckClass == truckClass && v.Verdict == PoiVerdict.NotSuitable, ct);
+
+        if (PoiPromotion.Apply(poi, truckClass, suitable, notSuitable, when))
+        {
+            await db.SaveChangesAsync(ct);
+        }
     }
 
     /// <summary>Borra el voto si existe. No devuelve EXP: el libro no resta.</summary>

@@ -147,4 +147,86 @@ public sealed class PoiVotingTests : IAsyncLifetime
 
         await _voting.RetireAsync(voter, poi.Id);   // no tira
     }
+
+    // ------------------------------------------------- la graduacion (19/09/2026)
+
+    private async Task VoteFiveSemisAsync(Guid poiId, PoiVerdict verdict = PoiVerdict.Suitable)
+    {
+        for (var i = 0; i < 5; i++)
+        {
+            var voter = await CreateDriverAsync($"semi{i}@camiones.test");
+            await _voting.CastAsync(voter, poiId, Semi(), verdict, When.AddMinutes(i));
+        }
+    }
+
+    private async Task<PointOfInterest> StoredAsync(Guid id)
+    {
+        _db.ChangeTracker.Clear();
+        return await _db.PointsOfInterest.SingleAsync(p => p.Id == id);
+    }
+
+    [Fact]
+    public async Task The_fifth_suitable_vote_of_a_truck_class_establishes_the_contributed_place()
+    {
+        var author = await CreateDriverAsync("autor@camiones.test");
+        var poi = await CreatePlaceAsync(author);
+
+        await VoteFiveSemisAsync(poi.Id);
+
+        var stored = await StoredAsync(poi.Id);
+        Assert.Equal(VerificationLevel.Probable, stored.VerificationLevel);
+        Assert.Equal(SuitabilityEvidenceKind.Community, stored.SuitabilityEvidenceKind);
+        Assert.True(stored.SuitableForSemiTrailer);
+        Assert.Null(stored.SuitableForHeavyTruck);
+        Assert.Contains("5 camioneros", stored.SuitabilityEvidence);
+    }
+
+    [Fact]
+    public async Task Four_votes_leave_the_place_as_it_was()
+    {
+        var author = await CreateDriverAsync("autor@camiones.test");
+        var poi = await CreatePlaceAsync(author);
+
+        for (var i = 0; i < 4; i++)
+        {
+            var voter = await CreateDriverAsync($"semi{i}@camiones.test");
+            await _voting.CastAsync(voter, poi.Id, Semi(), PoiVerdict.Suitable, When.AddMinutes(i));
+        }
+
+        var stored = await StoredAsync(poi.Id);
+        Assert.Equal(VerificationLevel.NotConfirmed, stored.VerificationLevel);
+        Assert.Null(stored.SuitableForSemiTrailer);
+    }
+
+    [Fact]
+    public async Task A_place_of_the_dataset_is_not_touched_by_five_votes()
+    {
+        var author = await CreateDriverAsync("autor@camiones.test");
+        var poi = await CreatePlaceAsync(author);
+        poi.ManagedByDataset = true;
+        poi.VerificationLevel = VerificationLevel.Confirmed;
+        poi.SuitabilityEvidenceKind = SuitabilityEvidenceKind.Official;
+        await _db.SaveChangesAsync();
+
+        await VoteFiveSemisAsync(poi.Id);
+
+        var stored = await StoredAsync(poi.Id);
+        Assert.Equal(VerificationLevel.Confirmed, stored.VerificationLevel);
+        Assert.Equal(SuitabilityEvidenceKind.Official, stored.SuitabilityEvidenceKind);
+        Assert.Null(stored.SuitableForSemiTrailer);
+    }
+
+    [Fact]
+    public async Task The_seal_of_the_community_still_comes_back_as_always()
+    {
+        var author = await CreateDriverAsync("autor@camiones.test");
+        var poi = await CreatePlaceAsync(author);
+        await VoteFiveSemisAsync(poi.Id);
+
+        var voter = await CreateDriverAsync("otro@camiones.test");
+        var result = await _voting.CastAsync(voter, poi.Id, Semi(), PoiVerdict.Suitable, When.AddMinutes(10));
+
+        Assert.Equal(CommunitySeal.Recommended, result.Community.Seal);
+        Assert.Equal(new CommunityCount(6, 0), result.Community.ForTruck);
+    }
 }
