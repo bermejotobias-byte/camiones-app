@@ -22,11 +22,12 @@ sección: son números y formas, todos configurables en un solo lugar.
 |---|---|
 | Desde dónde se reporta | **Sólo en la posición GPS del usuario**, en reposo y en viaje. Descartado: marcar cualquier punto del mapa (abre la puerta a reportar desde el sillón e impide exigir cercanía para votar) |
 | Qué guarda un reporte | Ubicación GPS, calle, sentido de circulación cuando venía en movimiento, fecha y hora, usuario y tipo |
-| Tipos iniciales | accidente, tránsito, control, policía, cámara, obra, bache, vehículo detenido, peligro, calle cerrada; **más dos propios del camión: gálibo bajo y límite de peso, con el valor** — la arquitectura queda preparada para agregar tipos sin migración |
-| Vida útil | Cada reporte es temporal, con una vida que depende del tipo (corta para un vehículo detenido, larga para una obra); pierde vigencia progresivamente y desaparece al expirar |
+| Tipos iniciales | accidente, tránsito, control, policía, cámara, obra, bache, peligro, calle cerrada; **más uno propio del camión: gálibo bajo, con los metros**. El 19/09 el usuario sacó del catálogo *vehículo detenido* y *límite de peso*. La arquitectura queda preparada para agregar tipos sin migración |
+| Vida útil | Cada reporte es temporal, con una vida que depende del tipo (corta para el tránsito, larga para una obra); pierde vigencia progresivamente y desaparece al expirar |
+| Lo que se vuelve fijo | **Una cámara muy confirmada es fija**: *"una cámara muy marcada es porque es fija, no tiene sentido que sólo dure 6 hs"*. Con **5 confirmaciones** deja de vencer y pasa a ser un dato de la app. **El mismo mecanismo rige para los lugares nuevos** (gomerías, estaciones de servicio, …): con 5 votos de apto, el lugar aportado se incorpora a la base. Textual: *"+5 es un principio"* — es una constante, no una verdad |
 | Confirmar y rechazar | Quien pasa por el lugar puede decir *Sigue ahí* o *Ya no está*; eso modifica la confiabilidad |
 | Confiabilidad | Fórmula **propia, simple y configurable**, que considera como mínimo confirmaciones, rechazos, antigüedad y reputación de quien lo creó |
-| Información vs. ruteo | Separados. Accidente, control, policía, bache y obra son información y aviso; **calle cerrada, gálibo incompatible y límite de peso pueden afectar el cálculo de ruta**, y **un reporte solo nunca modifica el ruteo sin validación suficiente** |
+| Información vs. ruteo | Separados. Accidente, control, policía, bache y obra son información y aviso; **calle cerrada y gálibo incompatible pueden afectar el cálculo de ruta**, y **un reporte solo nunca modifica el ruteo sin validación suficiente** |
 | Adaptación al camión | Las restricciones físicas se comparan con el camión elegido: un gálibo de 3,80 m es incompatible para uno de 4,10 m y compatible para uno de 3,60 m |
 | EXP y reputación | **Separadas.** La EXP es de la gamificación y se puede dar por reportar o validar información útil; la reputación mide qué tan confiable es el usuario como fuente. Nadie puede farmear EXP con reportes o confirmaciones falsas |
 | Abuso | Protección básica: demasiados reportes en poco tiempo, repetidos o comportamiento anómalo generan límites o cooldowns |
@@ -65,11 +66,11 @@ Lo nuevo, por capa:
 
 | Capa | Piezas |
 |---|---|
-| Dominio (`Domain/Reports/`, puro, con tests) | `Report`, `ReportType` + `ReportCatalog`, `ReportVote`, `ReportStanding`, `ReportExpiry`, `ReportRelevance`, `DriverReputation`, `ReportAbuseGuard`, `RouteBlockade`; `CustomModel.Areas`; `LedgerReason.ReportValidated` y `ReportVoted`; pista `reportes` |
-| Infraestructura | tablas `Reports`, `ReportVotes`, `DriverReputations` (una migración, `AddCommunityReports`); `ReportReader`, `ReportWriter`, `RouteBlockades`; el calculador suma los bloqueos al custom model |
+| Dominio (`Domain/Reports/`, puro, con tests) | `Report`, `ReportType` + `ReportCatalog`, `ReportVote`, `ReportStanding`, `ReportExpiry`, `ReportRelevance`, `ReportPromotion`, `PoiPromotion` (+ `SuitabilityEvidenceKind.Community`), `DriverReputation`, `ReportAbuseGuard`, `RouteBlockade`; `CustomModel.Areas`; `LedgerReason.ReportValidated` y `ReportVoted`; pista `reportes` |
+| Infraestructura | tablas `Reports`, `ReportVotes`, `DriverReputations` (una migración, `AddCommunityReports`); `ReportReader`, `ReportWriter`, `RouteBlockades`; el calculador suma los bloqueos al custom model; `PoiVoting` aplica la promoción del lugar al votar |
 | API | `GET /api/reports`, `POST /api/reports`, `PUT /api/reports/{id}/vote`, `DELETE /api/reports/{id}`; `ReportDto` |
 | Web | `js/mapa/reportes.js` (la grilla, el valor, la ficha, el "¿Sigue ahí?", y lo puro) con `tests/web/reportes.test.mjs`; `navigate.js` sólo engancha; en `map.js`/`layers.js` la fuente y la capa `reporte`; en `navigation.js` los reportes como un dataset más de `alertsAlongRoute`; en `platform.js` dos patrones de vibración |
-| Docs | `docs/reportes.md` (modelo, reglas, cómo se configuran), AD-49 en `decisions.md`, CLAUDE.md, las skills |
+| Docs | `docs/reportes.md` (modelo, reglas, cómo se configuran), AD-49 en `decisions.md` (que además enmienda AD-46: lo aportado sí puede graduarse), `docs/pois.md`, CLAUDE.md, las skills |
 
 ## 3. El reporte
 
@@ -80,11 +81,11 @@ Report
   Latitude, Longitude              la posición GPS al reportar
   Street        string?           la calle, si se supo (ver abajo)
   HeadingDegrees double?          rumbo 0–360 sólo si venía en movimiento (≥ 2 m/s)
-  Value         double?           metros para gálibo, toneladas para peso; null en el resto
+  Value         double?           metros para gálibo; null en el resto
   CreatedBy     Guid              el camionero
   CreatedAt     DateTimeOffset
-  ExpiresAt     DateTimeOffset    nace en CreatedAt + vida del tipo; se mueve con los votos
-  Status        Active | Validated | Rejected | ClosedByAuthor   (vencido = ExpiresAt ya pasó; no se guarda)
+  ExpiresAt     DateTimeOffset?   nace en CreatedAt + vida del tipo; se mueve con los votos; null = fijo, no vence
+  Status        Active | Validated | Fixed | Rejected | ClosedByAuthor   (vencido = ExpiresAt ya pasó; no se guarda)
   Confirmations int               votos "sigue ahí" de OTROS (contador; la verdad son las filas)
   Rejections    int               votos "ya no está" de OTROS
   ValidatedAt   DateTimeOffset?   la primera vez que cruzó el umbral
@@ -112,23 +113,21 @@ constante ahí):
 
 | Tipo | Clase | Vida útil | Se estira con *Sigue ahí* | Valor |
 |---|---|---|---|---|
-| Vehículo detenido | información | 30 min | sí | — |
 | Tránsito | información | 45 min | sí | — |
 | Policía | información | 1 h | sí | — |
 | Accidente | información | 2 h | sí | — |
 | Control | información | 2 h | sí | — |
 | Peligro | información | 2 h | sí | — |
-| Cámara | información | 6 h | sí | — |
+| Cámara | información | 6 h, y **fija con 5 confirmaciones** | sí | — |
 | Calle cerrada | **restricción** | 12 h | sí | — |
 | Bache | información | 7 días | sí | — |
 | Obra | información | 7 días | sí | — |
 | Gálibo bajo | **restricción** | 30 días | sí | metros, 2,0–6,0 |
-| Límite de peso | **restricción** | 30 días | sí | toneladas, 1–60 |
 
 Agregar un tipo es una fila del catálogo: no hay migración, porque el tipo se
-guarda como entero y las reglas viven en el dominio. Los dos restrictivos
-con valor existen porque el usuario los pidió como el caso que distingue a
-esta app: *"si se reporta un gálibo de 3,80 m y el camión mide 4,10 m, debe
+guarda como entero y las reglas viven en el dominio. El restrictivo con
+valor existe porque el usuario lo pidió como el caso que distingue a esta
+app: *"si se reporta un gálibo de 3,80 m y el camión mide 4,10 m, debe
 identificarse como incompatible"*.
 
 ## 4. Confiabilidad, validación y vencimiento
@@ -170,7 +169,7 @@ confirme, **nunca** bloquea nada.
 - Nace en `CreatedAt + vida útil`.
 - *Sigue ahí* → `ExpiresAt = max(ExpiresAt, ahora + vida útil / 2)`, con tope
   `CreatedAt + 3 × vida útil`: una obra confirmada cada día vive hasta 21
-  días, un vehículo detenido confirmado no pasa de 90 minutos.
+  días, un aviso de tránsito confirmado no pasa de dos horas y cuarto.
 - *Ya no está* → cuando `rechazos ≥ 2` y `rechazos > confirmaciones`, vence
   ahora (`Rejected`). El creador puede cerrar el suyo cuando quiera
   (`ClosedByAuthor`).
@@ -184,17 +183,42 @@ uno queda *Rejected*. No se toca por votar: la reputación de los votantes es
 una extensión posible (§11), no parte de esta versión. La reputación **no
 se muestra** como número en la app: se ve en la etiqueta de lo que reportás.
 
+**Lo que la comunidad vuelve fijo** (decisión del usuario del 19/09/2026;
+el umbral **5** es una constante en cada catálogo, *"un principio"*):
+
+- **Cámara** (`ReportPromotion`): con 5 confirmaciones de personas distintas
+  del creador pasa a `Fixed`: `ExpiresAt = null`, no vence nunca, y desde ahí
+  es un dato de la app. Se sirve por el mismo `GET`, se dibuja como **cámara
+  de la comunidad** —distinta de la oficial del GCBA, porque un dato de la
+  comunidad no se muestra igual que uno oficial— y se avisa en la ruta como
+  los radares. Sigue aceptando votos: si junta 5 rechazos y superan las
+  confirmaciones, deja de ser fija y vence (`Rejected`). Los demás tipos no
+  se vuelven fijos en esta versión; agregar uno es marcarlo en el catálogo.
+- **Lugar aportado** (`PoiPromotion`, sobre `PoiVoting`): un lugar con
+  `ManagedByDataset = false` que junta 5 votos de **apto** de un mismo tipo de
+  camión queda **establecido**: `VerificationLevel.Probable`,
+  `SuitabilityEvidenceKind.Community` (valor nuevo), evidencia *"Confirmado
+  apto para camión pesado por 5 camioneros de la comunidad (19/09/2026)"* y
+  `SuitableFor<ese tipo> = true`. El pin deja de ser el de "aportado" y pasa a
+  ser el de un lugar del mapa; el sello de la comunidad (AD-46) sigue a la
+  vista. **Los lugares del dataset no se tocan**: AD-46 sigue valiendo para lo
+  verificado y se enmienda sólo para lo aportado, que ahora puede graduarse.
+  Con 5 de *no apto* de un tipo, ese campo queda en `false` por el mismo
+  mecanismo; `Confirmed` sigue siendo exclusivo de una fuente.
+
+Nada de esto paga EXP aparte: el reporte validado ya pagó, y el lugar pagó
+al aportarse. Lo que cambia es el dato, no la cuenta.
+
 ## 5. Ruteo: información vs. restricción
 
-Los doce tipos **avisan** (tarjeta, voz, vibración) cuando están sobre la ruta
-y en el sentido de marcha. Sólo tres pueden **cambiar la ruta**, y sólo
+Los diez tipos **avisan** (tarjeta, voz, vibración) cuando están sobre la ruta
+y en el sentido de marcha. Sólo dos pueden **cambiar la ruta**, y sólo
 validados:
 
 | Tipo | Bloquea para… |
 |---|---|
 | Calle cerrada | todos los camiones |
 | Gálibo bajo | los camiones con `HeightMeters > valor` |
-| Límite de peso | los camiones con `GrossWeightTons > valor` |
 
 **Cómo**: `RouteBlockades.ActiveAsync(truck, now)` (infraestructura) lee los
 reportes restrictivos validados y vigentes que le tocan a ese camión y los
@@ -221,7 +245,7 @@ pero no recalcula sola; recalcular en viaje es una decisión de producto
 aparte (§11). El aviso de un cierre **no validado** dice que no está
 confirmado.
 
-**Gálibo y peso con el camión.** `ReportRelevance.ForTruck(report, truck)`
+**El gálibo con el camión.** `ReportRelevance.ForTruck(report, truck)`
 (dominio, puro) devuelve `Compatible`, `Incompatible` o `NotApplicable`.
 Incompatible pinta el pin en rojo, el aviso dice "Gálibo reportado de 3,80 m,
 tu camión no pasa" con el patrón de vibración de peligro, y si además está
@@ -267,7 +291,7 @@ las consultas que lo alimentan (**propuesta**):
 | Votar lo propio | — | 403 |
 | Votar lejos | > 500 m del reporte | 400 "Tenés que estar cerca para confirmarlo" |
 | Fuera del área | el rectángulo de `PoiContribution` | 400 |
-| Valor fuera de rango | gálibo 2,0–6,0 m; peso 1–60 t | 400 |
+| Valor fuera de rango | gálibo 2,0–6,0 m | 400 |
 
 La posición que acompaña un voto es la del GPS del cliente y el servidor
 **la confía**: la app es el único cliente y una posición falsa exige
@@ -276,14 +300,14 @@ modificarla. Se anota como límite conocido (§11), no se disimula.
 ## 8. La experiencia manejando
 
 **Reportar: un toque.** El botón amarillo del viaje abre la grilla, que pasa
-a tener dos secciones: **Reportar** arriba (los doce tipos en círculos de 75
+a tener dos secciones: **Reportar** arriba (los diez tipos en círculos de 75
 con su calcomanía, dibujos propios) y **Agregar un lugar** abajo (las seis
 categorías de hoy). Tocar un tipo **crea el reporte en tu posición y cierra
 la hoja**; un toast de dos segundos dice "Reportado · Accidente en Av.
-Corrientes" y ofrece *Deshacer* (que lo cierra como autor). Gálibo y peso
-piden el valor en un segundo toque, con valores grandes prearmados (3,5 · 3,8
-· 4,0 · 4,3 · 4,5 m / 5 · 10 · 15 · 20 · 30 t) y "otro" para escribirlo. Sin
-posición GPS no se puede reportar y el botón lo dice.
+Corrientes" y ofrece *Deshacer* (que lo cierra como autor). El gálibo pide
+los metros en un segundo toque, con valores grandes prearmados (3,5 · 3,8 ·
+4,0 · 4,3 · 4,5) y "otro" para escribirlo. Sin posición GPS no se puede
+reportar y el botón lo dice.
 
 En **reposo** aparece el mismo botón amarillo abajo a la derecha, sobre la
 hoja, como en Waze (**propuesta**): reportar no es sólo cosa del viaje.
@@ -291,7 +315,8 @@ hoja, como en Waze (**propuesta**): reportar no es sólo cosa del viaje.
 **Ver.** Los reportes activos se dibujan como pines por tipo (grupo `reporte`
 en la hoja de capas, prendido por defecto), con el estado a la vista: gris
 *nuevo*, blanco *confirmado*, tachado *en duda*, **rojo** el que a tu camión
-no le sirve. Tocarlo abre una ficha corta: tipo, calle, "hace 12 min · 2
+no le sirve, y la **cámara fija** con su dibujo propio, sin edad. Tocarlo
+abre una ficha corta: tipo, calle, "hace 12 min · 2
 confirmaciones", quién lo reportó (`@alias`, como los lugares), y los dos
 botones grandes *Sigue ahí* / *Ya no está*; si es tuyo, *Cerrar reporte*.
 
@@ -337,7 +362,7 @@ DELETE /api/reports/{id}                           (sesión, sólo el creador)
 
 ReportDto
   id, type, kind ("info" | "restriction"), latitude, longitude, street,
-  headingDegrees, value, createdAt, expiresAt, status,
+  headingDegrees, value, createdAt, expiresAt (null si es fija), status, fixed,
   reliability { score, label: "new" | "confirmed" | "disputed" },
   confirmations, rejections, validated,
   reportedBy { alias }, mine, yourVote,
@@ -353,13 +378,18 @@ igual que en los lugares; el 409 lleva `existingId` en `extensions`.
   `ReportStanding` con los ejemplos de §4 exactos, validación (2 + 70; el caso
   de reputación 10 que no alcanza), vencimiento (estirar, tope de 3×, morir por
   rechazos, cerrar el propio), reputación (+3/−5 con topes 0 y 100), relevancia
-  para el camión (3,60 / 3,80 / 4,10; 12 t / 15 t), abuso (45 s, 20/h,
-  duplicado a 150 m/15 min, reputación baja), y el polígono del bloqueo (con y
-  sin rumbo, tamaño).
+  para el camión (3,60 / 3,80 / 4,10), abuso (45 s, 20/h, duplicado a 150
+  m/15 min, reputación baja), la promoción (la cámara se vuelve fija a las 5
+  y deja de serlo con 5 rechazos que superan; el lugar aportado queda
+  establecido con 5 aptos de un tipo; un lugar del dataset no se toca), y
+  el polígono del bloqueo (con y sin rumbo, tamaño).
 - **Integración** (SQLite en memoria, como `PoiVotingTests`): crear, duplicado
   409, cooldown 429, votar y cambiar el voto sin pagar dos veces, validar y
   acreditar 15 al creador una sola vez, tope de 10 votos pagos por día, votar
-  lejos, votar lo propio, vencer, y **contra GraphHopper vivo** (se saltea si
+  lejos, votar lo propio, vencer, la cámara que con 5 confirmaciones vuelve
+  en el GET después de su vida útil, el lugar aportado que con 5 aptos de
+  camión pesado queda `Probable` y apto para pesado, y **contra GraphHopper
+  vivo** (se saltea si
   no está): una ruta que pasa por una cuadra, el mismo pedido con el bloqueo
   validado la esquiva, y con el mismo reporte **sin validar** no cambia.
 - **Web** (`node --test`): la grilla, la etiqueta de edad, el filtro por
@@ -384,6 +414,8 @@ Anotado para no reabrirlo por accidente:
 - Moderación humana, fotos, comentarios, notificaciones.
 - Confiar en una posición que el cliente podría falsear: se acepta el riesgo
   porque la app es el único cliente.
-- Que un gálibo o un peso reportados y confirmados muchas veces pasen al
-  dataset verificado: es el camino natural, pero es un relevamiento, no un
-  voto.
+- Que un gálibo o una calle cerrada muy confirmados se vuelvan fijos o
+  pasen al dataset verificado: la cámara y los lugares sí se gradúan (§4);
+  el gálibo es un relevamiento, no un voto. Y volcar las cámaras fijas al
+  archivo de radares con un script de `data/`: es una tanda más de datos,
+  cuando haya cámaras fijas que volcar.
