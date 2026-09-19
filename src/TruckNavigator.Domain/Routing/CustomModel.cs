@@ -43,9 +43,54 @@ public sealed record CustomModel
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? DistanceInfluence { get; init; }
 
+    /// <summary>
+    /// Las areas a las que las sentencias pueden referirse como <c>in_{id}</c>:
+    /// los bloqueos de la comunidad validados. Null cuando no hay ninguno, para
+    /// que el JSON sea el de siempre.
+    /// </summary>
+    [JsonPropertyName("areas")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public GeoJsonFeatureCollection? Areas { get; init; }
+
     [JsonPropertyName("priority")]
     public IReadOnlyList<CustomModelStatement> Priority { get; init; } = [];
 
     [JsonPropertyName("speed")]
     public IReadOnlyList<CustomModelStatement> Speed { get; init; } = [];
+}
+
+/// <summary>Un FeatureCollection de GeoJSON, con lo justo para las areas del custom model.</summary>
+public sealed record GeoJsonFeatureCollection
+{
+    [JsonPropertyName("type")]
+    public string Type { get; init; } = "FeatureCollection";
+
+    [JsonPropertyName("features")]
+    public IReadOnlyList<GeoJsonFeature> Features { get; init; } = [];
+}
+
+public sealed record GeoJsonFeature
+{
+    [JsonPropertyName("type")]
+    public string Type { get; init; } = "Feature";
+
+    /// <summary>El id es lo que la sentencia nombra: <c>in_{id}</c>.</summary>
+    [JsonPropertyName("id")]
+    public string Id { get; init; } = string.Empty;
+
+    [JsonPropertyName("properties")]
+    public Dictionary<string, object> Properties { get; init; } = [];
+
+    [JsonPropertyName("geometry")]
+    public GeoJsonPolygon Geometry { get; init; } = new();
+}
+
+public sealed record GeoJsonPolygon
+{
+    [JsonPropertyName("type")]
+    public string Type { get; init; } = "Polygon";
+
+    /// <summary>Anillos de [lon, lat]; el primero es el contorno y va cerrado.</summary>
+    [JsonPropertyName("coordinates")]
+    public IReadOnlyList<IReadOnlyList<double[]>> Coordinates { get; init; } = [];
 }
