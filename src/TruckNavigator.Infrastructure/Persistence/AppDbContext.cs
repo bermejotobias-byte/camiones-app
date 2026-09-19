@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TruckNavigator.Domain.Pois;
 using TruckNavigator.Domain.Progression;
+using TruckNavigator.Domain.Reports;
 using TruckNavigator.Domain.Trips;
 using TruckNavigator.Domain.Trucks;
 using TruckNavigator.Domain.Users;
@@ -50,6 +51,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<DriverRecord> Records => Set<DriverRecord>();
 
     public DbSet<DriverProgressMark> ProgressMarks => Set<DriverProgressMark>();
+
+    public DbSet<Report> Reports => Set<Report>();
+
+    public DbSet<ReportVote> ReportVotes => Set<ReportVote>();
+
+    public DbSet<DriverReputation> DriverReputations => Set<DriverReputation>();
 
     /// <summary>
     /// Guarda un instante como ticks UTC en lugar de texto.
@@ -412,6 +419,65 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         mark.HasOne<AppUser>()
             .WithOne()
             .HasForeignKey<DriverProgressMark>(m => m.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ------------------------------------------------- reportes de la comunidad
+
+        var report = modelBuilder.Entity<Report>();
+
+        report.HasKey(r => r.Id);
+        report.Property(r => r.Type).HasConversion<string>().HasMaxLength(24);
+        report.Property(r => r.Status).HasConversion<string>().HasMaxLength(16);
+        report.Property(r => r.Street).HasMaxLength(160);
+        report.Property(r => r.CreatedAt).HasConversion(UtcTicks);
+
+        // El vencimiento es nulo en lo fijo: la camara muy confirmada no vence.
+        // En ticks igual, para que "vigentes" sea una comparacion numerica indexada.
+        report.Property(r => r.ExpiresAt).HasConversion(NullableUtcTicks);
+        report.Property(r => r.ValidatedAt).HasConversion(NullableUtcTicks);
+
+        // Lo que la app pregunta: los vigentes de un recuadro, y lo reciente de
+        // una cuenta (la guardia contra el abuso).
+        report.HasIndex(r => r.ExpiresAt);
+        report.HasIndex(r => new { r.Latitude, r.Longitude });
+        report.HasIndex(r => new { r.CreatedBy, r.CreatedAt });
+
+        // El reporte es de quien lo hizo: se va con la cuenta.
+        report.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(r => r.CreatedBy)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var reportVote = modelBuilder.Entity<ReportVote>();
+
+        // Un voto por camionero y reporte: la clave compuesta lo hace imposible de
+        // duplicar por construccion, igual que el voto de un lugar.
+        reportVote.HasKey(v => new { v.ReportId, v.DriverId });
+        reportVote.Property(v => v.Verdict).HasConversion<string>().HasMaxLength(16);
+        reportVote.Property(v => v.CastAt).HasConversion(UtcTicks);
+        reportVote.Property(v => v.UpdatedAt).HasConversion(UtcTicks);
+
+        reportVote.HasIndex(v => v.ReportId);
+
+        reportVote.HasOne<Report>()
+            .WithMany()
+            .HasForeignKey(v => v.ReportId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        reportVote.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(v => v.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var reputation = modelBuilder.Entity<DriverReputation>();
+
+        // Una fila por camionero, y solo cuando algo la movio: sin fila vale 50.
+        reputation.HasKey(r => r.DriverId);
+        reputation.Property(r => r.UpdatedAt).HasConversion(UtcTicks);
+
+        reputation.HasOne<AppUser>()
+            .WithOne()
+            .HasForeignKey<DriverReputation>(r => r.DriverId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
