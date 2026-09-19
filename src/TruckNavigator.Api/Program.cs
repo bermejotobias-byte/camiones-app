@@ -24,6 +24,7 @@ using TruckNavigator.Infrastructure.Identity;
 using TruckNavigator.Infrastructure.Persistence;
 using TruckNavigator.Infrastructure.Pois;
 using TruckNavigator.Infrastructure.Progression;
+using TruckNavigator.Infrastructure.Reports;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,6 +104,7 @@ builder.Services.AddScoped<ProgressionReader>();
 builder.Services.AddScoped<CommunityReader>();
 builder.Services.AddScoped<PoiVoting>();
 builder.Services.AddScoped<PoiContributing>();
+builder.Services.AddScoped<ReportWriter>();
 
 var app = builder.Build();
 
