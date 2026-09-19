@@ -353,4 +353,78 @@ public sealed class ProgressionRecorderTests : IAsyncLifetime
         await Assert.ThrowsAsync<ArgumentException>(() =>
             _recorder.RecordContributionAsync(driver, LedgerReason.TripCompleted, "x", Contributed));
     }
+
+    // ------------------------------------------------- reportes de la comunidad
+
+    // 23:30 en Buenos Aires: el tope diario cuenta por dia local, no por UTC.
+    private static readonly DateTimeOffset LateNight = new(2026, 9, 19, 23, 30, 0, TimeSpan.FromHours(-3));
+
+    [Fact]
+    public async Task A_validated_report_pays_fifteen_to_its_author_and_lights_the_first_tier_of_reports()
+    {
+        var author = await CreateDriverAsync();
+        var report = Guid.NewGuid();
+
+        var earned = await _recorder.RecordReportValidatedAsync(author, report, LateNight);
+
+        Assert.NotNull(earned);
+        Assert.Equal(ExperienceScale.ReportValidated, earned!.ContributionExperience);
+        Assert.Single(earned.CompletedTiers);
+        Assert.Equal(TrackCatalog.Reports, earned.CompletedTiers[0].TrackCode);
+        Assert.Equal(ExperienceScale.PerTier, earned.TierExperience);
+
+        var rewards = await _db.Rewards.Where(r => r.DriverId == author).Select(r => r.RewardCode).ToListAsync();
+        Assert.Contains("reportes-01", rewards);
+
+        var reportes = await _db.TrackProgress.SingleAsync(t => t.DriverId == author && t.TrackCode == TrackCatalog.Reports);
+        Assert.Equal(1, reportes.Count);
+    }
+
+    [Fact]
+    public async Task The_same_report_is_validated_once_for_the_ledger()
+    {
+        var author = await CreateDriverAsync();
+        var report = Guid.NewGuid();
+
+        Assert.NotNull(await _recorder.RecordReportValidatedAsync(author, report, LateNight));
+        Assert.Null(await _recorder.RecordReportValidatedAsync(author, report, LateNight.AddHours(1)));
+
+        var experience = await _db.LedgerEntries.Where(e => e.DriverId == author && e.Reason == LedgerReason.ReportValidated).SumAsync(e => e.Amount);
+        Assert.Equal(ExperienceScale.ReportValidated, experience);
+    }
+
+    [Fact]
+    public async Task A_vote_on_a_report_pays_two_once_per_report()
+    {
+        var voter = await CreateDriverAsync();
+        var report = Guid.NewGuid();
+
+        var earned = await _recorder.RecordReportVoteAsync(voter, report, LateNight);
+
+        Assert.NotNull(earned);
+        Assert.Equal(ExperienceScale.ReportVote, earned!.ContributionExperience);
+        Assert.Null(await _recorder.RecordReportVoteAsync(voter, report, LateNight.AddMinutes(1)));
+
+        // Votar no avanza la pista de reportes: esa cuenta lo validado, no lo votado.
+        Assert.False(await _db.TrackProgress.AnyAsync(t => t.DriverId == voter && t.TrackCode == TrackCatalog.Reports));
+    }
+
+    [Fact]
+    public async Task The_eleventh_paid_vote_of_the_local_day_pays_nothing_and_the_next_day_pays_again()
+    {
+        var voter = await CreateDriverAsync();
+
+        for (var i = 0; i < ExperienceScale.ReportVotesPaidPerDay; i++)
+        {
+            Assert.NotNull(await _recorder.RecordReportVoteAsync(voter, Guid.NewGuid(), LateNight.AddMinutes(i)));
+        }
+
+        Assert.Null(await _recorder.RecordReportVoteAsync(voter, Guid.NewGuid(), LateNight.AddMinutes(20)));
+
+        var paidToday = await _db.LedgerEntries.CountAsync(e => e.DriverId == voter && e.Reason == LedgerReason.ReportVoted);
+        Assert.Equal(ExperienceScale.ReportVotesPaidPerDay, paidToday);
+
+        // 00:30 hora local del dia siguiente: 03:30Z, mismo dia UTC que las 23:30 de antes.
+        Assert.NotNull(await _recorder.RecordReportVoteAsync(voter, Guid.NewGuid(), LateNight.AddHours(1)));
+    }
 }

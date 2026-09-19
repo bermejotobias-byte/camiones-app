@@ -151,6 +151,101 @@ public sealed class ProgressionRecorder(AppDbContext db)
     }
 
     /// <summary>
+    /// Acredita al creador de un reporte que OTROS validaron, y avanza la pista de
+    /// reportes. Null si ese reporte ya estaba cobrado.
+    /// </summary>
+    /// <remarks>
+    /// Crear un reporte no paga nada: esta es la unica puerta de la EXP de reportar,
+    /// y la abre la comunidad, no quien reporta (spec del 19/09/2026). Es lo que
+    /// impide farmear sin complices.
+    /// </remarks>
+    public async Task<ContributionEarnings?> RecordReportValidatedAsync(
+        Guid creatorId,
+        Guid reportId,
+        DateTimeOffset when,
+        CancellationToken ct = default)
+    {
+        var sourceKey = $"report-validated:{reportId}";
+
+        if (await AlreadyCreditedAsync(creatorId, LedgerReason.ReportValidated, sourceKey, ct))
+        {
+            return null;
+        }
+
+        var rows = await db.TrackProgress
+            .Where(t => t.DriverId == creatorId)
+            .ToDictionaryAsync(t => t.TrackCode, ct);
+
+        var countsBefore = rows.ToDictionary(row => row.Key, row => row.Value.Count);
+        var increments = new Dictionary<string, long> { [TrackCatalog.Reports] = 1 };
+
+        db.LedgerEntries.Add(Entry(creatorId, when, LedgerReason.ReportValidated, ExperienceScale.ReportValidated, sourceKey));
+
+        var outcome = Apply(creatorId, when, countsBefore, increments, rows);
+
+        await db.SaveChangesAsync(ct);
+
+        return new ContributionEarnings(
+            ExperienceScale.ReportValidated,
+            outcome.CompletedTiers.Count * ExperienceScale.PerTier,
+            outcome.CompletedTiers);
+    }
+
+    /// <summary>
+    /// Acredita un voto sobre un reporte ajeno: una vez por reporte y hasta
+    /// <see cref="ExperienceScale.ReportVotesPaidPerDay"/> por dia local. Null si
+    /// no paga. No avanza ninguna pista: la de reportes cuenta lo validado.
+    /// </summary>
+    /// <remarks>
+    /// El tope se decide aca, contando los asientos del dia antes de escribir,
+    /// como anticipaba el comentario de los aportes a lugares. El dia es el de
+    /// Buenos Aires: un voto a las 23:30 y otro a las 00:30 son de dias distintos.
+    /// </remarks>
+    public async Task<ContributionEarnings?> RecordReportVoteAsync(
+        Guid voterId,
+        Guid reportId,
+        DateTimeOffset when,
+        CancellationToken ct = default)
+    {
+        var sourceKey = $"report-vote:{reportId}";
+
+        if (await AlreadyCreditedAsync(voterId, LedgerReason.ReportVoted, sourceKey, ct))
+        {
+            return null;
+        }
+
+        var local = when.ToOffset(LocalOffset);
+        var dayStart = new DateTimeOffset(local.Year, local.Month, local.Day, 0, 0, 0, LocalOffset);
+        var dayEnd = dayStart.AddDays(1);
+
+        var paidToday = await db.LedgerEntries.CountAsync(
+            e => e.DriverId == voterId
+                 && e.Reason == LedgerReason.ReportVoted
+                 && e.OccurredAt >= dayStart
+                 && e.OccurredAt < dayEnd,
+            ct);
+
+        if (paidToday >= ExperienceScale.ReportVotesPaidPerDay)
+        {
+            return null;
+        }
+
+        db.LedgerEntries.Add(Entry(voterId, when, LedgerReason.ReportVoted, ExperienceScale.ReportVote, sourceKey));
+
+        await db.SaveChangesAsync(ct);
+
+        return new ContributionEarnings(ExperienceScale.ReportVote, 0, []);
+    }
+
+    /// <summary>Huso de Buenos Aires, fijo: Argentina no aplica horario de verano.</summary>
+    private static readonly TimeSpan LocalOffset = TimeSpan.FromHours(-3);
+
+    private Task<bool> AlreadyCreditedAsync(Guid driverId, LedgerReason reason, string sourceKey, CancellationToken ct) =>
+        db.LedgerEntries.AnyAsync(
+            e => e.DriverId == driverId && e.Reason == reason && e.SourceKey == sourceKey,
+            ct);
+
+    /// <summary>
     /// Lo que comparten un viaje y un aporte: decidir los escalones, asentarlos con
     /// su recompensa y avanzar los contadores. No guarda: quien llama guarda, para
     /// que todo salga en una sola operacion.
