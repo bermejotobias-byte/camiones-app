@@ -105,6 +105,27 @@ export function featuresDeReportes(reportes) {
   };
 }
 
+/** Lo mismo, pero con lo que el motor de avisos lee de cada reporte (navigation.js). */
+export function featuresParaAvisos(reportes) {
+  return {
+    type: 'FeatureCollection',
+    features: (reportes ?? []).map((r) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [r.longitude, r.latitude] },
+      properties: {
+        id: r.id,
+        type: r.type,
+        street: r.street ?? null,
+        headingDegrees: r.headingDegrees ?? null,
+        value: r.value ?? null,
+        validated: !!r.validated,
+        fixed: !!r.fixed,
+        forYourTruck: r.forYourTruck ?? null
+      }
+    }))
+  };
+}
+
 /* ---------------------------------------------------------------------------
    Textos
 --------------------------------------------------------------------------- */

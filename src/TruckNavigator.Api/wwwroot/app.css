@@ -1318,6 +1318,10 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 .map-screen .fab svg { width: 24px; height: 24px; }
+
+/* El boton de reportar en reposo: amarillo como el del viaje (19/09/2026). */
+.map-screen .map-side .fab-reportar { background: var(--gps-reportar); }
+.map-screen .map-side .fab-reportar svg { width: 30px; height: 30px; }
 .map-screen .map-top .fab-panic { background: var(--gps-rojo); color: #fff; font-size: 13px; letter-spacing: .02em; }
 
 /* --- la hoja de reposo ----------------------------------------------------- */

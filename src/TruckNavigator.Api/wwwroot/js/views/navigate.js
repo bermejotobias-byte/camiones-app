@@ -23,7 +23,7 @@ import {
 } from '../navigation.js';
 import * as gl from '../map.js';
 import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso, tarjetaReanudar } from '../mapa/viaje.js';
-import { dibujo, calcomania } from '../mapa/piezas.js';
+import { dibujo, calcomania, pildora } from '../mapa/piezas.js';
 import {
   porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta,
   textoDeEstado, chipsDeRuta, cabeceraDeRutas, pildoraDelCamion, hojaRutas,
@@ -33,12 +33,16 @@ import { hojaReposo } from '../mapa/reposo.js';
 import { hojaBuscar, cuerpoDeBusqueda, CATEGORIAS } from '../mapa/buscar.js';
 import { hojaCapas, capasActivas } from '../mapa/capas.js';
 import { hojaAportar, hojaMarcar, nombreValido } from '../mapa/aportar.js';
-import { categoriasParaPedir, fichaDeLugar, fichaLugar } from '../mapa/lugares.js';
+import { categoriasParaPedir, fichaDeLugar, fichaLugar, metrosEntre } from '../mapa/lugares.js';
+import {
+  featuresParaAvisos, bboxVisible, bboxDeRuta, tipoDeReporte, textoDelToast,
+  hojaGalibo, fichaReporte, promptSigueAhi, deberiaPreguntar
+} from '../mapa/reportes.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
   html, raw, icon, wire, q, qa, render, debounce, withBusy,
   formatDistance, formatDuration, arrivalTime, toast, toastOk, toastError,
-  cardinal, cardinalName, askChoice, askConfirm
+  cardinal, cardinalName, askChoice, askConfirm, escapeHtml
 } from '../ui.js';
 
 export function navigateView(host, { openDrawer, go }) {
@@ -108,6 +112,7 @@ export function navigateView(host, { openDrawer, go }) {
           <span class="compass-facing" id="compass-facing">—</span>
         </div>
 
+        <button class="fab fab-reportar" id="reportar" aria-label="Reportar">${raw(calcomania('lugarMas', 30))}</button>
         <button class="fab" id="capas" aria-label="Capas">${raw(dibujo('capas', 24, 2.2))}</button>
         <button class="fab" id="locate" aria-label="Mi ubicación">${raw(icon('gps'))}</button>
       </div>
@@ -128,6 +133,8 @@ export function navigateView(host, { openDrawer, go }) {
       locate({ silent: true });
       cargarLugares();
       cargarLugaresDelMapa();
+      escucharElMapaParaReportes();
+      cargarReportes();
     },
     onTap: (feature) => { hideSuggestions(); explicarSimbolo(feature); },
     onLongPress: (point) => setPointFromMap(point),
@@ -150,6 +157,11 @@ export function navigateView(host, { openDrawer, go }) {
 
     if (feature.layer?.id === 'lugar-pin') {
       abrirFicha(p.id);
+      return;
+    }
+
+    if (feature.layer?.id === 'reporte-pin') {
+      abrirFichaReporte(p.id);
       return;
     }
 
@@ -201,6 +213,7 @@ export function navigateView(host, { openDrawer, go }) {
     '#locate': () => locate({ silent: false }),
     '#panic': () => go('emergencia'),
     '#capas': () => abrirCapas(),
+    '#reportar': () => aportarLugar(),
     '#compass-dial': () => explainHeading(),
     '#zoom-in': () => gl.zoomIn(),
     '#zoom-out': () => gl.zoomOut()
@@ -307,6 +320,7 @@ export function navigateView(host, { openDrawer, go }) {
     if (stage === 'route') return drawRutas();
     if (stage === 'detalles') return drawDetalles();
     if (stage === 'ficha') return drawFicha();
+    if (stage === 'ficha-reporte') return drawFichaReporte();
     if (stage === 'capas') return drawCapas();
     if (stage === 'delivery') return drawDelivery();
     if (stage === 'buscar') return drawBuscar();
@@ -491,11 +505,13 @@ export function navigateView(host, { openDrawer, go }) {
   function pintarAporte() {
     const { capa, categoria, nombre } = aporte;
 
-    capa.innerHTML = categoria
-      ? `${cabeceraSimple('Nuevo lugar')}
+    capa.innerHTML = aporte.galibo
+      ? `<div class="gps-hoja-aportar">${hojaGalibo({ valor: aporte.galibo.valor })}${aporte.galibo.otro ? otroGaliboMarkup() : ''}</div>`
+      : categoria
+        ? `${cabeceraSimple('Nuevo lugar')}
          <div class="gps-pin-fijo" aria-hidden="true">${calcomania('lugarMas', 44)}</div>
          <div class="gps-hoja-marcar">${hojaMarcar({ categoria, nombre })}</div>`
-      : `<div class="gps-hoja-aportar">${hojaAportar()}</div>`;
+        : `<div class="gps-hoja-aportar">${hojaAportar()}</div>`;
 
     capa.onclick = (event) => {
       const boton = event.target.closest('[data-accion]');
@@ -505,6 +521,16 @@ export function navigateView(host, { openDrawer, go }) {
       if (accion === 'cerrar') cerrarAporte();
       if (accion === 'volver') { aporte.categoria = null; pintarAporte(); }
       if (accion === 'guardar') guardarAporte(boton);
+
+      // Los reportes de la comunidad: un toque, salvo el galibo, que pide los metros.
+      if (accion === 'reportar') reportar(boton.dataset.tipo);
+      if (accion === 'galibo-valor') enviarReporte('LowClearance', Number(boton.dataset.valor));
+      if (accion === 'galibo-otro') { aporte.galibo.otro = true; pintarAporte(); q(capa, '#gps-galibo-otro')?.focus(); }
+      if (accion === 'galibo-guardar') {
+        const metros = Number(String(q(capa, '#gps-galibo-otro')?.value ?? '').replace(',', '.'));
+        if (!Number.isFinite(metros) || metros < 2 || metros > 6) { toastError('Los metros del gálibo van entre 2,0 y 6,0.'); return; }
+        enviarReporte('LowClearance', metros);
+      }
 
       if (accion === 'categoria') {
         // Desde la grilla se elige; desde el chip de la hoja de marcar se
@@ -577,6 +603,313 @@ export function navigateView(host, { openDrawer, go }) {
     } catch (error) {
       toastError(`No se pudo votar: ${error.message}`);
     }
+  }
+
+  /* ------------------------------------------------------------------------
+     Los reportes de la comunidad (js/mapa/reportes.js; spec del 19/09/2026)
+
+     Un toque en la grilla reporta en la posicion GPS; los reportes del
+     recuadro se traen al quedar quieto el mapa (reposo) y cada 60 s sobre
+     el recuadro de la ruta (viaje); entran a los avisos como un dataset mas;
+     tocar un pin abre la ficha con "sigue ahi" / "ya no esta"; y al pasar
+     junto a uno en viaje aparecen los dos botones diez segundos.
+  ------------------------------------------------------------------------ */
+
+  let reportesEnMapa = [];          // los ultimos pedidos, para la ficha por id
+  let fichaReporteAbierta = null;   // el reporte abierto en la hoja, mientras esta
+  let ultimoFix = null;             // el ultimo fix del GPS: {lat, lng, speed, heading}
+  let refrescoDeReportes = null;    // el intervalo de 60 s del viaje
+  let quitarIdle = null;            // saca el oyente de 'idle' del mapa
+  const preguntados = new Set();    // reportes por los que ya se pregunto en este viaje
+  const distanciasAnteriores = new Map();   // id -> distancia en el latido anterior
+  let sigueAbierto = null;          // el "¿sigue ahi?" en pantalla, con su temporizador
+
+  const REFRESCO_EN_VIAJE_MS = 60_000;
+  const PROMPT_MS = 10_000;
+  const DESHACER_MS = 5_000;
+
+  /** Los datasets de camion mas los reportes que hay ahora: es lo que cruza el motor de avisos. */
+  const datasetsConReportes = () => ({ ...gl.datasets(), reportes: featuresParaAvisos(reportesEnMapa) });
+
+  async function cargarReportes({ bbox = null } = {}) {
+    const caja = bbox ?? (gl.viewportBounds() ? bboxVisible(gl.viewportBounds()) : null);
+    if (!caja) return;
+
+    try {
+      reportesEnMapa = await api.reports(caja, selectedTruck()?.id);
+    } catch (error) {
+      // Sin red el mapa sigue sin reportes; se vuelve a intentar en el proximo refresco.
+      console.warn('reportes: no se pudieron traer: ' + error.message);
+      return;
+    }
+
+    gl.showReports(reportesEnMapa);
+
+    // En viaje, los avisos se rehacen con lo nuevo sin perder los ya dados.
+    if (prepared && stage === 'navigation') {
+      routeAlerts = alertsAlongRoute(prepared, datasetsConReportes());
+    }
+
+    if (fichaReporteAbierta) {
+      const actual = reportesEnMapa.find((r) => r.id === fichaReporteAbierta.id);
+      if (actual) {
+        fichaReporteAbierta = actual;
+        if (stage === 'ficha-reporte') drawFichaReporte();
+      }
+    }
+  }
+
+  /** En reposo, al quedar quieto el mapa: el recuadro visible, con un segundo de espera. */
+  function escucharElMapaParaReportes() {
+    quitarIdle?.();
+    quitarIdle = gl.onIdle(debounce(() => {
+      if (stage !== 'navigation') cargarReportes();
+    }, 1000));
+  }
+
+  /** En viaje: el recuadro de la ruta mas 500 m, ahora y cada 60 s. */
+  function empezarRefrescoDeReportes() {
+    pararRefrescoDeReportes();
+    const pedir = () => {
+      const coords = route?.geometry?.coordinates;
+      if (coords?.length) cargarReportes({ bbox: bboxDeRuta(coords, 500) });
+    };
+    pedir();
+    refrescoDeReportes = setInterval(pedir, REFRESCO_EN_VIAJE_MS);
+  }
+
+  function pararRefrescoDeReportes() {
+    if (refrescoDeReportes) clearInterval(refrescoDeReportes);
+    refrescoDeReportes = null;
+    cerrarSigueAhi();
+    preguntados.clear();
+    distanciasAnteriores.clear();
+  }
+
+  /** Reportar un tipo desde la grilla: el galibo pide los metros primero; el resto sale al toque. */
+  function reportar(tipo) {
+    if (tipoDeReporte(tipo).pideValor) {
+      aporte.galibo = { valor: null, otro: false };
+      pintarAporte();
+      return;
+    }
+
+    enviarReporte(tipo, null);
+  }
+
+  async function enviarReporte(tipo, valor) {
+    const fix = ultimoFix ?? (ultimaPosicion ? { lat: ultimaPosicion.lat, lng: ultimaPosicion.lng } : null);
+
+    if (!fix) {
+      toastError('Sin GPS no se puede reportar: esperá la señal.');
+      return;
+    }
+
+    const cuerpo = {
+      type: tipo,
+      latitude: fix.lat,
+      longitude: fix.lng,
+      headingDegrees: Number.isFinite(fix.heading) ? fix.heading : null,
+      speedMps: Number.isFinite(fix.speed) ? fix.speed : null,
+      // En viaje la calle es la del paso actual (la de la pildora negra); en
+      // reposo no se sabe y la resuelve el servidor.
+      street: stage === 'navigation' ? (navState?.step?.streetName ?? null) : null,
+      value: valor
+    };
+
+    try {
+      const creado = await api.addReport(cuerpo);
+      cerrarAporte();
+      reportesEnMapa = [creado, ...reportesEnMapa.filter((r) => r.id !== creado.id)];
+      gl.showReports(reportesEnMapa);
+      mostrarDeshacer(textoDelToast(creado), creado.id);
+    } catch (error) {
+      // 409: ya hay uno igual cerca. Se ofrece confirmarlo en vez de duplicarlo.
+      if (error.status === 409 && error.problem?.existingId) {
+        const confirmar = await askConfirm({
+          title: 'Ya hay un reporte igual cerca',
+          message: '¿Sigue ahí? Confirmarlo vale más que repetirlo.',
+          confirmLabel: 'Sigue ahí',
+          cancelLabel: 'Dejarlo'
+        });
+
+        cerrarAporte();
+        if (confirmar) await votarReporte(error.problem.existingId, 'StillThere');
+        return;
+      }
+
+      // 429 trae "Espera N segundos"; 400, el motivo. Los dos vienen escritos para la persona.
+      toastError(error.message);
+    }
+  }
+
+  /** "Reportado · Accidente en ..." con Deshacer, cinco segundos, donde va la tarjeta de aviso. */
+  function mostrarDeshacer(texto, id) {
+    cerrarSigueAhi();
+
+    const capa = document.createElement('div');
+    capa.className = 'gps-sigue gps-deshacer';
+    capa.innerHTML = `<div class="gps-sigue-que">${calcomania('comunidad', 24)}<span>${escapeHtml(texto)}</span></div>
+      <div class="gps-sigue-botones"><button type="button" class="gps-pildora" data-accion="deshacer"><span>Deshacer</span></button></div>`;
+    host0.appendChild(capa);
+
+    const timer = setTimeout(() => cerrarSigueAhi(), DESHACER_MS);
+    sigueAbierto = { capa, timer };
+
+    capa.onclick = async (event) => {
+      if (!event.target.closest('[data-accion="deshacer"]')) return;
+      cerrarSigueAhi();
+
+      try {
+        await api.closeReport(id);
+        reportesEnMapa = reportesEnMapa.filter((r) => r.id !== id);
+        gl.showReports(reportesEnMapa);
+        toast('Reporte cerrado.');
+      } catch (error) {
+        toastError(`No se pudo deshacer: ${error.message}`);
+      }
+    };
+  }
+
+  /* --- la ficha de un reporte -------------------------------------------- */
+
+  function abrirFichaReporte(id) {
+    const reporte = reportesEnMapa.find((r) => r.id === id);
+    if (!reporte) return;
+
+    // En viaje o eligiendo ruta el pin solo se nombra: la ficha taparia lo
+    // que se esta mirando. El "¿sigue ahi?" del viaje llega solo al pasar.
+    if (stage !== 'search' && stage !== 'ficha-reporte' && stage !== 'ficha') {
+      const t = tipoDeReporte(reporte.type);
+      toast(reporte.street ? `${t.nombre} · ${reporte.street}` : t.nombre, 'info');
+      return;
+    }
+
+    fichaReporteAbierta = reporte;
+    stage = 'ficha-reporte';
+    drawSheet();
+  }
+
+  function cerrarFichaReporte() {
+    fichaReporteAbierta = null;
+    stage = 'search';
+    drawSheet();
+  }
+
+  function drawFichaReporte() {
+    const hoja = sheetAs('gps-hoja-ficha');
+    hoja.innerHTML = fichaReporte(fichaReporteAbierta, { ahora: Date.now() });
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, veredicto } = boton.dataset;
+      if (accion === 'cerrar') cerrarFichaReporte();
+      if (accion === 'voto') votarReporte(fichaReporteAbierta.id, veredicto, boton);
+      if (accion === 'cerrar-reporte') cerrarReportePropio(fichaReporteAbierta.id, boton);
+    };
+  }
+
+  /**
+   * "Sigue ahi" o "ya no esta", con la posicion actual: el servidor exige
+   * estar a menos de 500 m y lo dice si no. Lo que paga lo dice el servidor.
+   */
+  async function votarReporte(id, veredicto, boton = null) {
+    const fix = ultimoFix ?? ultimaPosicion;
+
+    if (!fix) {
+      toastError('Sin GPS no se puede confirmar: hay que estar ahí.');
+      return;
+    }
+
+    const enviar = async () => {
+      try {
+        const { report, earned } = await api.voteReport(id, veredicto, fix.lat, fix.lng, selectedTruck()?.id);
+        reportesEnMapa = reportesEnMapa.map((r) => (r.id === report.id ? report : r));
+        gl.showReports(reportesEnMapa);
+        if (fichaReporteAbierta?.id === report.id) fichaReporteAbierta = report;
+        if (stage === 'ficha-reporte') drawFichaReporte();
+        toastOk(earned?.contributionExperience ? `Gracias • +${earned.contributionExperience} EXP` : 'Gracias, anotado.');
+      } catch (error) {
+        toastError(error.message);
+      }
+    };
+
+    if (boton) await withBusy(boton, 'Enviando', enviar);
+    else await enviar();
+  }
+
+  async function cerrarReportePropio(id, boton) {
+    await withBusy(boton, 'Cerrando', async () => {
+      try {
+        await api.closeReport(id);
+        reportesEnMapa = reportesEnMapa.filter((r) => r.id !== id);
+        gl.showReports(reportesEnMapa);
+        toast('Reporte cerrado.');
+        cerrarFichaReporte();
+      } catch (error) {
+        toastError(`No se pudo cerrar: ${error.message}`);
+      }
+    });
+  }
+
+  /* --- "¿sigue ahi?" al pasar, en viaje --------------------------------- */
+
+  /** Con cada latido del GPS: por cada reporte cerca, si ya se paso y uno se aleja, se pregunta. */
+  function preguntarSiSigueAhi(fix) {
+    if (sigueAbierto || !reportesEnMapa.length) return;
+
+    for (const reporte of reportesEnMapa) {
+      const distancia = metrosEntre(fix, { lat: reporte.latitude, lng: reporte.longitude });
+      const anterior = distanciasAnteriores.get(reporte.id);
+
+      // Solo se sigue de cerca lo que esta a menos de 500 m: el resto no importa todavia.
+      if (distancia > 500) { distanciasAnteriores.delete(reporte.id); continue; }
+      distanciasAnteriores.set(reporte.id, distancia);
+
+      if (anterior === undefined) continue;
+
+      if (deberiaPreguntar({ reporte, distancia, distanciaAnterior: anterior, yaPreguntado: preguntados.has(reporte.id) })) {
+        preguntados.add(reporte.id);
+        mostrarSigueAhi(reporte);
+        return;
+      }
+    }
+  }
+
+  function mostrarSigueAhi(reporte) {
+    cerrarSigueAhi();
+
+    const capa = document.createElement('div');
+    capa.innerHTML = promptSigueAhi(reporte);
+    const nodo = capa.firstElementChild;
+    host0.appendChild(nodo);
+
+    const timer = setTimeout(() => cerrarSigueAhi(), PROMPT_MS);
+    sigueAbierto = { capa: nodo, timer };
+
+    nodo.onclick = (event) => {
+      const boton = event.target.closest('[data-accion="sigue"]');
+      if (!boton) return;
+      const { veredicto } = boton.dataset;
+      cerrarSigueAhi();
+      votarReporte(reporte.id, veredicto);
+    };
+  }
+
+  function cerrarSigueAhi() {
+    if (!sigueAbierto) return;
+    clearTimeout(sigueAbierto.timer);
+    sigueAbierto.capa.remove();
+    sigueAbierto = null;
+  }
+
+  /** El campo para escribir los metros cuando ninguna pastilla sirve. */
+  function otroGaliboMarkup() {
+    return `<label class="gps-campo"><span>Metros</span>
+      <input id="gps-galibo-otro" type="number" inputmode="decimal" step="0.1" min="2" max="6" placeholder="3,80"></label>
+      <div class="gps-acciones">${pildora('Reportar', { clase: 'celeste', datos: 'data-accion="galibo-guardar"' })}</div>`;
   }
 
   /* ------------------------------------------------------------------------
@@ -1173,6 +1506,8 @@ export function navigateView(host, { openDrawer, go }) {
         alRecentrar: () => { gl.setFollowing(true); viaje?.movido(false); },
         vozApagada: prefs.voz === false
       });
+
+      empezarRefrescoDeReportes();
     }
 
     pintarViaje();
@@ -1315,7 +1650,7 @@ export function navigateView(host, { openDrawer, go }) {
       km: formatDistance(opcion.distanceMeters),
       por: porDonde(opcion.instructions),
       linea: lineaDeTiempo(preparada, {
-        alerts: alertsAlongRoute(preparada, gl.datasets()),
+        alerts: alertsAlongRoute(preparada, datasetsConReportes()),
         accessLegs: opcion.accessLegs ?? []
       })
     };
@@ -1397,7 +1732,7 @@ export function navigateView(host, { openDrawer, go }) {
 
     // La ruta nueva pasa por otro lado: lo que había sobre la anterior no
     // sirve, y las claves de los avisos ya dados apuntan a otros índices.
-    routeAlerts = alertsAlongRoute(prepared, gl.datasets());
+    routeAlerts = alertsAlongRoute(prepared, datasetsConReportes());
     alerted = new Set();
 
     // El estado arranca de cero: los indices de la ruta vieja no significan
@@ -1414,6 +1749,7 @@ export function navigateView(host, { openDrawer, go }) {
   /** Saca la pantalla del viaje y devuelve los controles del reposo. */
   function desmontarViaje() {
     vistaGeneral = null;
+    pararRefrescoDeReportes();
     cerrarAporte();
     viaje?.destruir();
     viaje = null;
@@ -1550,6 +1886,7 @@ export function navigateView(host, { openDrawer, go }) {
 
     gl.setGpsPosition(point);
     ultimaPosicion = point;
+    ultimoFix = { lat: point.lat, lng: point.lng, speed: null, heading: null };
 
     // Solo se toma como origen si todavia no hay uno elegido a mano.
     if (origin) {
@@ -1606,7 +1943,7 @@ export function navigateView(host, { openDrawer, go }) {
 
         // Lo que hay en el camino de cada una se cruza una sola vez, aca: es
         // lo que cuentan los chips de la lista y los detalles.
-        avisosPorOpcion = routeOptions.map((ruta) => alertsAlongRoute(prepareRoute(ruta), gl.datasets()));
+        avisosPorOpcion = routeOptions.map((ruta) => alertsAlongRoute(prepareRoute(ruta), datasetsConReportes()));
 
         stage = 'route';
         drawSheet();
@@ -1755,7 +2092,7 @@ export function navigateView(host, { openDrawer, go }) {
     // del GPS: cruzar la posición contra 685 gálibos, 312 pasos a nivel y 129
     // radares una vez por segundo es trabajo de sobra para un teléfono que
     // además está dibujando el mapa.
-    routeAlerts = alertsAlongRoute(prepared, gl.datasets());
+    routeAlerts = alertsAlongRoute(prepared, datasetsConReportes());
     alerted = new Set();
 
     navState = null;
@@ -1837,6 +2174,7 @@ export function navigateView(host, { openDrawer, go }) {
     trackingProblem = null;
 
     ultimaPosicion = { lat: fix.lat, lng: fix.lng };
+    ultimoFix = fix;
     previousNav = navState;
     navState = advance(prepared, fix, navState);
 
@@ -1861,6 +2199,7 @@ export function navigateView(host, { openDrawer, go }) {
     }
 
     avisarLoQueViene();
+    preguntarSiSigueAhi(fix);
 
     // El primer fix cambia la forma de la pantalla —del cartel de "buscando" al
     // bloque de maniobra—, asi que se rehace entera. Los demas latidos solo
@@ -2138,6 +2477,9 @@ export function navigateView(host, { openDrawer, go }) {
     stopListeningTracking();
     stopListeningHeading();
     stopNavigating();
+    quitarIdle?.();
+    pararRefrescoDeReportes();
+    cerrarSigueAhi();
     gl.destroyMap();
   };
 }

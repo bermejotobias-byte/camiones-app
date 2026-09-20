@@ -10,7 +10,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  TIPOS, tipoDeReporte, etiquetaEdad, mismoSentido, estadoDelPin, featuresDeReportes,
+  TIPOS, tipoDeReporte, etiquetaEdad, mismoSentido, estadoDelPin, featuresDeReportes, featuresParaAvisos,
   textoDelToast, deberiaPreguntar, bboxDeRuta, bboxVisible,
   seccionReportar, hojaGalibo, fichaReporte, promptSigueAhi,
   pinReporteSvg, nombresDePinesDeReporte, instalarReportes, mostrarReportes, CAPA_REPORTES
@@ -113,6 +113,16 @@ test('la capa lleva un feature por reporte con lo que el pin necesita', () => {
   assert.equal(geojson.features[0].properties.id, 'r1');
   assert.equal(geojson.features[0].properties.pin, 'reporte-accidente-nuevo');
   assert.equal(geojson.features[1].properties.pin, 'reporte-camara-fijo');
+});
+
+test('para los avisos de la ruta viaja todo lo que el aviso necesita', () => {
+  const geojson = featuresParaAvisos([reporte({ headingDegrees: 90, type: 'LowClearance', kind: 'restriction', value: 3.8, validated: true, forYourTruck: 'incompatible' })]);
+
+  assert.deepEqual(geojson.features[0].properties, {
+    id: 'r1', type: 'LowClearance', street: 'Av. Corrientes 5500', headingDegrees: 90, value: 3.8,
+    validated: true, fixed: false, forYourTruck: 'incompatible'
+  });
+  assert.deepEqual(featuresParaAvisos(null).features, []);
 });
 
 test('una lista vacía o nula da una capa vacía', () => {
