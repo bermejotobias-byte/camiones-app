@@ -206,6 +206,22 @@ Vive en el mapa, en `wwwroot/js/mapa/`:
   fijo en el centro del mapa y el nombre; desde el botón amarillo del viaje y
   desde la hoja de capas. Un 409 ofrece votar el existente en vez de duplicarlo.
 
+### El lugar aportado se gradúa (desde el 19/09/2026)
+
+Enmienda a la regla de arriba, **sólo para lo aportado**: con **5 votos de
+apto de un mismo tipo de camión** —y más que los del otro lado— el lugar
+queda `Probable`, con `SuitabilityEvidenceKind.Community`, la evidencia
+*"Confirmado apto para camión pesado por 5 camioneros de la comunidad
+(19/09/2026)"* y ese campo de aptitud escrito (`true`; con 5 de *no apto*,
+`false`). Decisión del usuario, la misma que vuelve fija una cámara muy
+confirmada: *"este mismo sistema se implementa en marcar lugares nuevos de
+interés común (…) +5 es un principio"*. La regla es `PoiPromotion` (dominio) y
+la aplica `PoiVoting` después de cada voto.
+
+**Los lugares del dataset no se tocan**: los votos siguen sin escribir nada
+sobre lo verificado, y `Confirmed` sigue siendo exclusivo de una fuente. Ver
+AD-49 y `docs/reportes.md`.
+
 ### Lo que todavía no hay
 
 Moderación ni edición de lo aportado: un lugar mal puesto queda mal puesto

@@ -23,10 +23,10 @@ Ver `docs/data-sources.md`, "Puntos de interés".
 |---|---|
 | `src/TruckNavigator.Domain` | Motor de restricciones, ruteo, POIs y perfiles. **Sin dependencias externas** — mantenerlo así |
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
-| `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois` (leer, votar, agregar), `/api/progress`, `/api/routes`. Swagger en `/swagger` |
+| `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois` (leer, votar, agregar), `/api/reports` (leer, reportar, sigue ahí / ya no está, cerrar), `/api/progress`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
-| `tests/TruckNavigator.UnitTests` | 316 tests: dominio (restricciones, la oferta de rutas, la elegida y sus gálibos, los lugares guardados y los recientes, ruteo, progresión, aptitud de POIs, sello y filtro de la comunidad, patente, fecha de nacimiento), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
-| `tests/TruckNavigator.IntegrationTests` | 135 tests: 13 contra GraphHopper (se saltean solos si no está levantado; dos cubren que el viaje arranca por la ruta elegida) + 122 sobre datasets, perfiles, camiones, viajes, lugares guardados, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, los candados del dataset de POIs con el seed por `ManagedByDataset`, y los votos y aportes de la comunidad |
+| `tests/TruckNavigator.UnitTests` | 427 tests: dominio (restricciones, la oferta de rutas, la elegida y sus gálibos, los lugares guardados y los recientes, ruteo, progresión, aptitud de POIs, sello y filtro de la comunidad, patente, fecha de nacimiento, **los reportes de la comunidad**: catálogo, confiabilidad, vencimiento y promoción, reputación y relevancia, abuso, el bloqueo en el custom model, la graduación del lugar), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
+| `tests/TruckNavigator.IntegrationTests` | 181 tests: 14 contra GraphHopper (se saltean solos si no está levantado; dos cubren que el viaje arranca por la ruta elegida y uno que un cierre validado esquiva la cuadra) + 167 sobre datasets, perfiles, camiones, viajes, lugares guardados, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, los candados del dataset de POIs con el seed por `ManagedByDataset`, los votos y aportes de la comunidad, y los reportes (persistencia, crear, votar, leer, los bloqueos, el recorder) |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -47,8 +47,8 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 451 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 189 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), hoja de capas, flecha de maniobra, agenda, mascota e insignias
+dotnet test                                    # 608 tests (.NET)
+node --test "tests/web/*.test.mjs"             # 224 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion), hoja de capas, flecha de maniobra, agenda, mascota e insignias
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -70,7 +70,25 @@ node --test "tests/web/*.test.mjs"             # 189 tests: guiado, avisos de ru
   `ManagedByDataset = false` (el seed no lo borra). **Un voto paga EXP una vez por lugar y
   retirarlo no devuelve**: el índice único del libro sobre `(camionero, motivo, lugar)` es
   la garantía, y el único que otorga sigue siendo `ProgressionRecorder`. Sin tope diario
-  por decisión del usuario. Ver AD-46 y `docs/pois.md`, "La comunidad".
+  por decisión del usuario. Ver AD-46 y `docs/pois.md`, "La comunidad". **Una sola
+  enmienda, desde el 19/09/2026 (AD-49)**: un lugar **aportado** con 5 votos de apto de un
+  mismo tipo de camión se gradúa a `Probable` con evidencia `Community` y ese campo de
+  aptitud escrito; los del dataset siguen intocables (`PoiPromotion`).
+- **Los reportes de la comunidad se reportan SÓLO en la posición GPS, y un reporte solo
+  nunca toca la ruta** (AD-49, `docs/reportes.md`). Sólo *calle cerrada* y *gálibo bajo*
+  **validados** (2 confirmaciones ajenas y confiabilidad 70) entran al cálculo, como
+  `areas` del custom model por pedido con `in_r1` de prioridad cero — GraphHopper 11 lo
+  acepta en modo flexible, medido el 19/09: un cuadrado de once metros sobre la ruta
+  cambia la cuadra. `RouteBlockades` los lee de la base una vez por pedido; sin
+  bloqueos el custom model es byte a byte el de siempre. **La EXP de un reporte la paga
+  la comunidad, no quien reporta**: 15 al validarse, 2 por voto con tope de 10 por día
+  local, 0 por crear; la reputación (50, +3/−5) es otra cosa y no se muestra. Todos los
+  números son constantes con nombre en el dominio, fijadas por test: cambiarlas es una
+  decisión, no un accidente.
+- **Los avisos de la ruta avisan de UNO por latido** (`pendingRouteAlert` elige el más
+  cercano). Con un GPS real a 10 m por segundo dos umbrales se cruzan en latidos
+  distintos; simulando con saltos de 150 m se cruzan en el mismo y uno se pierde. Al
+  simular un viaje, pasos de 25 m o menos.
 - **APKs de Release: siempre con `build-apk.ps1`.** Una compilación incremental en Release
   produce un APK que aborta al arrancar con *"Compressed assembly is larger than when the
   application was built"*. El script limpia `obj/` y `bin/` antes de compilar, que es lo que
@@ -485,6 +503,7 @@ node --test "tests/web/*.test.mjs"             # 189 tests: guiado, avisos de ru
 | `docs/restrictions.md` | Motor de restricciones y cobertura de tests |
 | `docs/routing.md` | Configuración de GraphHopper y contrato de la API |
 | `docs/pois.md` | Puntos de interés: modelo, datos y cómo regenerarlos |
+| `docs/reportes.md` | Reportes de la comunidad: catálogo, confiabilidad, lo fijo, ruteo, EXP y reputación, abuso, API |
 | `docs/deploy.md` | Sacar la app de la red local: túnel HTTPS y servidor propio |
 
 Al cambiar comportamiento, actualizá el documento que corresponda en el mismo commit.

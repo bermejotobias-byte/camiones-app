@@ -25,10 +25,10 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 18/09/2026: el GPS con la piel de Waze, etapas 1 a 9 hechas y
-verificadas, docs de la etapa 10 en curso** (`642d40f` y lo que siga; **67
-commits sin pushear** sobre `origin/cuentas-de-usuario`, uno por tarea; ver §8,
-punto 0). Antes, **al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; doce
+**Punta al 19/09/2026: los reportes de la comunidad (Fase 5), construidos en
+25 tareas con TDD, verificados de punta a punta en el navegador y por HTTP, sin
+pushear** (ver §8, punto 0). Antes, **al 18/09/2026: el GPS con la piel de
+Waze**, completo, pusheado y probado en el teléfono. Antes, **al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; doce
 commits desde la spec `5298239`, uno por tarea), **sin pushear**. Antes, ese
 mismo día, el relevamiento de POIs y los talleres de mecánica pesada
 (`d0b6ddd`, diecisiete commits desde `b5dc4d3`, de la spec `c16cef1` al cierre en docs). Los
@@ -54,7 +54,8 @@ lo pida.
 | Documento | Qué tiene |
 |---|---|
 | `CLAUDE.md` | Convenciones, comandos, **trampas que ya costaron tiempo** |
-| `docs/decisions.md` | **47 decisiones arquitectónicas (AD-01…AD-47)** con su porqué |
+| `docs/decisions.md` | **49 decisiones arquitectónicas (AD-01…AD-49)** con su porqué |
+| `docs/reportes.md` | **Los reportes de la comunidad** (19/09/2026): catálogo, confiabilidad, lo fijo, ruteo, EXP y reputación, abuso, API, y **dónde vive cada número** |
 | `docs/data-sources.md` | Fuentes, licencias y limitaciones **L-1…L-11** (L-4 ya resuelta) |
 | `docs/architecture.md` | Estructura y proyectos |
 | `docs/routing.md`, `docs/restrictions.md`, `docs/pois.md`, `docs/deploy.md` | Por tema |
@@ -107,7 +108,7 @@ Prioridad declarada:
 | **2 · Usabilidad** | ✅ Completa — salió adelantada dentro de la mudanza del frontend |
 | **3 · Seguridad** | 🔨 Están el 911, las zonas peligrosas y los **3 contactos de emergencia**. Queda **compartir viaje por WhatsApp** —necesita endpoint público, tokens que venzan y decisiones de privacidad— y el S.O.S. del reporte, que depende de la Fase 5 |
 | **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). **La base de POIs para camiones se relevó el 15/09/2026** (gomerías, estaciones, lugares para comer y talleres de mecánica pesada; 180 puntos, 48 con evidencia). **La interfaz de POIs está desde el 17–18/09/2026** (capa de lugares, ficha con el voto, hoja de capas con «solo aptos» y aportar, dentro del GPS de Waze) y **los POIs valorados por usuarios son los votos de AD-46**: la fase queda ✅ salvo lo que L-11 congela fuera de CABA |
-| **5 · Reportes de comunidad** | ⬜ **Fase nueva del v2** — reportar y confirmar siniestros, radares y retenes. Es un sistema, no una función |
+| **5 · Reportes de comunidad** | 🔨 **Construida el 19/09/2026** (AD-49): diez tipos en un toque desde la posición GPS, *sigue ahí / ya no está*, confiabilidad y vencimiento, la cámara y el lugar aportado que se vuelven fijos con 5, los cierres y gálibos validados que esquivan la ruta, EXP separada de reputación, cooldowns. **Falta probarla en el teléfono** y quedan la lista de reportes propios y pintar el tramo en rojo |
 | **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Falta lo que se apoya en él: **las pantallas**, el avatar combinable, la batería y los juegos |
 | **7 · Cáscara, entrada e idiomas** | 🔨 **El zócalo está** (12/09). Quedan intro → idioma → condiciones → acceso y el modo invitado. Ver `producto-camiones-app` |
 | **Transversal** | ⬜ i18n (la pantalla existe, **sólo español** por decisión) · clave de firma de distribución · **límite de tasa en la API** |
@@ -399,6 +400,36 @@ misma lección de las cinco fallas de la costura nativa-web, en una frontera nue
 repetida en su **rastreador en memoria** y tira `InvalidOperationException` antes
 de tocar la base. Para probar que el esquema lo impide hay que
 `ChangeTracker.Clear()` primero, y entonces sí llega el `DbUpdateException`.
+
+### Los reportes de la comunidad — 19/09/2026
+
+**608 tests .NET (427 unitarios + 181 de integración, 14 contra GraphHopper) y
+224 de JS**, todo verde al cierre; venían de 316 + 135 y 189. Spec y plan en
+`docs/superpowers/*/2026-09-19-reportes-comunidad*`; el porqué en **AD-49**;
+el modelo entero en `docs/reportes.md`. Veinticinco tareas, un commit por
+tarea, cada test visto en rojo antes del código.
+
+**Verificado de punta a punta** (navegador a 360 × 800 con la cuenta demo, y
+curl con tres cuentas contra la API en Development):
+
+| Qué | Cómo |
+|---|---|
+| Reportar en un toque | el botón amarillo (reposo y viaje) → "¿Qué ves?" → *Accidente*: 201 con la calle de Photon ("Castillo 33"), pin en el mapa, *Deshacer* cinco segundos |
+| La espera y el duplicado | reportar de nuevo → 429 "Espera 23 segundos…"; mismo tipo a 50 m → 409 con `existingId` |
+| La ficha | tocar el pin: tipo, calle, edad, conteos, quién; *Cerrar reporte* si es propio (204) |
+| En viaje | GPS simulado con `TN_setPosition` cada 25 m: tarjeta "Obra en 186 m", y al pasar los dos botones; *Sigue ahí* → +2 EXP y el pin a confirmado |
+| La ruta que esquiva | gálibo 3,80 m sobre Av. Dorrego: sin validar, El Rayo (4,2 m) lo ve `incompatible` y la ruta pasa a 0 m (11.524 m); con dos confirmaciones queda `Validated` y la ruta pasa a 1.771 m (6.875 m); el Camión pesado (3,8 m) lo ve `compatible` y su ruta no cambia. Pin rojo y ficha "Tu camión no pasa · Confirmado: la ruta lo esquiva" |
+| GraphHopper | `[GraphHopperFact]`: un bloqueo validado en medio de una cuadra de Palermo saca la ruta a más de 15 m; sin bloqueos la ruta es la misma |
+
+**Lo que atraparon los tests, no el ojo:** el recuadro de más de 0,25° se
+recorta al centro y un punto "lejano" del test caía adentro igual; la clave
+compuesta del voto la garantiza la base sólo si se limpia el rastreador de EF
+antes (la lección del 10/09, otra vez); y `pendingRouteAlert` avisa de uno por
+latido, así que simulando con saltos de 150 m dos umbrales en el mismo latido
+pierden uno — con pasos de 25 m, como un GPS real, salen los dos.
+
+**Lo que NO se probó:** nada en el teléfono. Es la franja donde este proyecto
+se equivocó once veces; el APK está por compilar (§8, punto 0).
 
 ### Verificado en el teléfono el 18/09/2026 — el GPS de Waze, el usuario tocando y yo leyendo el log
 
@@ -1132,8 +1163,8 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 ```powershell
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
-dotnet test                              # 451 tests (.NET)
-node --test "tests/web/*.test.mjs"       # 189 tests de JS — correr desde bash
+dotnet test                              # 608 tests (.NET)
+node --test "tests/web/*.test.mjs"       # 224 tests de JS — correr desde bash
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
 ```
@@ -1192,7 +1223,25 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-### 0. HECHO Y EN EL TELÉFONO — el GPS con la piel de Waze (16–18/09/2026)
+### 0. HECHOS, SIN PUSHEAR Y SIN TELÉFONO — los reportes de la comunidad (19/09/2026)
+
+**Es el frente vivo.** El usuario pidió la Fase 5 el 19/09/2026 con un brief
+largo (Waze en lógica, no en diseño), eligió inline con revisión entre tareas,
+y decidió: **sólo en la posición GPS**, sin *vehículo detenido* ni *límite de
+peso*, **la cámara muy confirmada es fija (+5) y lo mismo gradúa un lugar
+aportado**. Spec `docs/superpowers/specs/2026-09-19-reportes-comunidad-design.md`,
+plan `docs/superpowers/plans/2026-09-19-reportes-comunidad.md` (25 tareas, las
+cinco etapas marcadas), AD-49, `docs/reportes.md`. Todo commiteado en
+`cuentas-de-usuario`, **sin pushear** (push sólo si lo pide).
+
+**Lo que falta de este frente:** compilar el APK (`.\build-apk.ps1 -ApiUrl
+http://<ip del día>:5080`, `adb install -r`) y que el usuario reporte y confirme
+desde el teléfono con su cuenta mientras se lee el log; con dos cuentas en la
+misma cuadra se ve validar. Después, lo anotado en `producto-camiones-app`
+Fase 5: la lista de reportes propios en "Más", pintar el tramo en rojo, y
+recalcular sola en viaje.
+
+### El GPS con la piel de Waze (16–18/09/2026) — hecho y en el teléfono
 
 **Es el frente vivo y va primero.** El usuario aprobó el prototipo medido
 sobre sus capturas de Waze (`docs/diseno/prototipo-gps/`, lienzo
@@ -1320,10 +1369,9 @@ Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
 11. **Compartir viaje por WhatsApp** — lo último construible de la Fase 3. Necesita
    endpoint público de seguimiento, tokens que venzan y decisiones de privacidad:
    es un trabajo grande disfrazado de botón. **El puente de la agenda ya existe.**
-12. **Fase 5 (reportes) y POIs valorados** — bloqueadas por decisiones del usuario,
-   no por código: cuánto dura un reporte, cuántas confirmaciones lo validan, qué
-   pasa con los falsos. Con el motor hecho, sumarlas es **una pista más en el
-   catálogo**.
+12. ~~Fase 5 (reportes) y POIs valorados~~ — **hechas el 19/09/2026** (AD-49):
+   las decisiones que faltaban las tomó el usuario en la spec, y la pista
+   `reportes` es, efectivamente, una pista más en el catálogo. Ver el punto 0.
 12b. ~~La interfaz de POIs en la app web~~ — **hecha el 17–18/09/2026 dentro
    del GPS de Waze**: la capa de lugares con un pin por estado (`e609a0b`), la
    ficha con la evidencia, el bloque de la comunidad y el voto (`bb681c3`), la

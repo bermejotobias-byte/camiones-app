@@ -2943,3 +2943,101 @@ tarea, en `docs/superpowers/plans/2026-09-16-gps-waze.md`.
   tema claro está bien así, no hace falta la captura de Waze"); la Fase 5
   (reportes de la comunidad) entra a la grilla de "¿Qué hay acá?" cuando se
   decida.
+
+## AD-49 · Reportes de la comunidad: se reporta en la posición, se valida entre varios, y sólo lo validado toca la ruta
+
+**Fecha:** 19/09/2026
+**Estado:** aceptada. Enmienda a AD-46 (lo aportado sí se gradúa).
+
+### El pedido
+
+*"Un sistema de reportes colaborativos inspirado en el funcionamiento de Waze.
+No quiero copiar su diseño ni código propietario, sino aplicar la lógica
+funcional del sistema."* Con condiciones: crear un reporte desde el mapa en
+pocos toques; que guarde posición, calle, sentido, hora, usuario y tipo; que
+sea temporal y venza; que otros digan *sigue ahí* / *ya no está* y eso mueva
+una confiabilidad que considere confirmaciones, rechazos, antigüedad y
+reputación del creador; que lo informativo y lo que afecta la ruta estén
+separados y **un reporte solo nunca cambie el ruteo**; que las restricciones
+se comparen con el camión elegido; que la EXP y la reputación sean dos cosas y
+nadie pueda farmear; y protección básica contra el abuso.
+
+### Decisiones
+
+- **Sólo en la posición GPS.** Nunca en un punto elegido a mano. Es lo más
+  rápido, lo que hace creíble el dato, y lo que permite exigir cercanía para
+  votar. Descartado marcar cualquier punto del mapa: abre la puerta a reportar
+  desde el sillón.
+- **Diez tipos, en el dominio.** Accidente, tránsito, control, policía, cámara,
+  obra, bache, peligro, calle cerrada y gálibo bajo (con los metros). El
+  usuario sacó *vehículo detenido* y *límite de peso*. Cada tipo con su vida
+  útil (45 min el tránsito, 30 días el gálibo), su clase y si se vuelve fijo,
+  todo en `ReportCatalog`: agregar uno no es una migración.
+- **La confiabilidad se calcula al leer**, con una fórmula propia y
+  configurable: base por la reputación del creador, apoyo por hasta cuatro
+  confirmaciones, castigo por rechazo, frescura que cae hasta un 40 % al
+  vencer. Sin tareas de fondo: vencido es que `ExpiresAt` ya pasó.
+- **Validado = 2 confirmaciones ajenas y score 70.** Es un estado escrito al
+  votar, y **lo único que habilita a tocar la ruta**. Con esta fórmula a una
+  fuente desacreditada (reputación 10) le hacen falta tres: no bloquea una
+  calle con un cómplice.
+- **Los cierres y gálibos validados entran al custom model como áreas**, no
+  al grafo. GraphHopper 11 acepta `areas` en el custom model por pedido con
+  `in_<id>` de prioridad cero; se midió antes de decidirlo: un cuadrado de
+  once metros sobre la ruta cambia la cuadra. El polígono es un rectángulo de
+  40 × 16 m a lo largo del rumbo del reporte, menos que los ~100 m entre
+  calles paralelas. Sin bloqueos el custom model es idéntico al de siempre, y
+  `RouteOffer`/AD-47 no cambian. Descartado: reconstruir el grafo o filtrar
+  las rutas después de calcularlas (si todas pasan por el cierre, no queda
+  ninguna).
+- **El gálibo se compara con el camión** (`ReportRelevance`): 3,80 reportado
+  es incompatible para 4,10 y compatible para 3,60. Incompatible es pin rojo,
+  voz que dice "tu camión no pasa", vibración de peligro y, validado, ruta que
+  lo esquiva. Un reporte informativo no se compara con nada.
+- **Una cámara muy confirmada es fija, y un lugar muy votado se incorpora a la
+  base.** Textual: *"una cámara muy marcada es porque es fija, no tiene sentido
+  que sólo dure 6 hs (…) este mismo sistema se implementa en marcar lugares
+  nuevos de interés común (…) +5 es un principio"*. Con 5 confirmaciones la
+  cámara deja de vencer y es un dato de la app (dibujada como cámara de la
+  comunidad, distinta de la oficial). Con 5 votos de apto de un tipo de camión
+  el lugar aportado queda `Probable` con evidencia de la comunidad y apto
+  para ese tipo. **Esto enmienda AD-46 sólo para lo aportado**: los lugares
+  del dataset siguen sin tocarse por votos, y `Confirmed` sigue siendo
+  exclusivo de una fuente.
+- **La EXP se paga sólo con validación ajena.** 15 al creador cuando otros lo
+  validan, 2 por voto con tope de 10 votos pagos por día local, 0 por crear.
+  Pagar al crear invita a reportar cualquier cosa; pagar al votar sin exigir
+  cercanía invita a votar desde el sillón; sin tope diario dos cuentas se
+  turnan. Pista nueva `reportes` en el catálogo, con la escalera de viajes.
+- **La reputación es otra cosa**: 0–100, arranca en 50, +3 cuando un reporte
+  tuyo queda validado, −5 cuando queda rechazado, no se toca por votar y no se
+  muestra como número. Pondera la confiabilidad de lo que reportás.
+- **Contra el abuso, lo básico y en el dominio** (`ReportAbuseGuard`): 45 s
+  entre reportes (el doble con reputación baja), 20 por hora, el duplicado a
+  150 m en 15 min devuelve el existente para ofrecer *sigue ahí* (429 y 409
+  con lo que la app necesita), no se vota lo propio, votar exige estar a
+  menos de 500 m. La posición del voto se confía: la app es el único cliente,
+  y se anota como límite conocido.
+- **Manejando, un toque.** El botón amarillo abre "¿Qué ves?": los diez tipos
+  arriba, las categorías de lugar abajo; tocar un tipo crea el reporte y
+  cierra la hoja, con *Deshacer* cinco segundos. Al pasar a menos de 60 m de un
+  reporte ajeno y alejarse, dos botones grandes diez segundos, una vez por
+  reporte y viaje. La calle en viaje es la del paso actual; si el cliente no
+  la sabe, Photon con 1,5 s de tope y si no llega, "cerca de acá".
+
+### Consecuencias
+
+- Cuatro endpoints (`/api/reports`), tres tablas, un módulo por superficie
+  (`mapa/reportes.js`) y los reportes como un dataset más de
+  `alertsAlongRoute`, con el sentido de marcha como filtro propio. 157 tests
+  .NET (111 unitarios, 46 de integración) y 35 web nuevos; todos los números son constantes con nombre, fijadas
+  por test, en un lugar por tema (`docs/reportes.md`, "Cómo se configuran los
+  números").
+- Verificado de punta a punta el 19/09/2026 con tres cuentas: un gálibo de
+  3,80 m sobre Av. Dorrego, sin validar, no cambia la ruta (11.524 m, pasa a
+  0 m); con dos confirmaciones queda validado y la ruta del camión de 4,2 m
+  pasa a 1.771 m del puente; el de 3,8 m lo ve compatible y su ruta no cambia.
+- Lo que queda afuera a propósito: recalcular la ruta sola cuando un cierre se
+  valida en viaje (avisa, no recalcula); reputación de los votantes; reportar
+  desde un punto arbitrario; moderación, fotos, comentarios; que un gálibo o
+  una calle cerrada pasen al dataset verificado.

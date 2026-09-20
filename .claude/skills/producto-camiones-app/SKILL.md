@@ -312,18 +312,22 @@ pantalla de fuentes, leyenda achicada, iconos, mobile-first, modo día y noche.
 | 🔨 💬 | **Lugares de interés valorados por usuarios**, que además confirmen si son aptos para tránsito pesado (y eso da puntos). **La base se relevó el 15/09/2026**: 180 POIs, 48 con aptitud declarada por evidencia (registro oficial, operador, reseñas de conductores con fecha) — 16 gomerías, 5 estaciones, 1 lugar para comer, 22 talleres de mecánica pesada (los concesionarios oficiales de Mercedes-Benz Camiones, Iveco, Scania y Mack, más independientes por reseñas), más 66 estaciones sobre la Red sin confirmar. **Y la valoración por usuarios está hecha** (AD-46, 15/09/2026): voto apto / no apto con el tipo de camión, un sello comunitario aparte del verificado, lugares aportados que aparecen enseguida marcados como de la comunidad, EXP y la pista `lugares` con sus skins. **Falta la interfaz**: la app web no muestra POIs ni votos | v2 · 15/09/2026 |
 | ✅ | **Modo reparto**: hasta 10 paradas, ordenadas con distancias **reales** de ruta (no en línea recta: en CABA la ruta real llega a 1,67× la recta). Vecino más cercano + 2-opt en el dominio, 14 tests. 1,2 s para 9 paradas. Marcadores numerados en el mapa y en la lista con el mismo número. **Y se puede arrancar**: sus paradas viajan con el viaje, así que sobrevive a cerrar la app — hasta AD-45 calculaba pero no navegaba, o sea la mitad de la función. **Falta probarlo manejando** (AD-41, AD-45) | v1 · 02/09/2026 |
 
-### Fase 5 · Reportes de la comunidad — ⬜ **nueva, sale del v2**
+### Fase 5 · Reportes de la comunidad — 🔨 **construida el 19/09/2026** (AD-49, `docs/reportes.md`)
 
-Fase propia porque es un sistema, no una función.
+Fase propia porque es un sistema, no una función. Las decisiones que la
+trababan las tomó el usuario el 19/09/2026 en la spec
+`docs/superpowers/specs/2026-09-19-reportes-comunidad-design.md`.
 
 | | Ítem |
 |---|---|
-| ⬜ | Reportar durante el viaje **con un gesto**: mantener el dedo abre un menú con siniestro vial, control de velocidad y retén policial |
-| ⬜ | **Confirmación cruzada**: otros usuarios validan el reporte |
-| ⬜ | Los reportes confirmados aparecen en **"reportes del usuario"** |
-| ⬜ | Mostrar en el mapa el tramo con accidente **en rojo** |
-| ⬜ | **Reportar da EXP, y alimenta metas y logros** — ej.: *"reportar 10 accidentes"*, *"25 controles"*, *"50 cámaras"*, *"100 reportes"*, mantener actividad varios días. Es el enganche con la Fase 6, y la extensión del 09/09 lo vuelve central: un reporte es **a la vez** una herramienta para la comunidad y una pata del ciclo de progresión. **No toca el nivel** |
-| 💬 | Cuánto dura un reporte, cuántas confirmaciones lo validan, qué pasa con los falsos. **Sin esto definido no se puede construir bien** |
+| ✅ | Reportar **en un toque** desde el botón amarillo (reposo y viaje), **sólo en la posición GPS**: diez tipos —accidente, tránsito, control, policía, cámara, obra, bache, peligro, calle cerrada, gálibo bajo con los metros—. El usuario sacó *vehículo detenido* y *límite de peso* |
+| ✅ | **Confirmación cruzada**: *Sigue ahí* / *Ya no está* desde la ficha y, en viaje, con dos botones al pasar; votar exige estar a menos de 500 m. Validado = 2 confirmaciones ajenas y confiabilidad 70; la confiabilidad pondera confirmaciones, rechazos, antigüedad y reputación del creador |
+| ✅ | Cada reporte **vence** según su tipo (45 min el tránsito, 30 días el gálibo), se estira al confirmarlo y muere con dos rechazos que superan. **La cámara con 5 confirmaciones es fija** y dato de la app; el mismo umbral gradúa un lugar aportado |
+| ✅ | **Información separada de restricción**: todos avisan en la ruta (voz, tarjeta, vibración propia); sólo la calle cerrada y el gálibo **validados** cambian la ruta, como áreas del custom model. El gálibo se compara con el camión elegido: rojo si no pasa |
+| ✅ | **Reportar da EXP, separada de la reputación**: 15 al creador cuando otros lo validan, 2 por voto con tope diario, 0 por crear; pista `reportes` con recompensas `reportes-01…10`. La reputación (50, +3/−5) mide credibilidad y no se muestra. Cooldowns, tope por hora y duplicados que ofrecen confirmar |
+| ⬜ | Los reportes propios en una lista (**"reportes del usuario"**, menú MÁS) |
+| ⬜ | Pintar el tramo con accidente **en rojo** sobre el mapa (hoy es un pin) |
+| ⬜ | Recalcular la ruta sola cuando un cierre se valida en viaje; reputación de los votantes; fotos y comentarios |
 
 ### Fase 6 · Experiencia y gamificación — ⬜ pendiente, **rediseñada por el v3**
 

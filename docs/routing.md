@@ -73,6 +73,34 @@ Notas de lectura:
   locale es-AR una coma decimal partiría la expresión y GraphHopper la
   rechazaría.
 
+### Los bloqueos de la comunidad (desde el 19/09/2026)
+
+Un cierre o un gálibo **reportados por la comunidad y validados** (ver
+`docs/reportes.md` y AD-49) entran al mismo custom model como **áreas**: un
+`FeatureCollection` en `areas` con un polígono por bloqueo (rectángulo de
+40 × 16 m a lo largo del rumbo, o cuadrado de 24 m sin rumbo) y una sentencia
+`in_r1` de prioridad cero por cada uno, después de las reglas físicas:
+
+```json
+{
+  "areas": { "type": "FeatureCollection", "features": [
+    { "type": "Feature", "id": "r1", "properties": {},
+      "geometry": { "type": "Polygon", "coordinates": [[[-58.4238, -34.5706], "..."]] } }
+  ] },
+  "priority": [
+    { "if": "max_height < 4.2", "multiply_by": "0" },
+    { "if": "in_r1", "multiply_by": "0" }
+  ]
+}
+```
+
+Los lee `RouteBlockades` de la base una vez por pedido —ruta, alternativas y
+la matriz del reparto— y sólo los que le tocan a ese camión: la calle cerrada a
+todos, el gálibo a los que no pasan por debajo. Sin bloqueos el JSON es byte a
+byte el de siempre. Medido contra GraphHopper 11: un cuadrado de once metros
+sobre la ruta alcanza para que el motor cambie de cuadra, sin tocar el grafo
+ni reiniciar nada.
+
 ## Contrato de la API
 
 ### `POST /api/routes`

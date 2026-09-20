@@ -330,6 +330,6 @@
 - Modify: `docs/decisions.md` (AD-49: reportes de la comunidad; enmienda a AD-46: lo aportado se gradúa con cinco; por qué `areas` y no el grafo; por qué la EXP sólo con validación ajena), `docs/pois.md` (la graduación), `docs/routing.md` (`areas`), `CLAUDE.md` (tabla de proyectos, comandos con los conteos nuevos, y las trampas que hayan aparecido), `.claude/skills/estado-camiones-app/SKILL.md` (§3 Fase 5, §4 verificado, §8), `.claude/skills/producto-camiones-app/SKILL.md` (Fase 5)
 - Verify: `dotnet test` y `node --test` con los conteos finales anotados; `.\build-apk.ps1 -ApiUrl http://<ip del día>:5080` e instalar con `adb install -r`
 
-- [ ] **Step 1:** escribir los docs con los conteos medidos, no estimados.
+- [x] **Step 1:** escribir los docs con los conteos medidos, no estimados (608 .NET = 427 + 181, 14 contra GraphHopper; 224 web).
 - [ ] **Step 2:** compilar e instalar el APK; el usuario reporta y confirma desde el teléfono con su cuenta mientras se lee el log (`adb logcat -v time -s Web:V Cascara:V Brujula:V`, sin `touchmove` ni *Mixed Content*).
 - [ ] **Step 3: Commit** — `Docs: los reportes de la comunidad (AD-49), y los conteos`.
