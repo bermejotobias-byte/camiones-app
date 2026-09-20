@@ -271,6 +271,61 @@ test('cada tipo tiene su frase, y lo desconocido no inventa ninguna', () => {
 });
 
 /* ---------------------------------------------------------------------------
+   Los reportes de la comunidad (19/09/2026)
+
+   Entran como un dataset más, pero traen dos cosas propias: el sentido de
+   marcha de quien reportó y lo que el servidor ya decidió para el camión.
+--------------------------------------------------------------------------- */
+
+const reporteEn = (metros, extra = {}) => punto(metros, 0, {
+  id: 'r1', type: 'Accident', kind: 'info', street: 'Av. Rivadavia', headingDegrees: null, value: null,
+  validated: false, forYourTruck: null, ...extra
+});
+
+test('un reporte sobre la ruta se avisa con su tipo, y uno a cincuenta metros no', () => {
+  const prepared = rectaAlEste();
+
+  const sobre = alertsAlongRoute(prepared, { reportes: capa(reporteEn(500)) });
+  assert.equal(sobre.length, 1);
+  assert.equal(sobre[0].tipo, 'reporte');
+  assert.equal(sobre[0].subtipo, 'Accident');
+  assert.equal(sobre[0].id, 'r1');
+  assert.ok(Math.abs(sobre[0].at - 500) < 2, `a ${sobre[0].at} m`);
+
+  const lejos = alertsAlongRoute(prepared, { reportes: capa(punto(500, 50, { id: 'r2', type: 'Accident' })) });
+  assert.deepEqual(lejos, []);
+});
+
+test('un reporte hecho en sentido contrario no se avisa; sin rumbo, sí', () => {
+  const prepared = rectaAlEste();   // la ruta va al este: rumbo 90
+
+  assert.equal(alertsAlongRoute(prepared, { reportes: capa(reporteEn(500, { headingDegrees: 270 })) }).length, 0);
+  assert.equal(alertsAlongRoute(prepared, { reportes: capa(reporteEn(500, { headingDegrees: 100 })) }).length, 1);
+  assert.equal(alertsAlongRoute(prepared, { reportes: capa(reporteEn(500, { headingDegrees: null })) }).length, 1);
+});
+
+test('el aviso lleva lo que la ficha y la voz necesitan: calle, valor, validado y lo del camión', () => {
+  const [aviso] = alertsAlongRoute(rectaAlEste(), {
+    reportes: capa(reporteEn(800, { type: 'LowClearance', kind: 'restriction', value: 3.8, validated: true, forYourTruck: 'incompatible' }))
+  });
+
+  assert.equal(aviso.subtipo, 'LowClearance');
+  assert.equal(aviso.value, 3.8);
+  assert.equal(aviso.validated, true);
+  assert.equal(aviso.forYourTruck, 'incompatible');
+  assert.equal(aviso.street, 'Av. Rivadavia');
+});
+
+test('las frases de los reportes: el tipo, el cierre sin confirmar, y el gálibo por el que no pasás', () => {
+  assert.equal(speakableAlert({ tipo: 'reporte', subtipo: 'Accident' }), 'Accidente adelante.');
+  assert.equal(speakableAlert({ tipo: 'reporte', subtipo: 'RoadClosed', validated: false }), 'Calle cerrada reportada adelante, sin confirmar.');
+  assert.equal(speakableAlert({ tipo: 'reporte', subtipo: 'RoadClosed', validated: true }), 'Calle cerrada confirmada adelante.');
+  assert.equal(speakableAlert({ tipo: 'reporte', subtipo: 'LowClearance', value: 3.8, forYourTruck: 'incompatible' }), 'Gálibo reportado de 3,80 metros adelante. Tu camión no pasa.');
+  assert.equal(speakableAlert({ tipo: 'reporte', subtipo: 'LowClearance', value: 3.8, forYourTruck: 'compatible' }), 'Gálibo reportado de 3,80 metros adelante. Pasás.');
+  assert.equal(speakableAlert({ tipo: 'reporte', subtipo: 'Camera', fixed: true }), 'Cámara adelante.');
+});
+
+/* ---------------------------------------------------------------------------
    Bordes
 --------------------------------------------------------------------------- */
 

@@ -25,6 +25,7 @@
 import { iconoDeManiobra, calcomania, circulo, dibujo, pildora } from './piezas.js';
 import { formatDistance, formatDuration, arrivalTime, escapeHtml } from '../ui.js';
 import { tarjetaDeRutaMarkup, nombreCorto } from './rutas.js';
+import { tipoDeReporte } from './reportes.js';
 
 /* ---------------------------------------------------------------------------
    Que dice la banda
@@ -207,6 +208,41 @@ export function textoDeAviso(alerta, camion = null) {
       calcomania: 'radar',
       titulo: `Radar de velocidad ${distancia}`,
       sub: alerta.ubicacion || 'Controlá la velocidad'
+    };
+  }
+
+  // Un reporte de la comunidad (19/09/2026): el tipo y la calle; la
+  // restriccion dice ademas si esta sin confirmar o si tu camion no pasa.
+  if (alerta.tipo === 'reporte') {
+    const tipo = tipoDeReporte(alerta.subtipo);
+    const calle = alerta.street ?? null;
+
+    if (alerta.subtipo === 'LowClearance' && Number.isFinite(alerta.value)) {
+      const noPasa = alerta.forYourTruck === 'incompatible';
+      const veredicto = noPasa
+        ? (camion?.name ? `No pasás: ${camion.name} mide ${metrosConComa(camion.heightMeters)} m` : 'No pasás')
+        : (camion?.name ? `Pasás: ${camion.name} mide ${metrosConComa(camion.heightMeters)} m` : 'Pasás');
+      const confirmado = alerta.validated ? 'Confirmado' : 'Sin confirmar';
+
+      return {
+        calcomania: tipo.calcomania,
+        titulo: `Gálibo reportado de ${metrosConComa(alerta.value)} m ${distancia}`,
+        sub: [veredicto, confirmado, calle].filter(Boolean).join(' · ')
+      };
+    }
+
+    if (alerta.subtipo === 'RoadClosed') {
+      return {
+        calcomania: tipo.calcomania,
+        titulo: `Calle cerrada ${distancia}`,
+        sub: [alerta.validated ? 'Confirmada por la comunidad' : 'Sin confirmar todavía', calle].filter(Boolean).join(' · ')
+      };
+    }
+
+    return {
+      calcomania: tipo.calcomania,
+      titulo: `${tipo.nombre} ${distancia}`,
+      sub: [calle, alerta.fixed ? 'Dato de la app' : 'Reportado por la comunidad'].filter(Boolean).join(' · ')
     };
   }
 

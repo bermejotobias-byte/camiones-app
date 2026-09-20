@@ -1900,7 +1900,13 @@ export function navigateView(host, { openDrawer, go }) {
 
     alerted.add(alerta.key);
 
-    vibrate(VIBRACION[alerta.tipo] ?? VIBRACION.maniobra);
+    // Un reporte por el que este camión no pasa —un gálibo más bajo, una calle
+    // cerrada— vibra como peligro; el resto de los reportes, como información.
+    const patron = alerta.tipo === 'reporte' && alerta.forYourTruck === 'incompatible'
+      ? VIBRACION.peligro
+      : VIBRACION[alerta.tipo] ?? VIBRACION.maniobra;
+
+    vibrate(patron);
 
     const frase = speakableAlert(alerta);
     if (frase) decir(frase);

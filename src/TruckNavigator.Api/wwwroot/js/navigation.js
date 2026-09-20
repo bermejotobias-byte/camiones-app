@@ -590,7 +590,7 @@ const lowerFirst = (text) => text.charAt(0).toLowerCase() + text.slice(1);
  * Pasos a nivel: doce. El cruce esta SOBRE la calle que se recorre; uno a 20 m
  * es el de la calle paralela, que en un barrio con vias corre pegada.
  */
-const ALERT_CORRIDOR_METERS = { radar: 30, paso: 12 };
+const ALERT_CORRIDOR_METERS = { radar: 30, paso: 12, reporte: 30 };
 
 /** A que distancia se avisa. Uno solo: no es una maniobra, es algo que esta ahi. */
 const ALERT_AT_METERS = 200;
@@ -659,7 +659,43 @@ export function alertsAlongRoute(prepared, features = {}) {
     return { ubicacion: p.ubicacion ?? null };
   });
 
+  // Reportes de la comunidad (19/09/2026): los que estan sobre la ruta y en el
+  // sentido de marcha. Un reporte hecho parado (sin rumbo) le importa a todos;
+  // uno hecho yendo en contra es de la otra mano y no se avisa. Lo que el
+  // servidor ya decidio para el camion —forYourTruck, validated— viaja con el
+  // aviso: la voz y la tarjeta lo leen de ahi.
+  agregar('reporte', features.reportes, (p, sobre) => {
+    if (!mismoSentidoDeMarcha(p.headingDegrees, bearingAt(prepared, sobre.index))) return null;
+
+    return {
+      id: p.id ?? null,
+      subtipo: p.type ?? null,
+      street: p.street ?? null,
+      value: p.value ?? null,
+      validated: !!p.validated,
+      fixed: !!p.fixed,
+      forYourTruck: p.forYourTruck ?? null
+    };
+  });
+
   return alerts.sort((a, b) => a.at - b.at);
+}
+
+/** Si el rumbo de un reporte va con el de la ruta (a 90 grados o menos). Sin rumbo, siempre. */
+function mismoSentidoDeMarcha(rumboReporte, rumboRuta) {
+  if (rumboReporte === null || rumboReporte === undefined || rumboRuta === null) return true;
+
+  const diferencia = Math.abs(((rumboRuta - rumboReporte + 540) % 360) - 180);
+  return diferencia <= 90;
+}
+
+/** El rumbo del tramo de la ruta que arranca en `index`. Null si no hay tramo. */
+function bearingAt(prepared, index) {
+  const a = prepared.points[index];
+  const b = prepared.points[index + 1];
+  if (!a || !b || (a.x === b.x && a.y === b.y)) return null;
+
+  return segmentBearing(a, b);
 }
 
 /**
@@ -777,5 +813,43 @@ export function speakableAlert(alert) {
     return 'Radar de velocidad adelante.';
   }
 
+  if (alert.tipo === 'reporte') {
+    return fraseDeReporte(alert);
+  }
+
   return null;
+}
+
+const NOMBRE_DE_REPORTE = {
+  Accident: 'Accidente',
+  Traffic: 'Tránsito',
+  Checkpoint: 'Control',
+  Police: 'Policía',
+  Camera: 'Cámara',
+  Roadworks: 'Obra',
+  Pothole: 'Bache',
+  Hazard: 'Peligro',
+  RoadClosed: 'Calle cerrada',
+  LowClearance: 'Gálibo'
+};
+
+/**
+ * La frase de un reporte: el tipo y nada mas para lo informativo; el cierre
+ * dice si esta confirmado; el galibo dice los metros y si el camion pasa, que
+ * es lo unico que importa oir a tiempo.
+ */
+function fraseDeReporte(alert) {
+  const nombre = NOMBRE_DE_REPORTE[alert.subtipo] ?? 'Reporte';
+
+  if (alert.subtipo === 'RoadClosed') {
+    return alert.validated ? 'Calle cerrada confirmada adelante.' : 'Calle cerrada reportada adelante, sin confirmar.';
+  }
+
+  if (alert.subtipo === 'LowClearance' && Number.isFinite(alert.value)) {
+    const metros = Number(alert.value).toFixed(2).replace('.', ',');
+    const pasa = alert.forYourTruck === 'incompatible' ? 'Tu camión no pasa.' : 'Pasás.';
+    return `Gálibo reportado de ${metros} metros adelante. ${pasa}`;
+  }
+
+  return `${nombre} adelante.`;
 }

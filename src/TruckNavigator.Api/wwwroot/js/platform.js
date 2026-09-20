@@ -459,7 +459,21 @@ export const VIBRACION = {
   radar: [50, 90, 50],
 
   /** Paso a nivel. Dos golpes medios, mas pesados que el radar. */
-  paso: [110, 110, 110]
+  paso: [110, 110, 110],
+
+  /**
+   * Un reporte de la comunidad sobre la ruta (19/09/2026): tres toques
+   * cortos, distintos del radar y de la maniobra. Es informacion: algo que
+   * otro camionero vio y conviene saber.
+   */
+  reporte: [40, 60, 40, 60, 40],
+
+  /**
+   * Una restriccion reportada por la que este camion no pasa —un galibo mas
+   * bajo que el, una calle cerrada—: dos golpes largos. Es el unico patron
+   * que anticipa un choque, y por eso es el mas pesado de todos.
+   */
+  peligro: [180, 100, 180]
 };
 
 /**

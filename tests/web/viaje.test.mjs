@@ -115,6 +115,27 @@ test('un paso a nivel dice qué barrera tiene y pide bajar la velocidad', () => 
   assert.equal(textoDeAviso({ tipo: 'paso', meters: 80 }).calcomania, 'paso');
 });
 
+test('un reporte se avisa con su tipo y su calle; la restricción dice si está sin confirmar o si no pasás', () => {
+  const accidente = textoDeAviso({ tipo: 'reporte', subtipo: 'Accident', meters: 300, street: 'Av. Rivadavia' });
+  assert.equal(accidente.calcomania, 'accidente');
+  assert.equal(accidente.titulo, 'Accidente en 300 m');
+  assert.equal(accidente.sub, 'Av. Rivadavia · Reportado por la comunidad');
+
+  const cierre = textoDeAviso({ tipo: 'reporte', subtipo: 'RoadClosed', meters: 400, street: null, validated: false });
+  assert.equal(cierre.titulo, 'Calle cerrada en 400 m');
+  assert.match(cierre.sub, /sin confirmar/i);
+
+  const galibo = textoDeAviso({ tipo: 'reporte', subtipo: 'LowClearance', meters: 250, value: 3.8, validated: true, forYourTruck: 'incompatible' }, camion);
+  assert.equal(galibo.calcomania, 'galiboReporte');
+  assert.equal(galibo.titulo, 'Gálibo reportado de 3,80 m en 250 m');
+  assert.match(galibo.sub, /no pasás/i);
+  assert.match(galibo.sub, /El Rayo/);
+
+  const camara = textoDeAviso({ tipo: 'reporte', subtipo: 'Camera', meters: 200, fixed: true });
+  assert.equal(camara.calcomania, 'camaraComunidad');
+  assert.equal(camara.titulo, 'Cámara en 200 m');
+});
+
 test('un radar dice dónde está', () => {
   const aviso = textoDeAviso({ tipo: 'radar', meters: 200, ubicacion: 'AV. SÁENZ - 1200' });
 
