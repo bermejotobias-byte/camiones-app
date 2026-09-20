@@ -331,5 +331,5 @@
 - Verify: `dotnet test` y `node --test` con los conteos finales anotados; `.\build-apk.ps1 -ApiUrl http://<ip del día>:5080` e instalar con `adb install -r`
 
 - [x] **Step 1:** escribir los docs con los conteos medidos, no estimados (608 .NET = 427 + 181, 14 contra GraphHopper; 224 web).
-- [ ] **Step 2:** compilar e instalar el APK; el usuario reporta y confirma desde el teléfono con su cuenta mientras se lee el log (`adb logcat -v time -s Web:V Cascara:V Brujula:V`, sin `touchmove` ni *Mixed Content*).
+- [ ] **Step 2:** compilar e instalar el APK (compilado el 19/09 a las 22:04 con -ApiUrl http://192.168.100.106:5080, 31,4 MB; el teléfono no estaba por USB: queda servido en http://192.168.100.106:8081/ y por `adb install -r` cuando aparezca); el usuario reporta y confirma desde el teléfono con su cuenta mientras se lee el log (`adb logcat -v time -s Web:V Cascara:V Brujula:V`, sin `touchmove` ni *Mixed Content*).
 - [ ] **Step 3: Commit** — `Docs: los reportes de la comunidad (AD-49), y los conteos`.
