@@ -268,9 +268,9 @@
 **Interfaces:**
 - Produces: `TIPOS` (los diez, en el orden de la grilla: accidente, tránsito, control, policía, cámara, obra, bache, peligro, calle cerrada, gálibo; cada uno `{ id, tipo (nombre del enum), nombre, calcomania, restriccion, pideValor }`); `etiquetaEdad(createdAt, ahora)` ("recién", "hace 12 min", "hace 3 h", "hace 2 días", y `null` para una fija); `mismoSentido(rumboReporte, rumboRuta)` (null → true; diferencia angular ≤ 90 → true); `featuresDeReportes(reportes)` (geojson con `tipo`, `estado` ∈ nuevo/confirmado/duda/rojo/fijo, `id`); `estadoDelPin(r)`; `textoDelToast(r)` ("Reportado · Accidente en Av. Corrientes" / "Reportado · Accidente"); `deberiaPreguntar({ reporte, distancia, distanciaAnterior, yaPreguntado, mio, votado })` (true sólo cuando estuvo a ≤ 60 m y ahora se aleja, una vez); `bboxDeRuta(coords, margenMetros = 500)` y `bboxVisible(bounds)` como cadena `minLon,minLat,maxLon,maxLat`.
 
-- [ ] **Step 1: Tests en rojo** — uno por función con los casos de arriba; `TIPOS` tiene diez, ninguno repetido, sólo gálibo `pideValor`, sólo calle cerrada y gálibo `restriccion`.
-- [ ] **Step 2: Rojo. Step 3: implementar. Step 4: Verde** (`node --test`).
-- [ ] **Step 5: Commit** — `Reportes (web): el catalogo, la edad, el sentido y cuando preguntar si sigue ahi`.
+- [x] **Step 1: Tests en rojo** — uno por función con los casos de arriba; `TIPOS` tiene diez, ninguno repetido, sólo gálibo `pideValor`, sólo calle cerrada y gálibo `restriccion`.
+- [x] **Step 2: Rojo. Step 3: implementar. Step 4: Verde** (`node --test`).
+- [x] **Step 5: Commit** — `Reportes (web): el catalogo, la edad, el sentido y cuando preguntar si sigue ahi`.
 
 ### Task 20: Las hojas
 
@@ -278,9 +278,9 @@
 - Modify: `src/TruckNavigator.Api/wwwroot/js/mapa/reportes.js` (`seccionReportar()`, `hojaGalibo({ valor })`, `fichaReporte(r, { ahora })`, `promptSigueAhi(r)`), `mapa/aportar.js` (`hojaAportar()` arranca con `seccionReportar()` y el título pasa a "¿Qué ves?"), `mapa/piezas.js` (calcomanías propias: `accidente`, `transito`, `control`, `policia`, `camaraComunidad`, `obra`, `bache`, `peligro`, `calleCerrada`, `galiboReporte`, y `nombresDeCalcomanias` si existe la lista), `app.css` (`.gps-reportar-*`, el prompt de dos botones, sobre los tokens `--gps-*`)
 - Test: `tests/web/reportes.test.mjs`, `tests/web/aportar.test.mjs` (+ casos), `tests/web/piezas.test.mjs` (+ casos)
 
-- [ ] **Step 1: Tests en rojo** — `seccionReportar()` tiene diez botones `data-accion="reportar"` con `data-tipo`; `hojaAportar()` los incluye antes de las seis categorías; `hojaGalibo` tiene las cinco pastillas (3,5 · 3,8 · 4,0 · 4,3 · 4,5) y "Otro"; `fichaReporte` muestra tipo, calle o "cerca de acá", "hace 12 min · 2 confirmaciones", `@alias` o `@anónimo`, los dos botones (`data-accion="voto"` con `data-veredicto`), *Cerrar reporte* sólo si es mío, "sin confirmar" cuando no está validado y es restricción, y "Tu camión no pasa" si es incompatible; `promptSigueAhi` tiene los dos botones y el id; cada calcomanía nueva devuelve SVG.
-- [ ] **Step 2: Rojo. Step 3: implementar** (medidas de la spec del GPS: círculos de 75, rótulo debajo, píldoras de 48). **Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes (web): la grilla de reportar, el galibo, la ficha y el "sigue ahi"`.
+- [x] **Step 1: Tests en rojo** — `seccionReportar()` tiene diez botones `data-accion="reportar"` con `data-tipo`; `hojaAportar()` los incluye antes de las seis categorías; `hojaGalibo` tiene las cinco pastillas (3,5 · 3,8 · 4,0 · 4,3 · 4,5) y "Otro"; `fichaReporte` muestra tipo, calle o "cerca de acá", "hace 12 min · 2 confirmaciones", `@alias` o `@anónimo`, los dos botones (`data-accion="voto"` con `data-veredicto`), *Cerrar reporte* sólo si es mío, "sin confirmar" cuando no está validado y es restricción, y "Tu camión no pasa" si es incompatible; `promptSigueAhi` tiene los dos botones y el id; cada calcomanía nueva devuelve SVG.
+- [x] **Step 2: Rojo. Step 3: implementar** (medidas de la spec del GPS: círculos de 75, rótulo debajo, píldoras de 48). **Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes (web): la grilla de reportar, el galibo, la ficha y el "sigue ahi"`.
 
 ### Task 21: La capa en el mapa
 
@@ -288,9 +288,9 @@
 - Modify: `src/TruckNavigator.Api/wwwroot/js/mapa/reportes.js` (`pinReporteSvg(calcomania, estado)`, `nombresDePinesDeReporte()`, `instalarReportes(map)`, `mostrarReportes(map, reportes)`, `CAPA_REPORTES = 'reporte-pin'`), `layers.js` (`GRUPOS.reporte = ['reporte-pin']`, visible por defecto), `map.js` (`export const showReports = (r) => mostrarReportes(map, r)`, `onReportTap(fn)`, `viewportBounds()`, instalación en `load`/`style.load` con la guardia `sigueVivo`), `mapa/capas.js` (cuadro "Reportes · comunidad"), `mapa/lugares.js` sólo si el pin fijo comparte el generador
 - Test: `tests/web/reportes.test.mjs`, `tests/web/capas.test.mjs` (+ caso)
 
-- [ ] **Step 1: Tests en rojo** — `pinReporteSvg` distingue los cinco estados (el rojo lleva `--gps-rojo`, el fijo no lleva borde de edad); `nombresDePinesDeReporte()` son 10 × 5; la hoja de capas lista "Reportes"; `mostrarReportes` con lista vacía no rompe con `map` nulo (la lección del 18/09).
-- [ ] **Step 2: Rojo. Step 3: implementar** con `styleimagemissing` como los lugares y los pines precalentados. **Step 4: Verde**, y en el navegador a 360 × 800 se ven tres pines de prueba (`showReports` desde la consola con `import('/js/map.js')`).
-- [ ] **Step 5: Commit** — `Reportes (web): pines por tipo y estado, y su cuadro en la hoja de capas`.
+- [x] **Step 1: Tests en rojo** — `pinReporteSvg` distingue los cinco estados (el rojo lleva `--gps-rojo`, el fijo no lleva borde de edad); `nombresDePinesDeReporte()` son 10 × 5; la hoja de capas lista "Reportes"; `mostrarReportes` con lista vacía no rompe con `map` nulo (la lección del 18/09).
+- [x] **Step 2: Rojo. Step 3: implementar** con `styleimagemissing` como los lugares y los pines precalentados. **Step 4: Verde**, y en el navegador a 360 × 800 se ven tres pines de prueba (`showReports` desde la consola con `import('/js/map.js')`).
+- [x] **Step 5: Commit** — `Reportes (web): pines por tipo y estado, y su cuadro en la hoja de capas`.
 
 ### Task 22: Los reportes avisan en la ruta
 
@@ -298,9 +298,9 @@
 - Modify: `src/TruckNavigator.Api/wwwroot/js/navigation.js` (`alertsAlongRoute(prepared, features, opciones)`: `features.reportes` con corredor 30 m, filtro de sentido con el rumbo del tramo de la ruta, `tipo: 'reporte'` + `subtipo`, `nombre`, `restriccion`, `validado`, `forYourTruck`; `speakableAlert` para reportes: "Accidente a 300 metros", "Calle cerrada reportada, sin confirmar", "Gálibo reportado de 3,80 metros: tu camión no pasa"), `mapa/viaje.js` (`textoDeAviso` para `reporte`), `platform.js` (`VIBRACION.reporte = [40, 60, 40]`, `VIBRACION.peligro = [120, 80, 120, 80, 120]`), `views/navigate.js` (la vibración elige `peligro` si `forYourTruck === 'incompatible'`)
 - Test: `tests/web/alerts.test.mjs`, `tests/web/viaje.test.mjs` (+ casos)
 
-- [ ] **Step 1: Tests en rojo** — un reporte a 10 m de la ruta entra, a 50 m no; con rumbo opuesto al tramo no entra, sin rumbo entra; el texto hablado de cada uno de los tres casos; la tarjeta dice "sin confirmar" en un cierre no validado; los dos patrones existen y son distintos de los cuatro que había.
-- [ ] **Step 2: Rojo. Step 3:** implementar; el rumbo del tramo con `bearing(points[i-1], points[i])`. **Step 4: Verde.**
-- [ ] **Step 5: Commit** — `Reportes (web): avisan en la ruta, en el sentido de marcha y con voz propia`.
+- [x] **Step 1: Tests en rojo** — un reporte a 10 m de la ruta entra, a 50 m no; con rumbo opuesto al tramo no entra, sin rumbo entra; el texto hablado de cada uno de los tres casos; la tarjeta dice "sin confirmar" en un cierre no validado; los dos patrones existen y son distintos de los cuatro que había.
+- [x] **Step 2: Rojo. Step 3:** implementar; el rumbo del tramo con `bearing(points[i-1], points[i])`. **Step 4: Verde.**
+- [x] **Step 5: Commit** — `Reportes (web): avisan en la ruta, en el sentido de marcha y con voz propia`.
 
 ### Task 23: `navigate.js` engancha
 
@@ -309,15 +309,15 @@
 - Modify: `app.css` (el botón en reposo y el prompt), `mapa/reposo.js` si el botón vive en el marcado de reposo
 - Test: lo puro ya está testeado; acá se verifica en el navegador
 
-- [ ] **Step 1:** en el navegador a 360 × 800 con la cuenta demo: reportar un accidente desde reposo (con `TN_setPosition` en Palermo) → aparece el pin y el toast; volver a reportar a los 5 s → toast con la espera; un segundo del mismo tipo desde otra cuenta a 50 m → ofrece *Sigue ahí*; abrir la ficha, votar, ver el conteo; arrancar un viaje que pasa por el reporte → tarjeta, voz y vibración en el log; el prompt aparece al alejarse. Sin errores en consola.
-- [ ] **Step 2:** revisar que los `wire` de botones de un solo modo lleven `?` (la lección del 18/09), y que `desmontarViaje` apague el temporizador del prompt y el de los 60 s.
-- [ ] **Step 3: Commit** — `Reportes (web): un toque reporta en tu posicion, la ficha vota y el viaje pregunta si sigue ahi`.
+- [x] **Step 1:** en el navegador a 360 × 800 con la cuenta demo: reportar un accidente desde reposo (con `TN_setPosition` en Palermo) → aparece el pin y el toast; volver a reportar a los 5 s → toast con la espera; un segundo del mismo tipo desde otra cuenta a 50 m → ofrece *Sigue ahí*; abrir la ficha, votar, ver el conteo; arrancar un viaje que pasa por el reporte → tarjeta, voz y vibración en el log; el prompt aparece al alejarse. Sin errores en consola.
+- [x] **Step 2:** revisar que los `wire` de botones de un solo modo lleven `?` (la lección del 18/09), y que `desmontarViaje` apague el temporizador del prompt y el de los 60 s.
+- [x] **Step 3: Commit** — `Reportes (web): un toque reporta en tu posicion, la ficha vota y el viaje pregunta si sigue ahi`.
 
 ### Task 24: El pin rojo y la ruta que esquiva, de punta a punta
 
-- [ ] **Step 1:** con GraphHopper y la API levantados: dos cuentas validan un gálibo de 3,8 sobre una calle; con el camión de 4,1 el `GET` lo devuelve `incompatible`, el pin sale rojo, y una ruta por esa calle **la esquiva**; con el de 3,6 pasa. Un cierre sin validar: aviso "sin confirmar" y la ruta no cambia.
-- [ ] **Step 2:** anotar en el plan lo que apareció; **no** mezclar arreglos con mejoras.
-- [ ] **Step 3: Commit** (si hubo arreglos, uno por arreglo, cada uno con su test en rojo primero).
+- [x] **Step 1:** con GraphHopper y la API levantados: dos cuentas validan un gálibo de 3,8 sobre una calle; con el camión de 4,1 el `GET` lo devuelve `incompatible`, el pin sale rojo, y una ruta por esa calle **la esquiva**; con el de 3,6 pasa. Un cierre sin validar: aviso "sin confirmar" y la ruta no cambia.
+- [x] **Step 2:** anotar en el plan lo que apareció; **no** mezclar arreglos con mejoras. *Apareció:* nada que arreglar. Medido el 19/09 con tres cuentas: antes de validar, El Rayo (4,2 m) ve el gálibo `incompatible` y la ruta pasa a 0 m de él (11.524 m); con dos confirmaciones queda `Validated` (score 75) y la ruta pasa a 1.771 m (6.875 m); el Camión pesado (3,8 m) lo ve `compatible` y su ruta no cambia. El pin sale rojo y la ficha dice "Tu camión no pasa · Confirmado: la ruta lo esquiva". Un detalle de simulación, no de la app: con saltos de 150 m por latido, dos avisos que cruzan su umbral en el mismo latido pierden uno (`pendingRouteAlert` avisa del más cercano); con pasos de 25 m —lo que hace un GPS real— salen los dos.
+- [x] **Step 3: Commit** (si hubo arreglos, uno por arreglo, cada uno con su test en rojo primero).
 
 ---
 
