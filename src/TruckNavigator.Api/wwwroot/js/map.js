@@ -10,6 +10,7 @@ import { installTruckLayers, setLayerGroupVisible, applyLayerGroups, setCrossing
 import { registerPmtilesProtocol, buildBasemapStyle } from './mapa/estilo-mapa.js';
 import { calcomania } from './mapa/piezas.js';
 import { instalarLugares, mostrarLugares, CAPA_LUGARES } from './mapa/lugares.js';
+import { instalarReportes, mostrarReportes, CAPA_REPORTES } from './mapa/reportes.js';
 import { currentApiBase } from './api.js';
 
 const CABA_CENTER = [-58.4370, -34.6083];
@@ -159,6 +160,7 @@ export function createMap(container, handlers = {}) {
     await installTruckLayers(map);
     if (!sigueVivo()) return;
     instalarLugares(map);
+    instalarReportes(map);
     handlers.onReady?.();
   });
 
@@ -178,6 +180,7 @@ export function createMap(container, handlers = {}) {
     await installTruckLayers(map);
     if (!sigueVivo()) return;
     instalarLugares(map);
+    instalarReportes(map);
   });
 
   installLongPress();
@@ -1132,6 +1135,33 @@ export function showPlaces(pois) {
   mostrarLugares(map, pois);
 }
 
+/** Los reportes de la comunidad sobre el mapa, como pines. Misma espera que los lugares. */
+export function showReports(reportes) {
+  if (!map) return;
+
+  if (!map.isStyleLoaded()) {
+    map.once('idle', () => showReports(reportes));
+    return;
+  }
+
+  instalarReportes(map);
+  mostrarReportes(map, reportes);
+}
+
+/** Los limites de lo que se ve, para pedir los reportes del recuadro. Null sin mapa. */
+export function viewportBounds() {
+  return map?.getBounds() ?? null;
+}
+
+/** Un oyente de 'idle' del mapa (el mapa quedo quieto). Devuelve como sacarlo. */
+export function onIdle(fn) {
+  if (!map) return () => {};
+
+  const propio = map;
+  propio.on('idle', fn);
+  return () => propio.off('idle', fn);
+}
+
 /**
  * Que hay en un punto del mapa, de nuestras capas.
  *
@@ -1145,7 +1175,7 @@ export function featureAt(point) {
   // riesgo cubre 250 m por lado, asi que cualquier toque adentro de una tambien
   // le pega a la zona. Si ganara la zona, un puente bajo parado encima de ella
   // dejaria de poder consultarse. Primero lo puntual, la zona al final.
-  const orden = [CAPA_LUGARES, 'altura-senal', 'paso-senal', 'radar-punto', 'zona-riesgo-senal', 'zona-riesgo'];
+  const orden = [CAPA_REPORTES, CAPA_LUGARES, 'altura-senal', 'paso-senal', 'radar-punto', 'zona-riesgo-senal', 'zona-riesgo'];
 
   for (const id of orden) {
     if (!map.getLayer(id)) continue;

@@ -20,7 +20,8 @@ export const CAPAS_DEL_CAMION = [
   { id: 'galibo', calcomania: 'galiboOk', nombre: 'Gálibos' },
   { id: 'paso', calcomania: 'paso', nombre: 'Pasos a nivel', nota: 'sólo en viaje' },
   { id: 'radar', calcomania: 'radar', nombre: 'Radares' },
-  { id: 'zona', calcomania: 'zona', nombre: 'Zonas peligrosas', nota: 'comunidad' }
+  { id: 'zona', calcomania: 'zona', nombre: 'Zonas peligrosas', nota: 'comunidad' },
+  { id: 'reporte', calcomania: 'peligro', nombre: 'Reportes', nota: 'comunidad' }
 ];
 
 /**
@@ -32,7 +33,8 @@ export const CAPAS_DEL_CAMION = [
  * se toque una capa por separado.
  */
 export function capasActivas(prefs = {}) {
-  const defecto = { red: true, galibo: true, paso: true, radar: true, zona: false };
+  // Los reportes arrancan prendidos: son lo que hay ahora en la calle.
+  const defecto = { red: true, galibo: true, paso: true, radar: true, zona: false, reporte: true };
 
   if (prefs.capas) return { ...defecto, ...prefs.capas };
 

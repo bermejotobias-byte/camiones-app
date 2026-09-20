@@ -32,11 +32,12 @@ const GRUPOS = {
   galibo: ['altura-senal'],
   paso: ['paso-senal'],
   radar: ['radar-punto'],
-  zona: ['zona-riesgo-calor', 'zona-riesgo', 'zona-riesgo-senal']
+  zona: ['zona-riesgo-calor', 'zona-riesgo', 'zona-riesgo-senal'],
+  reporte: ['reporte-pin']
 };
 
 /** Lo ultimo que se pidio para cada grupo: se vuelve a aplicar al reinstalar. */
-const visibles = { red: true, galibo: true, paso: true, radar: true, zona: false };
+const visibles = { red: true, galibo: true, paso: true, radar: true, zona: false, reporte: true };
 let navigating = false;
 
 function aplicarGrupo(map, grupo) {

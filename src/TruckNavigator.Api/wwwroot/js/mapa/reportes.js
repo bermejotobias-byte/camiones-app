@@ -9,7 +9,7 @@
  * que la API ya decidió (`reliability`, `validated`, `forYourTruck`).
  */
 
-import { calcomania, dibujo, pildora } from './piezas.js';
+import { CALCOMANIAS, calcomania, dibujo, pildora } from './piezas.js';
 
 /* ---------------------------------------------------------------------------
    El catálogo, como lo ve la app
@@ -282,4 +282,113 @@ export function promptSigueAhi(r) {
       ${pildora('Ya no está', { datos: 'data-accion="sigue" data-veredicto="Gone"' })}
     </div>
   </div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   Los pines y la capa en MapLibre
+
+   El mismo pin de 32 x 38 de los lugares, con el anillo por estado: gris
+   nuevo, blanco confirmado, punteado en duda, rojo lo que a tu camión no le
+   sirve, y celeste la cámara fija, que ya es dato de la app. Las imágenes se
+   piden por `styleimagemissing` y se precalientan, como los lugares.
+--------------------------------------------------------------------------- */
+
+const ANILLO_REPORTE = { nuevo: '#8b949e', confirmado: '#ffffff', duda: '#8b949e', rojo: '#e9463f', fijo: '#32ccfe' };
+const ESTADOS_REPORTE = ['nuevo', 'confirmado', 'duda', 'rojo', 'fijo'];
+
+const PIN_ANCHO = 32;
+const PIN_ALTO = 38;
+
+/** El pin de un reporte, como SVG al doble para pantallas densas. Sin calcomanía, nada. */
+export function pinReporteSvg(nombreCalcomania, estado) {
+  const inner = CALCOMANIAS[nombreCalcomania];
+  if (!inner) return '';
+
+  const anillo = ANILLO_REPORTE[estado] ?? ANILLO_REPORTE.nuevo;
+  const trazo = estado === 'duda' ? ' stroke-dasharray="4 3"' : '';
+  const disco = estado === 'rojo' ? '#3a1416' : '#2b3035';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${PIN_ANCHO * 2}" height="${PIN_ALTO * 2}" viewBox="0 0 ${PIN_ANCHO} ${PIN_ALTO}">` +
+    `<path d="M11 28l5 9 5-9z" fill="${anillo}"/>` +
+    `<circle cx="16" cy="16" r="15.6" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1"/>` +
+    `<circle cx="16" cy="16" r="14.5" fill="${disco}" stroke="${anillo}" stroke-width="3"${trazo}/>` +
+    `<svg x="7" y="7" width="18" height="18" viewBox="0 0 32 32" overflow="visible">${inner}</svg>` +
+    '</svg>';
+}
+
+/** Todas las imágenes que la capa puede pedir: un pin por tipo y estado. */
+export function nombresDePinesDeReporte() {
+  return TIPOS.flatMap((t) => ESTADOS_REPORTE.map((estado) => nombreDelPin(t.tipo, estado)));
+}
+
+export const CAPA_REPORTES = 'reporte-pin';
+const FUENTE_REPORTES = 'reportes';
+
+const pendientes = new Set();
+const escuchando = new WeakSet();
+
+function registrarImagen(map, nombre, svg) {
+  if (!svg || map.hasImage(nombre) || pendientes.has(nombre)) return;
+  pendientes.add(nombre);
+
+  const img = new Image();
+  img.onload = () => {
+    pendientes.delete(nombre);
+    if (!map.hasImage(nombre)) map.addImage(nombre, img, { pixelRatio: 2 });
+  };
+  img.onerror = () => pendientes.delete(nombre);
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+function pedirImagen(map, id) {
+  const partes = /^reporte-([a-z]+)-(nuevo|confirmado|duda|rojo|fijo)$/i.exec(id);
+  if (!partes) return;
+
+  const tipo = TIPOS.find((t) => t.id === partes[1]);
+  if (tipo) registrarImagen(map, id, pinReporteSvg(tipo.calcomania, partes[2]));
+}
+
+/**
+ * Deja la fuente y la capa listas, vacías. Idempotente: al cambiar de estilo
+ * las capas se pierden y map.js las vuelve a instalar. Sin mapa no hace nada:
+ * el mapa destruido sigue disparando eventos (medido el 18/09/2026).
+ */
+export function instalarReportes(map) {
+  if (!map) return;
+
+  if (!escuchando.has(map)) {
+    escuchando.add(map);
+    map.on('styleimagemissing', ({ id }) => pedirImagen(map, id));
+  }
+
+  for (const id of nombresDePinesDeReporte()) pedirImagen(map, id);
+
+  if (map.getSource(FUENTE_REPORTES)) return;
+
+  map.addSource(FUENTE_REPORTES, { type: 'geojson', data: featuresDeReportes([]) });
+
+  map.addLayer({
+    id: CAPA_REPORTES,
+    // Un reporte importa desde más lejos que un lugar: desde el zoom en que se
+    // ve el barrio, para que el accidente de la avenida se vea antes de llegar.
+    minzoom: 12,
+    type: 'symbol',
+    source: FUENTE_REPORTES,
+    layout: {
+      'icon-image': ['get', 'pin'],
+      'icon-size': 1,
+      'icon-anchor': 'bottom',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true
+    },
+    paint: {
+      // Lo que está en duda se ve, pero apagado.
+      'icon-opacity': ['match', ['get', 'estado'], 'duda', 0.7, 1]
+    }
+  });
+}
+
+/** Pone estos reportes en el mapa (o ninguno). */
+export function mostrarReportes(map, reportes) {
+  map?.getSource?.(FUENTE_REPORTES)?.setData(featuresDeReportes(reportes));
 }

@@ -11,23 +11,24 @@ import assert from 'node:assert/strict';
 
 import { CAPAS_DEL_CAMION, capasActivas, textoDeSoloAptos, hojaCapas } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/capas.js';
 
-test('las cinco capas del camión, con su calcomanía; los pasos a nivel y las zonas llevan nota', () => {
-  assert.deepEqual(CAPAS_DEL_CAMION.map((c) => c.id), ['red', 'galibo', 'paso', 'radar', 'zona']);
+test('las seis capas del camión, con su calcomanía; los pasos a nivel, las zonas y los reportes llevan nota', () => {
+  assert.deepEqual(CAPAS_DEL_CAMION.map((c) => c.id), ['red', 'galibo', 'paso', 'radar', 'zona', 'reporte']);
   for (const c of CAPAS_DEL_CAMION) assert.ok(c.calcomania && c.nombre, c.id);
   assert.equal(CAPAS_DEL_CAMION.find((c) => c.id === 'paso').nota, 'sólo en viaje');
   assert.equal(CAPAS_DEL_CAMION.find((c) => c.id === 'zona').nota, 'comunidad');
+  assert.equal(CAPAS_DEL_CAMION.find((c) => c.id === 'reporte').nota, 'comunidad');
 });
 
-test('sin nada guardado: todo prendido salvo las zonas peligrosas, que arrancan apagadas', () => {
-  assert.deepEqual(capasActivas({}), { red: true, galibo: true, paso: true, radar: true, zona: false });
+test('sin nada guardado: todo prendido salvo las zonas peligrosas, que arrancan apagadas; los reportes prendidos', () => {
+  assert.deepEqual(capasActivas({}), { red: true, galibo: true, paso: true, radar: true, zona: false, reporte: true });
 });
 
 test('lo guardado con los dos botones viejos se respeta: capas de camión apagadas, zonas prendidas', () => {
-  assert.deepEqual(capasActivas({ truckLayers: false, riskZones: true }), { red: false, galibo: false, paso: false, radar: true, zona: true });
+  assert.deepEqual(capasActivas({ truckLayers: false, riskZones: true }), { red: false, galibo: false, paso: false, radar: true, zona: true, reporte: true });
 });
 
 test('lo guardado por capa manda sobre lo viejo, y lo que falta cae en el defecto', () => {
-  assert.deepEqual(capasActivas({ truckLayers: false, capas: { red: true, zona: true } }), { red: true, galibo: true, paso: true, radar: true, zona: true });
+  assert.deepEqual(capasActivas({ truckLayers: false, capas: { red: true, zona: true } }), { red: true, galibo: true, paso: true, radar: true, zona: true, reporte: true });
 });
 
 test('el interruptor dice para qué camión y cuántos lugares oculta', () => {
@@ -48,7 +49,8 @@ test('la hoja: un cuadro por capa y por categoría, el prendido marcado, el inte
   });
 
   const cuadros = html.match(/data-accion="capa" data-id="[a-z]+"/g);
-  assert.equal(cuadros.length, 5);
+  assert.equal(cuadros.length, 6);
+  assert.ok(html.includes('data-accion="capa" data-id="reporte"'));
   assert.equal((html.match(/data-accion="categoria" data-id="[a-z]+"/g) ?? []).length, 6);
 
   const red = html.match(/<button[^>]*data-id="red"[^>]*>/)[0];

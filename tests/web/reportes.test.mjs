@@ -12,7 +12,8 @@ import assert from 'node:assert/strict';
 import {
   TIPOS, tipoDeReporte, etiquetaEdad, mismoSentido, estadoDelPin, featuresDeReportes,
   textoDelToast, deberiaPreguntar, bboxDeRuta, bboxVisible,
-  seccionReportar, hojaGalibo, fichaReporte, promptSigueAhi
+  seccionReportar, hojaGalibo, fichaReporte, promptSigueAhi,
+  pinReporteSvg, nombresDePinesDeReporte, instalarReportes, mostrarReportes, CAPA_REPORTES
 } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/reportes.js';
 
 const ahora = Date.parse('2026-09-19T15:00:00-03:00');
@@ -223,6 +224,49 @@ test('la ficha marca el voto propio y una cámara fija no tiene edad', () => {
   const fija = fichaReporte(reporte({ type: 'Camera', fixed: true, status: 'Fixed', createdAt: '2026-09-01T09:00:00-03:00' }), { ahora });
   assert.ok(!fija.includes('hace '));
   assert.ok(fija.includes('Cámara fija'));
+});
+
+/* ---------------------------------------------------------------------------
+   Los pines y la capa en MapLibre
+--------------------------------------------------------------------------- */
+
+test('un pin por tipo y estado: el rojo lleva el rojo del GPS, el fijo no lleva anillo de edad', () => {
+  const nuevo = pinReporteSvg('accidente', 'nuevo');
+  const rojo = pinReporteSvg('galiboReporte', 'rojo');
+  const fijo = pinReporteSvg('camaraComunidad', 'fijo');
+
+  assert.match(nuevo, /^<svg/);
+  // El anillo del disco (stroke de 3) es lo que cambia; la calcomanía puede ser roja de por sí.
+  assert.ok(rojo.includes('stroke="#e9463f" stroke-width="3"'));
+  assert.ok(!nuevo.includes('stroke="#e9463f" stroke-width="3"'));
+  assert.notEqual(fijo, pinReporteSvg('camaraComunidad', 'confirmado'));
+  assert.equal(pinReporteSvg('inexistente', 'nuevo'), '');
+});
+
+test('las imágenes que la capa puede pedir: diez tipos por cinco estados', () => {
+  const nombres = nombresDePinesDeReporte();
+
+  assert.equal(nombres.length, 50);
+  assert.ok(nombres.includes('reporte-accidente-nuevo'));
+  assert.ok(nombres.includes('reporte-galibo-rojo'));
+  assert.ok(nombres.includes('reporte-camara-fijo'));
+  assert.equal(new Set(nombres).size, 50);
+});
+
+test('instalar y mostrar sin mapa no rompen: el mapa destruido sigue disparando eventos', () => {
+  instalarReportes(null);
+  mostrarReportes(null, []);
+  mostrarReportes(undefined, null);
+});
+
+test('mostrar sobre un mapa de mentira le pasa la capa a la fuente', () => {
+  let recibido = null;
+  const map = { getSource: () => ({ setData: (d) => { recibido = d; } }) };
+
+  mostrarReportes(map, [reporte()]);
+
+  assert.equal(recibido.features.length, 1);
+  assert.equal(recibido.features[0].properties.pin, 'reporte-accidente-nuevo');
 });
 
 test('el "¿sigue ahí?" son dos botones grandes con el id del reporte', () => {
