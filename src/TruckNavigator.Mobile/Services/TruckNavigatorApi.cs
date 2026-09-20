@@ -15,7 +15,7 @@ public sealed class TruckNavigatorApi(HttpClient httpClient)
     /// <summary>
     /// Backend con el que sale el build. Se cambia acá al mover el servidor.
     /// </summary>
-    public const string DefaultBaseUrl = "http://192.168.1.52:5080";
+    public const string DefaultBaseUrl = "http://192.168.100.106:5080";
 
     /// <summary>
     /// URL del backend.
