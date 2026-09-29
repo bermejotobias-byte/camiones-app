@@ -387,7 +387,7 @@ aplicación. Criterio propio, no del documento.
 | | Ítem |
 |---|---|
 | ⬜ | Clave de firma de distribución, con copia de respaldo (AD-35) |
-| ⬜ | Límite de tasa en la API — hoy no existe, y distribuir la app lo vuelve urgente |
+| ✅ | **Límite de tasa en la API** — hecho el 29/09/2026 (AD-50), porque hostear la app lo volvió urgente. Seis canastas con su número (cuentas 10 por minuto y 30 por hora, búsqueda 40, ruteo 20, reparto 6, escritura 40, lectura 300), contra el camionero cuando hay sesión y contra la IP cuando no. El número de lectura salió de medir la app arrastrando el mapa: 37 pedidos por minuto de pico real |
 
 ---
 

@@ -3041,3 +3041,85 @@ nadie pueda farmear; y protección básica contra el abuso.
   valida en viaje (avisa, no recalcula); reputación de los votantes; reportar
   desde un punto arbitrario; moderación, fotos, comentarios; que un gálibo o
   una calle cerrada pasen al dataset verificado.
+
+## AD-50 · Límite de tasa: una canasta por tipo de pedido, la lectura medida y no adivinada
+
+**Fecha:** 29/09/2026
+**Estado:** aceptada.
+
+### El problema
+
+La API no tenía ningún límite de tasa, y estaba anotado como transversal
+"urgente cuando se distribuya". Ese día llegó: la app se va a hostear con una
+URL pública. Sin límite, cualquiera puede intentar contraseñas sin parar, dar
+de alta cuentas de a cientos —cada una manda un mail—, o hacer que el servidor
+calcule rutas de camión hasta que no quede CPU. El `ReportAbuseGuard` de la
+Fase 5 pone cooldowns **por camionero** dentro del dominio, que es otra capa:
+no sabe nada de un cliente sin cuenta ni del volumen crudo de pedidos.
+
+### Decisiones
+
+- **Una canasta por tipo de pedido, no un número global.** Seis: cuentas,
+  búsqueda, ruteo, reparto, escritura y lectura. Lo que cuesta cada pedido es
+  distinto —buscar una dirección sale de Photon, que es de terceros; ordenar un
+  reparto es una matriz de distancias reales— y, sobre todo, **quien abusa de
+  una cosa tiene que seguir usando las demás**: hay un test que dice que
+  quemar la canasta de ruteo no te deja sin mapa.
+- **La decisión es una función pura, no un atributo por endpoint**
+  (`RateLimitPlan.BucketFor`). Así se fija entera con tests, y un endpoint
+  nuevo no queda sin límite por olvidarse del atributo: lo que nadie clasificó
+  cae en leer o escribir según el método.
+- **El número de lectura se midió.** Arrastrando el mapa cada 1,1 s —el peor
+  caso de alguien buscando— la app manda **37 pedidos por minuto**; el techo
+  que impone el debounce de un segundo es 57. La canasta quedó en **300**, ocho
+  veces el pico real. Una canasta apretada no frena a un abusador: le rompe el
+  mapa a un camionero. Medido el 29/09/2026 en el navegador a 375 × 812, y el
+  número está fijado por un test que cita la medición.
+- **La lectura va como balde de fichas y no como ventana fija.** El mapa pide
+  de a ráfagas; un balde de 300 que se rellena de a 5 por segundo aguanta la
+  ráfaga y, cuando alguien lo vacía con un script, lo deja en cinco por segundo
+  en vez de dejarlo afuera del todo.
+- **Las cuentas tienen dos límites en cadena**: 10 por minuto y 30 por hora.
+  Sin el de la hora, diez por minuto son seiscientas en una tarde.
+- **Con sesión se cuenta contra el camionero; sin sesión, contra la IP.** Un
+  camión pasa del wifi del depósito a los datos del teléfono en medio de un
+  viaje: con la IP como clave, el límite se le reiniciaría solo. Por eso
+  `UseRateLimiter` va **después** de `UseAuthentication`.
+- **Detrás del proxy se le cree a la ÚLTIMA entrada de `X-Forwarded-For`.**
+  Caddy agrega la dirección que ve al final de lo que ya venía, así que un
+  cliente que manda su propia cabecera queda a la izquierda: creerle a la
+  primera entrada sería dejar que cualquiera elija su canasta. Y sin proxy
+  adelante la cabecera **se ignora entera**, porque ahí la escribe cualquiera:
+  eso lo decide `RateLimit:TrustForwardedFor`, que viene apagado y se prende
+  sólo en el servidor.
+- **Lo que no es `/api` no se mide.** Los tiles del mapa base son cientos de
+  pedidos de rango por pantalla; frenarlos sería romper el mapa para cuidar
+  algo que no cuesta nada. Es trabajo del proxy. `/api/health` tampoco se mide,
+  porque es lo que mira un monitor.
+- **El 429 tiene la misma forma que el del abuso de reportes**:
+  `application/problem+json`, `Retry-After`, `retryAfterSeconds` y un `detail`
+  que la app muestra tal cual — `api.js` no necesitó un solo cambio. La espera
+  se dice como **techo** ("esperá hasta N segundos"): medido, la ventana fija
+  de .NET informa el minuto entero y no lo que falta, y prometer 60 cuando
+  quedan cinco es mentirle al que espera.
+- **Un número en cero corta el arranque.** Cero no apaga el límite: lo pone en
+  "nadie pasa". Si eso entra por la configuración del servidor hay que
+  enterarse al arrancar, no cuando el primer camionero no puede entrar. Para
+  apagarlo está `RateLimit:Enabled`, que además queda apagado en Development.
+
+### Consecuencias
+
+- Tres archivos en `Api/RateLimiting/` y tres líneas en `Program.cs`. **70
+  tests nuevos** (678 en total), todos los números con nombre y fijados por
+  test.
+- Verificado con la API levantada el 29/09/2026: diez intentos de ingreso y el
+  once vuelve 429 con `Retry-After: 60`; a los 65 s la ventana da la vuelta y
+  vuelve el 401; una cabecera `X-Forwarded-For` falsa no cambia de canasta;
+  `/api/health` aguanta cincuenta seguidos; un script de lectura corta en el
+  pedido 324 (300 más lo que se rellenó mientras corría) y después queda en
+  cinco por segundo; y **la app, con el límite prendido, no recibió un solo 429
+  ni arrancando ni con 35 s de arrastre bruto del mapa**.
+- Lo que no resuelve: un ataque distribuido desde muchas direcciones —eso es
+  del proxy—, y el límite vive en la memoria del proceso, así que con más de
+  una instancia cada una cuenta la suya. Con una sola VM alcanza; el día que
+  haya dos, la cuenta va a un Redis.

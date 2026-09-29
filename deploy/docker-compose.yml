@@ -46,6 +46,13 @@ services:
       # avisar: Directory.Exists devuelve false y no se loguea nada.
       Basemap__Directory: /tiles
 
+      # Aca adelante hay un proxy, asi que la IP del pedido viene en
+      # X-Forwarded-For y no en la conexion: sin esto, el limite de tasa mete a
+      # todos los camioneros sin sesion en la misma canasta y el primer abusador
+      # deja afuera al resto. Se prende SOLO en esta topologia — con la API
+      # expuesta directo, la cabecera la escribe cualquiera. Ver AD-50.
+      RateLimit__TrustForwardedFor: "true"
+
     # SMTP y dominio. El backend NO arranca en Production sin SMTP configurado, y
     # es a proposito: sin envio de mail los enlaces de verificacion terminan en
     # el log y cualquiera que lo lea podria activar cuentas ajenas.

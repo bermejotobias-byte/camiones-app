@@ -25,8 +25,10 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 19/09/2026: los reportes de la comunidad (Fase 5), construidos en
-25 tareas con TDD, verificados de punta a punta en el navegador y por HTTP, sin
+**Punta al 29/09/2026: el límite de tasa de la API** (AD-50), lo último que
+faltaba de lo transversal antes de hostear. Antes, **al 19/09/2026: los
+reportes de la comunidad (Fase 5)**, construidos en 25 tareas con TDD,
+verificados de punta a punta en el navegador y por HTTP. **Todo eso sigue sin
 pushear** (ver §8, punto 0). Antes, **al 18/09/2026: el GPS con la piel de
 Waze**, completo, pusheado y probado en el teléfono. Antes, **al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; doce
 commits desde la spec `5298239`, uno por tarea), **sin pushear**. Antes, ese
@@ -111,7 +113,7 @@ Prioridad declarada:
 | **5 · Reportes de comunidad** | 🔨 **Construida el 19/09/2026** (AD-49): diez tipos en un toque desde la posición GPS, *sigue ahí / ya no está*, confiabilidad y vencimiento, la cámara y el lugar aportado que se vuelven fijos con 5, los cierres y gálibos validados que esquivan la ruta, EXP separada de reputación, cooldowns. **Falta probarla en el teléfono** y quedan la lista de reportes propios y pintar el tramo en rojo |
 | **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Falta lo que se apoya en él: **las pantallas**, el avatar combinable, la batería y los juegos |
 | **7 · Cáscara, entrada e idiomas** | 🔨 **El zócalo está** (12/09). Quedan intro → idioma → condiciones → acceso y el modo invitado. Ver `producto-camiones-app` |
-| **Transversal** | ⬜ i18n (la pantalla existe, **sólo español** por decisión) · clave de firma de distribución · **límite de tasa en la API** |
+| **Transversal** | ⬜ i18n (la pantalla existe, **sólo español** por decisión) · clave de firma de distribución. **El límite de tasa se hizo el 29/09/2026** (AD-50) |
 | **Despliegue** | 🔨 Escrito y commiteado, **nunca ejecutado**: falta cupo de A1 en Oracle, el release del mapa base, SMTP y DuckDNS |
 
 **El 31/08/2026 el usuario sumó un segundo brainstorm** (*"IDEAS PARA TBF 2.0"*)
@@ -400,6 +402,34 @@ misma lección de las cinco fallas de la costura nativa-web, en una frontera nue
 repetida en su **rastreador en memoria** y tira `InvalidOperationException` antes
 de tocar la base. Para probar que el esquema lo impide hay que
 `ChangeTracker.Clear()` primero, y entonces sí llega el `DbUpdateException`.
+
+### El límite de tasa de la API — 29/09/2026
+
+**678 tests .NET (427 unitarios + 251 de integración) y 224 de JS**, todo verde;
+venían de 608. El porqué en **AD-50**, el cómo hostearlo en `docs/deploy.md`.
+Tres archivos en `Api/RateLimiting/` y tres líneas en `Program.cs`.
+
+**Lo que hay que recordar de esta sesión:**
+
+- **El número de lectura se midió.** Con el panel del navegador escondido el
+  mapa no arranca (`requestAnimationFrame` congelado → el estilo nunca carga →
+  `onReady` nunca corre → no hay oyente de `idle` y la app no pide nada). Con el
+  arreglo de rAF y `setStyle`, medido a 375 × 812: arrastrando cada 1,1 s la app
+  manda **37 pedidos por minuto**; arrastre continuo sin soltar, 14; bombeando el
+  zoom, 28; el arranque son 9 pedidos de una. El techo del debounce de 1 s es 57.
+  Por eso la canasta quedó en 300 y **con el límite prendido la app no recibió un
+  solo 429** ni arrancando ni con 35 s de arrastre bruto.
+- **Encontrado midiendo:** con el servidor caído, la app repite
+  `GET /api/reports` **una vez por segundo para siempre** — los tiles fallan, eso
+  mantiene al mapa disparando `idle`, y el único freno es el debounce. No es
+  abuso, es la app sin espera creciente. Queda como tarea aparte.
+- **`Retry-After` de una ventana fija de .NET informa la ventana entera**, no lo
+  que falta: medido, dice 60 a los 20 s de haber cortado. Por eso el mensaje dice
+  "esperá **hasta** N segundos" y no promete un número exacto.
+- Verificado con la API levantada: 10 intentos de ingreso y el 11 vuelve 429; a
+  los 65 s la ventana da la vuelta; una cabecera `X-Forwarded-For` falsa **no**
+  cambia de canasta; `/api/health` aguanta 50 seguidos; y un script de lectura
+  corta en el pedido 324 y después queda en cinco por segundo.
 
 ### Los reportes de la comunidad — 19/09/2026
 
@@ -1163,7 +1193,7 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 ```powershell
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
-dotnet test                              # 608 tests (.NET)
+dotnet test                              # 678 tests (.NET)
 node --test "tests/web/*.test.mjs"       # 224 tests de JS — correr desde bash
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
@@ -1223,9 +1253,39 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-### 0. HECHOS, SIN PUSHEAR Y SIN TELÉFONO — los reportes de la comunidad (19/09/2026)
+### 0. EL FRENTE VIVO — hostear la app (29/09/2026)
 
-**Es el frente vivo.** El usuario pidió la Fase 5 el 19/09/2026 con un brief
+El usuario está poniendo la app a andar fuera de la red local "en estos días",
+así que **el test en calle y lo de Oracle quedaron explícitamente fuera de la
+conversación** (29/09/2026). El límite de tasa, que era lo transversal que
+faltaba, se hizo ese día (AD-50, ver §4).
+
+**Lo que el pipeline va a pedir, medido el 29/09/2026 y en este orden:**
+
+1. **Pushear.** El workflow dispara con `push` a `main` *o* a
+   `cuentas-de-usuario` (ese segundo trigger está ahí a propósito porque `main`
+   quedó atrás). Sin push no se construye ninguna imagen. Al 29/09 son **38
+   commits sin pushear** (39 con el de documentación); push sólo si lo pide.
+2. **El release `mapa-base-amba` no existe todavía** (`gh release list` no
+   devuelve nada) y el workflow **corta** si no encuentra `amba.pmtiles` como
+   asset de ese tag. El archivo está en disco: `routing/amba.pmtiles`, 55,8 MB.
+3. **SMTP**: en `Production` el backend no arranca sin la sección `Email`, y
+   `DevUserSeed` no corre fuera de Development, así que **`demo@camiones.test`
+   no va a existir** — la cuenta del usuario hay que registrarla de verdad. El
+   proveedor es una decisión suya.
+4. **La clave de firma es de desarrollo.** Para repartir el APK va una propia
+   con respaldo (AD-35).
+
+Lo que sí está bien: el `config-truck.yml` **commiteado** apunta a
+`amba-latest.osm.pbf` y el workflow lo verifica; el cambio local nunca se coló.
+
+**Y un efecto secundario que importa:** con un dominio fijo, probar en el
+teléfono deja de depender de en qué red está la máquina — que es lo que hizo
+que el APK del 19/09 nunca se instalara.
+
+### HECHOS, SIN PUSHEAR Y SIN TELÉFONO — los reportes de la comunidad (19/09/2026)
+
+**Fue el frente vivo hasta el hosteo.** El usuario pidió la Fase 5 el 19/09/2026 con un brief
 largo (Waze en lógica, no en diseño), eligió inline con revisión entre tareas,
 y decidió: **sólo en la posición GPS**, sin *vehículo detenido* ni *límite de
 peso*, **la cámara muy confirmada es fija (+5) y lo mismo gradúa un lugar

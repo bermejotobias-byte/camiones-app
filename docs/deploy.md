@@ -176,8 +176,10 @@ embebidos en cada arranque, y respeta lo que haya cargado el usuario. Ver
 
 ## Lo que este deploy no resuelve
 
-- **No hay autenticación.** La API queda abierta a quien conozca la URL. Para una
-  demo está bien; para algo público hace falta al menos una API key.
+- **Leer es anónimo a propósito** —el mapa, los lugares y los reportes se ven sin
+  cuenta—, pero escribir pide sesión desde que existen las cuentas, y desde el
+  29/09/2026 hay **límite de tasa** (ver abajo). Lo que sigue sin resolver es un
+  ataque distribuido desde muchas direcciones: eso lo tiene que cortar el proxy.
 - **Los tiles siguen saliendo de `tile.openstreetmap.org`**, cuya política de uso
   desaconseja el consumo desde aplicaciones. Ver L-4 en
   [data-sources.md](data-sources.md).
@@ -187,6 +189,35 @@ embebidos en cada arranque, y respeta lo que haya cargado el usuario. Ver
 - **Fuera del AMBA no hay ruteo**, por el recorte del grafo. Es deliberado y
   reversible: apuntar `datareader.file` de vuelta a `argentina-latest.osm.pbf`,
   borrar `graph-cache` y ampliar el recorte del geocoder.
+
+## Límite de tasa
+
+Viene **prendido** en `Production` y apagado en `Development`. Son seis canastas
+—cuentas, búsqueda, ruteo, reparto, escritura y lectura— con su propio número, y
+se cuentan contra el camionero cuando hay sesión o contra la dirección cuando no.
+El porqué de cada número está en **AD-50**; el de lectura salió de medir la app
+arrastrando el mapa, no de una corazonada.
+
+Lo único que hay que saber para hostearlo:
+
+- **`RateLimit__TrustForwardedFor` tiene que estar en `true` detrás del proxy**, y
+  ya viene así en `docker-compose.yml`. Sin eso, todos los pedidos llegan con la IP
+  del contenedor de Caddy y **el primer abusador deja afuera a todos los demás**.
+  Al revés también importa: con la API expuesta directo, sin proxy, esto va en
+  `false` —que es como viene de fábrica— porque ahí la cabecera la escribe
+  cualquiera y alcanzaría para cambiarse de canasta.
+- Para mover un número, `RateLimit__ReadPerMinute` y compañía en `deploy/.env`
+  (doble guión bajo, como el resto). Un cero **no** apaga el límite: corta el
+  arranque con un mensaje claro, porque cero es "nadie pasa". Para apagarlo va
+  `RateLimit__Enabled=false`.
+- Cuando corta, la respuesta es un `429` con `Retry-After` y el mismo cuerpo
+  `application/problem+json` que usa el resto de la API, así que la app muestra el
+  motivo sin cambios.
+- **El límite vive en la memoria del proceso.** Con una sola VM alcanza; el día que
+  haya dos instancias, cada una cuenta la suya y la cuenta tiene que mudarse a un
+  Redis.
+
+---
 
 ## Mail: obligatorio en producción
 

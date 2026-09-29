@@ -26,7 +26,7 @@ Ver `docs/data-sources.md`, "Puntos de interés".
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois` (leer, votar, agregar), `/api/reports` (leer, reportar, sigue ahí / ya no está, cerrar), `/api/progress`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
 | `tests/TruckNavigator.UnitTests` | 427 tests: dominio (restricciones, la oferta de rutas, la elegida y sus gálibos, los lugares guardados y los recientes, ruteo, progresión, aptitud de POIs, sello y filtro de la comunidad, patente, fecha de nacimiento, **los reportes de la comunidad**: catálogo, confiabilidad, vencimiento y promoción, reputación y relevancia, abuso, el bloqueo en el custom model, la graduación del lugar), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
-| `tests/TruckNavigator.IntegrationTests` | 181 tests: 14 contra GraphHopper (se saltean solos si no está levantado; dos cubren que el viaje arranca por la ruta elegida y uno que un cierre validado esquiva la cuadra) + 167 sobre datasets, perfiles, camiones, viajes, lugares guardados, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, los candados del dataset de POIs con el seed por `ManagedByDataset`, los votos y aportes de la comunidad, y los reportes (persistencia, crear, votar, leer, los bloqueos, el recorder) |
+| `tests/TruckNavigator.IntegrationTests` | 251 tests: 14 contra GraphHopper (se saltean solos si no está levantado; dos cubren que el viaje arranca por la ruta elegida y uno que un cierre validado esquiva la cuadra) + 237 sobre datasets, perfiles, camiones, viajes, lugares guardados, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, los candados del dataset de POIs con el seed por `ManagedByDataset`, los votos y aportes de la comunidad, los reportes (persistencia, crear, votar, leer, los bloqueos, el recorder) y **el límite de tasa** (qué canasta le toca a cada ruta, los números, contra quién se cuenta, y el limitador atacado de verdad hasta que corta) |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -47,7 +47,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 608 tests (.NET)
+dotnet test                                    # 678 tests (.NET)
 node --test "tests/web/*.test.mjs"             # 224 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion), hoja de capas, flecha de maniobra, agenda, mascota e insignias
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
@@ -74,6 +74,21 @@ node --test "tests/web/*.test.mjs"             # 224 tests: guiado, avisos de ru
   enmienda, desde el 19/09/2026 (AD-49)**: un lugar **aportado** con 5 votos de apto de un
   mismo tipo de camión se gradúa a `Probable` con evidencia `Community` y ese campo de
   aptitud escrito; los del dataset siguen intocables (`PoiPromotion`).
+- **El límite de tasa mide por canasta, y detrás del proxy se le cree a la ÚLTIMA IP**
+  (AD-50, `Api/RateLimiting/`). Seis canastas con su número —cuentas 10 por minuto y
+  30 por hora, búsqueda 40, ruteo 20, reparto 6, escritura 40, lectura 300—, porque
+  quien abusa de una cosa tiene que seguir usando las demás: hay un test que dice que
+  quemar el ruteo no te deja sin mapa. **El número de lectura se midió, no se**
+  **adivinó**: arrastrando el mapa cada 1,1 s la app manda 37 pedidos por minuto y el
+  techo del debounce es 57, así que 300 deja ocho veces el pico — una canasta apretada
+  no frena a un abusador, le rompe el mapa a un camionero. Detrás de Caddy la IP sale
+  de `X-Forwarded-For` y va la **última** entrada: Caddy agrega la que ve al final, así
+  que creerle a la primera es dejar que cualquiera elija su canasta; sin proxy adelante
+  la cabecera se ignora entera (`RateLimit:TrustForwardedFor`, apagado de fábrica).
+  Lo que no es `/api` no se mide —los tiles son cientos de pedidos de rango por
+  pantalla— y `UseRateLimiter` va **después** de `UseAuthentication`, para que un
+  pedido con sesión cuente contra el camionero y no contra una IP que en el teléfono
+  cambia. Queda apagado en Development.
 - **Los reportes de la comunidad se reportan SÓLO en la posición GPS, y un reporte solo
   nunca toca la ruta** (AD-49, `docs/reportes.md`). Sólo *calle cerrada* y *gálibo bajo*
   **validados** (2 confirmaciones ajenas y confiabilidad 70) entran al cálculo, como
