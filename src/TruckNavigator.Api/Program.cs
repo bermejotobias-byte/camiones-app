@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using TruckNavigator.Api.Contracts;
 using TruckNavigator.Api.Identity;
+using TruckNavigator.Api.RateLimiting;
 using TruckNavigator.Api.Routing;
 using TruckNavigator.Domain.Places;
 using TruckNavigator.Domain.Pois;
@@ -113,6 +114,20 @@ builder.Services.AddScoped<ReportReader>();
 // Los cierres y galibos validados por la comunidad entran a cada calculo de
 // ruta como areas del custom model; sin esta linea el calculador no los ve.
 builder.Services.AddScoped<IRouteBlockadeSource, RouteBlockades>();
+
+// El limite de tasa. Los numeros y la clave contra la que se cuenta viven en
+// Api/RateLimiting; aca solo se decide si esta prendido. En Development queda
+// apagado salvo que la configuracion diga lo contrario: con recarga en caliente
+// y pruebas a mano molesta mas de lo que cuida.
+var rateLimit = RateLimitSettings.From(builder.Configuration);
+
+if (builder.Environment.IsDevelopment()
+    && builder.Configuration[$"{RateLimitSettings.Section}:Enabled"] is null)
+{
+    rateLimit.Enabled = false;
+}
+
+TruckRateLimiter.AddTo(builder.Services, rateLimit);
 
 var app = builder.Build();
 
@@ -250,6 +265,11 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Despues de la autenticacion a proposito: asi los pedidos con sesion se
+// cuentan contra el camionero y no contra la IP, que en el telefono cambia.
+// Los archivos estaticos y los tiles ya salieron antes por UseStaticFiles.
+app.UseRateLimiter();
 app.UseSwagger();
 app.UseSwaggerUI();
 
