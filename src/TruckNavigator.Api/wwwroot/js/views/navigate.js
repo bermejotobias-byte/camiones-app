@@ -2006,6 +2006,13 @@ export function navigateView(host, { openDrawer, go, puede }) {
     Math.max(0, (route?.distanceMeters ?? 0) - (navState?.remainingMeters ?? route?.distanceMeters ?? 0));
 
   async function startTrip(button) {
+    // Se termino el dia de prueba. El mapa y las capas siguen andando: lo unico
+    // que se apaga es navegar, que es lo que la cuenta paga.
+    if (!puede().navegar) {
+      if (await hojaDeCuenta('vencido')) go('cuenta-nueva');
+      return;
+    }
+
     const truck = selectedTruck();
 
     // El invitado navega con la ruta que ya tiene calculada. Sin viaje en el
