@@ -16,6 +16,8 @@ import {
 } from './ui.js';
 
 import { fuentesView } from './views/fuentes.js';
+import { estadoDeSesion, permisos } from './sesion.js';
+import { entradaView } from './entrada/entrada.js';
 import { authView } from './views/auth.js';
 import { navigateView } from './views/navigate.js';
 import { trucksView } from './views/trucks.js';
@@ -65,13 +67,35 @@ root.replaceChildren(viewRoot);
 /** Limpieza que dejo la vista anterior, si dejo alguna. */
 let teardown = null;
 
+/**
+ * En que estado esta la app, recalculado en cada montaje.
+ *
+ * Las vistas preguntan por `puede()` en vez de por `isSignedIn()`: el
+ * invitado es una sesion que en el servidor NO existe, asi que una pantalla
+ * que pregunta por la sesion no lo ve y lo trata como si estuviera afuera.
+ */
+let estado = { tipo: 'nueva', pasoQueFalta: 'bienvenida', invitadoVencido: false };
+
+export const estadoActual = () => estado;
+export const puede = () => permisos(estado);
+
 const ROUTES = {
   mapa: navigateView,
   camiones: trucksView,
   perfil: profileView,
   carnet: carnetView,
   juegos: juegosView,
-  fin: finViajeView
+  fin: finViajeView,
+
+  // El alta de una cuenta: se llega desde el acceso y desde las hojas que le
+  // ofrecen la cuenta a un invitado.
+  'cuenta-nueva': (host, { go }) => authView(host, {
+    onSignedIn: () => boot().then(() => go('mapa')),
+    onVolverAEntrar: () => go('acceso')
+  }),
+
+  // De donde salen los datos. Hasta el 30/09/2026 era la puerta de la app.
+  fuentes: (host) => fuentesView(host, { alVolver: () => history.back() })
 };
 
 applyTheme();
@@ -104,30 +128,34 @@ function mount() {
   // encuentra nada. Costo un "Container not found" con la pantalla en blanco.
   swap(host);
 
-  // Puerta 1: las fuentes se leen una vez, antes que nada.
-  if (!prefs.sourcesAccepted) {
-    dock.setPermitido(false);
-    fuentesView(host, {
-      etiqueta: 'Entendido, empecemos',
-      alVolver: () => {
-        savePrefs({ sourcesAccepted: true });
-        go(isSignedIn() ? "mapa" : "cuenta");
-      }
-    });
-    return;
-  }
-
-  // Puerta 2: sin sesion no hay camiones ni viajes que mostrar.
-  if (!isSignedIn()) {
-    dock.setPermitido(false);
-    authView(host, { onSignedIn: () => boot().then(() => go("mapa")) });
-    return;
-  }
-
   const name = (location.hash || '#mapa').slice(1);
 
-  // Pasadas las dos puertas hay zocalo, con el acceso de esta pantalla marcado.
-  dock.setPermitido(true);
+  estado = estadoDeSesion(prefs, isSignedIn(), new Date());
+
+  // UNA sola puerta: si falta un paso de la entrada, se monta ese paso. Las
+  // fuentes y el alta son las dos excepciones, porque se llega a ellas DESDE
+  // la entrada y tienen que poder abrirse sin haberla terminado.
+  const desdeLaEntrada = name === 'fuentes' || name === 'cuenta-nueva';
+
+  if (estado.pasoQueFalta && !desdeLaEntrada) {
+    dock.setPermitido(false);
+
+    entradaView(host, {
+      paso: estado.pasoQueFalta,
+      verFuentes: () => go('fuentes'),
+      crearCuenta: () => go('cuenta-nueva'),
+
+      // Cada pantalla ya guardo lo suyo: volver a montar recalcula el estado y
+      // cae solo en el paso que sigue. Con null, la entrada termino.
+      onListo: (siguiente) => (siguiente ? mount() : boot().then(() => go('mapa')))
+    });
+
+    return;
+  }
+
+  // Pasada la puerta hay zocalo. Las pantallas a las que se llega desde la
+  // entrada no lo llevan: todavia no se entro a la app.
+  dock.setPermitido(!desdeLaEntrada);
   dock.setActive(name);
 
   if (name === 'emergencia') {
@@ -499,10 +527,10 @@ function settingsView(host, { go }) {
 
   wire(host, {
     '#back': () => go('mapa'),
-    '#review': () => {
-      savePrefs({ sourcesAccepted: false });
-      mount();
-    },
+    // Ya no hay puerta que reabrir: desde el 30/09/2026 las fuentes son una
+    // pantalla mas y se va a ella. Antes esto apagaba la preferencia para que
+    // la puerta volviera a aparecer.
+    '#review': () => go('fuentes'),
     '#theme@change': (event) => {
       savePrefs({ theme: event.target.value });
       applyTheme();

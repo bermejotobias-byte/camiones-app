@@ -22,7 +22,7 @@ export function fuentesView(host, { alVolver, etiqueta = 'Volver' }) {
     <div class="scroll" style="gap:20px">
       <div class="stack-sm" style="padding-top:8px">
         <div style="color:var(--brand)">${raw(icon('truck', 40))}</div>
-        <h1>Antes de arrancar</h1>
+        <h1>De dónde salen los datos</h1>
         <p class="hint" style="font-size:15px">
           Esta app calcula rutas según las medidas y el peso de tu camión. Para que
           puedas confiar en lo que te muestra, esto es de dónde sale cada dato.
