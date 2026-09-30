@@ -1110,6 +1110,15 @@ export function navigateView(host, { openDrawer, go, puede }) {
   }
 
   async function cargarLugares() {
+    // El invitado no tiene Casa ni Depósito ni viajes: pedirlos es un 401 seguro.
+    // El catch lo tragaria igual, pero un 401 en la consola es ruido que despues
+    // tapa al que importa, y dos pedidos que se sabe que van a fallar son dos
+    // pedidos de mas en el telefono de alguien.
+    if (!puede().guardarLugares) {
+      if (stage === 'search' || stage === 'buscar') drawSheet();
+      return;
+    }
+
     try {
       const [guardados, ultimos] = await Promise.all([api.savedPlaces(), api.recentPlaces()]);
       lugares = { Home: null, Depot: null };
