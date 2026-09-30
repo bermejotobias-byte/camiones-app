@@ -366,21 +366,21 @@ servidor: el cliente nunca dice cuánto ganó, sólo pregunta cuánto tiene.
 > pasa, antes de comprometerse con los cinco. El v3 agrega que **no pueden ser una
 > sección aislada**: tienen que dar XP, progreso, recompensas y consumir batería.
 
-### Fase 7 · Cáscara, entrada e idiomas — ⬜ **nueva, sale del v3**
+### Fase 7 · Cáscara, entrada e idiomas — 🔨 **la entrada está construida** (30/09/2026, AD-51)
 
 Separada de la Fase 6 porque **no es gamificación**: es la estructura de la
 aplicación. Criterio propio, no del documento.
 
 | | Ítem | Origen |
 |---|---|---|
-| ⬜ | **Sucesión de entrada**: Intro → Idioma → Condiciones → Acceso | v3 §6 |
-| ⬜ | **Pantalla de idioma**, con **español como única opción por ahora** (decisión 08/09). El sistema queda preparado para internacionalizarse, pero **no se diseña alrededor del guaraní** (decisión 09/09): *"La localización en Guaraní no es prioridad actualmente."* Inglés y portugués, después | v3 §6 · v1 |
+| ✅ | **Sucesión de entrada**: Bienvenida → Idioma → Condiciones → Acceso, con el chip "Paso N de 4" de los tableros aprobados. La **intro animada no se construye**: la Bienvenida ya es la identidad, y un splash en una app web es tiempo que el camionero espera sin recibir nada | v3 §6 |
+| ✅ | **Pantalla de idioma**, con **español como única opción por ahora** (decisión 08/09): los otros tres dicen "Pronto" y no se pueden elegir. Se guarda la elección aunque haya un solo valor —por eso la preferencia arranca en `null` y no en `es`, si no el paso no se mostraría nunca—. Vive también en Configuración. **Sigue sin haber i18n**: eso es otra cosa | v3 §6 · v1 |
 | ✅ | **Zócalo inferior** de cuatro accesos: GPS · JUEGOS · S.O.S. · MÁS. **Construido el 12/09/2026.** Decidido por el usuario: **se esconde sólo durante el viaje** (en el mapa en reposo se ve), y JUEGOS abre una pantalla "pronto" hasta que haya juegos | v3 §11 · usuario 12/09 |
-| ⬜ 💬 | **Modo invitado de 1 día**, con acceso principalmente al GPS. Sin definir qué pasa con sus kilómetros y viajes al registrarse | v3 §7 |
-| ⬜ | **Registro** con verificación por mail → personalización del avatar | v3 §8 |
+| ✅ | **Modo invitado de 1 día**: elige su camión de las plantillas y **navega de verdad** —voz, gálibos, avisos, vibración— sin viaje en el servidor. Al cerrar, los kilómetros que hizo y la verdad: no se guardaron. El día vive en el teléfono y borrar datos lo reinicia, **aceptado a ojos abiertos** (AD-51). Sus kilómetros **no se migran** al registrarse: hoy los acredita el servidor y el cliente no puede declararlos | v3 §7 |
+| 🔨 | **Registro** con verificación por mail: anda y se llega desde el acceso; le falta la **personalización del avatar**, que es del subproyecto C | v3 §8 |
 | ⬜ | **Datos nuevos**: edad y nacionalidad del usuario; patente, marca/modelo y tipo del camión | v3 §9 |
-| ⬜ | **Menú MÁS**: Perfil · Resumen · Reportes · Chat · Configuración | v3 §12 |
-| ⬜ | **Reportes en vivo** con tipo, ubicación, horario, autor y estado. Es la cara visible de la Fase 5 | v3 §12 |
+| ✅ | **Menú MÁS**: Perfil · Resumen *(pronto)* · Reportes · Mis camiones · Mi carnet · Chat *(pronto)* · Configuración, con la fila del prototipo. El invitado ve dos: Configuración y *Crear mi cuenta* | v3 §12 |
+| ✅ | **Reportes en vivo** con tipo, calle, edad, autor y estado, con los colores del pin; los propios se cierran desde ahí y tocar uno abre el mapa centrado. Es la cara visible de la Fase 5 | v3 §12 |
 
 ### Transversal
 

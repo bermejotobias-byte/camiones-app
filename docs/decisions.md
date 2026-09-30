@@ -3123,3 +3123,97 @@ no sabe nada de un cliente sin cuenta ni del volumen crudo de pedidos.
   del proxy—, y el límite vive en la memoria del proceso, así que con más de
   una instancia cada una cuenta la suya. Con una sola VM alcanza; el día que
   haya dos, la cuenta va a un Redis.
+
+## AD-51 · La entrada, el invitado, y el estado de la app en una función pura
+
+**Fecha:** 30/09/2026
+**Estado:** aceptada. Es el primer subproyecto de las fases 6 y 7.
+
+### El pedido
+
+El brainstorm v3 pide una sucesión de entrada —**INTRO → IDIOMA → CONDICIONES
+→ ACCESO** (§6)—, un **modo invitado de un día** con acceso principalmente al
+GPS y eligiendo primero qué camión maneja (§7), el zócalo de cuatro accesos
+(§11) y el menú MÁS con Perfil, Resumen, Reportes, Chat y Configuración (§12).
+
+**Las fases 6 y 7 juntas no entran en una sola spec**: son cinco subsistemas
+independientes —la entrada, las pantallas del progreso, el avatar y la
+colección, la batería y la trivia, y el chat— y dos de ellos son proyectos
+propios. Se partieron, y este es el primero. Spec:
+`docs/superpowers/specs/2026-09-30-entrada-y-cascara-design.md`.
+
+### Decisiones
+
+- **El estado de la app es una función pura**, no una escalera de `if` en el
+  router. `estadoDeSesion(prefs, haySesion, ahora)` devuelve `nueva`,
+  `invitado` o `cuenta`, qué paso falta y si el día venció; `permisos(estado)`
+  dice qué puede hacer cada uno. Antes `app.js` decidía con dos condiciones
+  sueltas; con cuatro pasos y un invitado serían cinco cruzadas dentro de la
+  función que además monta pantallas. **Las vistas preguntan `puede()` y no
+  `isSignedIn()`**: el invitado es una sesión que en el servidor no existe, y
+  una pantalla que pregunta por la sesión no lo ve.
+- **El invitado navega de verdad, y su viaje no se guarda.** Guiado completo
+  —voz, gálibos, avisos, vibración— sin viaje en el servidor. Se partió
+  `startTrip` en dos: arrancar el guiado con la ruta que ya está calculada, y
+  guardar el viaje, que sólo corre con cuenta. Es lo que hace que el invitado
+  reciba el producto entero, incluido el aviso de gálibo, que es lo único que
+  ningún GPS de autos le da.
+- **Cero cambios en el servidor.** Se verificó endpoint por endpoint antes de
+  diseñar: `POST /api/routes` es anónimo y resuelve el camión contra las
+  plantillas, así que un invitado rutea sin cuenta. Lo único que pide sesión es
+  lo que define su alcance, y no se tocó.
+- **El día del invitado vive en el teléfono, y se acepta a ojos abiertos.**
+  Borrar los datos del navegador o reinstalar lo reinicia. No hay forma de
+  evitarlo sin darle sesión en el servidor, y eso contradice la decisión del
+  08/09 ("no se registra nada del invitado"). La puerta no está para frenar a
+  quien quiere eludirla, sino para que el que probó y le gustó tenga un motivo
+  para dar el paso. Se mide en **días locales** (UTC−3), el mismo criterio que
+  el tope de votos de reportes: quien empieza a las once de la noche no tiene
+  una prueba de una hora.
+- **El final del viaje es el momento de conversión**, no un cartel antes de
+  dejar probar. El invitado ve los kilómetros que acaba de andar y la frase que
+  dice la verdad: *no se guardaron*. **Sin EXP, sin insignias y sin confeti**:
+  no hay nada que festejar y fingirlo sería mentir.
+- **Cada acción bloqueada dice por qué la necesita, antes de fallar.** Una sola
+  hoja con el motivo como parámetro —reportar, votar, guardar un lugar, un
+  contacto, el perfil, los juegos, el día vencido—, cada uno con su texto.
+  Decirle "necesitás una cuenta" cinco veces seguidas le enseña a ignorar el
+  cartel, y la sexta —la que importaba— tampoco la lee. **Ninguna devuelve un
+  401**: un 401 es la app fallando; esto es la app explicando.
+- **El 911 funciona en los cuatro estados**, con un test que los recorre. Nada
+  de las cuentas ni de la gamificación puede estorbar un pedido de auxilio: es
+  la misma regla que ya rige para la batería.
+- **La pantalla de fuentes deja de ser una puerta.** Era la primera pantalla de
+  la app, cuatro tarjetas obligatorias; ahora Condiciones la enlaza y vive en
+  Configuración. El texto de los términos —que no existía— cubre sólo lo que la
+  app hace hoy: una cláusula que no se cumple es letra chica falsa, y este
+  producto se apoya en decir lo que no sabe.
+- **Lo que el prototipo decide, manda el prototipo.** Las cuatro pantallas
+  salen de los tableros aprobados el 14/09, y el vocabulario —vidrio, neón,
+  cromo en tres tonos, la chapa, la fila, el globo del mono— entró a `app.css`
+  antes que cualquier pantalla, con un candado por clase. Los 27 íconos
+  ilustrados se mudaron del prototipo a la app en un módulo propio: estaban en
+  `docs/` y las pantallas nuevas los necesitaban.
+
+### Consecuencias
+
+- **111 tests de JS nuevos** (335 en total, de 224) y ningún cambio en el
+  servidor: ni dominio, ni endpoints, ni migraciones.
+- Verificado de punta a punta en el navegador a 375 × 812: los cuatro pasos con
+  su chip, el alta hasta "revisá tu correo", el invitado eligiendo camión,
+  ruteando con su plantilla y **caminando los 4,3 km de la ruta con GPS
+  simulado en pasos de 25 m hasta llegar**, con la pantalla de fin sin EXP; el
+  día vencido que deja ver el mapa pero no arrancar; y el 911 abriendo en todos
+  los casos.
+- **Cuatro defectos que sólo aparecieron probando**, ninguno previsto en el
+  plan: el invitado elegía camión y la app se quedaba sin ninguno (`boot()`
+  cortaba sin sesión); la ficha mostraba el largo del tractor y no el del
+  conjunto —6 m para un semi de 18—; **llegar a destino no cerraba el viaje del
+  invitado**, porque hay dos salidas del viaje y se había cubierto una sola; y
+  la luz de las pantallas tapaba la cabecera, que estaba ahí y no se veía.
+- Lo que queda afuera a propósito: los otros tres idiomas (se guarda la
+  elección, no hay i18n), la intro animada (la Bienvenida cumple ese paso), el
+  editor de avatar, el Resumen, el chat, rediseñar el registro y el carnet, y
+  **migrar los kilómetros del invitado al registrarse** — hoy los acredita el
+  servidor y el cliente no puede declararlos, que es lo que evita que se
+  falsifiquen.

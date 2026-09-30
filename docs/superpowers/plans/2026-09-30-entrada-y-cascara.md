@@ -2,7 +2,7 @@
 
 > **Para quien ejecute:** usar `superpowers:executing-plans` (inline, con revisión
 > entre tareas) o `superpowers:subagent-driven-development`. Los pasos llevan
-> casilla (`- [ ]`) para ir marcando.
+> casilla para ir marcando.
 
 **Objetivo:** que la app tenga una puerta —Bienvenida → Idioma → Condiciones →
 Acceso—, que alguien pueda probar el GPS como invitado durante un día sin crear
@@ -21,6 +21,22 @@ las pantallas, y el APK al cierre.
 
 **Spec:** `docs/superpowers/specs/2026-09-30-entrada-y-cascara-design.md` — se
 lee junto con este plan; las decisiones y su porqué viven ahí.
+
+## Dónde quedamos — 30/09/2026
+
+**Las etapas 1 a 5 están hechas, salvo el teléfono.** Veinte tareas, un commit
+por tarea, 335 tests de JS verdes y ningún cambio en el servidor. El porqué
+quedó en **AD-51**; lo verificado, en la skill `estado-camiones-app` §4.
+
+Lo único que falta es la **Task 21**: compilar el APK y que el usuario recorra
+la entrada de cero, pruebe el invitado y cree su cuenta mientras se lee el log.
+
+Cuatro defectos los atrapó la verificación de punta a punta y no los tests, y
+están anotados en sus commits: el invitado se quedaba sin camión, llegar a
+destino no cerraba su viaje, la ficha mostraba el largo del tractor en vez del
+conjunto, y la luz tapaba la cabecera.
+
+---
 
 ## Restricciones globales
 
@@ -89,7 +105,7 @@ sólo el alta), y `js/views/onboarding.js` se elimina al mover su contenido.
   `.luz-festejo`, `.luz-tenue`, `.mono-suelto`, `.beneficio`, `.brillo`,
   `.btn-outline-brand`, `.chip-accent`. Todas las tareas que siguen las usan.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 El test lee el CSS como texto y exige que cada clase del vocabulario esté
 definida. Es un candado contra lo que ya pasó dos veces en este proyecto:
@@ -140,12 +156,12 @@ test('el vidrio se apoya en backdrop-filter, que es lo que lo hace vidrio y no u
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/vocabulario.test.mjs"`
 Expected: FALLA — `falta la clase .vidrio` y las demás.
 
-- [ ] **Step 3: Copiar el vocabulario del prototipo a `app.css`**
+- [x] **Step 3: Copiar el vocabulario del prototipo a `app.css`**
 
 Los valores exactos están en `docs/diseno/prototipo/final.mjs`: las constantes
 `METAL2`, `RAMPA`, `ORO` y `PLATA` (arriba del archivo) y el bloque `CSS`. Va
@@ -183,12 +199,12 @@ existen en `app.css` con el mismo nombre (`.card`, `.btn`, `.pill`, `.topbar`,
 `.fila` si existiera) **no se duplican**: se comparan y, si difieren, gana el
 prototipo y se ajusta la que ya está.
 
-- [ ] **Step 4: Correr los tests y verlos pasar**
+- [x] **Step 4: Correr los tests y verlos pasar**
 
 Run: `node --test "tests/web/*.test.mjs"`
 Expected: PASAN los nuevos y los 224 de antes.
 
-- [ ] **Step 5: Verlo en el navegador**
+- [x] **Step 5: Verlo en el navegador**
 
 Levantar el preview `api`, abrir la app a 375 × 812 y comprobar en la consola
 que las clases existen y que el vidrio se ve translúcido:
@@ -197,7 +213,7 @@ que las clases existen y que el vidrio se ve translúcido:
 getComputedStyle(document.querySelector('.card')).backgroundColor
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/app.css tests/web/vocabulario.test.mjs
@@ -223,7 +239,7 @@ entre ellos `idioma`, `fuentes`, `viaje`, `exp`, `km`, `nivel` y `logros`.
 - Produces: `ICONOS_ILUSTRADOS` (los nombres) e `icono(nombre, tamanio) → svg`.
   Todas las pantallas de este plan lo importan como `import { icono } from '../iconos.js'`.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```js
 /**
@@ -265,12 +281,12 @@ test('un nombre que no existe no rompe la pantalla: devuelve vacío', () => {
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/iconos.test.mjs"`
 Expected: FALLA — no existe `js/iconos.js`.
 
-- [ ] **Step 3: Traer los íconos**
+- [x] **Step 3: Traer los íconos**
 
 `docs/diseno/prototipo/iconos.mjs` es la fuente: tiene las formas (`F`) y el
 mapa `ICO` con el color y la sombra de cada uno. Se copia a
@@ -290,19 +306,19 @@ que sea `icono(nombre, tamanio)`:
  */
 ```
 
-- [ ] **Step 4: Que `dock.js` los use**
+- [x] **Step 4: Que `dock.js` los use**
 
 Los nueve de `dock.js` que existen con el mismo nombre en el módulo se borran de
 ahí y se toman de `iconos.js`. Los que el zócalo tenga distintos —porque se
 dibujaron para el zócalo y el usuario los aprobó así— se quedan, con un
 comentario que diga por qué difieren.
 
-- [ ] **Step 5: Correr los tests y verlos pasar**
+- [x] **Step 5: Correr los tests y verlos pasar**
 
 Run: `node --test "tests/web/*.test.mjs"`
 Expected: PASAN, incluidos los del zócalo que ya existían.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/iconos.js src/TruckNavigator.Api/wwwroot/js/dock.js tests/web/iconos.test.mjs
@@ -326,7 +342,7 @@ git commit -m "Los 27 iconos ilustrados del prototipo entran a la app, en un mod
   - `permisos(estado) → { navegar, guardarViaje, reportar, guardarLugares, contactos, perfil, configuracion, emergencia, verMapa }`
   - `invitadoVencido(prefs, ahora) → boolean`
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```js
 /**
@@ -447,12 +463,12 @@ test('el 911 funciona en los cuatro estados, y eso no se negocia', () => {
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/sesion.test.mjs"`
 Expected: FALLA — no existe `js/sesion.js`.
 
-- [ ] **Step 3: Escribir `sesion.js`**
+- [x] **Step 3: Escribir `sesion.js`**
 
 ```js
 /**
@@ -566,12 +582,12 @@ export function permisos(estado) {
 }
 ```
 
-- [ ] **Step 4: Correr los tests y verlos pasar**
+- [x] **Step 4: Correr los tests y verlos pasar**
 
 Run: `node --test "tests/web/sesion.test.mjs"`
 Expected: PASAN los 13.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/sesion.js tests/web/sesion.test.mjs
@@ -591,7 +607,7 @@ git commit -m "El estado de la app en una funcion pura: nueva, invitado o cuenta
 - Produces: `prefs.vioBienvenida`, `prefs.idioma`, `prefs.condicionesAceptadas`,
   `prefs.invitadoDesde`, `prefs.invitadoCamionId`.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 Al final de `tests/web/sesion.test.mjs`:
 
@@ -616,12 +632,12 @@ test('un idioma nulo no es español: sin elegir, el paso 2 sigue faltando', () =
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/sesion.test.mjs"`
 Expected: FALLA — `PREFERENCIAS_DE_ENTRADA` no existe.
 
-- [ ] **Step 3: Declararlas en `sesion.js` y usarlas en `store.js`**
+- [x] **Step 3: Declararlas en `sesion.js` y usarlas en `store.js`**
 
 En `sesion.js`, arriba de `estadoDeSesion`:
 
@@ -663,12 +679,12 @@ const defaults = {
   /* …el resto tal como esta… */
 ```
 
-- [ ] **Step 4: Correr todo y verlo pasar**
+- [x] **Step 4: Correr todo y verlo pasar**
 
 Run: `node --test "tests/web/*.test.mjs"`
 Expected: PASAN los nuevos y los 224 de antes.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/store.js src/TruckNavigator.Api/wwwroot/js/sesion.js tests/web/sesion.test.mjs
@@ -693,7 +709,7 @@ git commit -m "Las preferencias de la entrada, con la fecha de las condiciones y
   - `entradaView(host, { paso, prefs, onListo, go })` — monta el paso y pasa a
     la vista de cada pantalla (tareas 5 a 8) sus manejadores.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```js
 /**
@@ -727,12 +743,12 @@ test('el camión del invitado no lleva chip: ya pasó la puerta y no es un quint
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/entrada.test.mjs"`
 Expected: FALLA — no existe `js/entrada/entrada.js`.
 
-- [ ] **Step 3: Escribir `entrada/entrada.js`**
+- [x] **Step 3: Escribir `entrada/entrada.js`**
 
 Lo puro primero:
 
@@ -800,14 +816,14 @@ export function entradaView(host, { paso, onListo, go }) {
 }
 ```
 
-- [ ] **Step 4: Correr los tests y verlos pasar**
+- [x] **Step 4: Correr los tests y verlos pasar**
 
 Run: `node --test "tests/web/entrada.test.mjs"`
 Expected: PASAN los 4. Las vistas todavía no existen: **los imports de las
 tareas 5 a 8 se agregan en cada una de esas tareas**, así el archivo compila
 paso a paso.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/entrada/entrada.js tests/web/entrada.test.mjs
@@ -827,7 +843,7 @@ git commit -m "El orquestador de la entrada: cuatro pasos y el chip del prototip
 - Consumes: `mascota` de `js/mascota.js`, `html`/`raw`/`render`/`wire` de
   `js/ui.js`, las clases de la Task 1.
 
-- [ ] **Step 1: Escribir la pantalla contra el tablero**
+- [x] **Step 1: Escribir la pantalla contra el tablero**
 
 El tablero es `docs/diseno/prototipo/Bienvenida.dc.html` y su fuente está en
 `final.mjs` (la entrada `out['Bienvenida.dc.html']`). Es una de las dos
@@ -895,13 +911,13 @@ export function bienvenidaView(host, { onEmpezar, onYaTengoCuenta }) {
 `siluetaDeRuta()` es el SVG del tablero (la línea de la ruta y los guiones del
 carril), copiado de `final.mjs`. Los íconos salen de `js/iconos.js` (Task 1B).
 
-- [ ] **Step 2: Enganchar el import en `entrada.js`**
+- [x] **Step 2: Enganchar el import en `entrada.js`**
 
 ```js
 import { bienvenidaView } from './bienvenida.js';
 ```
 
-- [ ] **Step 3: Verla en el navegador a 375 × 812**
+- [x] **Step 3: Verla en el navegador a 375 × 812**
 
 Con la app en el preview, borrar las preferencias y recargar:
 
@@ -913,12 +929,12 @@ Comprobar: la luz celeste se ve, el mono aparece (la pose `mate` existe en
 `wwwroot/img/mascota`), el globo tiene su chip naranja, **no hay zócalo**, y las
 dos acciones son celestes. Sacar una captura.
 
-- [ ] **Step 4: Correr los tests**
+- [x] **Step 4: Correr los tests**
 
 Run: `node --test "tests/web/*.test.mjs"`
 Expected: los 224 + los nuevos siguen pasando (esta tarea no agrega lógica pura).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/entrada/bienvenida.js src/TruckNavigator.Api/wwwroot/js/entrada/entrada.js src/TruckNavigator.Api/wwwroot/app.css
@@ -936,7 +952,7 @@ git commit -m "Paso 1: la Bienvenida del prototipo, tal cual la aprobo el usuari
 **Interfaces:**
 - Produces: `IDIOMAS`, `idiomaView(host, { chip, onContinuar })`.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 En `tests/web/entrada.test.mjs`:
 
@@ -956,12 +972,12 @@ test('cada idioma dice su país donde lo tiene, y el inglés no inventa uno', ()
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/entrada.test.mjs"`
 Expected: FALLA — no existe `entrada/idioma.js`.
 
-- [ ] **Step 3: Escribir la pantalla**
+- [x] **Step 3: Escribir la pantalla**
 
 ```js
 /**
@@ -1017,12 +1033,12 @@ export function idiomaView(host, { chip, onContinuar }) {
 }
 ```
 
-- [ ] **Step 4: Enganchar el import y correr los tests**
+- [x] **Step 4: Enganchar el import y correr los tests**
 
 Run: `node --test "tests/web/*.test.mjs"`
 Expected: PASAN.
 
-- [ ] **Step 5: Verla en el navegador y commit**
+- [x] **Step 5: Verla en el navegador y commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/entrada/idioma.js src/TruckNavigator.Api/wwwroot/js/entrada/entrada.js tests/web/entrada.test.mjs
@@ -1046,7 +1062,7 @@ git commit -m "Paso 2: el idioma, con el español en neon y los otros tres en Pr
   `condicionesView(host, { chip, onAcepto, onVerFuentes })`,
   `fuentesView(host, { volver })`.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```js
 import { TERMINOS } from '../../src/TruckNavigator.Api/wwwroot/js/entrada/condiciones.js';
@@ -1065,12 +1081,12 @@ test('los términos dicen las cinco cosas que esta app tiene que decir, y ningun
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/entrada.test.mjs"`
 Expected: FALLA — no existe `entrada/condiciones.js`.
 
-- [ ] **Step 3: Escribir los términos y la pantalla**
+- [x] **Step 3: Escribir los términos y la pantalla**
 
 ```js
 /**
@@ -1125,7 +1141,7 @@ export function condicionesView(host, { chip, onAcepto, onVerFuentes }) {
 }
 ```
 
-- [ ] **Step 4: Mover la pantalla de fuentes**
+- [x] **Step 4: Mover la pantalla de fuentes**
 
 `views/onboarding.js` pasa a `views/fuentes.js` **sin tocar su contenido**:
 mismo texto, mismas tarjetas. Cambia la firma —`fuentesView(host, { volver })`—
@@ -1133,13 +1149,13 @@ y su acción final deja de ser "Entendido, empezar" para ser un botón de volver
 Se elimina `views/onboarding.js` y su import en `app.js` (ese import lo arregla
 la Task 9).
 
-- [ ] **Step 5: Correr los tests y verlo en el navegador**
+- [x] **Step 5: Correr los tests y verlo en el navegador**
 
 Run: `node --test "tests/web/*.test.mjs"`
 Expected: PASAN. Y en el navegador: el paso 3 muestra los términos, la fila
 abre las fuentes y el botón volver regresa a las condiciones.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A src/TruckNavigator.Api/wwwroot/js tests/web/entrada.test.mjs
@@ -1159,7 +1175,7 @@ git commit -m "Paso 3: las condiciones, y la pantalla de fuentes deja de ser una
 - Produces: `accesoView(host, { onListo, go })`.
 - Consumes: `api.signIn` de `js/api.js`, `authView(host, { onSignedIn, modo })`.
 
-- [ ] **Step 1: Escribir la pantalla contra el tablero `Entrar`**
+- [x] **Step 1: Escribir la pantalla contra el tablero `Entrar`**
 
 ```js
 /**
@@ -1258,7 +1274,7 @@ export function accesoView(host, { onListo, go }) {
 }
 ```
 
-- [ ] **Step 2: Dejar `auth.js` sólo con el alta**
+- [x] **Step 2: Dejar `auth.js` sólo con el alta**
 
 `authView(host, { onSignedIn, modo = 'signup' })`: el modo `'signin'` y su
 marcado se eliminan —esa pantalla ahora es `acceso.js`—, y quedan `'signup'` y
@@ -1273,18 +1289,18 @@ la cuenta, para que nadie pueda averiguar quién tiene una. Ese manejador se
 muda a `acceso.js` tal cual, con su comentario. Antes de borrar el bloque,
 revisar si quedó algo más colgado ahí.
 
-- [ ] **Step 3: Verlo en el navegador**
+- [x] **Step 3: Verlo en el navegador**
 
 Entrar con la cuenta de prueba (`demo@camiones.test` / `camion2026`) desde la
 pantalla nueva, y comprobar que *Crear una cuenta* abre el alta de siempre con
 el vidrio aplicado.
 
-- [ ] **Step 4: Correr los tests**
+- [x] **Step 4: Correr los tests**
 
 Run: `node --test "tests/web/*.test.mjs"`
 Expected: PASAN.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js
@@ -1305,7 +1321,7 @@ git commit -m "Paso 4: el acceso del prototipo, con Probar sin cuenta; el alta q
 - Produces: `estadoActual()` — el estado calculado del montaje en curso, que las
   tareas 11 a 18 consultan.
 
-- [ ] **Step 1: Reemplazar las dos puertas por una**
+- [x] **Step 1: Reemplazar las dos puertas por una**
 
 ```js
 import { estadoDeSesion, permisos } from './sesion.js';
@@ -1356,19 +1372,19 @@ function mount() {
 `ROUTES` gana `reportes: reportesView` (Task 18) y `'cuenta-nueva': authView`.
 `onboardingView` desaparece de los imports.
 
-- [ ] **Step 2: Verificar los cuatro caminos en el navegador**
+- [x] **Step 2: Verificar los cuatro caminos en el navegador**
 
 1. `localStorage.removeItem('tn.prefs'); localStorage.removeItem('tn.session'); location.reload()` → Bienvenida.
 2. Los cuatro pasos en orden hasta entrar con la cuenta demo → mapa con zócalo.
 3. Con sesión guardada y `tn.prefs` borrado → **entra directo al mapa**, sin entrada.
 4. `savePrefs({ sourcesAccepted: true })` sin sesión → arranca en Acceso.
 
-- [ ] **Step 3: Correr los tests**
+- [x] **Step 3: Correr los tests**
 
 Run: `node --test "tests/web/*.test.mjs"`
 Expected: PASAN.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/app.js
@@ -1392,7 +1408,7 @@ git commit -m "app.js pregunta una sola cosa: que paso falta. Las dos puertas vi
 - Consumes: `api.trucks()` — `GET /api/trucks` devuelve plantillas y propios; se
   filtran las plantillas por `isTemplate`.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```js
 import { fichaDePlantilla } from '../../src/TruckNavigator.Api/wwwroot/js/entrada/camion.js';
@@ -1411,12 +1427,12 @@ test('lo que la plantilla no declara no se inventa', () => {
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/entrada.test.mjs"`
 Expected: FALLA — no existe `entrada/camion.js`.
 
-- [ ] **Step 3: Escribir la pantalla**
+- [x] **Step 3: Escribir la pantalla**
 
 ```js
 /**
@@ -1466,7 +1482,7 @@ plantilla con `fichaDePlantilla`, marca la elegida con `neon` y habilita
 *Continuar*, que llama a `onElegido(id)`. Si la API falla, el mono en `error` y
 un botón de reintentar: sin plantillas no hay ruteo posible y hay que decirlo.
 
-- [ ] **Step 4: Correr los tests, verlo en el navegador y commit**
+- [x] **Step 4: Correr los tests, verlo en el navegador y commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/entrada/camion.js src/TruckNavigator.Api/wwwroot/js/entrada/entrada.js tests/web/entrada.test.mjs
@@ -1487,7 +1503,7 @@ git commit -m "El invitado elige su camion de las plantillas, que es lo que el r
   `guardarViaje(button)`; el estado del viaje del invitado como
   `state.activeTrip = { invitado: true, startedAt, originLabel, destinationLabel }`.
 
-- [ ] **Step 1: Partir `startTrip` en dos**
+- [x] **Step 1: Partir `startTrip` en dos**
 
 Hoy hace dos cosas juntas: arma el viaje y lo guarda en el servidor. Queda:
 
@@ -1527,7 +1543,7 @@ Hoy hace dos cosas juntas: arma el viaje y lo guarda en el servidor. Queda:
   }
 ```
 
-- [ ] **Step 2: Partir `closeTrip` igual**
+- [x] **Step 2: Partir `closeTrip` igual**
 
 ```js
   async function closeTrip(button, arrived) {
@@ -1554,7 +1570,7 @@ Hoy hace dos cosas juntas: arma el viaje y lo guarda en el servidor. Queda:
 **Los kilómetros del invitado no se acreditan**: `creditedDistanceMeters` es 0 a
 propósito, y `distanceMeters` es lo que anduvo, para poder decírselo.
 
-- [ ] **Step 3: Verificarlo en el navegador con GPS simulado**
+- [x] **Step 3: Verificarlo en el navegador con GPS simulado**
 
 Entrar como invitado, elegir camión, armar una ruta corta, *Arrancar*, y mover
 la posición con `TN_setPosition(lat, lng, acc, speed, heading)` **en pasos de
@@ -1562,13 +1578,13 @@ la posición con `TN_setPosition(lat, lng, acc, speed, heading)` **en pasos de
 pierde uno: ver CLAUDE.md). Comprobar: la banda del viaje aparece, la voz habla,
 el aviso de gálibo sale, y en la pestaña de red **no hay ningún `POST /api/trips`**.
 
-- [ ] **Step 4: Correr los tests**
+- [x] **Step 4: Correr los tests**
 
 Run: `node --test "tests/web/*.test.mjs"`
 Expected: PASAN los 224 + los nuevos; `viaje.test.mjs` cubre el guiado y no
 tiene que cambiar.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/views/navigate.js
@@ -1589,7 +1605,7 @@ git commit -m "El guiado arranca sin viaje del servidor: el invitado navega de v
 - Produces: `textoDeCierre(cerrado) → { titulo, bajada, acciones }`, puro y
   testeable.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```js
 import { textoDeCierre } from '../../src/TruckNavigator.Api/wwwroot/js/views/fin-viaje.js';
@@ -1615,12 +1631,12 @@ test('el cierre con cuenta sigue siendo el de siempre', () => {
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/viaje.test.mjs"`
 Expected: FALLA — `textoDeCierre` no se exporta.
 
-- [ ] **Step 3: Extraer `textoDeCierre` y usarla en la vista**
+- [x] **Step 3: Extraer `textoDeCierre` y usarla en la vista**
 
 ```js
 /**
@@ -1664,7 +1680,7 @@ La vista usa `textoDeCierre` y, cuando `cerrado.invitado`, dibuja el mono en
 `motivar`, el número grande, la bajada y los dos botones: **Crear mi cuenta**
 (celeste, principal) y *Seguir sin cuenta*.
 
-- [ ] **Step 4: Correr los tests, verlo en el navegador y commit**
+- [x] **Step 4: Correr los tests, verlo en el navegador y commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/views/fin-viaje.js tests/web/viaje.test.mjs
@@ -1685,7 +1701,7 @@ git commit -m "El fin de viaje del invitado: el numero, la verdad y la cuenta. S
 - Produces: `MOTIVOS`, `textoDeCuenta(motivo) → { titulo, texto }`,
   `hojaDeCuenta(motivo, { onCrear, onLuego })`.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```js
 /**
@@ -1721,12 +1737,12 @@ test('el título del vencido no reta a nadie: dice que se terminó y ofrece segu
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/cuenta.test.mjs"`
 Expected: FALLA — no existe `js/cuenta.js`.
 
-- [ ] **Step 3: Escribir `cuenta.js`**
+- [x] **Step 3: Escribir `cuenta.js`**
 
 ```js
 /**
@@ -1778,13 +1794,13 @@ Más `hojaDeCuenta(motivo, { onCrear, onLuego })`, que dibuja la hoja con el mon
 en `motivar`, el título, el texto y dos botones: **Crear mi cuenta** y
 *Ahora no* (o sólo el primero para `vencido`).
 
-- [ ] **Step 4: Engancharla en cada punto de contacto**
+- [x] **Step 4: Engancharla en cada punto de contacto**
 
 En `navigate.js`, antes de reportar, votar y guardar un lugar; en `app.js`, en
 las filas del menú que el invitado no puede abrir. La condición sale de
 `puede()`.
 
-- [ ] **Step 5: Correr los tests, verificar en el navegador y commit**
+- [x] **Step 5: Correr los tests, verificar en el navegador y commit**
 
 Comprobar como invitado: el botón amarillo de reportar abre la hoja de
 `reportar`; los dos botones de *sigue ahí* la de `votar`; guardar Casa la de
@@ -1807,7 +1823,7 @@ git commit -m "Cada accion bloqueada dice por que la necesita, con el mono y ant
 **Interfaces:**
 - Consumes: `puede().navegar` (Task 9), `hojaDeCuenta('vencido', …)` (Task 13).
 
-- [ ] **Step 1: Frenar *Arrancar* cuando el día venció**
+- [x] **Step 1: Frenar *Arrancar* cuando el día venció**
 
 ```js
       if (accion === 'arrancar') {
@@ -1823,7 +1839,7 @@ git commit -m "Cada accion bloqueada dice por que la necesita, con el mono y ant
 Son **dos** lugares en `navigate.js` (líneas 1409 y 1489 de hoy) más el del
 reparto (1283): los tres pasan por el mismo freno.
 
-- [ ] **Step 2: Verificarlo en el navegador**
+- [x] **Step 2: Verificarlo en el navegador**
 
 ```js
 savePrefs({ invitadoDesde: '2026-09-28T10:00:00-03:00' }); location.reload();
@@ -1833,7 +1849,7 @@ Comprobar: el mapa se ve entero, las capas funcionan, buscar y calcular la ruta
 funcionan, y *Arrancar* abre la hoja del vencido. Y que el **911 sigue
 funcionando** desde el zócalo.
 
-- [ ] **Step 3: Correr los tests y commit**
+- [x] **Step 3: Correr los tests y commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/views/navigate.js
@@ -1854,7 +1870,7 @@ git commit -m "Al vencer el dia de prueba el mapa sigue y Arrancar pide la cuent
 **Interfaces:**
 - Produces: `MENU_MAS`, `menuParaInvitado(menu) → filas`, `dock.setInvitado(bool)`.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```js
 /**
@@ -1886,12 +1902,12 @@ test('la fila de la cuenta del invitado invita, no reta', () => {
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/dock.test.mjs"`
 Expected: FALLA — `MENU_MAS` no se exporta y no tiene esas entradas.
 
-- [ ] **Step 3: Completar el menú**
+- [x] **Step 3: Completar el menú**
 
 ```js
 /** Lo que abre "mas". Las entradas son las del brainstorm v3 §12. */
@@ -1927,7 +1943,7 @@ y sin cuenta no hay dónde sumarla. GPS y S.O.S. le funcionan de verdad.
 Las filas del menú pasan al vocabulario: `.fila` con ícono ilustrado, título,
 subtítulo y chevron — es "la caja de toda la app" del prototipo.
 
-- [ ] **Step 4: Correr los tests, verlo en las dos variantes y commit**
+- [x] **Step 4: Correr los tests, verlo en las dos variantes y commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/dock.js tests/web/dock.test.mjs
@@ -1944,7 +1960,7 @@ git commit -m "El menu MAS completo, con la fila del prototipo y su variante de 
 **Interfaces:**
 - Consumes: `IDIOMAS` (Task 6), `fuentesView` (Task 7).
 
-- [ ] **Step 1: Sumar las dos filas**
+- [x] **Step 1: Sumar las dos filas**
 
 En `settingsView`, con la fila del vocabulario:
 
@@ -1964,13 +1980,13 @@ En `settingsView`, con la fila del vocabulario:
 Y su cableado: `#cfg-idioma` abre la pantalla del paso 2 (donde sólo se puede
 elegir español) y `#cfg-fuentes` va a `go('fuentes')`.
 
-- [ ] **Step 2: Verificarlo en el navegador**
+- [x] **Step 2: Verificarlo en el navegador**
 
 Como cuenta y como invitado: las dos filas aparecen, la de fuentes abre la
 pantalla y vuelve, y la de idioma muestra español elegido y los otros tres en
 *Pronto*.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/app.js
@@ -1990,7 +2006,7 @@ git commit -m "Configuracion gana el idioma y de donde salen los datos"
 - Produces: `GRADOS_DE_LA_LISTA = 0.02`, `recuadroDeLaLista(fix, ultimoBbox) → bbox | null`,
   `filasDeReportes(reportes, ahora) → filas`, `vacioDeLaLista(motivo) → { titulo, texto }`.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```js
 /**
@@ -2054,12 +2070,12 @@ test('el vacío vende la próxima acción, y el que no tiene posición pide pren
 });
 ```
 
-- [ ] **Step 2: Correrlo y verlo fallar**
+- [x] **Step 2: Correrlo y verlo fallar**
 
 Run: `node --test "tests/web/reportes-lista.test.mjs"`
 Expected: FALLA — no existe `views/reportes.js`.
 
-- [ ] **Step 3: Escribir la parte pura**
+- [x] **Step 3: Escribir la parte pura**
 
 ```js
 /**
@@ -2121,7 +2137,7 @@ export function vacioDeLaLista(motivo) {
 }
 ```
 
-- [ ] **Step 4: Correr los tests y commit**
+- [x] **Step 4: Correr los tests y commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js/views/reportes.js tests/web/reportes-lista.test.mjs
@@ -2143,26 +2159,26 @@ git commit -m "Reportes en vivo: el recuadro, el orden y que dice cada fila"
   `location.hash = 'mapa'` más `sessionStorage.setItem('tn.reporte-a-mostrar', id)`,
   que `navigate.js` consume una vez y limpia.
 
-- [ ] **Step 1: Escribir la vista**
+- [x] **Step 1: Escribir la vista**
 
 Cabecera compacta con *Reportes*, y las filas con el ícono del tipo en su color,
 la calle, la edad, el estado y quién. Los propios con su marca y el botón de
 cerrar, que llama a `api.closeReport(id)` y refresca. Tocar una fila salta al
 mapa centrado. Como invitado, cerrar y votar abren `hojaDeCuenta('votar')`.
 
-- [ ] **Step 2: Enganchar el salto en `navigate.js`**
+- [x] **Step 2: Enganchar el salto en `navigate.js`**
 
 Al montar, si hay un id en `sessionStorage`, se centra ahí y se abre su ficha
 —reutilizando `fichaReporte` que ya existe— y se limpia la clave para que no se
 repita al volver.
 
-- [ ] **Step 3: Verificarlo en el navegador**
+- [x] **Step 3: Verificarlo en el navegador**
 
 Con la cuenta demo: crear un reporte desde el mapa, abrir MÁS → Reportes, ver
 la fila con *Vos* y su estado, cerrarla desde la lista, y comprobar que tocar
 otra fila abre el mapa centrado con la ficha.
 
-- [ ] **Step 4: Correr los tests y commit**
+- [x] **Step 4: Correr los tests y commit**
 
 ```bash
 git add src/TruckNavigator.Api/wwwroot/js
@@ -2177,35 +2193,35 @@ git commit -m "La pantalla de Reportes en vivo, y tocar una fila abre el mapa ah
 
 **Files:** ninguno (es verificación)
 
-- [ ] **Step 1: El camino del que llega de cero**
+- [x] **Step 1: El camino del que llega de cero**
 
 A 375 × 812, con `localStorage` limpio: los cuatro pasos en orden, el chip
 diciendo *2 de 4* y *3 de 4*, el enlace de las fuentes que vuelve, y el alta de
 una cuenta nueva hasta "revisá tu correo".
 
-- [ ] **Step 2: El camino del invitado, completo**
+- [x] **Step 2: El camino del invitado, completo**
 
 *Probar sin cuenta* → elegir camión → mapa → ruta → *Arrancar* → GPS simulado
 en pasos de 25 m hasta llegar → el fin de viaje sin EXP con los kilómetros →
 *Crear mi cuenta*. Y en el medio: tocar reportar, votar y guardar Casa para ver
 las tres hojas distintas.
 
-- [ ] **Step 3: El día vencido y el 911**
+- [x] **Step 3: El día vencido y el 911**
 
 `savePrefs({ invitadoDesde: <anteayer> })`, recargar, comprobar que el mapa
 funciona, que *Arrancar* pide la cuenta y que **el S.O.S. llama al 911**.
 
-- [ ] **Step 4: Los tres caminos de la migración**
+- [x] **Step 4: Los tres caminos de la migración**
 
 Con sesión y sin preferencias → al mapa sin entrada. Con `sourcesAccepted` y sin
 sesión → arranca en Acceso. Preferencias limpias → Bienvenida.
 
-- [ ] **Step 5: Los tests completos**
+- [x] **Step 5: Los tests completos**
 
 Run: `node --test "tests/web/*.test.mjs"`
 Expected: todo verde. Anotar el conteo final.
 
-- [ ] **Step 6: Commit de lo que haya salido**
+- [x] **Step 6: Commit de lo que haya salido**
 
 Si la verificación encontró defectos, se arreglan con su test y se commitean de
 a uno.
@@ -2220,28 +2236,28 @@ a uno.
   `.claude/skills/producto-camiones-app/SKILL.md`,
   `docs/superpowers/plans/2026-09-30-entrada-y-cascara.md` (marcar las etapas)
 
-- [ ] **Step 1: AD-51**
+- [x] **Step 1: AD-51**
 
 *"La entrada, el invitado y el estado de la app"*: por qué el estado va en una
 función pura y no en los ifs del router; por qué el invitado navega de verdad y
 su viaje no se guarda; por qué el día vive en el teléfono y eso se acepta a ojos
 abiertos; por qué cada acción bloqueada dice su motivo; y qué queda afuera.
 
-- [ ] **Step 2: `CLAUDE.md`**
+- [x] **Step 2: `CLAUDE.md`**
 
 Los conteos de los tests de JS, la tabla de documentos, y **una trampa nueva**:
 que la app tiene tres estados y que una pantalla no debe preguntar
 `isSignedIn()` por su cuenta sino `puede()`, porque el invitado es una sesión
 que no existe en el servidor.
 
-- [ ] **Step 3: Las dos skills**
+- [x] **Step 3: Las dos skills**
 
 En `estado-camiones-app`: la punta al día, el frente vivo, la sección de qué se
 verificó y los conteos. En `producto-camiones-app`: la Fase 7 con sus ítems en
 ✅ y la Fase 6 tocada sólo donde corresponda (el menú MÁS y los reportes en
 vivo).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs CLAUDE.md .claude/skills

@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 678 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 231 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red), hoja de capas, flecha de maniobra, agenda, mascota e insignias
+node --test "tests/web/*.test.mjs"             # 335 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), el vocabulario y los iconos
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -74,6 +74,22 @@ node --test "tests/web/*.test.mjs"             # 231 tests: guiado, avisos de ru
   enmienda, desde el 19/09/2026 (AD-49)**: un lugar **aportado** con 5 votos de apto de un
   mismo tipo de camión se gradúa a `Probable` con evidencia `Community` y ese campo de
   aptitud escrito; los del dataset siguen intocables (`PoiPromotion`).
+- **La app tiene TRES estados, y una pantalla no pregunta `isSignedIn()`**: pregunta
+  `puede()` (AD-51, `js/sesion.js`). Los estados son `nueva` —todavía en la entrada—,
+  `invitado` y `cuenta`. **El invitado es una sesión que en el servidor no existe**:
+  navega de verdad, con voz y avisos, pero su viaje no se guarda y `isSignedIn()`
+  devuelve `false` para él, así que una pantalla que pregunte por la sesión lo trata
+  como si estuviera afuera. `estadoDeSesion` y `permisos` son puros y están fijados
+  por test; `app.js` los calcula una vez por montaje y le pasa `puede` a cada vista
+  —no se importa, porque `app.js` ya importa las vistas y al revés sería un ciclo—.
+  **Ninguna acción bloqueada devuelve un 401**: el mono lo dice antes, con el motivo
+  de esa acción (`js/cuenta.js`). Y el **911 funciona en los cuatro estados**, con un
+  test que los recorre.
+- **El viaje tiene DOS salidas y las dos hay que cubrir**: `closeTrip` (el botón de
+  salir) y `arrive()` (llegar a destino). Cubrir una sola dejaba el viaje del
+  invitado abierto en memoria con la pantalla de vuelta en el mapa: el estado decía
+  que había viaje y la interfaz decía que no. Lo encontró la verificación de punta a
+  punta, no un test.
 - **El límite de tasa mide por canasta, y detrás del proxy se le cree a la ÚLTIMA IP**
   (AD-50, `Api/RateLimiting/`). Seis canastas con su número —cuentas 10 por minuto y
   30 por hora, búsqueda 40, ruteo 20, reparto 6, escritura 40, lectura 300—, porque
@@ -529,6 +545,7 @@ node --test "tests/web/*.test.mjs"             # 231 tests: guiado, avisos de ru
 | `docs/routing.md` | Configuración de GraphHopper y contrato de la API |
 | `docs/pois.md` | Puntos de interés: modelo, datos y cómo regenerarlos |
 | `docs/reportes.md` | Reportes de la comunidad: catálogo, confiabilidad, lo fijo, ruteo, EXP y reputación, abuso, API |
+| `docs/superpowers/specs/2026-09-30-entrada-y-cascara-design.md` | **La entrada y el invitado** (30/09/2026): los cuatro pasos, qué puede cada estado, y por qué las fases 6 y 7 se partieron en cinco |
 | `docs/deploy.md` | Sacar la app de la red local: túnel HTTPS y servidor propio |
 
 Al cambiar comportamiento, actualizá el documento que corresponda en el mismo commit.

@@ -25,7 +25,10 @@ navegador: perfil, historial, gamificación, comunidad.
 **Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
 está muy adelante y todavía no se fusionó.
 
-**Punta al 29/09/2026: el límite de tasa de la API** (AD-50), lo último que
+**Punta al 30/09/2026: la entrada y el invitado** (AD-51) — la app tiene puerta
+por primera vez, y se puede probar el GPS sin cuenta. Es el primero de los
+cinco subproyectos en que se partieron las fases 6 y 7. Antes, **al
+29/09/2026: el límite de tasa de la API** (AD-50), lo último que
 faltaba de lo transversal antes de hostear. Antes, **al 19/09/2026: los
 reportes de la comunidad (Fase 5)**, construidos en 25 tareas con TDD,
 verificados de punta a punta en el navegador y por HTTP. **Todo eso sigue sin
@@ -402,6 +405,48 @@ misma lección de las cinco fallas de la costura nativa-web, en una frontera nue
 repetida en su **rastreador en memoria** y tira `InvalidOperationException` antes
 de tocar la base. Para probar que el esquema lo impide hay que
 `ChangeTracker.Clear()` primero, y entonces sí llega el `DbUpdateException`.
+
+### La entrada y el invitado — 30/09/2026
+
+**335 tests de JS** (venían de 224) y **678 de .NET sin tocar**: este
+subproyecto no cambió una línea del servidor, y eso se verificó endpoint por
+endpoint antes de diseñarlo. Spec y plan en
+`docs/superpowers/*/2026-09-30-entrada-y-cascara*`; el porqué en **AD-51**.
+Veintiuna tareas, un commit por tarea, cada test visto en rojo antes.
+
+**Verificado en el navegador a 375 × 812:**
+
+| Qué | Cómo |
+|---|---|
+| La entrada | Bienvenida sin zócalo → Idioma *"Paso 2 de 4"* → Condiciones *"3 de 4"*, con el enlace que abre las fuentes y vuelve → Acceso |
+| El alta | *Crear una cuenta* → formulario → *"Revisá tu correo"* con la dirección → *"Ya lo confirmé"* vuelve al acceso |
+| La migración | Con sesión no se ve la entrada; quien ya usaba la app (con las fuentes aceptadas) arranca en Acceso; de cero, en la Bienvenida |
+| **El invitado, entero** | *Probar sin cuenta* → elige camión de las plantillas → `POST /api/routes` 200 con su plantilla → *Arrancar* **sin ningún `POST /api/trips`** → **4,3 km caminados con GPS simulado en pasos de 25 m** → al llegar, *"Hiciste 4,3 km / No se guardaron"*, sin fichas de EXP |
+| Lo que no puede | El botón amarillo abre *"Para reportar necesito saber quién sos"* y no la grilla; `#perfil` rebota al mapa con su hoja; `#juegos` tiene su propio motivo |
+| El día vencido | Con el sello en anteayer: el mapa, las capas y la búsqueda andan; recién *Arrancar* pide la cuenta |
+| El 911 | Abre sin ninguna hoja en los cuatro estados, incluido el invitado vencido |
+| El menú | Como invitado, dos filas; con cuenta, las siete con Resumen y Chat apagadas |
+| Reportes en vivo | Un bache creado por HTTP sale como *"Bache · Av. Corrientes 1500 · recién · Vos · Sin confirmar"*; tocarlo lleva el mapa a sus coordenadas con zoom 16 y abre su ficha |
+
+**Cuatro defectos que atrapó la verificación, no los tests:**
+
+- **El invitado elegía su camión y la app se quedaba sin ninguno.** `boot()`
+  cortaba sin sesión, así que no cargaba ni el catálogo: tocar un destino
+  volvía a la hoja de siempre **sin decir nada**.
+- **Llegar a destino no cerraba el viaje del invitado.** Hay **dos salidas**
+  del viaje —`closeTrip` y `arrive()`— y se había cubierto una sola: el estado
+  decía que había viaje y la interfaz decía que no.
+- **La ficha del camión mostraba el largo del tractor**, 6 m para un semi de
+  18. El dominio ya tenía `TotalLengthMeters` con el comentario de por qué
+  existe.
+- **La luz de las pantallas tapaba la cabecera**: el título y el chip estaban
+  ahí, con su color correcto, y no se veían.
+
+**Y dos errores míos midiendo**, que casi me hacen "arreglar" código sano:
+importar un módulo con `?v=` crea **otra instancia** —`state.trucks` daba 0
+aunque la app tuviera tres— y leer el zócalo mientras está **escondido detrás
+de la entrada** muestra el menú que no corresponde. Cuando una medición
+contradice lo que el código dice, sospechar primero de la medición.
 
 ### El límite de tasa de la API — 29/09/2026
 
@@ -1197,7 +1242,7 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 ```powershell
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
-dotnet test                              # 678 tests (.NET)
+dotnet test                              # 678 tests (.NET)   ·   node --test "tests/web/*.test.mjs" → 335
 node --test "tests/web/*.test.mjs"       # 231 tests de JS — correr desde bash
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
@@ -1257,7 +1302,30 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-### 0. EL FRENTE VIVO — hostear la app (29/09/2026)
+### 0. EL FRENTE VIVO — la entrada y el invitado, y el hosteo (30/09/2026)
+
+**Las fases 6 y 7 se partieron en cinco subproyectos** porque juntas no entran
+en una sola spec:
+
+| | Subproyecto | Estado |
+|---|---|---|
+| **A** | La entrada y la cáscara | ✅ **hecho el 30/09/2026** (AD-51), salvo el teléfono |
+| **B** | Las pantallas del progreso: Resumen, Metas, Logros, *Subiste de nivel*, *Racha*, perfil y carnet con el vocabulario | el siguiente |
+| **C** | El avatar y la colección | **bloqueado por los dibujos**, que no existen |
+| **D** | La batería y la trivia | pendiente |
+| **E** | El chat | proyecto aparte |
+
+**Dos cosas que las fuentes suponen y el motor NO tiene**, para el subproyecto B:
+los récords personales **nunca se escriben** —la tabla existe, el endpoint los lee
+y `PersonalRecords.Improve` está probado, pero nada en `src/` lo llama— y **la
+racha no existe** en el dominio, aunque el prototipo tenga su tablero y la mascota
+su pose.
+
+**Lo que falta de A: el teléfono.** Compilar el APK y que el usuario recorra la
+entrada de cero, pruebe el invitado y cree la cuenta. Es la franja donde este
+proyecto se equivocó once veces.
+
+### El hosteo (29/09/2026)
 
 El usuario está poniendo la app a andar fuera de la red local "en estos días",
 así que **el test en calle y lo de Oracle quedaron explícitamente fuera de la
