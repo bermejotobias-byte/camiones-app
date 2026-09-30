@@ -422,7 +422,11 @@ Tres archivos en `Api/RateLimiting/` y tres líneas en `Program.cs`.
 - **Encontrado midiendo:** con el servidor caído, la app repite
   `GET /api/reports` **una vez por segundo para siempre** — los tiles fallan, eso
   mantiene al mapa disparando `idle`, y el único freno es el debounce. No es
-  abuso, es la app sin espera creciente. Queda como tarea aparte.
+  abuso, es la app sin espera creciente. **Arreglado el 30/09/2026**: lo frena
+  `frenoDeRed` (`mapa/reportes.js`), con 2 s, 5 s, 15 s y 60 s de tope, que se
+  olvidan en cuanto un pedido vuelve bien. **Sólo frena el fallo de red**
+  —`status` 0 de `ApiError`—, no un 4xx: ahí el servidor contestó y el pedido
+  siguiente puede andar. Siete tests nuevos, 231 de JS.
 - **`Retry-After` de una ventana fija de .NET informa la ventana entera**, no lo
   que falta: medido, dice 60 a los 20 s de haber cortado. Por eso el mensaje dice
   "esperá **hasta** N segundos" y no promete un número exacto.
@@ -1194,7 +1198,7 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
 dotnet test                              # 678 tests (.NET)
-node --test "tests/web/*.test.mjs"       # 224 tests de JS — correr desde bash
+node --test "tests/web/*.test.mjs"       # 231 tests de JS — correr desde bash
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
 ```

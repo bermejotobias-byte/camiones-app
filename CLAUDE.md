@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 678 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 224 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion), hoja de capas, flecha de maniobra, agenda, mascota e insignias
+node --test "tests/web/*.test.mjs"             # 231 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red), hoja de capas, flecha de maniobra, agenda, mascota e insignias
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -100,6 +100,16 @@ node --test "tests/web/*.test.mjs"             # 224 tests: guiado, avisos de ru
   local, 0 por crear; la reputación (50, +3/−5) es otra cosa y no se muestra. Todos los
   números son constantes con nombre en el dominio, fijadas por test: cambiarlas es una
   decisión, no un accidente.
+- **Un oyente de `idle` de MapLibre no es un gesto del usuario: con el servidor caído se
+  dispara para siempre.** Los reportes del recuadro visible se piden ahí, con un segundo
+  de espera; cada reintento de tiles fallido vuelve a disparar `idle`, así que la app
+  pedía `GET /api/reports` **una vez por segundo indefinidamente** — batería y datos del
+  camionero, y ~60 pedidos por minuto por teléfono en un corte (medido el 29/09/2026).
+  Hoy lo frena `frenoDeRed` (`mapa/reportes.js`): 2 s, 5 s, 15 s, 60 s, y se olvida en
+  cuanto un pedido vuelve bien. **Sólo frena el fallo de red** — `ApiError.status` 0, que
+  es lo que `api.js` pone cuando no se pudo contactar al servidor; un 4xx no, porque ahí
+  el servidor contestó. Cualquier otro pedido que cuelgue de un evento del mapa hereda
+  este problema: si se agrega, va con freno.
 - **Los avisos de la ruta avisan de UNO por latido** (`pendingRouteAlert` elige el más
   cercano). Con un GPS real a 10 m por segundo dos umbrales se cruzan en latidos
   distintos; simulando con saltos de 150 m se cruzan en el mismo y uno se pierde. Al

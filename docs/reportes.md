@@ -244,6 +244,13 @@ forYourTruck ("compatible" | "incompatible" | null)`.
   de espera) para el recuadro visible; en viaje, el recuadro de la ruta más
   500 m al preparar la ruta y **cada 60 s**, y cada refresco rehace los avisos
   sin perder los ya dados.
+- **Cuando no hay red**: tras un pedido que no llegó al servidor se espera cada
+  vez más antes de volver a intentar —2 s, 5 s, 15 s, 60 s, y ahí se queda—, y
+  la escalera se borra en cuanto uno vuelve bien. Sólo frena eso: un 4xx no
+  cuenta, porque ahí el servidor sí contestó. Sin el freno, con el backend
+  caído el mapa pedía **una vez por segundo para siempre**: MapLibre reintenta
+  los tiles sin parar y cada reintento vuelve a disparar `idle` (medido en el
+  navegador el 29/09/2026).
 - **En viaje**: los reportes entran a `alertsAlongRoute` como un dataset más;
   la voz dice "Accidente adelante", "Calle cerrada reportada adelante, sin
   confirmar", "Gálibo reportado de 3,80 metros adelante. Tu camión no pasa";
@@ -270,6 +277,7 @@ Ninguno vive en un endpoint. Cada tema tiene su lugar, y su test los fija:
 | Escalera de la pista `reportes` | `Domain/Progression/TrackCatalog.cs` |
 | Umbral de graduación de un lugar | `Domain/Pois/PoiPromotion.cs` |
 | Corredor de aviso, cercanía del "¿sigue ahí?", refresco | `navigation.js`, `mapa/reportes.js`, `views/navigate.js` |
+| La escalera de espera cuando se cae la red | `mapa/reportes.js` (`ESPERAS_DE_RED_MS`) |
 
 ## Fuera de esta versión
 

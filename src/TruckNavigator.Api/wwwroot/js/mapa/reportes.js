@@ -191,6 +191,63 @@ export function bboxVisible(bounds) {
 }
 
 /* ---------------------------------------------------------------------------
+   Cuándo se puede volver a pedir: el freno de la red
+
+   Los reportes se piden al quedar quieto el mapa. Con el backend caído
+   MapLibre reintenta los tiles sin parar, cada reintento vuelve a disparar
+   'idle', y la app termina pidiendo una vez por segundo para siempre: batería
+   y datos del camionero gastados en nada. Tras un fallo de red se espera cada
+   vez más, y en cuanto un pedido vuelve bien se olvida todo.
+--------------------------------------------------------------------------- */
+
+/** La escalera, en ms. El último valor es el tope: de ahí no se sube más. */
+export const ESPERAS_DE_RED_MS = [2_000, 5_000, 15_000, 60_000];
+
+/** Cuánto esperar con `fallas` fallos de red seguidos. Sin fallos, nada. */
+export function esperaTrasFallas(fallas) {
+  if (!Number.isFinite(fallas) || fallas < 1) return 0;
+
+  return ESPERAS_DE_RED_MS[Math.min(Math.trunc(fallas), ESPERAS_DE_RED_MS.length) - 1];
+}
+
+/**
+ * Si el error es "no se pudo contactar al servidor".
+ *
+ * `ApiError` trae `status` 0 sólo en ese caso (ver `describe()` en api.js). Un
+ * 4xx no frena: ahí el servidor contestó, y el pedido siguiente puede andar.
+ */
+export const esFalloDeRed = (error) => error?.status === 0;
+
+/**
+ * El freno: si ya se puede pedir, y cuánto esperar cuando un pedido falla.
+ *
+ * `fallo` devuelve lo que se va a esperar —0 si ese error no frena— para poder
+ * decirlo en el log. El reloj se recibe de afuera: así se prueba sin esperar.
+ */
+export function frenoDeRed() {
+  let fallas = 0;
+  let proximo = 0;
+
+  return {
+    permite: (ahora) => ahora >= proximo,
+
+    fallo(error, ahora) {
+      if (!esFalloDeRed(error)) return 0;
+
+      fallas += 1;
+      const espera = esperaTrasFallas(fallas);
+      proximo = ahora + espera;
+      return espera;
+    },
+
+    exito() {
+      fallas = 0;
+      proximo = 0;
+    }
+  };
+}
+
+/* ---------------------------------------------------------------------------
    Las hojas: la sección de reportar, los metros del gálibo, la ficha y el
    "¿sigue ahí?". Sólo marcado, con las piezas del GPS (círculos de 75,
    píldoras de 48); navigate.js engancha por data-accion.

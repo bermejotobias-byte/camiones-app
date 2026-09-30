@@ -36,7 +36,7 @@ import { hojaAportar, hojaMarcar, nombreValido } from '../mapa/aportar.js';
 import { categoriasParaPedir, fichaDeLugar, fichaLugar, metrosEntre } from '../mapa/lugares.js';
 import {
   featuresParaAvisos, bboxVisible, bboxDeRuta, tipoDeReporte, textoDelToast,
-  hojaGalibo, fichaReporte, promptSigueAhi, deberiaPreguntar
+  hojaGalibo, fichaReporte, promptSigueAhi, deberiaPreguntar, frenoDeRed
 } from '../mapa/reportes.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
@@ -623,6 +623,7 @@ export function navigateView(host, { openDrawer, go }) {
   const preguntados = new Set();    // reportes por los que ya se pregunto en este viaje
   const distanciasAnteriores = new Map();   // id -> distancia en el latido anterior
   let sigueAbierto = null;          // el "¿sigue ahi?" en pantalla, con su temporizador
+  const freno = frenoDeRed();       // frena los pedidos cuando se cae la red
 
   const REFRESCO_EN_VIAJE_MS = 60_000;
   const PROMPT_MS = 10_000;
@@ -635,11 +636,22 @@ export function navigateView(host, { openDrawer, go }) {
     const caja = bbox ?? (gl.viewportBounds() ? bboxVisible(gl.viewportBounds()) : null);
     if (!caja) return;
 
+    // Con el servidor caido MapLibre reintenta los tiles sin parar y cada
+    // reintento vuelve a disparar 'idle': sin freno son 60 pedidos por minuto
+    // para siempre. El reloj se toma ANTES de pedir y no al fallar: un pedido
+    // que muere por timeout tarda varios segundos, y contar la espera desde ahi
+    // correria el refresco de 60 s del viaje un ciclo entero.
+    const ahora = Date.now();
+    if (!freno.permite(ahora)) return;
+
     try {
       reportesEnMapa = await api.reports(caja, selectedTruck()?.id);
+      freno.exito();
     } catch (error) {
-      // Sin red el mapa sigue sin reportes; se vuelve a intentar en el proximo refresco.
-      console.warn('reportes: no se pudieron traer: ' + error.message);
+      // Sin red el mapa sigue sin reportes; se reintenta mas tarde, cada vez
+      // con mas espera. Que el error frene o no lo decide el freno: un 4xx no.
+      const espera = freno.fallo(error, ahora);
+      console.warn(`reportes: no se pudieron traer: ${error.message}${espera ? ` — se reintenta en ${espera / 1000} s` : ''}`);
       return;
     }
 

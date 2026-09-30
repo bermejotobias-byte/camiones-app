@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 
 import {
   TIPOS, tipoDeReporte, etiquetaEdad, mismoSentido, estadoDelPin, featuresDeReportes, featuresParaAvisos,
-  textoDelToast, deberiaPreguntar, bboxDeRuta, bboxVisible,
+  textoDelToast, deberiaPreguntar, bboxDeRuta, bboxVisible, esperaTrasFallas, esFalloDeRed, frenoDeRed,
   seccionReportar, hojaGalibo, fichaReporte, promptSigueAhi,
   pinReporteSvg, nombresDePinesDeReporte, instalarReportes, mostrarReportes, CAPA_REPORTES
 } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/reportes.js';
@@ -170,6 +170,73 @@ test('el recuadro de la ruta la envuelve con margen, en el orden que pide la API
 
 test('el recuadro visible sale de los límites del mapa', () => {
   assert.equal(bboxVisible({ west: -58.44, south: -34.61, east: -58.42, north: -34.59 }), '-58.44,-34.61,-58.42,-34.59');
+});
+
+/* ---------------------------------------------------------------------------
+   Cuándo se puede volver a pedir (el freno de la red)
+--------------------------------------------------------------------------- */
+
+test('la espera crece con cada fallo seguido y se queda en el tope', () => {
+  assert.equal(esperaTrasFallas(0), 0);
+  assert.equal(esperaTrasFallas(1), 2_000);
+  assert.equal(esperaTrasFallas(2), 5_000);
+  assert.equal(esperaTrasFallas(3), 15_000);
+  assert.equal(esperaTrasFallas(4), 60_000);
+  assert.equal(esperaTrasFallas(5), 60_000);
+  assert.equal(esperaTrasFallas(99), 60_000);
+});
+
+test('sólo frena el error de no haber podido contactar al servidor, no lo que el servidor contesta', () => {
+  assert.equal(esFalloDeRed({ status: 0 }), true);
+  assert.equal(esFalloDeRed({ status: 400 }), false);
+  assert.equal(esFalloDeRed({ status: 429 }), false);
+  assert.equal(esFalloDeRed({ status: 500 }), false);
+  assert.equal(esFalloDeRed(new Error('cualquier cosa')), false);
+  assert.equal(esFalloDeRed(null), false);
+});
+
+test('el primer pedido sale sin esperar nada', () => {
+  assert.equal(frenoDeRed().permite(1_000), true);
+});
+
+test('después de un fallo de red no se vuelve a pedir hasta que pasa la espera', () => {
+  const freno = frenoDeRed();
+
+  assert.equal(freno.fallo({ status: 0 }, 1_000), 2_000);
+  assert.equal(freno.permite(1_999), false);
+  assert.equal(freno.permite(2_999), false);
+  assert.equal(freno.permite(3_000), true);
+});
+
+test('cada fallo encadenado espera más que el anterior', () => {
+  const freno = frenoDeRed();
+
+  assert.equal(freno.fallo({ status: 0 }, 0), 2_000);
+  assert.equal(freno.fallo({ status: 0 }, 2_000), 5_000);
+  assert.equal(freno.fallo({ status: 0 }, 7_000), 15_000);
+  assert.equal(freno.fallo({ status: 0 }, 22_000), 60_000);
+  assert.equal(freno.fallo({ status: 0 }, 82_000), 60_000);
+  assert.equal(freno.permite(142_000), true);
+});
+
+test('un pedido que vuelve bien borra la espera y la escalera arranca de nuevo', () => {
+  const freno = frenoDeRed();
+
+  freno.fallo({ status: 0 }, 0);
+  freno.fallo({ status: 0 }, 2_000);
+  freno.exito();
+
+  assert.equal(freno.permite(2_001), true);
+  assert.equal(freno.fallo({ status: 0 }, 3_000), 2_000);
+});
+
+test('un 4xx del servidor no frena ni cuenta para la escalera', () => {
+  const freno = frenoDeRed();
+
+  assert.equal(freno.fallo({ status: 404 }, 0), 0);
+  assert.equal(freno.fallo({ status: 429 }, 0), 0);
+  assert.equal(freno.permite(0), true);
+  assert.equal(freno.fallo({ status: 0 }, 0), 2_000);
 });
 
 /* ---------------------------------------------------------------------------
