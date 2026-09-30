@@ -33,20 +33,46 @@ import { icono } from './iconos.js';
  * queda prendido mientras se esta en cualquiera de sus pantallas, como en la
  * referencia.
  */
-const ACCESOS = [
+export const ACCESOS = [
   { id: 'mapa',       label: 'GPS',    ruta: 'mapa',       cubre: ['mapa'] },
   { id: 'juegos',     label: 'Juegos', ruta: 'juegos',     cubre: ['juegos'] },
   { id: 'emergencia', label: 'S.O.S.', ruta: 'emergencia', cubre: ['emergencia'] },
-  { id: 'mas',        label: 'Más',    ruta: null,         cubre: ['perfil', 'carnet', 'camiones', 'configuracion', 'fuentes'] }
+  { id: 'mas',        label: 'Más',    ruta: null,         cubre: ['perfil', 'resumen', 'reportes', 'carnet', 'camiones', 'configuracion', 'fuentes'] }
 ];
 
-/** Lo que abre "mas". */
-const MENU_MAS = [
-  { ruta: 'perfil',        label: 'Mi perfil' },
-  { ruta: 'carnet',        label: 'Mi carnet' },
-  { ruta: 'camiones',      label: 'Mis camiones' },
-  { ruta: 'chat',          label: 'Chat', pronto: true },
-  { ruta: 'configuracion', label: 'Configuración' }
+/**
+ * Lo que abre "mas": las entradas del brainstorm v3 §12.
+ *
+ * Cada una lleva subtitulo porque la fila del prototipo es icono, titulo,
+ * subtitulo y chevron: sin subtitulo es media fila, y el menu es justo la
+ * pantalla que alguien abre para ver que sabe hacer la app.
+ */
+export const MENU_MAS = [
+  { ruta: 'perfil',        label: 'Mi perfil',    sub: 'Tu nivel, tus metas y tus logros' },
+  { ruta: 'resumen',       label: 'Resumen',      sub: 'El centro de tu progreso', pronto: true },
+  { ruta: 'reportes',      label: 'Reportes',     sub: 'Lo que la comunidad reportó cerca' },
+  { ruta: 'camiones',      label: 'Mis camiones', sub: 'Cargar, editar y elegir con cuál manejás' },
+  { ruta: 'carnet',        label: 'Mi carnet',    sub: 'Tu carnet de camionero, frente y dorso' },
+  { ruta: 'chat',          label: 'Chat',         sub: 'Hablar con otros camioneros', pronto: true },
+  { ruta: 'configuracion', label: 'Configuración', sub: 'Tema, vibración, idioma y servidor' }
+];
+
+/**
+ * El menu de un invitado: lo unico que puede abrir, mas la invitacion.
+ *
+ * Un menu lleno de filas que no puede abrir es una lista de frustraciones.
+ * Configuracion no es un lujo para el: ahi estan el tema, la vibracion y la
+ * direccion del servidor, que es lo que le permite arreglar la app si la IP
+ * del backend cambio.
+ */
+export const menuParaInvitado = (menu) => [
+  menu.find((entrada) => entrada.ruta === 'configuracion'),
+  {
+    ruta: 'cuenta-nueva',
+    label: 'Crear mi cuenta',
+    sub: 'Para que tus kilómetros sumen y puedas reportar',
+    destacada: true
+  }
 ];
 
 /* ---------------------------------------------------------------------------
@@ -76,7 +102,8 @@ export function createDock({ go }) {
   let hojaAbierta = false;
   let activo = 'mapa';
   let enViaje = false;
-  let permitido = false;         // antes de entrar (fuentes, sesion) no hay zocalo
+  let permitido = false;         // antes de entrar (la entrada) no hay zocalo
+  let invitado = false;          // sin cuenta, el menu es otro
 
   function draw() {
     render(nodo, html`
@@ -90,11 +117,12 @@ export function createDock({ go }) {
 
       <div class="dock-backdrop" id="dock-backdrop" ${hojaAbierta ? '' : 'hidden'}></div>
       <div class="dock-sheet ${hojaAbierta ? 'is-open' : ''}" id="dock-sheet" role="menu">
-        ${raw(MENU_MAS.map((m) => `
-          <button class="dock-row" role="menuitem" data-ruta="${m.ruta}" ${m.pronto ? 'disabled' : ''}>
-            ${icono(m.ruta, 28)}
-            <span>${m.label}</span>
-            ${m.pronto ? '<em>Pronto</em>' : ''}
+        ${raw((invitado ? menuParaInvitado(MENU_MAS) : MENU_MAS).map((m) => `
+          <button class="dock-row ${m.destacada ? 'dock-row-destacada' : ''}" role="menuitem"
+                  data-ruta="${m.ruta}" ${m.pronto ? 'disabled' : ''}>
+            ${icono(m.ruta === 'cuenta-nueva' ? 'persona' : m.ruta, 28)}
+            <span class="grow"><b>${m.label}</b><em class="sub">${m.sub}</em></span>
+            ${m.pronto ? '<em class="pronto">Pronto</em>' : ''}
           </button>`).join(''))}
       </div>
     `);
@@ -167,7 +195,20 @@ export function createDock({ go }) {
     draw();
   });
 
+  /**
+   * Quien esta mirando el zocalo.
+   *
+   * El invitado ve otro menu: solo lo que puede abrir, mas la invitacion. Se
+   * redibuja solo si cambio, porque esto se llama en cada montaje.
+   */
+  function setInvitado(valor) {
+    if (invitado === valor) return;
+
+    invitado = valor;
+    draw();
+  }
+
   draw();
 
-  return { nodo, setActive, setPermitido };
+  return { nodo, setActive, setPermitido, setInvitado };
 }

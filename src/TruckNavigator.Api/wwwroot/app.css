@@ -4320,3 +4320,31 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 .enlace.hint { font-weight: 600; color: var(--ink-3); }
+
+/* La fila del menu de "mas" pasa a la fila del prototipo: icono, titulo,
+   subtitulo gris y, cuando corresponde, su chapita. El subtitulo importa: este
+   menu es la pantalla que alguien abre para ver QUE sabe hacer la app. */
+
+.dock-row > .grow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.dock-row > .grow > b { font-size: 16px; font-weight: 800; }
+
+.dock-row > .grow > .sub {
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  line-height: 1.25;
+}
+
+.dock-row[disabled] > .grow > .sub { color: var(--ink-3); opacity: .7; }
+
+/* La fila de la cuenta del invitado: invita, no reta. Es la unica del menu con
+   el acento, porque es la unica accion que se le esta proponiendo. */
+.dock-row-destacada > .grow > b { color: var(--accent-ink); }

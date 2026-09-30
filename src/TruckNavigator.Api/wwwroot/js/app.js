@@ -170,6 +170,7 @@ function mount() {
   // Pasada la puerta hay zocalo. Las pantallas a las que se llega desde la
   // entrada no lo llevan: todavia no se entro a la app.
   dock.setPermitido(!desdeLaEntrada);
+  dock.setInvitado(estado.tipo === 'invitado');
   dock.setActive(name);
 
   // Las pantallas que no existen sin cuenta. El invitado no se choca con una
