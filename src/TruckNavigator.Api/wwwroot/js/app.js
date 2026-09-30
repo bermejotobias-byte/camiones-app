@@ -21,6 +21,7 @@ import { entradaView } from './entrada/entrada.js';
 import { hojaDeCuenta } from './cuenta.js';
 import { icono } from './iconos.js';
 import { idiomaView } from './entrada/idioma.js';
+import { reportesView } from './views/reportes.js';
 import { authView } from './views/auth.js';
 import { navigateView } from './views/navigate.js';
 import { trucksView } from './views/trucks.js';
@@ -89,6 +90,9 @@ const ROUTES = {
   carnet: carnetView,
   juegos: juegosView,
   fin: finViajeView,
+
+  // Los reportes vigentes cerca: la cara visible de la Fase 5 (v3 §12).
+  reportes: reportesView,
 
   // El alta de una cuenta: se llega desde el acceso y desde las hojas que le
   // ofrecen la cuenta a un invitado.

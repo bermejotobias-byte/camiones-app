@@ -13,6 +13,7 @@
 
 import { api } from '../api.js';
 import { hojaDeCuenta } from '../cuenta.js';
+import { CLAVE_DEL_SALTO, CLAVE_DE_POSICION, CLAVE_DE_RECUADRO } from './reportes.js';
 import {
   getPosition, watchPosition, watchHeading, speak, keepScreenAwake, onTrackingFailed,
   vibrate, VIBRACION, call
@@ -141,6 +142,9 @@ export function navigateView(host, { openDrawer, go, puede }) {
       cargarLugaresDelMapa();
       escucharElMapaParaReportes();
       cargarReportes();
+
+      // Si se llego tocando una fila de "Reportes", la camara va ahi de una.
+      volarAlDelSalto();
     },
     onTap: (feature) => { hideSuggestions(); explicarSimbolo(feature); },
     onLongPress: (point) => setPointFromMap(point),
@@ -649,6 +653,8 @@ export function navigateView(host, { openDrawer, go, puede }) {
 
   async function cargarReportes({ bbox = null } = {}) {
     const caja = bbox ?? (gl.viewportBounds() ? bboxVisible(gl.viewportBounds()) : null);
+
+    if (caja) recordarRecuadro(caja);
     if (!caja) return;
 
     // Con el servidor caido MapLibre reintenta los tiles sin parar y cada
@@ -684,6 +690,71 @@ export function navigateView(host, { openDrawer, go, puede }) {
         if (stage === 'ficha-reporte') drawFichaReporte();
       }
     }
+
+    abrirElQueVieneDeLaLista();
+  }
+
+  /* ------------------------------------------------------------------------
+     El puente con la lista de "Reportes"
+
+     La lista no tiene mapa propio: lee de sessionStorage donde estabas para
+     saber que pedir, y deja ahi el reporte que hay que mostrar cuando alguien
+     toca una fila. La lista dice QUE hay; el mapa dice DONDE.
+  ------------------------------------------------------------------------ */
+
+  const recordarDonde = (punto) => guardar(CLAVE_DE_POSICION, punto);
+  const recordarRecuadro = (caja) => guardar(CLAVE_DE_RECUADRO, caja);
+
+  function guardar(clave, valor) {
+    try {
+      sessionStorage.setItem(clave, JSON.stringify(valor));
+    } catch {
+      // Sin sessionStorage la lista pide prender la ubicacion, que es peor pero
+      // no es un error: no vale la pena romper el mapa por esto.
+    }
+  }
+
+  /**
+   * El reporte que se toco en la lista, esperando a que el mapa lo tenga.
+   *
+   * Se saca de sessionStorage AL MONTAR y se guarda en memoria: si se leyera
+   * cada vez, una clave que quedo sin usar reabriria mas tarde una ficha que
+   * nadie pidio. Y si se consumiera en el primer intento, el salto se perderia,
+   * porque al montar el mapa todavia no pidio los reportes.
+   */
+  let saltoPendiente = (() => {
+    try {
+      const guardado = sessionStorage.getItem(CLAVE_DEL_SALTO);
+      sessionStorage.removeItem(CLAVE_DEL_SALTO);
+      return guardado ? JSON.parse(guardado) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  /**
+   * Vuela al reporte que se toco en la lista.
+   *
+   * El punto viene con el salto, asi que la camara se mueve DE UNA: esperar a
+   * tener los reportes cargados dejaba el mapa donde estaba y el salto se
+   * perdia, que fue lo que paso la primera vez que se probo.
+   */
+  function volarAlDelSalto() {
+    if (!saltoPendiente || !Number.isFinite(saltoPendiente.lat)) return;
+
+    gl.flyTo({ lat: saltoPendiente.lat, lng: saltoPendiente.lng }, { minZoom: 16 });
+  }
+
+  /** Y abre su ficha cuando el reporte aparece entre los del mapa. */
+  function abrirElQueVieneDeLaLista() {
+    if (!saltoPendiente) return;
+
+    const reporte = reportesEnMapa.find((r) => r.id === saltoPendiente.id);
+
+    if (!reporte) return;
+
+    saltoPendiente = null;
+    abrirFichaReporte(reporte.id);
   }
 
   /** En reposo, al quedar quieto el mapa: el recuadro visible, con un segundo de espera. */
@@ -2282,6 +2353,10 @@ export function navigateView(host, { openDrawer, go, puede }) {
 
     ultimaPosicion = { lat: fix.lat, lng: fix.lng };
     ultimoFix = fix;
+
+    // La lista de reportes no tiene mapa y no puede pedir el GPS de nuevo solo
+    // para armarse: lee de aca donde estabas.
+    recordarDonde(ultimaPosicion);
     previousNav = navState;
     navState = advance(prepared, fix, navState);
 

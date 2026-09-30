@@ -4348,3 +4348,17 @@ button { font-family: inherit; font-size: inherit; }
 /* La fila de la cuenta del invitado: invita, no reta. Es la unica del menu con
    el acento, porque es la unica accion que se le esta proponiendo. */
 .dock-row-destacada > .grow > b { color: var(--accent-ink); }
+
+/* La lista de Reportes en vivo: la fila del prototipo con el estado a la
+   derecha. Los colores son los mismos que el pin del mapa, para que la lista y
+   el mapa digan lo mismo del mismo reporte. */
+
+.fila-reporte { align-items: flex-start; }
+
+.fila-reporte > .grow { gap: 1px; }
+
+.estado-rojo { background: var(--danger-soft); color: var(--danger); }
+.estado-fijo { background: var(--brand-soft); color: var(--brand-ink); }
+.estado-duda { background: var(--warn-soft); color: var(--warn); }
+.estado-confirmado { background: var(--ok-soft); color: var(--ok); }
+.estado-nuevo { background: var(--surface-2); color: var(--ink-3); }
