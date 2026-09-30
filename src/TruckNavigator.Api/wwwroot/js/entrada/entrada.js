@@ -15,6 +15,7 @@ import { savePrefs } from '../store.js';
 import { bienvenidaView } from './bienvenida.js';
 import { idiomaView } from './idioma.js';
 import { condicionesView } from './condiciones.js';
+import { accesoView } from './acceso.js';
 
 export const PASOS_DE_LA_ENTRADA = ['bienvenida', 'idioma', 'condiciones', 'acceso'];
 
@@ -49,7 +50,7 @@ export function pasoSiguiente(paso) {
  * arrancar la app. Cada pantalla guarda lo suyo ANTES de avisar: si la app se
  * cierra en el medio, se retoma donde iba y no desde el principio.
  */
-export function entradaView(host, { paso, onListo, verFuentes }) {
+export function entradaView(host, { paso, onListo, verFuentes, crearCuenta }) {
   if (paso === 'bienvenida') {
     return bienvenidaView(host, {
       onEmpezar: () => {
@@ -89,10 +90,21 @@ export function entradaView(host, { paso, onListo, verFuentes }) {
     });
   }
 
-  // Los pasos 2 a 4 y el camion del invitado entran cada uno en su tarea. Hasta
-  // entonces este modulo solo sabe montar la Bienvenida, y app.js todavia no lo
-  // llama: nadie puede caer aca. Queda dicho en voz alta para que, si alguien
-  // cae, sepa por que en vez de ver una pantalla en blanco.
+  if (paso === 'acceso') {
+    return accesoView(host, {
+      onEntro: () => onListo(null),
+      onCrearCuenta: () => crearCuenta?.(),
+
+      // Elegir el camion es lo primero que ve el invitado: es el dato que
+      // decide por donde puede pasar, y sin el el ruteo trabajaria con medidas
+      // de auto.
+      onInvitado: () => onListo('camion')
+    });
+  }
+
+  // El camion del invitado entra en su tarea. Hasta entonces este modulo no
+  // sabe montar ese paso; queda dicho en voz alta para que, si alguien cae,
+  // sepa por que en vez de ver una pantalla en blanco.
   console.warn(`entrada: el paso "${paso}" todavia no esta construido`);
 
   return null;

@@ -94,3 +94,34 @@ test('son pocos y cortos: nadie lee cinco pantallas de letra chica', () => {
     assert.ok(parrafo.length < 340, `un párrafo de ${parrafo.length} caracteres es un muro`);
   }
 });
+
+/* ---------------------------------------------------------------------------
+   Paso 4 · Acceso — los mensajes de error del ingreso
+--------------------------------------------------------------------------- */
+
+import { mensajeDeIngreso } from '../../src/TruckNavigator.Api/wwwroot/js/views/auth.js';
+import { ApiError } from '../../src/TruckNavigator.Api/wwwroot/js/api.js';
+
+const problema = (cuerpo, status = 400) => new ApiError('error', status, cuerpo);
+
+test('el correo sin confirmar se explica, que es lo que menos se adivina', () => {
+  const mensaje = mensajeDeIngreso(problema({ detail: 'NotAllowed' }, 401), 'signin');
+
+  assert.match(mensaje, /confirmaste el correo/i);
+});
+
+test('la cuenta bloqueada dice cuánto esperar, y el 401 no culpa al correo ni a la clave por separado', () => {
+  assert.match(mensajeDeIngreso(problema({ detail: 'LockedOut' }, 401), 'signin'), /15 minutos/);
+
+  // Decir cuál de los dos está mal le regala a un atacante saber qué correos
+  // existen.
+  assert.match(mensajeDeIngreso(problema(null, 401), 'signin'), /no coinciden/i);
+});
+
+test('un correo ya usado manda a entrar en vez de dejar a alguien trabado', () => {
+  assert.match(mensajeDeIngreso(problema({ errors: { DuplicateEmail: [] } }), 'signup'), /Probá entrando/);
+});
+
+test('lo que no es un error de la API vuelve tal cual', () => {
+  assert.equal(mensajeDeIngreso(new Error('se cayó la red'), 'signin'), 'se cayó la red');
+});

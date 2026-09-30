@@ -9,8 +9,18 @@
 import { api, ApiError } from '../api.js';
 import { html, raw, icon, wire, q, withBusy, toastOk, toastError } from '../ui.js';
 
-export function authView(host, { onSignedIn }) {
-  let mode = 'signin';        // 'signin' | 'signup' | 'check-inbox'
+/**
+ * El ALTA de una cuenta, y el "revisa tu correo" que la sigue.
+ *
+ * El INGRESO ya no esta aca: desde el 30/09/2026 vive en entrada/acceso.js,
+ * con el tablero del prototipo. Dos formularios de ingreso serian dos
+ * formularios que se desincronizan; la traduccion de los errores de Identity
+ * sigue viviendo en este archivo y la usan los dos.
+ *
+ * `onVolverAEntrar` es como se sale de aca sin haberse dado de alta.
+ */
+export function authView(host, { onSignedIn, onVolverAEntrar }) {
+  let mode = 'signup';        // 'signup' | 'check-inbox'
   let pendingEmail = '';
 
   host.className = 'screen';
@@ -48,17 +58,13 @@ export function authView(host, { onSignedIn }) {
   // --- alta e ingreso --------------------------------------------------------
 
   const formMarkup = () => {
-    const signup = mode === 'signup';
-
     return html`
       <div class="scroll" style="gap:18px">
         <div class="stack-sm" style="padding-top:24px">
           <div style="color:var(--brand)">${raw(icon('truck', 40))}</div>
-          <h1>${signup ? 'Creá tu cuenta' : 'Entrá'}</h1>
+          <h1>Creá tu cuenta</h1>
           <p class="hint" style="font-size:15px">
-            ${signup
-              ? 'Con una cuenta se guardan tus camiones, tus viajes y tus kilómetros.'
-              : 'Bienvenido de vuelta.'}
+            Con una cuenta se guardan tus camiones, tus viajes y tus kilómetros.
           </p>
         </div>
 
@@ -72,25 +78,21 @@ export function authView(host, { onSignedIn }) {
           <div class="field">
             <label for="password">Contraseña</label>
             <input class="input" id="password" type="password"
-                   autocomplete="${signup ? 'new-password' : 'current-password'}"
-                   placeholder="${signup ? 'Al menos 8 caracteres y un número' : '••••••••'}" required>
-            ${signup
-              ? raw('<p class="hint">Mínimo 8 caracteres, con al menos un número. No hacen falta símbolos ni mayúsculas.</p>')
-              : ''}
+                   autocomplete="new-password"
+                   placeholder="Al menos 8 caracteres y un número" required>
+            <p class="hint">Mínimo 8 caracteres, con al menos un número. No hacen falta símbolos ni mayúsculas.</p>
           </div>
 
           <p class="error" id="error" hidden></p>
 
-          <button class="btn btn-primary btn-block" type="submit" id="submit">
-            ${signup ? 'Crear cuenta' : 'Entrar'}
+          <button class="btn btn-primary btn-duo btn-block brillo" type="submit" id="submit">
+            Crear cuenta
           </button>
         </form>
 
         <button class="btn btn-ghost btn-block" id="switch">
-          ${signup ? 'Ya tengo cuenta' : 'No tengo cuenta, quiero crear una'}
+          Ya tengo cuenta
         </button>
-
-        ${signup ? '' : raw('<button class="btn btn-ghost btn-block" id="forgot">Olvidé mi contraseña</button>')}
       </div>
     `;
   };
@@ -118,38 +120,15 @@ export function authView(host, { onSignedIn }) {
             }
           });
         },
-        '#to-signin': () => {
-          mode = 'signin';
-          draw();
-        }
+        '#to-signin': () => onVolverAEntrar?.()
       });
 
       return;
     }
 
     wire(host, {
-      '#switch': () => {
-        mode = mode === 'signup' ? 'signin' : 'signup';
-        draw();
-      },
+      '#switch': () => onVolverAEntrar?.(),
 
-      '#forgot?': async () => {
-        const email = q(host, '#email').value.trim();
-
-        if (!email) {
-          showError('Escribí tu correo primero y volvé a tocar acá.');
-          return;
-        }
-
-        try {
-          await api.forgotPassword(email);
-        } catch {
-          // Se ignora a proposito: responder distinto segun si el correo existe
-          // permitiria averiguar quien tiene cuenta.
-        }
-
-        toastOk('Si esa cuenta existe, le llegó un enlace para cambiar la clave.');
-      },
 
       '#form@submit': async (event) => {
         event.preventDefault();
@@ -165,20 +144,14 @@ export function authView(host, { onSignedIn }) {
           return;
         }
 
-        await withBusy(button, mode === 'signup' ? 'Creando' : 'Entrando', async () => {
+        await withBusy(button, 'Creando', async () => {
           try {
-            if (mode === 'signup') {
-              await api.register(email, password);
-              pendingEmail = email;
-              mode = 'check-inbox';
-              draw();
-              return;
-            }
-
-            await api.signIn(email, password);
-            onSignedIn();
+            await api.register(email, password);
+            pendingEmail = email;
+            mode = 'check-inbox';
+            draw();
           } catch (error) {
-            showError(translate(error, mode));
+            showError(mensajeDeIngreso(error, 'signup'));
           }
         });
       }
@@ -194,8 +167,12 @@ export function authView(host, { onSignedIn }) {
  * Identity responde en ingles y con codigos propios; "NotAllowed" en particular
  * significa que falta confirmar el correo, que es la causa mas frecuente de que
  * alguien no pueda entrar y la que menos se adivina.
+ *
+ * Se exporta porque el ingreso vive en entrada/acceso.js desde el 30/09/2026 y
+ * el alta sigue aca: dos pantallas, una sola traduccion. Escribirla de nuevo del
+ * otro lado seria tener dos, y una se quedaria vieja.
  */
-function translate(error, mode) {
+export function mensajeDeIngreso(error, mode) {
   if (!(error instanceof ApiError)) return error.message;
 
   const body = JSON.stringify(error.problem ?? '');
