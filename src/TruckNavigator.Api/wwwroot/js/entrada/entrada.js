@@ -16,6 +16,7 @@ import { bienvenidaView } from './bienvenida.js';
 import { idiomaView } from './idioma.js';
 import { condicionesView } from './condiciones.js';
 import { accesoView } from './acceso.js';
+import { camionInvitadoView } from './camion.js';
 
 export const PASOS_DE_LA_ENTRADA = ['bienvenida', 'idioma', 'condiciones', 'acceso'];
 
@@ -102,10 +103,19 @@ export function entradaView(host, { paso, onListo, verFuentes, crearCuenta }) {
     });
   }
 
-  // El camion del invitado entra en su tarea. Hasta entonces este modulo no
-  // sabe montar ese paso; queda dicho en voz alta para que, si alguien cae,
-  // sepa por que en vez de ver una pantalla en blanco.
-  console.warn(`entrada: el paso "${paso}" todavia no esta construido`);
+  if (paso === 'camion') {
+    return camionInvitadoView(host, {
+      onElegido: (id) => {
+        savePrefs({ invitadoCamionId: id });
+        onListo(null);
+      }
+    });
+  }
+
+  // No deberia llegar nunca: los pasos los elige estadoDeSesion y son estos.
+  // Queda dicho en voz alta para que, si alguien cae, sepa por que en vez de
+  // ver una pantalla en blanco.
+  console.warn(`entrada: no se que es el paso "${paso}"`);
 
   return null;
 }

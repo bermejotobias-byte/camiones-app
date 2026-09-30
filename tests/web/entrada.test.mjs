@@ -125,3 +125,35 @@ test('un correo ya usado manda a entrar en vez de dejar a alguien trabado', () =
 test('lo que no es un error de la API vuelve tal cual', () => {
   assert.equal(mensajeDeIngreso(new Error('se cayó la red'), 'signin'), 'se cayó la red');
 });
+
+/* ---------------------------------------------------------------------------
+   El camión del invitado
+--------------------------------------------------------------------------- */
+
+import { fichaDePlantilla } from '../../src/TruckNavigator.Api/wwwroot/js/entrada/camion.js';
+
+test('la ficha de una plantilla dice las medidas que deciden la ruta, con unidad', () => {
+  assert.deepEqual(
+    fichaDePlantilla({ name: 'Semi 3 ejes', heightMeters: 4.1, widthMeters: 2.6, lengthMeters: 18.6, grossWeightKg: 45000 }),
+    { nombre: 'Semi 3 ejes', medidas: '4,10 m de alto · 18,6 m de largo', peso: '45 t' }
+  );
+});
+
+test('lo que la plantilla no declara no se inventa', () => {
+  // Decir lo que falta es lo que vuelve confiable a lo que sí está.
+  const ficha = fichaDePlantilla({ name: 'Chasis', heightMeters: null, lengthMeters: null, grossWeightKg: 12000 });
+
+  assert.equal(ficha.medidas, 'Sin medidas declaradas');
+  assert.equal(ficha.peso, '12 t');
+});
+
+test('con una sola medida declarada, dice esa y nada más', () => {
+  const ficha = fichaDePlantilla({ name: 'Camión', heightMeters: 3.6, lengthMeters: null, grossWeightKg: 8000 });
+
+  assert.equal(ficha.medidas, '3,60 m de alto');
+});
+
+test('el alto va con dos decimales y coma, que es como se lee en la calle', () => {
+  // 4.1 es "4,10 m": el cartel del gálibo dice 4,10 y no 4.1.
+  assert.match(fichaDePlantilla({ name: 'x', heightMeters: 4.1, grossWeightKg: 1000 }).medidas, /4,10 m/);
+});
