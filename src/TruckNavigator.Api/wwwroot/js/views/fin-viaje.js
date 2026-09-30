@@ -43,32 +43,49 @@ export function finViajeView(host, { go }) {
   setState({ cerrado: null });
 
   const earned = cerrado.earned ?? null;
-  const acredito = (cerrado.creditedDistanceMeters ?? 0) > 0;
-  const subioDeNivel = Boolean(earned?.leveledUp);
   const desbloqueados = earned?.completedTiers ?? [];
-
-  const titulo = subioDeNivel
-    ? `¡Subiste a ${escapeHtml(earned.levelAfter.name)}!`
-    : acredito ? '¡Viaje completado!' : 'Llegaste';
+  const dice = textoDeCierre(cerrado);
+  const subioDeNivel = Boolean(earned?.leveledUp);
 
   const km = Math.round((cerrado.creditedDistanceMeters ?? 0) / 100) / 10;
   const segundos = cerrado.elapsedSeconds ?? 0;
   const exp = earned?.totalExperience ?? 0;
 
+  // El invitado no festeja: sin cuenta no se acredito nada, y una pantalla
+  // de festejo sobre cero kilometros seria una mentira amable. Lo que si hay
+  // es el numero que acaba de andar y la unica frase que corresponde.
+  if (cerrado.invitado) {
+    render(host, html`
+      <div class="scroll fin-viaje">
+        <div class="fin-escena">
+          ${raw(mascota('saludo', { escala: 3, clase: 'fin-mascota' }))}
+        </div>
+
+        <h1 class="fin-titulo">${dice.titulo}</h1>
+        <p class="fin-bajada muted">${dice.bajada}</p>
+
+        <div class="grow"></div>
+
+        <button class="btn btn-primary btn-duo btn-block brillo" id="crear">Crear mi cuenta</button>
+        <button class="btn btn-outline btn-duo btn-block" id="seguir">Seguir sin cuenta</button>
+      </div>
+    `);
+
+    wire(host, { '#crear': () => go('cuenta-nueva'), '#seguir': () => go('mapa') });
+
+    return;
+  }
+
   render(host, html`
     <div class="scroll fin-viaje ${reducido() ? 'fin-quieto' : ''}">
       <div class="fin-escena">
-        ${raw(confeti(acredito ? 26 : 0))}
-        ${raw(mascota(acredito ? (subioDeNivel ? 'nivel' : 'festejo') : 'error', { escala: 3, clase: 'fin-mascota' }))}
+        ${raw(confeti(dice.festeja ? 26 : 0))}
+        ${raw(mascota(dice.festeja ? (subioDeNivel ? 'nivel' : 'festejo') : 'error', { escala: 3, clase: 'fin-mascota' }))}
       </div>
 
-      <h1 class="fin-titulo">${raw(titulo)}</h1>
+      <h1 class="fin-titulo">${raw(dice.titulo)}</h1>
 
-      <p class="fin-bajada muted">
-        ${raw(acredito
-          ? `${escapeHtml(cerrado.originLabel ?? 'Origen')} → ${escapeHtml(cerrado.destinationLabel ?? 'Destino')}`
-          : 'No sumó kilómetros: pasó menos de la mitad del tiempo estimado. Igual llegaste.')}
-      </p>
+      <p class="fin-bajada muted">${raw(dice.bajada)}</p>
 
       <div class="fichas">
         ${raw(ficha('Kilómetros', km, 'km', 'var(--cool-1)', 0))}
@@ -173,4 +190,41 @@ function confeti(cuantos) {
   }
 
   return s;
+}
+
+/**
+ * Que dice la pantalla al cerrar un viaje.
+ *
+ * El INVITADO no festeja: no hay EXP, no hay insignias y no hay confeti, porque
+ * no hay nada que festejar y fingirlo seria mentir. Lo que si hay es el numero
+ * —los kilometros que acaba de andar— y la frase que dice la verdad: no se
+ * guardaron. Es el momento en que alguien acaba de comprobar que la app le
+ * sirve, y por eso es donde se le ofrece la cuenta, y no con un cartel antes de
+ * dejarlo probar.
+ */
+export function textoDeCierre(cerrado) {
+  if (cerrado.invitado) {
+    const km = Math.round((cerrado.distanceMeters ?? 0) / 100) / 10;
+
+    return {
+      titulo: `Hiciste ${km.toLocaleString('es-AR')} km`,
+      bajada: 'No se guardaron. Con una cuenta, cada viaje suma kilómetros, sube tu nivel y te deja reportar.',
+      acciones: ['crear-cuenta', 'seguir'],
+      festeja: false
+    };
+  }
+
+  const acredito = (cerrado.creditedDistanceMeters ?? 0) > 0;
+  const subio = Boolean(cerrado.earned?.leveledUp);
+
+  return {
+    titulo: subio
+      ? `¡Subiste a ${escapeHtml(cerrado.earned.levelAfter.name)}!`
+      : acredito ? '¡Viaje completado!' : 'Llegaste',
+    bajada: acredito
+      ? `${escapeHtml(cerrado.originLabel ?? 'Origen')} → ${escapeHtml(cerrado.destinationLabel ?? 'Destino')}`
+      : 'No sumó kilómetros: pasó menos de la mitad del tiempo estimado. Igual llegaste.',
+    acciones: ['seguir'],
+    festeja: acredito
+  };
 }

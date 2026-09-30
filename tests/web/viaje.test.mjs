@@ -183,3 +183,52 @@ test('la tarjeta: la pregunta, la "i", y las píldoras No y Continuar viaje', ()
   assert.ok(html.includes('data-accion="no"'));
   assert.ok(html.includes('data-accion="continuar"'));
 });
+
+/* ---------------------------------------------------------------------------
+   El cierre del viaje: qué dice la pantalla de fin
+--------------------------------------------------------------------------- */
+
+import { textoDeCierre } from '../../src/TruckNavigator.Api/wwwroot/js/views/fin-viaje.js';
+
+test('el cierre del invitado dice los kilómetros que hizo y que no se guardaron', () => {
+  const t = textoDeCierre({ invitado: true, distanceMeters: 24_300, creditedDistanceMeters: 0 });
+
+  assert.equal(t.titulo, 'Hiciste 24,3 km');
+  assert.match(t.bajada, /No se guardaron/);
+  assert.match(t.bajada, /kilómetros/);
+  assert.deepEqual(t.acciones, ['crear-cuenta', 'seguir']);
+});
+
+test('el cierre del invitado no festeja nada: no hay nada que festejar y fingirlo sería mentir', () => {
+  assert.equal(textoDeCierre({ invitado: true, distanceMeters: 1_000, creditedDistanceMeters: 0 }).festeja, false);
+});
+
+test('el cierre con cuenta sigue siendo el de siempre', () => {
+  const t = textoDeCierre({
+    creditedDistanceMeters: 12_000,
+    originLabel: 'Casa',
+    destinationLabel: 'Depósito',
+    earned: { totalExperience: 40 }
+  });
+
+  assert.equal(t.titulo, '¡Viaje completado!');
+  assert.equal(t.bajada, 'Casa → Depósito');
+  assert.equal(t.festeja, true);
+});
+
+test('subir de nivel se anuncia con el nombre del nivel nuevo', () => {
+  const t = textoDeCierre({
+    creditedDistanceMeters: 12_000,
+    earned: { leveledUp: true, levelAfter: { name: 'Repartidor' } }
+  });
+
+  assert.equal(t.titulo, '¡Subiste a Repartidor!');
+});
+
+test('un viaje que no acreditó lo dice, y tampoco festeja', () => {
+  const t = textoDeCierre({ creditedDistanceMeters: 0 });
+
+  assert.equal(t.titulo, 'Llegaste');
+  assert.match(t.bajada, /No sumó kilómetros/);
+  assert.equal(t.festeja, false);
+});
