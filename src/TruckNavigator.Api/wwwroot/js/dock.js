@@ -25,6 +25,7 @@
  */
 
 import { html, raw, render, wire, qa } from './ui.js';
+import { icono } from './iconos.js';
 
 /**
  * Los cuatro accesos. `ruta` es a donde va cada uno; `cubre` son las pantallas
@@ -49,62 +50,16 @@ const MENU_MAS = [
 ];
 
 /* ---------------------------------------------------------------------------
-   Los dibujos
+   Los dibujos viven en js/iconos.js
    ---------------------------------------------------------------------------
-   Cada uno en una caja de 32 x 32, con una capa de sombra —la misma forma en
-   un tono mas oscuro, corrida 2 px hacia abajo— y encima la forma de color.
-   Esa capa es lo que en la referencia hace que los iconos tengan cuerpo.
+   Estaban aca desde el 12/09/2026, dibujados para el zocalo. Desde el
+   30/09/2026 estan en el modulo de iconos junto con los del prototipo: una
+   pantalla que necesitaba el icono de idioma no tenia de donde sacarlo, y dos
+   juegos de dibujos en dos archivos se desincronizan.
+
+   Los del zocalo se mudaron TAL CUAL: cada uno corre su sombra distinto y el
+   usuario los aprobo asi.
 --------------------------------------------------------------------------- */
-
-const ICONOS = {
-  // La flecha de navegacion: el cursor del GPS.
-  mapa: `
-    <path d="M16 5 L26 27 L16 22 L6 27 Z" fill="#1a6f9a" transform="translate(0 2)"/>
-    <path d="M16 5 L26 27 L16 22 L6 27 Z" fill="#35b8e8"/>
-    <path d="M16 5 L26 27 L16 22 Z" fill="#8fdcf7" opacity=".55"/>`,
-
-  // El mando de juego: cuerpo, cruceta y dos botones.
-  juegos: `
-    <path d="M9 10h14a6 6 0 0 1 6 6l-1 7a3.5 3.5 0 0 1-6 2l-2-3h-8l-2 3a3.5 3.5 0 0 1-6-2l-1-7a6 6 0 0 1 6-6z" fill="#6d46c4" transform="translate(0 2)"/>
-    <path d="M9 10h14a6 6 0 0 1 6 6l-1 7a3.5 3.5 0 0 1-6 2l-2-3h-8l-2 3a3.5 3.5 0 0 1-6-2l-1-7a6 6 0 0 1 6-6z" fill="#a97bf0"/>
-    <path d="M10.5 14v6M7.5 17h6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
-    <circle cx="22" cy="15.5" r="1.6" fill="#fff"/><circle cx="25" cy="18.5" r="1.6" fill="#fff"/>`,
-
-  // El salvavidas: el simbolo universal del auxilio. Rojo porque es emergencia.
-  emergencia: `
-    <circle cx="16" cy="18" r="11" fill="#b6362b"/>
-    <circle cx="16" cy="16" r="11" fill="#f0736a"/>
-    <circle cx="16" cy="16" r="5" fill="#fff"/>
-    <path d="M16 5v6M16 21v6M5 16h6M21 16h6" stroke="#fff" stroke-width="3.2"/>
-    <circle cx="16" cy="16" r="4" fill="#f0736a" opacity=".35"/>`,
-
-  // Los tres puntos, como el "…" de la referencia.
-  mas: `
-    <circle cx="16" cy="18" r="12" fill="#3f3aa0"/>
-    <circle cx="16" cy="16" r="12" fill="#6b64d9"/>
-    <circle cx="10" cy="16" r="2.1" fill="#fff"/><circle cx="16" cy="16" r="2.1" fill="#fff"/><circle cx="22" cy="16" r="2.1" fill="#fff"/>`
-};
-
-/** Los dibujos chicos de la hoja de "mas", en el mismo lenguaje. */
-const ICONOS_MENU = {
-  perfil: `
-    <circle cx="16" cy="11" r="6" fill="#1a6f9a" transform="translate(0 1.5)"/><circle cx="16" cy="11" r="6" fill="#35b8e8"/>
-    <path d="M5 27c0-6 5-9 11-9s11 3 11 9z" fill="#1a6f9a" transform="translate(0 1.5)"/><path d="M5 27c0-6 5-9 11-9s11 3 11 9z" fill="#35b8e8"/>`,
-  carnet: `
-    <rect x="3" y="8" width="26" height="18" rx="4" fill="#3f3aa0" transform="translate(0 1.5)"/><rect x="3" y="8" width="26" height="18" rx="4" fill="#6b64d9"/>
-    <circle cx="10.5" cy="16" r="3.2" fill="#fff"/><path d="M17 13h8M17 17.5h8M17 22h5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`,
-  camiones: `
-    <path d="M3 9h15v12H3zM18 13h6l4 4v4h-10z" fill="#1a6f9a" transform="translate(0 1.5)"/><path d="M3 9h15v12H3zM18 13h6l4 4v4h-10z" fill="#35b8e8"/>
-    <circle cx="8" cy="23" r="2.8" fill="#0d1418"/><circle cx="22" cy="23" r="2.8" fill="#0d1418"/>`,
-  chat: `
-    <path d="M28 15a10 10 0 0 1-10 10H6l3-4a10 10 0 1 1 19-6z" fill="#6d46c4" transform="translate(0 1.5)"/><path d="M28 15a10 10 0 0 1-10 10H6l3-4a10 10 0 1 1 19-6z" fill="#a97bf0"/>`,
-  configuracion: `
-    <circle cx="16" cy="16" r="10" fill="#4a6070" transform="translate(0 1.5)"/><circle cx="16" cy="16" r="10" fill="#8aa3b3"/>
-    <circle cx="16" cy="16" r="3.5" fill="#fff"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4" stroke="#8aa3b3" stroke-width="3.5" stroke-linecap="round"/>`
-};
-
-const dibujo = (paths, tamanio) =>
-  `<svg viewBox="0 0 32 32" width="${tamanio}" height="${tamanio}" aria-hidden="true">${paths}</svg>`;
 
 /* ---------------------------------------------------------------------------
    El zocalo
@@ -129,7 +84,7 @@ export function createDock({ go }) {
         ${raw(ACCESOS.map((a) => `
           <button class="dock-item ${a.id === activo ? 'is-active' : ''}" data-acceso="${a.id}"
                   aria-label="${a.label}" aria-current="${a.id === activo ? 'page' : 'false'}">
-            ${dibujo(ICONOS[a.id], 30)}
+            ${icono(a.id, 30)}
           </button>`).join(''))}
       </div>
 
@@ -137,7 +92,7 @@ export function createDock({ go }) {
       <div class="dock-sheet ${hojaAbierta ? 'is-open' : ''}" id="dock-sheet" role="menu">
         ${raw(MENU_MAS.map((m) => `
           <button class="dock-row" role="menuitem" data-ruta="${m.ruta}" ${m.pronto ? 'disabled' : ''}>
-            ${dibujo(ICONOS_MENU[m.ruta], 28)}
+            ${icono(m.ruta, 28)}
             <span>${m.label}</span>
             ${m.pronto ? '<em>Pronto</em>' : ''}
           </button>`).join(''))}
