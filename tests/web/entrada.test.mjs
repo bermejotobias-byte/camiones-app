@@ -38,3 +38,27 @@ test('cada paso sabe cuál sigue, y el último no sigue a ninguno', () => {
   assert.equal(pasoSiguiente('condiciones'), 'acceso');
   assert.equal(pasoSiguiente('acceso'), null);
 });
+
+/* ---------------------------------------------------------------------------
+   Paso 2 · Idioma
+--------------------------------------------------------------------------- */
+
+import { IDIOMAS } from '../../src/TruckNavigator.Api/wwwroot/js/entrada/idioma.js';
+
+test('los cuatro idiomas del v3, y sólo el español se puede elegir hoy', () => {
+  assert.deepEqual(IDIOMAS.map((i) => i.codigo), ['es', 'pt', 'en', 'gn']);
+  assert.deepEqual(IDIOMAS.filter((i) => i.disponible).map((i) => i.codigo), ['es']);
+});
+
+test('cada idioma dice su país donde lo tiene, y el inglés no inventa uno', () => {
+  assert.equal(IDIOMAS.find((i) => i.codigo === 'es').lugar, 'Argentina');
+  assert.equal(IDIOMAS.find((i) => i.codigo === 'pt').lugar, 'Brasil');
+  assert.equal(IDIOMAS.find((i) => i.codigo === 'gn').lugar, 'Paraguay');
+  assert.equal(IDIOMAS.find((i) => i.codigo === 'en').lugar, null);
+});
+
+test('el nombre de cada idioma está en ese idioma, que es como se reconoce', () => {
+  assert.equal(IDIOMAS.find((i) => i.codigo === 'pt').nombre, 'Português');
+  assert.equal(IDIOMAS.find((i) => i.codigo === 'en').nombre, 'English');
+  assert.equal(IDIOMAS.find((i) => i.codigo === 'gn').nombre, 'Guaraní');
+});

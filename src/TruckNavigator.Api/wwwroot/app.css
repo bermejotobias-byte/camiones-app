@@ -4164,6 +4164,15 @@ button { font-family: inherit; font-size: inherit; }
   background: var(--ground);
 }
 
+/* La cabecera tambien va sobre la luz.
+
+   Sin esto la luz la TAPA sin dejar rastro: es absolute y la cabecera es
+   estatica, asi que pinta encima aunque este despues en el marcado. Medido el
+   30/09/2026: el titulo y el chip del paso estaban ahi, con su color correcto,
+   y no se veian. Va acotado a la entrada para no tocar la cabecera del resto
+   de la app. */
+.pantalla-entrada > .topbar { position: relative; z-index: 1; }
+
 /* El cuerpo va sobre la luz, que es absolute y ocupa la pantalla entera. */
 .entrada-cuerpo {
   position: relative;

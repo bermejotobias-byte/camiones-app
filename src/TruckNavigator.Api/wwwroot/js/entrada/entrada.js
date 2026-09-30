@@ -13,6 +13,7 @@
 
 import { savePrefs } from '../store.js';
 import { bienvenidaView } from './bienvenida.js';
+import { idiomaView } from './idioma.js';
 
 export const PASOS_DE_LA_ENTRADA = ['bienvenida', 'idioma', 'condiciones', 'acceso'];
 
@@ -60,6 +61,16 @@ export function entradaView(host, { paso, onListo }) {
       onYaTengoCuenta: () => {
         savePrefs({ vioBienvenida: true });
         onListo('acceso');
+      }
+    });
+  }
+
+  if (paso === 'idioma') {
+    return idiomaView(host, {
+      chip: chipDePaso('idioma'),
+      onContinuar: (idioma) => {
+        savePrefs({ idioma });
+        onListo(pasoSiguiente('idioma'));
       }
     });
   }
