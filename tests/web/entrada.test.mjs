@@ -157,3 +157,19 @@ test('el alto va con dos decimales y coma, que es como se lee en la calle', () =
   // 4.1 es "4,10 m": el cartel del gálibo dice 4,10 y no 4.1.
   assert.match(fichaDePlantilla({ name: 'x', heightMeters: 4.1, grossWeightKg: 1000 }).medidas, /4,10 m/);
 });
+
+test('el largo de un semi es el del CONJUNTO, no el del tractor solo', () => {
+  // La plantilla "Semirremolque" declara 6 m de tractor y 12 de acoplado. Lo que
+  // decide por qué calles puede doblar son los 18, y es lo que el dominio llama
+  // TotalLengthMeters: "la que se compara contra los límites de la vía".
+  const ficha = fichaDePlantilla({
+    name: 'Semirremolque',
+    heightMeters: 4.2,
+    lengthMeters: 6,
+    totalLengthMeters: 18,
+    grossWeightKg: 40_000
+  });
+
+  assert.match(ficha.medidas, /18 m de largo/);
+  assert.doesNotMatch(ficha.medidas, /6 m de largo/);
+});

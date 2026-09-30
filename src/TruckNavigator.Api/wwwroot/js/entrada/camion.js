@@ -35,8 +35,14 @@ export function fichaDePlantilla(plantilla) {
     partes.push(`${metros(plantilla.heightMeters)} de alto`);
   }
 
-  if (Number.isFinite(plantilla.lengthMeters)) {
-    partes.push(`${String(plantilla.lengthMeters).replace('.', ',')} m de largo`);
+  // El largo del CONJUNTO, no el del tractor: un semi declara 6 m de tractor y
+  // 12 de acoplado, y lo que decide por que calles puede doblar son los 18. El
+  // dominio lo llama TotalLengthMeters, "la que se compara contra los limites de
+  // la via".
+  const largo = plantilla.totalLengthMeters ?? plantilla.lengthMeters;
+
+  if (Number.isFinite(largo)) {
+    partes.push(`${String(largo).replace('.', ',')} m de largo`);
   }
 
   return {
