@@ -169,7 +169,11 @@ function mount() {
   }
 
   const view = ROUTES[name] ?? navigateView;
-  teardown = view(host, { go, openDrawer }) ?? null;
+
+  // `puede` viaja como parametro y no se importa: app.js ya importa las
+  // vistas, asi que importarlo al reves seria un ciclo. Ademas deja explicito
+  // que una vista no decide sobre permisos, los recibe.
+  teardown = view(host, { go, openDrawer, puede }) ?? null;
 }
 
 function swap(host) {
@@ -544,7 +548,20 @@ function settingsView(host, { go }) {
 
 /** Carga lo que varias pantallas necesitan tener a mano. */
 async function boot() {
-  if (!isSignedIn()) return;
+  if (!isSignedIn()) {
+    // Sin sesion no hay perfil ni viajes, pero los camiones del catalogo SI son
+    // anonimos, y el invitado los necesita: sin ellos selectedTruck() devuelve
+    // null y no se puede calcular NINGUNA ruta. Medido el 30/09/2026: el
+    // invitado elegia su camion y el mapa se quedaba sin ninguno, asi que
+    // tocar un destino volvia a la hoja de siempre sin decir nada.
+    try {
+      setState({ trucks: await api.trucks() });
+    } catch (error) {
+      console.error(error);
+    }
+
+    return;
+  }
 
   try {
     const [profile, trucks] = await Promise.all([api.profile(), api.trucks()]);

@@ -106,7 +106,10 @@ export function entradaView(host, { paso, onListo, verFuentes, crearCuenta }) {
   if (paso === 'camion') {
     return camionInvitadoView(host, {
       onElegido: (id) => {
-        savePrefs({ invitadoCamionId: id });
+        // Se guarda en los DOS lugares a proposito: invitadoCamionId es lo que
+        // dice que este paso ya esta hecho, y selectedTruckId es lo que lee el
+        // resto de la app para saber con que camion se rutea.
+        savePrefs({ invitadoCamionId: id, selectedTruckId: id });
         onListo(null);
       }
     });

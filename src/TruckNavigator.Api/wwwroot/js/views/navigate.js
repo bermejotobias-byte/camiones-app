@@ -45,7 +45,12 @@ import {
   cardinal, cardinalName, askChoice, askConfirm, escapeHtml
 } from '../ui.js';
 
-export function navigateView(host, { openDrawer, go }) {
+/**
+ * `puede` dice que permite el estado de la app (app.js). El invitado es una
+ * sesion que en el servidor NO existe, asi que preguntar por isSignedIn() no
+ * alcanza: hay que preguntar por la capacidad concreta.
+ */
+export function navigateView(host, { openDrawer, go, puede }) {
   let origin = null;          // { lat, lng, label }
   let destination = null;
   let route = null;
@@ -1965,8 +1970,44 @@ export function navigateView(host, { openDrawer, go }) {
     });
   }
 
+  /**
+   * Arranca el guiado con la ruta que se esta mirando.
+   *
+   * NO habla con el servidor: eso es guardar el viaje, y solo ocurre con
+   * cuenta. Separarlas es lo que permite que un invitado navegue de verdad
+   * —voz, galibos, avisos, vibracion— sin que el servidor aprenda nada de el.
+   */
+  function arrancarViaje(rutaElegida) {
+    route = rutaElegida;
+    gl.drawRoute(rutaElegida, rutaElegida.accessLegs ?? []);
+    stage = 'navigation';
+    startNavigating();
+  }
+
+  /** Los metros que se anduvieron sobre la ruta, que es lo que la app sabe. */
+  const metrosAndados = () =>
+    Math.max(0, (route?.distanceMeters ?? 0) - (navState?.remainingMeters ?? route?.distanceMeters ?? 0));
+
   async function startTrip(button) {
     const truck = selectedTruck();
+
+    // El invitado navega con la ruta que ya tiene calculada. Sin viaje en el
+    // servidor no hay historial, ni kilometros, ni EXP, y eso se le dice al
+    // cerrar: es el momento en que acaba de comprobar que la app le sirve.
+    if (!puede().guardarViaje) {
+      setState({
+        activeTrip: {
+          invitado: true,
+          startedAt: new Date().toISOString(),
+          originLabel: origin.label,
+          destinationLabel: destination.label
+        },
+        activeRoute: route
+      });
+
+      arrancarViaje(route);
+      return;
+    }
 
     // Desde el reparto el viaje es el mismo, con una diferencia: el destino es la
     // ULTIMA parada del orden calculado y las demas viajan como intermedias. Sin
@@ -1999,10 +2040,7 @@ export function navigateView(host, { openDrawer, go }) {
         // La ruta se guarda en el estado compartido, no solo en la variable de
         // la vista: es lo que permite retomar el viaje si la app se cierra.
         setState({ activeTrip: started.trip, activeRoute: started.route });
-        route = started.route;
-        gl.drawRoute(started.route, started.route.accessLegs ?? []);
-        stage = 'navigation';
-        startNavigating();
+        arrancarViaje(started.route);
       } catch (error) {
         // 409: quedo un viaje abierto de antes. Se ofrece cerrarlo en vez de
         // dejar al usuario trabado sin saber por que.
@@ -2032,8 +2070,41 @@ export function navigateView(host, { openDrawer, go }) {
     });
   }
 
+  /**
+   * El cierre de un viaje de invitado, armado en la pantalla.
+   *
+   * `creditedDistanceMeters` va en CERO a proposito y no es un olvido: nadie
+   * le acredito esos kilometros, y el numero que se le muestra es lo que
+   * anduvo, no lo que gano.
+   */
+  const cierreDeInvitado = (trip) => ({
+    invitado: true,
+    creditedDistanceMeters: 0,
+    distanceMeters: metrosAndados(),
+    elapsedSeconds: Math.round((Date.now() - new Date(trip.startedAt).getTime()) / 1000),
+    originLabel: trip.originLabel,
+    destinationLabel: trip.destinationLabel
+  });
+
   async function closeTrip(button, arrived) {
     const trip = state.activeTrip;
+
+    // El viaje del invitado se cierra donde vive: en la pantalla.
+    if (trip?.invitado) {
+      const cerrado = arrived ? cierreDeInvitado(trip) : null;
+
+      stopNavigating();
+      setState({ activeTrip: null, activeRoute: null, cerrado });
+      stage = 'search';
+      route = null;
+      stops = [];
+      deliveryOrder = null;
+      gl.setDeliveryStops([]);
+      gl.clearRoute();
+
+      go(arrived ? 'fin' : 'mapa');
+      return;
+    }
 
     await withBusy(button, arrived ? 'Cerrando' : 'Abandonando', async () => {
       try {
