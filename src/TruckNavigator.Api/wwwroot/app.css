@@ -3067,6 +3067,10 @@ button { font-family: inherit; font-size: inherit; }
   flex-direction: column;
   gap: 4px;
   background: var(--surface);
+
+  /* El resplandor del mismo tono, del prototipo (§16): "fichas con su color y su
+     luz". El usuario señaló esta pieza como referencia de color. */
+  box-shadow: 0 0 18px -6px var(--ficha), inset 0 1px 0 rgba(255,255,255,.06);
   animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) var(--demora) both;
 }
 
@@ -3728,4 +3732,414 @@ button { font-family: inherit; font-size: inherit; }
   height: 16px;
   background: linear-gradient(to top, var(--surface), transparent);
   pointer-events: none;
+}
+
+/* ============================================================================
+   EL VOCABULARIO DEL PROTOTIPO — aprobado el 14/09/2026
+
+   Los cuatro materiales, la chapa de nivel, la fila, el globo del mono y las
+   luces de color. Los valores salen de docs/diseno/prototipo/final.mjs, que es
+   la fuente; el porque de cada uno esta en la skill diseno-camiones-app §16.
+
+   Tres reglas que este vocabulario existe para hacer faciles:
+
+     - UNA sola pieza naranja por region. El naranja es la voz del mono, nunca
+       el boton de un formulario. El globo del mono es esa pieza, y por eso el
+       boton que esta al lado es celeste.
+     - UN cromo por pantalla: frio para el progreso, oro para el nivel, plata
+       para los totales. Si todo brilla, nada brilla.
+     - El mapa en movimiento NO lleva nada de esto. Ahi el registro es sobrio y
+       tiene sus propios tokens (--gps-*).
+
+   Dos diferencias con el prototipo, a proposito:
+
+     - El prototipo esta escrito en modo noche fijo y aca hay dia y noche, asi
+       que todo color que sea del tema sale de su token. Las rgba() que quedan
+       son capas de luz o de sombra, que funcionan sobre los dos fondos.
+     - El prototipo llama "chip" a lo que esta app llama "pill". No se agrega una
+       familia paralela: se suma la variante que faltaba y se le deja el nombre
+       del prototipo como alias, para poder copiar el marcado de los tableros.
+   ========================================================================== */
+
+:root {
+  /* El barniz metalico que llevan los tres cromos por encima de su color. */
+  --metal: linear-gradient(180deg,
+            rgba(255,255,255,.78) 0%, rgba(255,255,255,.28) 20%,
+            rgba(0,0,0,.22) 46%, rgba(255,255,255,.42) 64%,
+            rgba(255,255,255,.06) 82%, rgba(0,0,0,.34) 100%);
+
+  /* La rampa fria: los cuatro escalones del mismo recorrido (celeste a violeta). */
+  --rampa: linear-gradient(90deg, #35b8e8, #8a86f2 55%, #a97bf0);
+
+  /* El oro vuelve a la paleta SOLO para el nivel: lo recupero el usuario para
+     la chapa, y §10 lo habia descartado por calido. No extenderlo. */
+  --oro: linear-gradient(90deg, #e8781f 0%, #f7a53c 32%, #ffe082 58%, #f2b93a 100%);
+
+  --plata: linear-gradient(90deg, #8ea4b3 0%, #eef4f8 42%, #b5c6d1 68%, #e3ecf1 100%);
+}
+
+/* --- las luces: manchas de color de fondo, debajo de todo ------------------ */
+
+.luz { position: absolute; inset: 0; pointer-events: none; }
+
+.luz-brand {
+  background:
+    radial-gradient(70% 45% at 50% 12%, rgba(53,184,232,.40), transparent 70%),
+    radial-gradient(60% 40% at 50% 96%, rgba(138,134,242,.24), transparent 70%),
+    linear-gradient(180deg, #0f1c26 0%, var(--ground) 55%);
+}
+
+.luz-festejo {
+  background:
+    radial-gradient(70% 50% at 50% 30%, rgba(255,200,80,.18), transparent 70%),
+    radial-gradient(80% 60% at 50% 0%, rgba(169,123,240,.40), transparent 65%),
+    linear-gradient(180deg, #171a30 0%, var(--ground) 60%);
+}
+
+.luz-tenue {
+  background:
+    radial-gradient(70% 40% at 50% 20%, rgba(53,184,232,.16), transparent 70%),
+    linear-gradient(180deg, #0f1a22 0%, var(--ground) 60%);
+}
+
+/* De dia la luz se aclara: las mismas manchas sobre fondo claro se ven sucias. */
+:root[data-theme="light"] .luz-brand {
+  background:
+    radial-gradient(70% 45% at 50% 12%, rgba(14,135,184,.16), transparent 70%),
+    linear-gradient(180deg, #e3eef5 0%, var(--ground) 60%);
+}
+
+:root[data-theme="light"] .luz-festejo {
+  background:
+    radial-gradient(70% 50% at 50% 30%, rgba(242,185,58,.20), transparent 70%),
+    linear-gradient(180deg, #f2ecf8 0%, var(--ground) 60%);
+}
+
+:root[data-theme="light"] .luz-tenue {
+  background: linear-gradient(180deg, #e7eef3 0%, var(--ground) 60%);
+}
+
+/* Lo que va sobre una luz necesita su propia capa: la luz es absolute. */
+.sobre-luz { position: relative; z-index: 1; }
+
+/* --- material 1: vidrio ---------------------------------------------------
+   Paneles y globos translucidos sobre los heros con luz. El backdrop-filter es
+   lo que lo hace vidrio: sin el es un gris con borde. */
+
+.vidrio {
+  background: rgba(255,255,255,.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+:root[data-theme="light"] .vidrio {
+  background: rgba(255,255,255,.72);
+  border-color: rgba(14,22,27,.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 8px 24px -14px rgba(14,22,27,.35);
+}
+
+/* --- material 2: neon -----------------------------------------------------
+   Lo ACTIVO se enciende: el camion en uso, el idioma elegido, el campo con
+   foco. UNO por pantalla, o deja de significar "este". */
+
+.neon {
+  border-color: var(--brand) !important;
+  box-shadow:
+    0 0 0 1px rgba(53,184,232,.55),
+    0 0 22px -4px rgba(53,184,232,.75),
+    inset 0 0 18px -12px rgba(53,184,232,.9);
+}
+
+/* --- material 3: cromo, en tres tonos -------------------------------------
+   Frio para el progreso, oro para el nivel, plata para los totales. Uno por
+   pantalla. El texto va en tinta oscura sobre oro y plata, y blanco con sombra
+   doble sobre el frio, que es mas oscuro. */
+
+.cromo-frio {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.85), 0 0 8px rgba(0,0,0,.55);
+  background: var(--metal), var(--rampa);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.4), inset 0 -2px 3px rgba(0,0,0,.25),
+    0 0 0 1px rgba(0,0,0,.35), 0 0 18px -2px rgba(91,156,242,.8);
+}
+
+.cromo-oro {
+  position: relative;
+  overflow: hidden;
+  color: #2b1405;
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  background: var(--metal), var(--oro);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.6), inset 0 -2px 3px rgba(0,0,0,.28),
+    0 0 0 1px rgba(0,0,0,.4), 0 0 26px -2px rgba(255,200,80,.9);
+}
+
+.cromo-plata {
+  position: relative;
+  overflow: hidden;
+  color: #0e161b;
+  text-shadow: 0 1px 0 rgba(255,255,255,.6);
+  background: var(--metal), var(--plata);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.75), inset 0 -2px 3px rgba(0,0,0,.28),
+    0 0 0 1px rgba(0,0,0,.4), 0 0 18px -2px rgba(215,230,240,.7);
+}
+
+/* El brillo que cruza una pieza de cromo. Va en lo que celebra, no en todo. */
+.destello::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 36%, rgba(255,255,255,.9) 50%, transparent 64%);
+  transform: translateX(-110%);
+  animation: destello 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes destello {
+  0%, 62% { transform: translateX(-110%); }
+  100%    { transform: translateX(110%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .destello::after { animation: none; }
+}
+
+/* --- material 4: satinado -------------------------------------------------
+   De vez en cuando: la fila de la cuenta, un catalogo, un dato secundario. Lo
+   demas plano, para que los otros tres se noten. */
+
+.satin {
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
+  border: 1px solid var(--rule);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 2px rgba(0,0,0,.35);
+}
+
+/* --- la chapa de nivel ----------------------------------------------------
+   Pastilla de oro con el numero en un disco oscuro y el nombre en mayusculas:
+   2 · REPARTIDOR. Es el elemento gamificado del usuario y va con el a todos
+   lados: grande en Subiste de nivel, chica junto al nombre en Perfil.
+
+   Subir de nivel es RECIBIR la chapa: es lo que se desbloquea, y por eso no hay
+   que inventar recompensas que el motor no da. */
+
+.chapa {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 7px;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.chapa .n {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(43,20,5,.55);
+  color: #ffe082;
+  font-size: 13px;
+  text-shadow: none;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.25);
+}
+
+.chapa-grande { font-size: 17px; padding: 9px 22px 9px 10px; gap: 12px; }
+.chapa-grande .n { width: 38px; height: 38px; font-size: 19px; }
+
+.chapa-plata .n { background: rgba(14,22,27,.55); color: #eef4f8; }
+
+/* --- el globo del mono ----------------------------------------------------
+   Dos formas que se alternan: VIDRIO naranja con la chip del momento donde hay
+   luz detras o mas texto, y PLENO con el reborde inferior de los botones para
+   una sola frase. La cola va al costado cuando el mono esta al lado, y abajo
+   cuando el mono esta debajo.
+
+   El mono habla, no decora: una pose por momento, siempre la misma. */
+
+.globo {
+  position: relative;
+  flex: none;
+  border-radius: 14px;
+  padding: 11px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: rgba(245,132,58,.16);
+  border: 1px solid rgba(245,132,58,.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+.globo b { font-size: 18px; font-weight: 800; line-height: 1.25; color: var(--accent-ink); }
+.globo p { font-size: 13.5px; line-height: 1.4; color: var(--ink-2); }
+.globo em { font-style: normal; color: var(--accent-ink); font-weight: 800; }
+.globo > .pill { align-self: flex-start; margin-bottom: 2px; }
+
+.globo-abajo { align-items: center; text-align: center; }
+.globo-abajo > .pill { align-self: center; }
+
+.globo-abajo::before,
+.globo-abajo::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  margin-left: -8px;
+  border: 8px solid transparent;
+  border-bottom: 0;
+  border-top-color: rgba(245,132,58,.5);
+}
+
+.globo-abajo::after { bottom: -7px; border-top-color: rgba(245,132,58,.16); }
+
+.globo-lado { flex: 1; min-width: 0; }
+
+.globo-lado::before,
+.globo-lado::after {
+  content: "";
+  position: absolute;
+  left: -9px;
+  bottom: 22px;
+  border: 8px solid transparent;
+  border-left: 0;
+  border-right-color: rgba(245,132,58,.5);
+}
+
+.globo-lado::after { left: -7px; border-right-color: rgba(245,132,58,.16); }
+
+.globo-pleno {
+  background: var(--accent);
+  border: 0;
+  border-bottom: 4px solid var(--accent-deep);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+  backdrop-filter: none;
+}
+
+.globo-pleno b { color: var(--on-accent); }
+.globo-pleno p { color: rgba(43,20,5,.78); }
+.globo-pleno.globo-lado::before { border-right-color: var(--accent); }
+.globo-pleno.globo-lado::after { display: none; }
+.globo-pleno.globo-abajo::before { border-top-color: var(--accent-deep); }
+.globo-pleno.globo-abajo::after { display: none; }
+
+/* El mono va SUELTO con sombra en el piso; el marco de carnet quedo descartado
+   junto con la banda. */
+
+.mono-globo { display: flex; align-items: flex-end; gap: 10px; }
+
+.mono-suelto { width: 96px; height: 96px; flex: none; position: relative; }
+
+.mono-suelto::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 2px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.6), transparent);
+}
+
+.mono-suelto img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.45));
+}
+
+.mono-grande { position: relative; display: flex; justify-content: center; }
+
+.mono-grande img {
+  position: relative;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,.6));
+}
+
+.mono-grande::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 150px;
+  height: 18px;
+  margin-left: -75px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.65), transparent);
+}
+
+/* --- la fila: la caja de toda la app --------------------------------------
+   Icono ilustrado, titulo, subtitulo gris, chip o boton a la derecha, chevron.
+   Es lo que mas le gusto al usuario del prototipo, y por eso es la pieza con la
+   que se arman Configuracion, el menu, los idiomas y los catalogos. */
+
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  text-align: left;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.fila > .grow { display: flex; flex-direction: column; gap: 3px; }
+.fila b { font-size: 15px; line-height: 1.25; }
+.fila .sub { font-size: 12.5px; color: var(--ink-3); line-height: 1.3; }
+.fila > .grow > .pill { align-self: flex-start; }
+
+.chev { flex: none; color: var(--ink-3); }
+
+/* --- los beneficios de la Bienvenida -------------------------------------- */
+
+.beneficio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  flex: 1;
+}
+
+.beneficio span { font-size: 11.5px; color: var(--ink-2); line-height: 1.3; }
+
+/* --- el brillo de un boton y el contorno celeste --------------------------
+   El brillo es lo que hace que un boton se vea pulsado y no plano. El contorno
+   celeste es la accion secundaria de la Bienvenida: no compite con la primera,
+   pero no desaparece como un enlace. */
+
+.btn.brillo { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.18); }
+.btn-primary.brillo { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 24px -4px rgba(53,184,232,.8); }
+
+.btn-outline-brand {
+  background: transparent;
+  border: 2px solid rgba(53,184,232,.55);
+  color: var(--brand-ink);
+}
+
+/* --- la pildora naranja: la voz del mono ----------------------------------
+   El prototipo la llama "chip". Los dos nombres valen para la misma regla, para
+   poder copiar el marcado de los tableros sin traducirlo. */
+
+.pill-accent,
+.chip-accent {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
