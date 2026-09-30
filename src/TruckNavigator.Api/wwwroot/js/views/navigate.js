@@ -2606,8 +2606,25 @@ export function navigateView(host, { openDrawer, go, puede }) {
     const trip = state.activeTrip;
     if (!trip) return;
 
+    // Lo que anduvo se mide ANTES de apagar la navegacion: apagarla se lleva el
+    // estado del guiado, y con el los metros.
+    const cerradoDelInvitado = trip.invitado ? cierreDeInvitado(trip) : null;
+
     stopNavigating();
     decir('Llegaste a destino.');
+
+    // El viaje del invitado no existe en el servidor: se cierra donde vive. Sin
+    // esto, llegar dejaba el viaje ABIERTO en memoria y la pantalla de vuelta en
+    // el mapa, sin explicar nada. Es el mismo caso que closeTrip.
+    if (trip.invitado) {
+      setState({ activeTrip: null, activeRoute: null, cerrado: cerradoDelInvitado });
+
+      stage = 'search';
+      route = null;
+      gl.clearRoute();
+      go('fin');
+      return;
+    }
 
     try {
       const closed = await api.finishTrip(trip.id);
