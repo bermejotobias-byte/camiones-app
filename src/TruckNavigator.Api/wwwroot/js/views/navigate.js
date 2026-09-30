@@ -12,6 +12,7 @@
  */
 
 import { api } from '../api.js';
+import { hojaDeCuenta } from '../cuenta.js';
 import {
   getPosition, watchPosition, watchHeading, speak, keepScreenAwake, onTrackingFailed,
   vibrate, VIBRACION, call
@@ -218,7 +219,16 @@ export function navigateView(host, { openDrawer, go, puede }) {
     '#locate': () => locate({ silent: false }),
     '#panic': () => go('emergencia'),
     '#capas': () => abrirCapas(),
-    '#reportar': () => aportarLugar(),
+    // Reportar es lo primero que un invitado va a querer tocar, y lo primero
+    // que no puede: se lo dice el mono antes de abrir nada.
+    '#reportar': async () => {
+      if (!puede().reportar) {
+        if (await hojaDeCuenta('reportar')) go('cuenta-nueva');
+        return;
+      }
+
+      aportarLugar();
+    },
     '#compass-dial': () => explainHeading(),
     '#zoom-in': () => gl.zoomIn(),
     '#zoom-out': () => gl.zoomOut()
@@ -823,7 +833,14 @@ export function navigateView(host, { openDrawer, go, puede }) {
 
       const { accion, veredicto } = boton.dataset;
       if (accion === 'cerrar') cerrarFichaReporte();
-      if (accion === 'voto') votarReporte(fichaReporteAbierta.id, veredicto, boton);
+      if (accion === 'voto') {
+        if (!puede().reportar) {
+          hojaDeCuenta('votar').then((crear) => crear && go('cuenta-nueva'));
+          return;
+        }
+
+        votarReporte(fichaReporteAbierta.id, veredicto, boton);
+      }
       if (accion === 'cerrar-reporte') cerrarReportePropio(fichaReporteAbierta.id, boton);
     };
   }

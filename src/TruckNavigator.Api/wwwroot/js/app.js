@@ -18,6 +18,7 @@ import {
 import { fuentesView } from './views/fuentes.js';
 import { estadoDeSesion, permisos } from './sesion.js';
 import { entradaView } from './entrada/entrada.js';
+import { hojaDeCuenta } from './cuenta.js';
 import { authView } from './views/auth.js';
 import { navigateView } from './views/navigate.js';
 import { trucksView } from './views/trucks.js';
@@ -98,6 +99,19 @@ const ROUTES = {
   fuentes: (host) => fuentesView(host, { alVolver: () => history.back() })
 };
 
+/**
+ * Que pantallas no existen sin cuenta, y con que motivo se le explica.
+ *
+ * El S.O.S. NO esta en esta lista y no puede estarlo: nada de las cuentas ni
+ * de la gamificacion puede estorbar un pedido de auxilio.
+ */
+const NECESITAN_CUENTA = {
+  perfil: 'perfil',
+  carnet: 'perfil',
+  camiones: 'perfil',
+  juegos: 'juegos'
+};
+
 applyTheme();
 
 /* ---------------------------------------------------------------------------
@@ -157,6 +171,17 @@ function mount() {
   // entrada no lo llevan: todavia no se entro a la app.
   dock.setPermitido(!desdeLaEntrada);
   dock.setActive(name);
+
+  // Las pantallas que no existen sin cuenta. El invitado no se choca con una
+  // pantalla vacia ni con un 401: el mono le dice por que, con el motivo de
+  // ESA pantalla, y decide.
+  const motivo = NECESITAN_CUENTA[name];
+
+  if (motivo && !puede().perfil) {
+    go('mapa');
+    hojaDeCuenta(motivo).then((crear) => crear && go('cuenta-nueva'));
+    return;
+  }
 
   if (name === 'emergencia') {
     emergencyView(host, { go });
