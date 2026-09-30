@@ -60,3 +60,12 @@ test('los detalles de la ruta tienen su momento: el mono lee el mapa', () => {
   assert.equal(MOMENTOS.ruta.pose, 'mapa');
   assert.ok(mascota('ruta', { escala: 1 }).includes('/img/mascota/mapa.png'));
 });
+
+test('el saludo de la entrada tiene su propio momento: la pose es la del mate, pero no es la racha', () => {
+  // El tablero de Bienvenida usa el mono con mate. Reusar el momento `racha`
+  // dibujaria bien y DIRIA mal: su texto alternativo habla de un dia mas de
+  // racha, y en la primera pantalla de la app eso no significa nada.
+  assert.equal(MOMENTOS.saludo.pose, 'mate');
+  assert.doesNotMatch(MOMENTOS.saludo.alt, /racha/i);
+  assert.notEqual(MOMENTOS.saludo.alt, MOMENTOS.racha.alt);
+});

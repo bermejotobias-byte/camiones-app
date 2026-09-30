@@ -4143,3 +4143,138 @@ button { font-family: inherit; font-size: inherit; }
   background: var(--accent-soft);
   color: var(--accent-ink);
 }
+
+/* ============================================================================
+   LA ENTRADA — Bienvenida · Idioma · Condiciones · Acceso
+
+   Las cuatro pantallas de los tableros aprobados el 14/09/2026. La maqueta del
+   prototipo esta en estilos en linea; aca va como clases, que es lo que permite
+   que las cuatro compartan la misma columna y el mismo aire sin repetirlos.
+
+   No llevan zocalo: son la puerta. Lo apaga app.js con dock.setPermitido(false).
+   ========================================================================== */
+
+.pantalla-entrada {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ground);
+}
+
+/* El cuerpo va sobre la luz, que es absolute y ocupa la pantalla entera. */
+.entrada-cuerpo {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22px 20px 0;
+  gap: 4px;
+}
+
+.entrada-rotulo {
+  color: var(--brand-ink);
+  letter-spacing: .14em;
+  text-align: center;
+}
+
+.entrada-centro {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.entrada-centro .globo { max-width: 270px; }
+
+/* El halo detras del mono: lo despega del fondo sin ponerle marco. */
+.entrada-mono { position: relative; margin-top: 6px; }
+
+.entrada-mono::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260px;
+  height: 260px;
+  margin: -130px 0 0 -130px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(53,184,232,.22), transparent);
+}
+
+.entrada-titulo {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -.03em;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.entrada-titulo span { color: var(--brand-ink); }
+
+.entrada-bajada {
+  text-align: center;
+  font-size: 14.5px;
+  color: var(--ink-2);
+  line-height: 1.4;
+  max-width: 300px;
+}
+
+.entrada-beneficios {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 0 4px 18px;
+}
+
+/* Las acciones van pegadas abajo, fuera del cuerpo que scrollea: es la leccion
+   de AD-44 —la accion principal no puede depender de que sobre espacio—. */
+.entrada-acciones {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px 22px;
+}
+
+.entrada-legal { text-align: center; margin-top: 2px; }
+
+/* La columna de los pasos 2 y 3: cabecera, contenido que scrollea, y la accion
+   abajo. El "grow" vacio del marcado es lo que empuja el boton al piso. */
+.entrada-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 16px 20px;
+}
+
+.entrada-scroll > .grow { flex: 1; min-height: 0; }
+
+/* Los terminos: el unico bloque de lectura larga de la app. */
+.condiciones-texto {
+  gap: 12px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.condiciones-texto p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}

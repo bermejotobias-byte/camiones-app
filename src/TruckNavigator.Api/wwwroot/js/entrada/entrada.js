@@ -11,6 +11,9 @@
  * sin recibir nada.
  */
 
+import { savePrefs } from '../store.js';
+import { bienvenidaView } from './bienvenida.js';
+
 export const PASOS_DE_LA_ENTRADA = ['bienvenida', 'idioma', 'condiciones', 'acceso'];
 
 /**
@@ -35,4 +38,37 @@ export function pasoSiguiente(paso) {
   if (indice < 0 || indice === PASOS_DE_LA_ENTRADA.length - 1) return null;
 
   return PASOS_DE_LA_ENTRADA[indice + 1];
+}
+
+/**
+ * Monta el paso que falta.
+ *
+ * `onListo` recibe el paso que sigue, o null cuando la entrada termino y hay que
+ * arrancar la app. Cada pantalla guarda lo suyo ANTES de avisar: si la app se
+ * cierra en el medio, se retoma donde iba y no desde el principio.
+ */
+export function entradaView(host, { paso, onListo }) {
+  if (paso === 'bienvenida') {
+    return bienvenidaView(host, {
+      onEmpezar: () => {
+        savePrefs({ vioBienvenida: true });
+        onListo(pasoSiguiente('bienvenida'));
+      },
+
+      // Quien ya tiene cuenta acepto las condiciones la primera vez: pedirselas
+      // de nuevo es tratarlo como nuevo.
+      onYaTengoCuenta: () => {
+        savePrefs({ vioBienvenida: true });
+        onListo('acceso');
+      }
+    });
+  }
+
+  // Los pasos 2 a 4 y el camion del invitado entran cada uno en su tarea. Hasta
+  // entonces este modulo solo sabe montar la Bienvenida, y app.js todavia no lo
+  // llama: nadie puede caer aca. Queda dicho en voz alta para que, si alguien
+  // cae, sepa por que en vez de ver una pantalla en blanco.
+  console.warn(`entrada: el paso "${paso}" todavia no esta construido`);
+
+  return null;
 }

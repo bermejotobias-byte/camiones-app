@@ -51,6 +51,7 @@ export const POSES = {
  * que exista la de fuerza. Pedirselas al diseñador; no inventarlas.
  */
 export const MOMENTOS = {
+  saludo:   { pose: 'mate',        alt: 'El mono te saluda con un mate en la mano' },          // 👋
   festejo:  { pose: 'festejo',     alt: 'El mono festeja con los brazos arriba' },          // 🎉
   nivel:    { pose: 'festejo',     alt: 'El mono festeja tu nuevo nivel' },                 // 😎
   racha:    { pose: 'mate',        alt: 'El mono toma un mate: un dia mas de racha' },      // 🔥
