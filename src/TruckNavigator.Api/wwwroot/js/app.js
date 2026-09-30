@@ -19,6 +19,8 @@ import { fuentesView } from './views/fuentes.js';
 import { estadoDeSesion, permisos } from './sesion.js';
 import { entradaView } from './entrada/entrada.js';
 import { hojaDeCuenta } from './cuenta.js';
+import { icono } from './iconos.js';
+import { idiomaView } from './entrada/idioma.js';
 import { authView } from './views/auth.js';
 import { navigateView } from './views/navigate.js';
 import { trucksView } from './views/trucks.js';
@@ -96,7 +98,16 @@ const ROUTES = {
   }),
 
   // De donde salen los datos. Hasta el 30/09/2026 era la puerta de la app.
-  fuentes: (host) => fuentesView(host, { alVolver: () => history.back() })
+  fuentes: (host) => fuentesView(host, { alVolver: () => history.back() }),
+
+  // El idioma, fuera de la entrada: la misma pantalla, con lo elegido puesto.
+  idioma: (host) => idiomaView(host, {
+    chip: null,
+    onContinuar: (elegido) => {
+      savePrefs({ idioma: elegido });
+      history.back();
+    }
+  })
 };
 
 /**
@@ -534,24 +545,24 @@ function settingsView(host, { go }) {
         </div>
       </div>
 
-      <div class="field">
-        <label>Idioma</label>
-        <div class="card">
-          <p class="hint">
-            Por ahora sólo español. Portugués, guaraní e inglés llegan más adelante.
-          </p>
+      <button class="fila" id="cfg-idioma">
+        ${raw(icono('idioma', 32))}
+        <div class="grow">
+          <b>Idioma</b>
+          <span class="sub">Los otros tres están en camino</span>
         </div>
-      </div>
+        <span class="pill pill-brand">Español</span>
+        ${raw(icon('chevron', 18))}
+      </button>
 
-      <div class="card">
-        <h3>Fuentes de los datos</h3>
-        <p class="hint">
-          Mapa y atributos: OpenStreetMap (ODbL). Normativa: Ley 2148 de la Ciudad,
-          artículos 9.10.1 y 9.10.5. Qué calle pertenece a la Red lo aporta la
-          comunidad de OpenStreetMap, no una capa oficial.
-        </p>
-        <button class="btn btn-ghost btn-block" id="review">Volver a leer el aviso</button>
-      </div>
+      <button class="fila" id="cfg-fuentes">
+        ${raw(icono('fuentes', 32))}
+        <div class="grow">
+          <b>De dónde salen los datos</b>
+          <span class="sub">La Ley 2148, OpenStreetMap y lo que la app no sabe</span>
+        </div>
+        ${raw(icon('chevron', 18))}
+      </button>
     </div>
   `;
 
@@ -560,7 +571,12 @@ function settingsView(host, { go }) {
     // Ya no hay puerta que reabrir: desde el 30/09/2026 las fuentes son una
     // pantalla mas y se va a ella. Antes esto apagaba la preferencia para que
     // la puerta volviera a aparecer.
-    '#review': () => go('fuentes'),
+    '#cfg-fuentes': () => go('fuentes'),
+
+    // La misma pantalla del paso 2 de la entrada. Hoy solo se puede elegir
+    // español, y esa es justamente la razon de mostrarla: que se vea que el
+    // lugar existe y que los otros tres estan en camino.
+    '#cfg-idioma': () => go('idioma'),
     '#theme@change': (event) => {
       savePrefs({ theme: event.target.value });
       applyTheme();
