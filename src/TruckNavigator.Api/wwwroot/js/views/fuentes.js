@@ -1,5 +1,9 @@
 /**
- * Primera pantalla: de donde salen los datos.
+ * De donde salen los datos.
+ *
+ * Hasta el 30/09/2026 era la PRIMERA pantalla de la app y una puerta
+ * obligatoria. Ahora vive en Configuracion y la enlaza el paso 3 de la
+ * entrada: el contenido es el mismo, cambia el lugar.
  *
  * No es letra chica ni un tramite. Este producto decide por donde puede circular
  * un camion de treinta toneladas, y quien lo usa tiene derecho a saber que la
@@ -11,9 +15,8 @@
  */
 
 import { html, raw, icon, wire } from '../ui.js';
-import { savePrefs } from '../store.js';
 
-export function onboardingView(host, { onDone }) {
+export function fuentesView(host, { alVolver, etiqueta = 'Volver' }) {
   host.className = 'screen';
   host.innerHTML = html`
     <div class="scroll" style="gap:20px">
@@ -76,7 +79,7 @@ export function onboardingView(host, { onDone }) {
         </p>
       </div>
 
-      <button class="btn btn-primary btn-block" id="accept">Entendido, empecemos</button>
+      <button class="btn btn-primary btn-duo btn-block brillo" id="accept">${etiqueta}</button>
 
       <p class="note-source" style="text-align:center">
         Datos de mapa © colaboradores de OpenStreetMap, bajo ODbL.
@@ -84,10 +87,5 @@ export function onboardingView(host, { onDone }) {
     </div>
   `;
 
-  wire(host, {
-    '#accept': () => {
-      savePrefs({ sourcesAccepted: true });
-      onDone();
-    }
-  });
+  wire(host, { '#accept': alVolver });
 }

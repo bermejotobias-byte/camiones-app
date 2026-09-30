@@ -15,7 +15,7 @@ import {
   askConfirm, withBusy, escapeHtml
 } from './ui.js';
 
-import { onboardingView } from './views/onboarding.js';
+import { fuentesView } from './views/fuentes.js';
 import { authView } from './views/auth.js';
 import { navigateView } from './views/navigate.js';
 import { trucksView } from './views/trucks.js';
@@ -107,7 +107,13 @@ function mount() {
   // Puerta 1: las fuentes se leen una vez, antes que nada.
   if (!prefs.sourcesAccepted) {
     dock.setPermitido(false);
-    onboardingView(host, { onDone: () => go(isSignedIn() ? "mapa" : "cuenta") });
+    fuentesView(host, {
+      etiqueta: 'Entendido, empecemos',
+      alVolver: () => {
+        savePrefs({ sourcesAccepted: true });
+        go(isSignedIn() ? "mapa" : "cuenta");
+      }
+    });
     return;
   }
 

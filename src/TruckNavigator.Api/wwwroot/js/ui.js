@@ -100,6 +100,7 @@ export function wire(root, handlers) {
 const ICONS = {
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
+  chevron: '<path d="M9 5l7 7-7 7"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   gps: '<circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/>',
   truck: '<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',

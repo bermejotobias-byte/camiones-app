@@ -14,6 +14,7 @@
 import { savePrefs } from '../store.js';
 import { bienvenidaView } from './bienvenida.js';
 import { idiomaView } from './idioma.js';
+import { condicionesView } from './condiciones.js';
 
 export const PASOS_DE_LA_ENTRADA = ['bienvenida', 'idioma', 'condiciones', 'acceso'];
 
@@ -48,7 +49,7 @@ export function pasoSiguiente(paso) {
  * arrancar la app. Cada pantalla guarda lo suyo ANTES de avisar: si la app se
  * cierra en el medio, se retoma donde iba y no desde el principio.
  */
-export function entradaView(host, { paso, onListo }) {
+export function entradaView(host, { paso, onListo, verFuentes }) {
   if (paso === 'bienvenida') {
     return bienvenidaView(host, {
       onEmpezar: () => {
@@ -72,6 +73,19 @@ export function entradaView(host, { paso, onListo }) {
         savePrefs({ idioma });
         onListo(pasoSiguiente('idioma'));
       }
+    });
+  }
+
+  if (paso === 'condiciones') {
+    return condicionesView(host, {
+      chip: chipDePaso('condiciones'),
+      onAcepto: () => {
+        // La FECHA, no un booleano: el dia que cambien los terminos, dice quien
+        // acepto cuales.
+        savePrefs({ condicionesAceptadas: new Date().toISOString() });
+        onListo(pasoSiguiente('condiciones'));
+      },
+      onVerFuentes: () => verFuentes?.()
     });
   }
 

@@ -62,3 +62,35 @@ test('el nombre de cada idioma está en ese idioma, que es como se reconoce', ()
   assert.equal(IDIOMAS.find((i) => i.codigo === 'en').nombre, 'English');
   assert.equal(IDIOMAS.find((i) => i.codigo === 'gn').nombre, 'Guaraní');
 });
+
+/* ---------------------------------------------------------------------------
+   Paso 3 · Condiciones
+--------------------------------------------------------------------------- */
+
+import { TERMINOS } from '../../src/TruckNavigator.Api/wwwroot/js/entrada/condiciones.js';
+
+test('los términos dicen las cinco cosas que esta app tiene que decir', () => {
+  const texto = TERMINOS.join(' ').toLowerCase();
+
+  assert.match(texto, /openstreetmap/);   // de dónde sale el mapa
+  assert.match(texto, /conductor/);       // de quién es la responsabilidad
+  assert.match(texto, /comunidad/);       // quién escribe los reportes
+  assert.match(texto, /correo/);          // qué datos se guardan
+  assert.match(texto, /borr/);            // qué pasa al borrar la cuenta
+});
+
+test('no prometen nada que la app no haga', () => {
+  // Una cláusula que la app no cumple es peor que no tenerla: es letra chica
+  // falsa, y este producto se apoya en decir lo que no sabe.
+  const texto = TERMINOS.join(' ').toLowerCase();
+
+  assert.doesNotMatch(texto, /publicidad(?!\.)|anunciante|vender tus|cookies|suscripción/);
+});
+
+test('son pocos y cortos: nadie lee cinco pantallas de letra chica', () => {
+  assert.ok(TERMINOS.length <= 6, `son ${TERMINOS.length} párrafos`);
+
+  for (const parrafo of TERMINOS) {
+    assert.ok(parrafo.length < 340, `un párrafo de ${parrafo.length} caracteres es un muro`);
+  }
+});
