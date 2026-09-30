@@ -5,11 +5,30 @@
  * que usa una sola vista se queda adentro de esa vista.
  */
 
+import { PREFERENCIAS_DE_ENTRADA } from './sesion.js';
+
 const PREFS_KEY = 'tn.prefs';
 
 const defaults = {
-  /** Si ya se leyo la pantalla de fuentes. Se pide una sola vez. */
+  /**
+   * Si ya se leyo la pantalla de fuentes.
+   *
+   * Desde el 30/09/2026 ya NO es una puerta: esa pantalla vive en
+   * Configuracion y Condiciones la enlaza. Se sigue leyendo para MIGRAR a
+   * quien venia usando la app: quien la habia aceptado entra directo al paso
+   * 4 de la entrada en vez de dar la vuelta entera (ver sesion.js).
+   */
   sourcesAccepted: false,
+
+  /**
+   * Lo que guarda la entrada: la bienvenida vista, el idioma, la fecha en que
+   * se aceptaron las condiciones, y el sello del invitado con su camion.
+   *
+   * Se declaran en sesion.js y se traen de ahi, no se copian: si cada archivo
+   * las nombrara por su cuenta, un nombre distinto pasaria los tests de los
+   * dos y dejaria a alguien repitiendo la entrada.
+   */
+  ...PREFERENCIAS_DE_ENTRADA,
   /** 'dark' | 'light' | 'auto' */
   theme: 'auto',
   /** Camion elegido para rutear. */
