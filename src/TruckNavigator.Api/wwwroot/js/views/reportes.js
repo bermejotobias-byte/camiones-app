@@ -47,7 +47,12 @@ export function recuadroDeLaLista(fix, ultimoBbox) {
   if (fix) {
     const lado = GRADOS_DE_LA_LISTA / 2;
 
-    return [fix.lng - lado, fix.lat - lado, fix.lng + lado, fix.lat + lado];
+    // Como CADENA y no como arreglo, que es la forma en que `bboxVisible`
+    // guarda el recuadro del mapa y la unica que entiende `api.reports`. Con
+    // dos formas para lo mismo, la lista andaba con GPS y reventaba sin el.
+    return [fix.lng - lado, fix.lat - lado, fix.lng + lado, fix.lat + lado]
+      .map((n) => n.toFixed(5))
+      .join(',');
   }
 
   return ultimoBbox ?? null;
@@ -204,7 +209,7 @@ export function reportesView(host, { go, puede }) {
     }
 
     try {
-      crudos = await api.reports(bbox.join(','));
+      crudos = await api.reports(bbox);
       filas = filasDeReportes(crudos, Date.now());
       pintar();
     } catch (error) {
