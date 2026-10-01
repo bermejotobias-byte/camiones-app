@@ -22,8 +22,19 @@ ruta, no como advertencia posterior. Fuente regulatoria: Ley 2148, art. 9.10.1
 Objetivo declarado: *"El GPS de los camioneros de Buenos Aires"*. No sólo un
 navegador: perfil, historial, gamificación, comunidad.
 
-**Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
-está muy adelante y todavía no se fusionó.
+**Una rama por feature, y cada una llega a `main` por PR** (convención del
+usuario, 01/10/2026): la rama se arranca desde `main` al día, al terminar se
+abre el PR, y una vez fusionado se vuelve a `main` para empezar la siguiente.
+Nada de features commiteadas directo en `main`.
+
+**`main` está al día desde el 01/10/2026.** El **PR #1** fusionó
+`cuentas-de-usuario` —181 commits, AD-35 a AD-51— **con squash**: un solo
+commit, `6aa8bed`, con el árbol idéntico byte a byte a la punta `e864b22`.
+Por el squash la historia divergió, y de ahí dos reglas: **no se sigue
+commiteando en `cuentas-de-usuario`** —un PR nuevo desde ahí volvería a
+mostrar los 386 archivos— y **no se borra**: es el único lugar con los 181
+commits uno por uno, cuyos mensajes cargan buena parte del porqué
+(`git log cuentas-de-usuario`).
 
 **Punta al 30/09/2026: la entrada y el invitado** (AD-51) — la app tiene puerta
 por primera vez, y se puede probar el GPS sin cuenta. Es el primero de los
@@ -31,10 +42,10 @@ cinco subproyectos en que se partieron las fases 6 y 7. Antes, **al
 29/09/2026: el límite de tasa de la API** (AD-50), lo último que
 faltaba de lo transversal antes de hostear. Antes, **al 19/09/2026: los
 reportes de la comunidad (Fase 5)**, construidos en 25 tareas con TDD,
-verificados de punta a punta en el navegador y por HTTP. **Todo eso sigue sin
-pushear** (ver §8, punto 0). Antes, **al 18/09/2026: el GPS con la piel de
+verificados de punta a punta en el navegador y por HTTP. **Todo eso entró a
+`main` el 01/10/2026 con el PR #1.** Antes, **al 18/09/2026: el GPS con la piel de
 Waze**, completo, pusheado y probado en el teléfono. Antes, **al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; doce
-commits desde la spec `5298239`, uno por tarea), **sin pushear**. Antes, ese
+commits desde la spec `5298239`, uno por tarea). Antes, ese
 mismo día, el relevamiento de POIs y los talleres de mecánica pesada
 (`d0b6ddd`, diecisiete commits desde `b5dc4d3`, de la spec `c16cef1` al cierre en docs). Los
 del 14/09: la mascota en la app (`5db5267`) y el prototipo de diseño
@@ -139,7 +150,7 @@ planificar, leer `producto-camiones-app`.
 257600e  Mapa base propio en PMTiles: minimalista, con dia y noche
 a4eda3d  Actualiza la skill: Fase 4 cerrada y comandos de datos
 5fb0ef3  Brujula del magnetometro, camara cenital fija, y una app que ya no queda varada
-a587041  Actualiza la skill: el checkpoint y que config-truck.yml no se commitea   <- main
+a587041  Actualiza la skill: el checkpoint y que config-truck.yml no se commitea   <- main hasta el 01/10/2026
 1b5cd5a  Zonas de riesgo y radares en el mapa, simbolos que se entienden, y un APK que se puede actualizar
 145caec  Actualiza la skill: checkpoint 1b5cd5a, y dos cosas que decia y ya son falsas
 1b631dc  Las zonas de riesgo cuentan robos a mano armada, y vuelven a ser un mapa de calor
@@ -651,10 +662,10 @@ discador y cómo cae el layout en *esa* pantalla. Ver la lección de más abajo.
   dos minutos y desbloquea el resto del workflow.
 
   Y `deploy/` **nunca se levantó**: esta máquina no tiene Docker.
-- **El disparador incluye `cuentas-de-usuario` a propósito y es temporal.**
-  Disparando sólo en `main` el workflow no podía correr nunca, y el botón de *Run
-  workflow* tampoco aparece —GitHub sólo lo muestra para workflows que existen en
-  la rama por defecto—. **Al fusionar a `main`, sacar esa línea.**
+- **El disparador es sólo `main`** desde el 01/10/2026 (`35def04`). Hasta ese día
+  incluía `cuentas-de-usuario` a propósito, porque `main` había quedado tan atrás
+  que el workflow no podía correr; se sacó al fusionar el PR #1. Cada feature
+  llega a `main` por PR, así que no se despliega nada que nadie revisó.
 - **La instancia de Oracle no existe todavía**: A1 respondió *out of capacity*.
   Sin ella no hay backend público.
 - **La progresión con kilómetros de verdad.** El viaje de prueba acreditó **0 km**
@@ -1343,10 +1354,9 @@ faltaba, se hizo ese día (AD-50, ver §4).
 
 **Lo que el pipeline va a pedir, medido el 29/09/2026 y en este orden:**
 
-1. **Pushear.** El workflow dispara con `push` a `main` *o* a
-   `cuentas-de-usuario` (ese segundo trigger está ahí a propósito porque `main`
-   quedó atrás). Sin push no se construye ninguna imagen. Al 29/09 son **38
-   commits sin pushear** (39 con el de documentación); push sólo si lo pide.
+1. ~~**Pushear.**~~ **Hecho el 01/10/2026**: el PR #1 metió todo en `main` y el
+   workflow corrió. **Cortó en el paso 2**, como se esperaba —*"release not
+   found"*—, igual que las corridas del 18/09 y la de la rama ese mismo día.
 2. **El release `mapa-base-amba` no existe todavía** (`gh release list` no
    devuelve nada) y el workflow **corta** si no encuentra `amba.pmtiles` como
    asset de ese tag. El archivo está en disco: `routing/amba.pmtiles`, 55,8 MB.
@@ -1372,8 +1382,8 @@ y decidió: **sólo en la posición GPS**, sin *vehículo detenido* ni *límite 
 peso*, **la cámara muy confirmada es fija (+5) y lo mismo gradúa un lugar
 aportado**. Spec `docs/superpowers/specs/2026-09-19-reportes-comunidad-design.md`,
 plan `docs/superpowers/plans/2026-09-19-reportes-comunidad.md` (25 tareas, las
-cinco etapas marcadas), AD-49, `docs/reportes.md`. Todo commiteado en
-`cuentas-de-usuario`, **sin pushear** (push sólo si lo pide).
+cinco etapas marcadas), AD-49, `docs/reportes.md`. Commiteado en
+`cuentas-de-usuario` y en `main` desde el 01/10/2026 (PR #1).
 
 **Lo que falta de este frente:** compilar el APK (`.\build-apk.ps1 -ApiUrl
 http://<ip del día>:5080`, `adb install -r`) y que el usuario reporte y confirme
