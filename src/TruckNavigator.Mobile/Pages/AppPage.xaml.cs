@@ -111,7 +111,17 @@ public partial class AppPage : ContentPage
              $"(compilada: {TruckNavigatorApi.DefaultBaseUrl}, " +
              $"fijada a mano: {TruckNavigatorApi.IsPinned})");
 
-        var check = await _api.CheckAsync();
+        // Insiste, no se rinde al primer intento. Al abrir la app la red del
+        // telefono suele no estar lista todavia —la WiFi reconecta al salir de
+        // suspension— y con un solo intento eso terminaba en la pantalla de
+        // "no se pudo contactar": el usuario cerraba, abria de nuevo y andaba.
+        //
+        // El progreso se informa en pantalla porque una espera silenciosa de
+        // veinte segundos no se distingue de una app colgada.
+        var progreso = new Progress<int>(intento =>
+            ShowStartup(ConnectionRetry.Describe(intento, TruckNavigatorApi.BaseUrl), showSetup: false));
+
+        var check = await _api.ConnectAsync(progress: progreso);
 
         Note($"resultado: alcanzable={check.Reachable} motivo={check.Problem ?? "ninguno"}");
 
@@ -129,7 +139,12 @@ public partial class AppPage : ContentPage
                 $"Probando con {TruckNavigatorApi.DefaultBaseUrl}…",
                 showSetup: false);
 
-            var fallback = await _api.CheckAsync(TruckNavigatorApi.DefaultBaseUrl);
+            // Un solo intento, y con la espera larga del segundo. Aca no se
+            // reintenta tres veces mas: la direccion guardada ya se llevo sus
+            // tres, y encadenar otra tanda pasaria del medio minuto mirando un
+            // cartel. Ademas la red ya tuvo todo ese tiempo para levantar, que
+            // era el motivo de reintentar.
+            var fallback = await _api.CheckAsync(TruckNavigatorApi.DefaultBaseUrl, attempt: 2);
 
             Note($"rescate con la de fabrica: alcanzable={fallback.Reachable}");
 
@@ -285,6 +300,27 @@ public partial class AppPage : ContentPage
                     MainThread.BeginInvokeOnMainThread(async () => await SpeakAsync(phrase));
                     break;
 
+                case "vibrate":
+                    if (root.TryGetProperty("pattern", out var pattern) &&
+                        pattern.ValueKind == JsonValueKind.Array)
+                    {
+                        var millis = new List<long>();
+
+                        foreach (var tramo in pattern.EnumerateArray())
+                        {
+                            if (tramo.TryGetInt64(out var ms) && ms is > 0 and < 3000)
+                            {
+                                millis.Add(ms);
+                            }
+                        }
+
+                        if (millis.Count > 0)
+                        {
+                            MainThread.BeginInvokeOnMainThread(() => Vibrate(millis));
+                        }
+                    }
+                    break;
+
                 case "keepAwake":
                     var awake = root.TryGetProperty("on", out var keep) && keep.GetBoolean();
                     MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = awake);
@@ -296,6 +332,10 @@ public partial class AppPage : ContentPage
                         : null;
 
                     MainThread.BeginInvokeOnMainThread(() => Dial(number));
+                    break;
+
+                case "pickContact":
+                    MainThread.BeginInvokeOnMainThread(PickContact);
                     break;
             }
         }
@@ -316,6 +356,75 @@ public partial class AppPage : ContentPage
     /// siquiera entra al <c>catch</c>: aparece como crash nativo y no como error
     /// manejado (ver AD-15).
     /// </remarks>
+    /// <summary>
+    /// Hace vibrar el telefono con un patron de duraciones alternadas.
+    /// </summary>
+    /// <param name="millis">
+    /// Vibracion, silencio, vibracion... en milisegundos, igual que
+    /// <c>navigator.vibrate</c>. El primer valor es la primera vibracion.
+    /// </param>
+    /// <remarks>
+    /// <b>No se usa <c>Vibration.Default.Vibrate</c> de MAUI</b>: sólo acepta una
+    /// duracion suelta, y sin patrones todos los avisos se sienten igual. Que un
+    /// galibo por el que no pasas se distinga de un radar SIN mirar la pantalla
+    /// es la razon de ser de esto; con un unico zumbido no se distingue nada y
+    /// hay que mirar igual.
+    ///
+    /// Por eso va contra el <c>Vibrator</c> de Android, que si acepta formas de
+    /// onda. En Android 8 y posteriores hay que pasar por <c>VibrationEffect</c>:
+    /// el <c>Vibrate(long[])</c> viejo esta obsoleto y en algunos equipos no hace
+    /// nada.
+    /// </remarks>
+    private void Vibrate(List<long> millis)
+    {
+#if ANDROID
+        try
+        {
+            var contexto = Android.App.Application.Context;
+
+            // Android 12+ expone el vibrador a traves del VibratorManager. En las
+            // versiones anteriores hay que pedir el servicio directo, y el
+            // manager ni siquiera existe.
+            Android.OS.Vibrator? vibrador;
+
+            if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.S)
+            {
+                var manager = (Android.OS.VibratorManager?)
+                    contexto.GetSystemService(Android.Content.Context.VibratorManagerService);
+
+                vibrador = manager?.DefaultVibrator;
+            }
+            else
+            {
+                vibrador = (Android.OS.Vibrator?)
+                    contexto.GetSystemService(Android.Content.Context.VibratorService);
+            }
+
+            if (vibrador is null || !vibrador.HasVibrator)
+            {
+                return;
+            }
+
+            // La forma de onda arranca vibrando, asi que el primer tramo tiene
+            // que ser una espera de cero: si no, el patron sale invertido y todos
+            // los avisos empiezan con un silencio del largo de su primer pulso.
+            var onda = new long[millis.Count + 1];
+            onda[0] = 0;
+            millis.CopyTo(onda, 1);
+
+            // -1 es "no repetir". Un aviso que se repite solo no se puede callar
+            // desde la cabina.
+            vibrador.Vibrate(Android.OS.VibrationEffect.CreateWaveform(onda, -1));
+        }
+        catch (Exception ex)
+        {
+            // Un telefono sin vibrador, o uno que no deja usarlo, no puede tumbar
+            // la navegacion: el aviso hablado y el visual siguen su curso.
+            Note($"no se pudo vibrar ({ex.GetType().Name})", error: true);
+        }
+#endif
+    }
+
     private async Task RunScriptAsync(string script)
     {
         try
@@ -646,16 +755,256 @@ public partial class AppPage : ContentPage
             return;
         }
 
+        // Se deja rastro ANTES de intentar, no solo si falla. Un boton que no
+        // reacciona y un log vacio no dicen de que lado esta el problema, y eso
+        // costo una vuelta entera.
+        Note($"discador: pedido de {number.Length} caracteres");
+
+#if ANDROID
         try
         {
-            PhoneDialer.Default.Open(number);
+            // NO se usa PhoneDialer.Default.Open de MAUI.
+            //
+            // Es una caja negra que hace Uri.Parse("tel:" + number) sin validar
+            // nada —verificado en el ensamblado— y que no abria el discador en
+            // este telefono ni siquiera con el 911, sin excepcion ni rastro.
+            // Con el Intent explicito se ve exactamente que se manda, y lanzar un
+            // Intent implicito NO esta sujeto al filtrado de visibilidad entre
+            // aplicaciones de Android 11 (lo que si esta es consultarlo). Ver AD-43.
+            //
+            // El # va escapado: en un URI abre el fragmento, asi que "tel:*111#"
+            // se cortaria ahi. El + se deja, que es lo que significa el prefijo
+            // internacional, y el numero ya llega limpio desde forDialing.
+            var marcable = number.Replace("#", "%23");
+
+            var intent = new Android.Content.Intent(
+                Android.Content.Intent.ActionDial,
+                Android.Net.Uri.Parse("tel:" + marcable));
+
+            if (Platform.CurrentActivity is { } activity)
+            {
+                activity.StartActivity(intent);
+            }
+            else
+            {
+                // Fuera de una Activity, Android exige tarea nueva.
+                intent.SetFlags(Android.Content.ActivityFlags.NewTask);
+                Android.App.Application.Context.StartActivity(intent);
+            }
+
+            Note("discador: abierto");
         }
         catch (Exception ex)
         {
             // Si no hay discador —una tablet sin telefonia— no tiene sentido
             // tumbar la app en medio de una emergencia.
-            System.Diagnostics.Debug.WriteLine($"No se pudo abrir el discador: {ex.Message}");
+            //
+            // Va por Note y no por Debug.WriteLine: aquel lleva
+            // [Conditional("DEBUG")] y el compilador lo borra en Release, o sea
+            // que el rastro desaparecia justo en el APK que se instala. Ver AD-31.
+            Note($"no se pudo abrir el discador ({ex.GetType().Name})", error: true);
         }
+#endif
+    }
+
+    /* --------------------------------------------------------------------
+       Libreta de contactos
+    -------------------------------------------------------------------- */
+
+#if ANDROID
+    /// <summary>Codigo propio para reconocer la vuelta del selector de contactos.</summary>
+    private const int PickContactRequest = 0x7C01;
+#endif
+
+    /// <summary>
+    /// Abre la agenda del telefono para que la persona elija un contacto.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>No pide el permiso READ_CONTACTS, y no debe pedirlo.</b> El selector lo
+    /// dibuja Android: la app lanza un Intent, el sistema muestra la agenda, y de
+    /// vuelta llega un URI que apunta solo al contacto que se toco, con permiso
+    /// de lectura temporal para ese registro. READ_CONTACTS daria acceso a la
+    /// libreta entera —incluso sin que nadie elija nada— y queda declarado en la
+    /// ficha de la tienda. Para lo que hace falta aca, sobra.
+    /// </para>
+    /// <para>
+    /// Se consulta <c>Phone.ContentUri</c> y no <c>Contacts.ContentUri</c>: aquel
+    /// lista los NUMEROS, asi que alguien con tres lineas elige cual, y lo que
+    /// vuelve ya es el numero. Con el segundo volveria el contacto y habria que
+    /// resolver sus telefonos aparte, lo que si necesita el permiso.
+    /// </para>
+    /// <para>
+    /// <b>Siempre contesta</b>, haya elegido, cancelado o fallado: del otro lado
+    /// hay una promesa esperando sin temporizador, y una rama muda la dejaria
+    /// colgada para siempre. Ver AD-42.
+    /// </para>
+    /// </remarks>
+    private void PickContact()
+    {
+#if ANDROID
+        try
+        {
+            var activity = Platform.CurrentActivity;
+
+            if (activity is null)
+            {
+                ContactFailed("La aplicación no está en pantalla.");
+                return;
+            }
+
+            // El Intent va por TIPO MIME y NO por URI de datos. No es un detalle
+            // de estilo: con el URI, este telefono ofrecia el explorador de
+            // archivos. Medido con "cmd package query-activities":
+            //
+            //   PICK + data content://com.android.contacts/data/phones
+            //     -> com.mi.android.globalFileexplorer y com.miui.gallery.
+            //        La agenda NI SIQUIERA aparece entre las candidatas.
+            //   PICK + data Y tipo
+            //     -> la agenda, pero el explorador tambien: sigue ambiguo y
+            //        Android muestra el "abrir con".
+            //   PICK + tipo vnd.android.cursor.dir/phone_v2
+            //     -> com.google.android.contacts, y SOLO esa.
+            //
+            // Con SetType alcanza porque el filtro de la agenda declara ese MIME.
+            // Ojo: SetType borra el data y SetData borra el tipo; para tener los
+            // dos haria falta SetDataAndType, que es justamente lo que no se
+            // quiere. Ver AD-42.
+            var intent = new Android.Content.Intent(Android.Content.Intent.ActionPick);
+            intent.SetType(Android.Provider.ContactsContract.CommonDataKinds.Phone.ContentType);
+
+            // NO se pregunta antes con ResolveActivity, aunque parezca lo prudente.
+            //
+            // Se probo y ROMPIO lo que funcionaba: devolvia null y la app decia
+            // "este telefono no tiene una aplicacion de contactos" con la agenda
+            // instalada. Desde Android 11 (targetSdk 30+) rige el filtrado de
+            // visibilidad entre aplicaciones: CONSULTAR que app resuelve un Intent
+            // exige declarar <queries> en el manifiesto. Por eso "adb shell cmd
+            // package query-activities" —que corre sin ese filtro— veia la agenda
+            // y la app no.
+            //
+            // Lanzar el Intent nunca estuvo bloqueado; solo preguntar. Asi que se
+            // lanza y listo: si de verdad no hay agenda, salta
+            // ActivityNotFoundException y ahi se da el mensaje. Un chequeo
+            // defensivo que introduce el fallo que venia a evitar es peor que no
+            // tenerlo. Ver AD-42.
+            //
+            // Suscribirse recien ahora y soltar al primer resultado: la Activity
+            // vive mas que esta pagina, y un manejador olvidado se la lleva
+            // puesta. Fuera de un pedido en curso no queda nada escuchando.
+            MainActivity.ActivityResult += OnPickContactResult;
+
+            // Queda en el log que se lanzo: la primera version no dejaba rastro
+            // de nada hasta que alguien elegia, asi que cuando abrio la app
+            // equivocada el log estaba vacio y no habia por donde empezar.
+            Note("agenda: abriendo el selector de contactos");
+
+            activity.StartActivityForResult(intent, PickContactRequest);
+        }
+        catch (Android.Content.ActivityNotFoundException)
+        {
+            // Ningun telefono con agenda cae aca. Es el caso raro de verdad, y
+            // merece una frase entendible en vez del nombre de una excepcion.
+            MainActivity.ActivityResult -= OnPickContactResult;
+            ContactFailed("Este teléfono no tiene una aplicación de contactos.");
+        }
+        catch (Exception ex)
+        {
+            // Cualquier otra cosa. Va el NOMBRE DEL TIPO y no ex.Message: el
+            // recorte de Release reemplaza esos textos por claves de recurso y al
+            // usuario le llegaria algo como "net_http_client_invalid_requesturi".
+            MainActivity.ActivityResult -= OnPickContactResult;
+            ContactFailed($"No se pudo abrir la agenda ({ex.GetType().Name}).");
+        }
+#else
+        ContactFailed("La libreta de contactos sólo está disponible en Android.");
+#endif
+    }
+
+#if ANDROID
+    private void OnPickContactResult(int requestCode, Android.App.Result result, Android.Content.Intent? data)
+    {
+        if (requestCode != PickContactRequest)
+        {
+            return;
+        }
+
+        MainActivity.ActivityResult -= OnPickContactResult;
+
+        // Salir sin elegir es una respuesta valida y no una falla: viaja sin
+        // motivo, y del otro lado resuelve en null en vez de tirar un error.
+        if (result != Android.App.Result.Ok || data?.Data is null)
+        {
+            ContactFailed(null);
+            return;
+        }
+
+        try
+        {
+            var resolver = Android.App.Application.Context.ContentResolver;
+
+            using var cursor = resolver?.Query(
+                data.Data,
+                // Los dos nombres son asimetricos y hay que buscarlos, no
+                // suponerlos: Number cuelga directo de Phone y DisplayName de su
+                // InterfaceConsts. Verificado contra Mono.Android.xml del pack 36.
+                //
+                // Phone.NormalizedNumber trae ademas el numero en formato
+                // internacional, que es lo que va a necesitar compartir viaje por
+                // WhatsApp. No se lee aca porque viene nulo si el contacto se
+                // cargo sin pais, y hoy nadie lo usa.
+                [
+                    Android.Provider.ContactsContract.CommonDataKinds.Phone.Number,
+                    Android.Provider.ContactsContract.CommonDataKinds.Phone.InterfaceConsts.DisplayName
+                ],
+                null, null, null);
+
+            if (cursor is null || !cursor.MoveToFirst())
+            {
+                ContactFailed("No se pudo leer el contacto.");
+                return;
+            }
+
+            var phone = cursor.GetString(0);
+            var name = cursor.GetString(1);
+
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                ContactFailed("Ese contacto no tiene un número de teléfono.");
+                return;
+            }
+
+            // El numero viaja tal cual esta en la agenda. Normalizarlo aca seria
+            // inventar reglas —el 0 de larga distancia, el 15, el +54 9— que este
+            // puente no tiene por que conocer y que ademas no valen fuera del pais.
+            Note($"contacto elegido ({phone.Length} digitos con formato)");
+
+            _ = RunScriptAsync($"window.TN_contactPicked({Json(name)},{Json(phone)})");
+        }
+        catch (Exception ex)
+        {
+            ContactFailed($"No se pudo leer el contacto ({ex.GetType().Name}).");
+        }
+    }
+#endif
+
+    /// <summary>
+    /// Cierra el pedido sin contacto. Sin motivo es que la persona cancelo.
+    /// </summary>
+    private void ContactFailed(string? reason)
+    {
+        if (reason is not null)
+        {
+            Note($"contacto: {reason}", error: true);
+        }
+
+        // El null va escrito y no por Json(reason): ese metodo convierte null en
+        // cadena vacia, que del otro lado tambien se lee como "cancelo" pero por
+        // accidente. Decirlo explicito evita que un cambio en Json rompa esto en
+        // silencio y a distancia.
+        var motivo = reason is null ? "null" : Json(reason);
+
+        _ = RunScriptAsync($"window.TN_contactCancelled({motivo})");
     }
 
     /* --------------------------------------------------------------------

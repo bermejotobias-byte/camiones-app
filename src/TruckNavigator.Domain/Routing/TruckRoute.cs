@@ -48,6 +48,27 @@ public sealed record RouteRestrictionNote(
     bool RequiresAccessException,
     IReadOnlyList<RestrictionFinding> Findings);
 
+/// <summary>
+/// Algo sobre la ruta de lo que conviene avisar al pasar, sacado de la ruta
+/// misma: un galibo declarado en un tramo que el motor recorrio.
+/// </summary>
+/// <remarks>
+/// Es informativo por construccion: un galibo mas bajo que el camion no llega
+/// aca, porque el motor excluye ese tramo antes de calcular (AD-47). Avisar
+/// desde la ruta y no desde la capa de galibos evita el falso "no pasas" al ir
+/// por arriba de un puente, donde el bajo via de abajo queda a cero metros.
+/// </remarks>
+/// <param name="Kind">Hoy solo "galibo".</param>
+/// <param name="Metres">La altura declarada del tramo.</param>
+/// <param name="FromPointIndex">Primer punto de la geometria (inclusive).</param>
+/// <param name="ToPointIndex">Ultimo punto (exclusive).</param>
+public sealed record RouteHazard(
+    string Kind,
+    double Metres,
+    string StreetName,
+    int FromPointIndex,
+    int ToPointIndex);
+
 public sealed record TruckRoute(
     double DistanceMeters,
     double DurationSeconds,
@@ -55,7 +76,69 @@ public sealed record TruckRoute(
     IReadOnlyList<RouteInstruction> Instructions,
     IReadOnlyList<RouteRestrictionNote> RestrictionNotes,
     IReadOnlyList<RouteRestrictionNote> AccessLegs,
-    double HeavyNetworkSharePercent);
+    double HeavyNetworkSharePercent,
+    IReadOnlyList<RouteHazard>? Hazards = null)
+{
+    /// <summary>Los avisos de la ruta; nunca nulo.</summary>
+    public IReadOnlyList<RouteHazard> Hazards { get; init; } = Hazards ?? [];
+}
+
+/// <summary>
+/// Arma los avisos de una ruta a partir de sus tramos con atributos.
+/// </summary>
+public static class RouteHazards
+{
+    public const string Clearance = "galibo";
+
+    /// <summary>
+    /// Un aviso por cada corrida de tramos contiguos con la misma altura
+    /// declarada: un puente largo cubre varios tramos y se avisa una sola vez.
+    /// </summary>
+    public static IReadOnlyList<RouteHazard> From(
+        IEnumerable<(int From, int To, RoadSegmentAttributes Attributes)> segments)
+    {
+        var hazards = new List<RouteHazard>();
+        RouteHazard? abierto = null;
+
+        foreach (var (from, to, attributes) in segments)
+        {
+            if (attributes.MaxHeightMeters is not { } metres)
+            {
+                abierto = null;
+                continue;
+            }
+
+            if (abierto is not null && abierto.ToPointIndex == from && abierto.Metres == metres)
+            {
+                abierto = abierto with { ToPointIndex = to };
+                hazards[^1] = abierto;
+                continue;
+            }
+
+            abierto = new RouteHazard(Clearance, metres, attributes.DisplayName, from, to);
+            hazards.Add(abierto);
+        }
+
+        return hazards;
+    }
+}
+
+/// <summary>
+/// Un reparto: la ruta completa y en que orden quedaron las paradas.
+/// </summary>
+/// <param name="Route">La ruta que pasa por todas las paradas, en el orden calculado.</param>
+/// <param name="StopOrder">
+/// Los indices de las paradas <b>tal como las cargo el usuario</b>, en el orden
+/// en que conviene visitarlas. No incluye el origen.
+///
+/// Se devuelven los indices y no las paradas reordenadas porque la app necesita
+/// poder decir "tu parada 3 va a visitarse quinta": si se devolviera la lista ya
+/// ordenada, esa correspondencia se pierde y el usuario no reconoce sus propias
+/// direcciones.
+/// </param>
+public sealed record DeliveryRoute(
+    TruckRoute Route,
+    IReadOnlyList<int> StopOrder);
 
 public interface ITruckRouteCalculator
 {
@@ -65,6 +148,154 @@ public interface ITruckRouteCalculator
         GeoPoint destination,
         DateTimeOffset departure,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Calcula varias rutas posibles, <b>ordenadas por lo que le conviene a un
+    /// camion</b> y no por tiempo.
+    /// </summary>
+    /// <remarks>
+    /// El motor de ruteo devuelve las alternativas ordenadas por peso, que es
+    /// basicamente duracion. Para un camion ese orden es el equivocado: una ruta
+    /// dos minutos mas larga que no obliga a salir de la Red de Transito Pesado
+    /// es mejor que la mas rapida que si obliga — la primera se puede manejar
+    /// tranquilo y la segunda es una multa esperando.
+    ///
+    /// El criterio esta en <see cref="TruckRouteComparer"/>.
+    /// </remarks>
+    /// <returns>
+    /// Al menos una ruta. La primera es la recomendada; el resto son las
+    /// alternativas, ya descartadas las repetidas.
+    /// </returns>
+    Task<IReadOnlyList<TruckRoute>> CalculateAlternativesAsync(
+        TruckProfile truck,
+        GeoPoint origin,
+        GeoPoint destination,
+        DateTimeOffset departure,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Arma un reparto: decide en que orden visitar las paradas y calcula la ruta
+    /// que pasa por todas.
+    /// </summary>
+    /// <param name="stops">
+    /// Las paradas, en el orden en que las cargo el usuario. Hasta
+    /// <see cref="DeliveryOrder.MaxStops"/>.
+    /// </param>
+    /// <remarks>
+    /// El orden sale de <see cref="DeliveryOrder"/> sobre una matriz de costos
+    /// REALES —cada par consultado al motor con el custom model de este camion—,
+    /// no de distancias en linea recta. En una ciudad con un rio y autopistas la
+    /// ruta real llega a ser 1,67 veces la recta, y ahi el orden cambia.
+    /// </remarks>
+    Task<DeliveryRoute> CalculateDeliveryAsync(
+        TruckProfile truck,
+        GeoPoint origin,
+        IReadOnlyList<GeoPoint> stops,
+        DateTimeOffset departure,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Calcula la ruta que pasa por los puntos dados, EN ESE ORDEN.
+    /// </summary>
+    /// <param name="waypoints">
+    /// Al menos dos: el origen, las paradas intermedias y el destino.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// No reordena nada, y esa es la diferencia con
+    /// <see cref="CalculateDeliveryAsync"/>. Existe para arrancar el viaje de un
+    /// reparto que ya se calculo: el orden se le mostro al usuario en la pantalla,
+    /// y volver a optimizarlo podria devolver otro y mandarlo por donde no
+    /// esperaba. Ademas es una sola consulta al motor en vez de toda la matriz.
+    /// </para>
+    /// </remarks>
+    Task<TruckRoute> CalculateThroughAsync(
+        TruckProfile truck,
+        IReadOnlyList<GeoPoint> waypoints,
+        DateTimeOffset departure,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Ordena rutas por lo que le conviene a un camion.
+/// </summary>
+/// <remarks>
+/// <para>
+/// El orden importa mas que en un GPS de auto, y por eso vive en el dominio y no
+/// pegado al cliente HTTP: es una regla del producto, no un detalle del motor.
+/// </para>
+/// <para>
+/// Se compara en tres escalones, y cada uno solo se mira si el anterior empata:
+/// </para>
+/// <list type="number">
+///   <item>
+///     <b>Tramos que el camion no puede transitar.</b> Una ruta que obliga a
+///     pasar por donde este vehiculo tiene prohibido circular no es una
+///     alternativa mas lenta: es una ruta que no se puede hacer.
+///   </item>
+///   <item>
+///     <b>Tramos que dependen de la excepcion de acceso.</b> Circular fuera de
+///     la Red "para llegar al destino por el camino mas corto" es legal, pero
+///     hay que poder justificarlo. Menos es mejor.
+///   </item>
+///   <item>
+///     <b>Duracion</b>, pero con tolerancia: dos rutas que difieren en menos de
+///     <see cref="EquivalentSeconds"/> se consideran igual de rapidas.
+///   </item>
+///   <item>
+///     <b>Cuanto va por la Red de Transito Pesado.</b> Entre dos rutas que
+///     tardan practicamente lo mismo, gana la que mas usa la Red: son las calles
+///     que la Ciudad preparo para camiones. Va DESPUES de la duracion y con
+///     tolerancia justamente para que este criterio no pueda elegir un rodeo
+///     largo por ganar unos puntos de Red.
+///   </item>
+/// </list>
+/// </remarks>
+public sealed class TruckRouteComparer : IComparer<TruckRoute>
+{
+    public static readonly TruckRouteComparer Instance = new();
+
+    /// <summary>
+    /// Diferencia de tiempo por debajo de la cual dos rutas se consideran
+    /// igual de rapidas.
+    /// </summary>
+    /// <remarks>
+    /// Un minuto. Sin tolerancia, una ruta que va entera por la Red pierde
+    /// contra otra que va por calles de barrio sólo por llegar tres segundos
+    /// antes — una diferencia que ademas es una estimacion del motor, no un
+    /// hecho, y que en la calle desaparece en el primer semaforo.
+    /// </remarks>
+    public const double EquivalentSeconds = 60;
+
+    public int Compare(TruckRoute? x, TruckRoute? y)
+    {
+        if (x is null) return y is null ? 0 : 1;
+        if (y is null) return -1;
+
+        // Los tramos con restriccion que NO son de acceso son los bloqueantes:
+        // ahi el camion directamente no puede circular.
+        var bloqueosX = x.RestrictionNotes.Count(n => !n.RequiresAccessException);
+        var bloqueosY = y.RestrictionNotes.Count(n => !n.RequiresAccessException);
+
+        if (bloqueosX != bloqueosY)
+        {
+            return bloqueosX.CompareTo(bloqueosY);
+        }
+
+        if (x.AccessLegs.Count != y.AccessLegs.Count)
+        {
+            return x.AccessLegs.Count.CompareTo(y.AccessLegs.Count);
+        }
+
+        if (Math.Abs(x.DurationSeconds - y.DurationSeconds) > EquivalentSeconds)
+        {
+            return x.DurationSeconds.CompareTo(y.DurationSeconds);
+        }
+
+        // Tardan lo mismo: gana la que mas va por la Red. El signo va al reves
+        // porque aca mas es mejor.
+        return y.HeavyNetworkSharePercent.CompareTo(x.HeavyNetworkSharePercent);
+    }
 }
 
 /// <summary>Error recuperable del motor de ruteo (sin ruta, punto inalcanzable, etc.).</summary>

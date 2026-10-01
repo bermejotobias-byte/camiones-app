@@ -25,6 +25,19 @@ COPY --from=build /app .
 RUN mkdir -p /data
 ENV ConnectionStrings__Default="Data Source=/data/trucknavigator.db"
 
+# Mapa base vectorial. Vive fuera de wwwroot a proposito —wwwroot entero viaja
+# adentro del APK y esto pesa 54 MB— y la API lo sirve bajo /tiles leyendo por
+# rangos de bytes.
+#
+# Sin este archivo la API NO falla: Directory.Exists devuelve false, /tiles no se
+# registra y el mapa cae al raster de OpenStreetMap en silencio, que es
+# justamente lo que L-4 desaconseja. Por eso se copia explicito y el workflow
+# corta si el asset no esta.
+#
+# No se versiona: el workflow lo baja de un release antes de construir.
+COPY routing/amba.pmtiles /tiles/amba.pmtiles
+ENV Basemap__Directory="/tiles"
+
 ENV Kestrel__Endpoints__Http__Url="http://0.0.0.0:5080"
 EXPOSE 5080
 

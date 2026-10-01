@@ -1,0 +1,6961 @@
+{
+  "generatedOn": "2026-09-15",
+  "bbox": [
+    -34.725,
+    -58.555,
+    -34.505,
+    -58.315
+  ],
+  "source": "Secretaria de Energia, Precios en surtidor Res. 314/2016 (CC-BY-4.0)",
+  "estaciones": [
+    {
+      "idempresa": "4014",
+      "empresa": "EJE S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "RUTA NAC. Nº 12 Y ACCESO PTO. LIBERTAD 1597",
+      "localidad": "PUERTO LIBERTAD",
+      "lat": -34.621686,
+      "lon": -58.391295,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/12253208401",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3172",
+      "empresa": "DEVOTO STATION SA",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Av. Chiclana 3702",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.637932,
+      "lon": -58.416276,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/465013272",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2158",
+      "empresa": "AQUI GAS S.A.",
+      "bandera": "BLANCA",
+      "address": "ESTADO DE ISRAEL 4361",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.598087,
+      "lon": -58.4275,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3742110232",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2037",
+      "empresa": "MADRO S.A.",
+      "bandera": "YPF",
+      "address": "AV. AMANCIO ALCORTA 2711",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.6439,
+      "lon": -58.39938,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4276791875",
+      "enRedPesada": true,
+      "calleRed": "Avenida Amancio Alcorta"
+    },
+    {
+      "idempresa": "7944",
+      "empresa": "MONTES DE OCA 1885 S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "MONTES DE OCA 1885",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.649138,
+      "lon": -58.373083,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3742031146",
+      "enRedPesada": true,
+      "calleRed": "General Hornos"
+    },
+    {
+      "idempresa": "1797",
+      "empresa": "LOPEZ ALBERTO",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "CNO.GRAL.BELGRANO 1587",
+      "localidad": "LANUS",
+      "lat": -34.69536,
+      "lon": -58.370235,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/549425156",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7111",
+      "empresa": "GASTAB S.A.",
+      "bandera": "DAPSA S.A.",
+      "address": "ALSINA 375",
+      "localidad": "AVELLANEDA",
+      "lat": -34.665823,
+      "lon": -58.368924,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3802854227",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6760",
+      "empresa": "DEL GOLF COMBUSTIBLES S.A.",
+      "bandera": "BLANCA",
+      "address": "Avda.Alvear 2484",
+      "localidad": "JOSE INGENIEROS",
+      "lat": -34.615824,
+      "lon": -58.53732,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3797545679",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8165",
+      "empresa": "LA QUINTA ESTACION S.R.L.",
+      "bandera": "YPF",
+      "address": "AV.GRAL.MOSCONI 3289",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.589276,
+      "lon": -58.507419,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471512264",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3512",
+      "empresa": "ALMIRO SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "JUAN B. ALBERDI 1502",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.6262,
+      "lon": -58.44893,
+      "productos": [
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/283424577",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1910",
+      "empresa": "DIVE SRL",
+      "bandera": "YPF",
+      "address": "DIAZ VELEZ 1799",
+      "localidad": "LOMAS DEL MIRADOR",
+      "lat": -34.65239,
+      "lon": -58.53243,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/849071933",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10226",
+      "empresa": "COMBUSTIBLES EL JACKAL SRL",
+      "bandera": "VOY",
+      "address": "GRAL. MADARIAGA 898",
+      "localidad": "LANUS",
+      "lat": -34.706689,
+      "lon": -58.371194,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/547955982",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9277",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Mosconi 2500 (esq. J.G. de Artigas)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.583515,
+      "lon": -58.4973,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/684697018",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1602",
+      "empresa": "BRION ERNESTO",
+      "bandera": "YPF",
+      "address": "25 DE MAYO 300",
+      "localidad": "AVELLANEDA",
+      "lat": -34.65966,
+      "lon": -58.36214,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272167304",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3100",
+      "empresa": "SUPER SERVICIOS S.A.",
+      "bandera": "YPF",
+      "address": "AV. LIBERTADOR 5002",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.56364,
+      "lon": -58.43717,
+      "productos": [
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/460096956",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9305",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "J. B. Justo 8005 (esq. Lope De Vega)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63214,
+      "lon": -58.5015,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/683636051",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "2026",
+      "empresa": "BALLCAR AUTOMOTORES SA",
+      "bandera": "YPF",
+      "address": "Pueyrredon 301",
+      "localidad": "VILLA  BALLESTER",
+      "lat": -34.5499,
+      "lon": -58.55158,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1886233444",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3708",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "LINCOLN 3999",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.599479,
+      "lon": -58.510271,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471293490",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7165",
+      "empresa": "DUAL CENTER GROUP S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Parana 4106",
+      "localidad": "MUNRO",
+      "lat": -34.51097,
+      "lon": -58.52614,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/670845034",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7757",
+      "empresa": "COMBUSTIBLE 2000 S.A",
+      "bandera": "BLANCA",
+      "address": "Daigonal Buchard 3791",
+      "localidad": "CASEROS",
+      "lat": -34.610161,
+      "lon": -58.548479,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/5251243125",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1116",
+      "empresa": "CHILABERT 1990 SRL",
+      "bandera": "YPF",
+      "address": "Chilabert 1990",
+      "localidad": "VILLA CELINA",
+      "lat": -34.69064,
+      "lon": -58.48132,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4687949964",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9329",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Cabildo 685/89/90/95 (esq. Olleros)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.57031,
+      "lon": -58.443728,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/470771984",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9271",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Libertador 2587 (esq. J. Salguero)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.578666,
+      "lon": -58.406559,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/460591016",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "671",
+      "empresa": "ROSSI EUGENIO ALBERTO",
+      "bandera": "BLANCA",
+      "address": "AV CROVARA 5353",
+      "localidad": "SAN JUSTO",
+      "lat": -34.707362,
+      "lon": -58.550881,
+      "productos": [
+        "Gas Oil Grado 2",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3785526190",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2831",
+      "empresa": "REY Y CIA. SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. DIAZ VELEZ 2009",
+      "localidad": "LOMAS DEL MIRADOR",
+      "lat": -34.654299,
+      "lon": -58.529815,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/537044798",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9282",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Cruz 1501 (esq. Centenera)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.64796,
+      "lon": -58.42886,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/205367094",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9855",
+      "empresa": "FGC FUELS MARKETING SA",
+      "bandera": "AXION",
+      "address": "Av Republica 280",
+      "localidad": "RAMOS MEJIA",
+      "lat": -34.63736,
+      "lon": -58.55289,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/594634308",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9289",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Libertador 299 (esq. Laprida)",
+      "localidad": "VICENTE LOPEZ",
+      "lat": -34.53165,
+      "lon": -58.46892,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/848699150",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3280",
+      "empresa": "ITAL GAS S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. SAN MARTÍN 1050",
+      "localidad": "LANUS",
+      "lat": -34.685976,
+      "lon": -58.397208,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/545346378",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "590",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "AV.RIVADAVIA 7530",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63155,
+      "lon": -58.47184,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/5080741751",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1302",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "AV. LIBERTADOR 2362",
+      "localidad": "OLIVOS",
+      "lat": -34.509006,
+      "lon": -58.479447,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/310573729",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7138",
+      "empresa": "ROBERTO OTERO Y JAVIER LOPEZ SH",
+      "bandera": "YPF",
+      "address": "AV DIRECTORIO 802",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62891,
+      "lon": -58.438732,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/475550072",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6984",
+      "empresa": "MANSUE S.A.",
+      "bandera": "YPF",
+      "address": "ALVEAR 2080",
+      "localidad": "VILLA  BALLESTER",
+      "lat": -34.545227,
+      "lon": -58.548679,
+      "productos": [
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1886238913",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2893",
+      "empresa": "UBR S.A.",
+      "bandera": "YPF",
+      "address": "Avda Juan B Justo 3508",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60174,
+      "lon": -58.45408,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1422610071",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "2481",
+      "empresa": "SERVINORTE S.A.",
+      "bandera": "YPF",
+      "address": "PARAGUAY 1676 Y ARTURO CAPDEVILA",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.59864,
+      "lon": -58.390564,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/830184071",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1052",
+      "empresa": "NAFPUR XXI SA.",
+      "bandera": "YPF",
+      "address": "Zelarrayan 5530",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.67305,
+      "lon": -58.47792,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2622752671",
+      "enRedPesada": true,
+      "calleRed": "Avenida Teniente General Luis Dellepiane"
+    },
+    {
+      "idempresa": "6831",
+      "empresa": "URANGA,PEAGUDA Y OTROS SH",
+      "bandera": "YPF",
+      "address": "PRIMERA JUNTA 3263",
+      "localidad": "MUNRO",
+      "lat": -34.53666,
+      "lon": -58.54609,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/11715716008",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3820",
+      "empresa": "DEHEZA S.A.I.C.I.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. GRAL. PAZ 5400- MANO PROVINCIA.",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.55919,
+      "lon": -58.5049,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/298463839",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2761",
+      "empresa": "RERIFE S.A.",
+      "bandera": "YPF",
+      "address": "AV. JUAN BAUTISTA ALBERDI 100",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62242,
+      "lon": -58.42905,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/10677183067",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9631",
+      "empresa": "CASAMASSIMA LEANDRO OMAR Y CASAMASSIMA MARTIN ALEJANDRO S.H.",
+      "bandera": "PUMA",
+      "address": "Avenida La Plata 1614",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.633839,
+      "lon": -58.425017,
+      "productos": [
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/463935567",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4682",
+      "empresa": "FLUMAT S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "SALTA 893",
+      "localidad": "LANUS",
+      "lat": -34.70227,
+      "lon": -58.37631,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4219936362",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "370",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "echeverria 3901",
+      "localidad": "MUNRO",
+      "lat": -34.51364,
+      "lon": -58.52396,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/357282953",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6667",
+      "empresa": "COMBUSTIBLES LA COLONIA S.A.",
+      "bandera": "YPF",
+      "address": "AV. BERNARDINO RIVADAVIA 2410",
+      "localidad": "LANUS",
+      "lat": -34.68951,
+      "lon": -58.41835,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3664398835",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2722",
+      "empresa": "Juan B. Justo 1333 S. A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. JUAN B. JUSTO 1333",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.58444,
+      "lon": -58.43386,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/683637412",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "6852",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV. ANTÁRTIDA ARGENTINA Y CALLE 10",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.58687,
+      "lon": -58.37246,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": null,
+      "enRedPesada": true,
+      "calleRed": "Paseo del Bajo - Presidente Dr. Raúl R. Alfonsín"
+    },
+    {
+      "idempresa": "6752",
+      "empresa": "CINKO S.R.L.",
+      "bandera": "BLANCA",
+      "address": "AV. BERNARDINO RIVADAVIA 601 Y FREIRE",
+      "localidad": "AVELLANEDA",
+      "lat": -34.66812,
+      "lon": -58.38832,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": null,
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8289",
+      "empresa": "GASOLEO S.A.",
+      "bandera": "YPF",
+      "address": "Av. Juan B. Alberdi 7500",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.66209,
+      "lon": -58.51717,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476131966",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Alberdi"
+    },
+    {
+      "idempresa": "556",
+      "empresa": "RODRIGUEZ PEÑA 1101 S.A.",
+      "bandera": "YPF",
+      "address": "RODRIGUEZ PEÑA 4901",
+      "localidad": "SAN MARTIN",
+      "lat": -34.59358,
+      "lon": -58.53643,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4687359173",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1285",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "AV. CABILDO 1499",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.56678,
+      "lon": -58.45034,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/204827799",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1610",
+      "empresa": "ENDERLAY EMILIO",
+      "bandera": "BLANCA",
+      "address": "RIVADAVIA 1702",
+      "localidad": "LANUS",
+      "lat": -34.68515,
+      "lon": -58.40936,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": null,
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1092",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV CORDOBA 4201 Y PRINGLES",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.59623,
+      "lon": -58.42638,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/473609232",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "825",
+      "empresa": "LEJEM S.A.",
+      "bandera": "AXION",
+      "address": "INTENDENTE RABANAL 1733",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.65685,
+      "lon": -58.42304,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3744931899",
+      "enRedPesada": true,
+      "calleRed": "Avenida Intendente Francisco Rabanal"
+    },
+    {
+      "idempresa": "1883",
+      "empresa": "INVERSORA MINORISTA S.A.",
+      "bandera": "YPF",
+      "address": "Ricchieri 2189",
+      "localidad": "TAPIALES",
+      "lat": -34.70268,
+      "lon": -58.49945,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/435075377",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1826",
+      "empresa": "NAFPUR S.A.",
+      "bandera": "YPF",
+      "address": "Larrazabal 3645",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.67345,
+      "lon": -58.47647,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2622752670",
+      "enRedPesada": true,
+      "calleRed": "Avenida Teniente General Luis Dellepiane"
+    },
+    {
+      "idempresa": "3104",
+      "empresa": "GNC LOS AMIGOS S.A.",
+      "bandera": "BLANCA",
+      "address": "AV.DE LOS CONSTITUYENTES 4480",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.582446,
+      "lon": -58.491817,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/8307913720",
+      "enRedPesada": true,
+      "calleRed": "Avenida de los Constituyentes"
+    },
+    {
+      "idempresa": "581",
+      "empresa": "RED PETROL S.A.",
+      "bandera": "YPF",
+      "address": "AV.CNEL ROCA 6787",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.69622,
+      "lon": -58.46858,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4687359160",
+      "enRedPesada": true,
+      "calleRed": "Avenida Coronel Roca"
+    },
+    {
+      "idempresa": "9934",
+      "empresa": "PETRO ENERGIA SA",
+      "bandera": "PUMA",
+      "address": "AVDA DEL LIBERTADOR 302 Y LAPRIDA",
+      "localidad": "VICENTE LOPEZ",
+      "lat": -34.53165,
+      "lon": -58.46892,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/848699150",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9323",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Autopista Gral. Paz 11200 (esq. Humaitá)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.64653,
+      "lon": -58.52882,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1015353109",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7104",
+      "empresa": "SUPERMERCADOS MAYORISTAS MAKRO S.A.",
+      "bandera": "PUMA",
+      "address": "AV. GRAL PAZ 2202",
+      "localidad": "SAN MARTIN",
+      "lat": -34.5783,
+      "lon": -58.5143,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/1369584869",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6811",
+      "empresa": "VIII GRAZZIA S.A.",
+      "bandera": "BLANCA",
+      "address": "AV. MITRE 420",
+      "localidad": "VILLA MARTELLI",
+      "lat": -34.545332,
+      "lon": -58.501432,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/668185275",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3002",
+      "empresa": "SUPER SERVICIOS S.A.",
+      "bandera": "YPF",
+      "address": "EUSTAQUIO CAMBIESES 1780",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.649944,
+      "lon": -58.461292,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/463344947",
+      "enRedPesada": true,
+      "calleRed": "Avenida Perito Moreno"
+    },
+    {
+      "idempresa": "10231",
+      "empresa": "EMIDAM SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "HIPOLITO YRIGOYEN 2099",
+      "localidad": "GERLI",
+      "lat": -34.681701,
+      "lon": -58.385423,
+      "productos": [
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/549409942",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1029",
+      "empresa": "MAXIGAS S.A.",
+      "bandera": "YPF",
+      "address": "AV. SAN MARTIN 538",
+      "localidad": "VILLA LYNCH",
+      "lat": -34.58885,
+      "lon": -58.52127,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1067771000",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7383",
+      "empresa": "MERCEN S.A.",
+      "bandera": "YPF",
+      "address": "AVDA CINCUNVALACIÓN E/DE LA SEMILLA Y DE LA TIERRA",
+      "localidad": "TAPIALES",
+      "lat": -34.71081,
+      "lon": -58.5,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/784655844",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8653",
+      "empresa": "AGROCOMB SA",
+      "bandera": "BLANCA",
+      "address": "Av. Circunvalacion y calle del Riego - Mercado Central",
+      "localidad": "TAPIALES",
+      "lat": -34.706762,
+      "lon": -58.496524,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/993198045",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4717",
+      "empresa": "BRAMO S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. JUAN B. JUSTO 4407",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.607215,
+      "lon": -58.462973,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/495354576",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "8410",
+      "empresa": "VILLAPAS SA",
+      "bandera": "YPF",
+      "address": "JUAN MANUEL DE ROSAS 3002",
+      "localidad": "SAN JUSTO",
+      "lat": -34.67936,
+      "lon": -58.5497,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3157710253",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4294",
+      "empresa": "INMOBILIARIA OBRAR S.R.L.",
+      "bandera": "BLANCA",
+      "address": "NEUQUEN 1085",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.615782,
+      "lon": -58.448404,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3742062240",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "518",
+      "empresa": "ESTACIÓN DE SERVICIO SAAVEDRA S.R.L.",
+      "bandera": "YPF",
+      "address": "CRISÓLOGO LARRALDE 4688",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.55999,
+      "lon": -58.48889,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471197805",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "11096",
+      "empresa": "DEHEZA S.A.I.C.F.E.I",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AU. DELLEPIANE 4187 (MANO PROVINCIA)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.657941,
+      "lon": -58.470833,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1538471514",
+      "enRedPesada": true,
+      "calleRed": "Avenida Teniente General Luis Dellepiane"
+    },
+    {
+      "idempresa": "1814",
+      "empresa": "MELINCUÉ S.R.L.",
+      "bandera": "YPF",
+      "address": "VELEZ SARSFIELD 582",
+      "localidad": "VILLA MADERO",
+      "lat": -34.69214,
+      "lon": -58.50053,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/475909378",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7310",
+      "empresa": "PATRIGAS S.A.",
+      "bandera": "BLANCA",
+      "address": "COMBATE DE LOS POZOS 1243",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62355,
+      "lon": -58.392934,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/1500798618",
+      "enRedPesada": true,
+      "calleRed": "Autopista 25 de Mayo"
+    },
+    {
+      "idempresa": "2672",
+      "empresa": "OCTOBER S.A.",
+      "bandera": "AXION",
+      "address": "AV. WARNES 2040",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.596593,
+      "lon": -58.464223,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1304764725",
+      "enRedPesada": true,
+      "calleRed": "Avenida Warnes"
+    },
+    {
+      "idempresa": "3747",
+      "empresa": "ESTACION LIMA S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Lima 835",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.618063,
+      "lon": -58.381766,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2082170520",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "5264",
+      "empresa": "EVANGELISTA E HIJOS S.A.",
+      "bandera": "PUMA",
+      "address": "AV. LACARRA 1729",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.65089,
+      "lon": -58.46788,
+      "productos": [
+        "Gas Oil Grado 2",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/463344948",
+      "enRedPesada": true,
+      "calleRed": "Avenida Lacarra"
+    },
+    {
+      "idempresa": "618",
+      "empresa": "NUESTRO SOSIEGO SA",
+      "bandera": "YPF",
+      "address": "DONATO ALVAREZ 2290",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60007,
+      "lon": -58.46656,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/473617024",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "285",
+      "empresa": "PANAMERICANA SRL",
+      "bandera": "YPF",
+      "address": "AV. SAN MARTIN 5316",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.59724,
+      "lon": -58.49309,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/515118427",
+      "enRedPesada": true,
+      "calleRed": "Avenida San Martín"
+    },
+    {
+      "idempresa": "1497",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV CORDOBA 5984 Y DORREGO",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.58485,
+      "lon": -58.44468,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/667799833",
+      "enRedPesada": true,
+      "calleRed": "Avenida Córdoba"
+    },
+    {
+      "idempresa": "1073",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV DIRECTORIO 4311/27 Y OLIVERA",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.64517,
+      "lon": -58.48492,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/478758427",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "5814",
+      "empresa": "SAN MARINO NAFTA SA",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. PTE. ARTURO ILLIA 2114",
+      "localidad": "VILLA MAIPU",
+      "lat": -34.570626,
+      "lon": -58.520936,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4687359728",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "790",
+      "empresa": "GRUPO GAS SRL.",
+      "bandera": "BLANCA",
+      "address": "AV. INDEPENDENCIA 3933",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.621219,
+      "lon": -58.421276,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/476170825",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1644",
+      "empresa": "GARAJE DON ANTONIO SRL",
+      "bandera": "DAPSA S.A.",
+      "address": "YERBAL 3105",
+      "localidad": "LANUS",
+      "lat": -34.706023,
+      "lon": -58.415852,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3664398834",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9280",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Gaona 2399 (esq Trelles)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61422,
+      "lon": -58.46062,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1044055170",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "621",
+      "empresa": "MASTER GAS S.A.",
+      "bandera": "BLANCA",
+      "address": "BOEDO 1616",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.633075,
+      "lon": -58.415942,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/1476368004",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10666",
+      "empresa": "ROSINELLA S.A.",
+      "bandera": "PUMA",
+      "address": "AV. MONSEÑOR BUFANO 4806",
+      "localidad": "LA TABLADA",
+      "lat": -34.694266,
+      "lon": -58.548604,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3439845423",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10120",
+      "empresa": "PERFORMANCE FUELS SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV BEIRO 4610",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60842,
+      "lon": -58.515555,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1151914591",
+      "enRedPesada": true,
+      "calleRed": "Avenida Francisco Beiró"
+    },
+    {
+      "idempresa": "3212",
+      "empresa": "URDININEA S.A.",
+      "bandera": "BLANCA",
+      "address": "AV. ALVAREZ THOMAS 2392",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.577387,
+      "lon": -58.47525,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/471658160",
+      "enRedPesada": true,
+      "calleRed": "Avenida Álvarez Thomas"
+    },
+    {
+      "idempresa": "2216",
+      "empresa": "KUANTOKI S.A.",
+      "bandera": "BLANCA",
+      "address": "ALBERTI 1108",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62229,
+      "lon": -58.40046,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/272165238",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6593",
+      "empresa": "ALGAVI SA",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "EVA PERON 2101",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63932,
+      "lon": -58.454156,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/463977343",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9309",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. La Plata 575 (esq. Alberdi)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.621937,
+      "lon": -58.428066,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476172787",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7009",
+      "empresa": "QUION S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. MITRE Nº 319",
+      "localidad": "VILLA MARTELLI",
+      "lat": -34.545806,
+      "lon": -58.499781,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/962545468",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2939",
+      "empresa": "COTAX COOPERATIVA",
+      "bandera": "BLANCA",
+      "address": "HERRERA 205/211",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.633002,
+      "lon": -58.37933,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3736839956",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3825",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. CABILDO 4701",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.54138,
+      "lon": -58.47375,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/478489864",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3913",
+      "empresa": "MARTI GONZALES DONADIO SAICFI",
+      "bandera": "YPF",
+      "address": "crisologo larralde 2701",
+      "localidad": "SARANDI",
+      "lat": -34.68708,
+      "lon": -58.35821,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4219936359",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2380",
+      "empresa": "GAS Y GAS S.A",
+      "bandera": "BLANCA",
+      "address": "THAMES 448",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.595876,
+      "lon": -58.444193,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3741860953",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10383",
+      "empresa": "MITRE 1630 SRL",
+      "bandera": "AXION",
+      "address": "Av. Bartolomé Mitre 1630",
+      "localidad": "FLORIDA",
+      "lat": -34.534882,
+      "lon": -58.509322,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4689496724",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6736",
+      "empresa": "ITAL PAVON S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "H. YRIGOYEN 345",
+      "localidad": "AVELLANEDA",
+      "lat": -34.661188,
+      "lon": -58.375545,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1523176808",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10326",
+      "empresa": "GNC VOULVER SAS",
+      "bandera": "BLANCA",
+      "address": "GUIDO SPANO 4382",
+      "localidad": "VILLA LYNCH",
+      "lat": -34.593805,
+      "lon": -58.528281,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/11258961032",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6400",
+      "empresa": "SOMAVILLA S.A.",
+      "bandera": "BLANCA",
+      "address": "General Hornos 2102",
+      "localidad": "VILLA ALBERTINA",
+      "lat": -34.705546,
+      "lon": -58.434309,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/4107502866",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2175",
+      "empresa": "DUAL NORTE S.R.L.",
+      "bandera": "DAPSA S.A.",
+      "address": "AV. FONDO DE LA LEGUA 2591",
+      "localidad": "VILLA ADELINA",
+      "lat": -34.511313,
+      "lon": -58.532734,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1059735010",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1352",
+      "empresa": "REGENCAR S.A.",
+      "bandera": "BLANCA",
+      "address": "ALMAFUERTE 407",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.642886,
+      "lon": -58.413388,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/464828313",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2217",
+      "empresa": "MAZALA S A",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "9 DE JULIO 104",
+      "localidad": "CIUDADELA",
+      "lat": -34.638671,
+      "lon": -58.543741,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1364195409",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9310",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Rivadavia 3199 (esq. Anchorena)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61029,
+      "lon": -58.41152,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/521435371",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2741",
+      "empresa": "PROVINCIAS UNIDAS 1590 S.A.",
+      "bandera": "AXION",
+      "address": "Brig.Juan M. de Rosas 1590",
+      "localidad": "SAN JUSTO",
+      "lat": -34.67096,
+      "lon": -58.53706,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3145280169",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1099",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV RICHIERI LADO CAPITAL KM36,25",
+      "localidad": "ALDO BONZI",
+      "lat": -34.71472,
+      "lon": -58.50775,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/784106654",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9311",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Triunvirato 5878 (esq. Av. Crisólogo Larralde)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.563836,
+      "lon": -58.496603,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/470251570",
+      "enRedPesada": true,
+      "calleRed": "Avenida Triunvirato"
+    },
+    {
+      "idempresa": "1498",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "FIGUEROA ALCORTA 6608 Y ECHEVERRIA",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.5515,
+      "lon": -58.43738,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/250067043",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1013",
+      "empresa": "TRANSPORTES AUTOMOTORES DEL PLATA S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Ejercito de los Andes 1400",
+      "localidad": "LOMAS DE ZAMORA",
+      "lat": -34.722681,
+      "lon": -58.444264,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4687359675",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10281",
+      "empresa": "FENIX ENERGIA SRL",
+      "bandera": "AXION",
+      "address": "PARANA 3944 ESQ BLAS PARERA",
+      "localidad": "OLIVOS",
+      "lat": -34.510049,
+      "lon": -58.524386,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/537430563",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "627",
+      "empresa": "GAS & GAS S.A.",
+      "bandera": "BLANCA",
+      "address": "AV. SAN JUAN 1401",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.622171,
+      "lon": -58.385952,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/476771660",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4303",
+      "empresa": "LAURENCENA S.R.L",
+      "bandera": "AXION",
+      "address": "AV. SAN MARTIN 3694",
+      "localidad": "LOMAS DEL MIRADOR",
+      "lat": -34.67131,
+      "lon": -58.530881,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/474455594",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "962",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV. CABILDO 4108",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.54594,
+      "lon": -58.47088,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4687359752",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "994",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "RUTA PANAM. Y ACC. DEBENEDETTI (HACIA PROVINCIA)",
+      "localidad": "OLIVOS",
+      "lat": -34.5131,
+      "lon": -58.52105,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/8751628921",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4041",
+      "empresa": "CORRO NORTE S.A",
+      "bandera": "YPF",
+      "address": "CORRO 501",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63284,
+      "lon": -58.49836,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/473841520",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "542",
+      "empresa": "HUACALERA SRL",
+      "bandera": "YPF",
+      "address": "Av. Juan de Garay 2780",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62915,
+      "lon": -58.40336,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4276791872",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2491",
+      "empresa": "WHITE S.R.L.",
+      "bandera": "GULF",
+      "address": "AV. DIRECTORIO 4586",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.647542,
+      "lon": -58.48684,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/938607603",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3127",
+      "empresa": "SALFACO S.A.",
+      "bandera": "BLANCA",
+      "address": "LIMA 1097",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.620699,
+      "lon": -58.381639,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/460114940",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3284",
+      "empresa": "ITAL NAF S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. 25 DE MAYO 2073",
+      "localidad": "LANUS",
+      "lat": -34.697435,
+      "lon": -58.42142,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1105623999",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4433",
+      "empresa": "GNC PROVINCIAS UNIDAS S.A",
+      "bandera": "PUMA",
+      "address": "JUAN MANUEL DE ROSAS 1802",
+      "localidad": "LOMAS DEL MIRADOR",
+      "lat": -34.67286,
+      "lon": -58.53954,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3250127573",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3643",
+      "empresa": "COLON SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Av. de los Constituyentes 3516",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.589088,
+      "lon": -58.484967,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/468920868",
+      "enRedPesada": true,
+      "calleRed": "Avenida Francisco Beiró"
+    },
+    {
+      "idempresa": "8079",
+      "empresa": "SERVICIOS TIGRE S.A:",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "JUAN B. JUSTO 4490",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.608243,
+      "lon": -58.463643,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/495354575",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "4460",
+      "empresa": "ESTACION DE SERVICIOS AVALOS S.A.",
+      "bandera": "YPF",
+      "address": "AV.DE LOS INCAS 4801",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.58389,
+      "lon": -58.47823,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/469185449",
+      "enRedPesada": true,
+      "calleRed": "Avenida de los Incas"
+    },
+    {
+      "idempresa": "9296",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "San Martín 1521 (esq. Luis Viale)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.606209,
+      "lon": -58.450831,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "relation/19306432",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3570",
+      "empresa": "DEHEZA S.A.I.C.I.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "LIBERTADOR 550",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.589289,
+      "lon": -58.381423,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/459244945",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "167",
+      "empresa": "PASCUALITO S.A.",
+      "bandera": "GULF",
+      "address": "CARHUE 996",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.649702,
+      "lon": -58.524011,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/474427138",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7874",
+      "empresa": "CASTAÑO AUTOVOX SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV Tte Gral DELLEPIANE 5950",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.677593,
+      "lon": -58.47843,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1553541788",
+      "enRedPesada": true,
+      "calleRed": "Avenida Teniente General Luis Dellepiane"
+    },
+    {
+      "idempresa": "7436",
+      "empresa": "OESTE GNC S.A.",
+      "bandera": "AXION",
+      "address": "AV. GAONA 4192",
+      "localidad": "CIUDADELA",
+      "lat": -34.635024,
+      "lon": -58.544826,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/816320617",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4812",
+      "empresa": "CRISTINA ISABELLI DE MARTINEZ E HIJOS S.H",
+      "bandera": "DAPSA S.A.",
+      "address": "juramento 3411",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.56813,
+      "lon": -58.46634,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/999939564",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3821",
+      "empresa": "DEHEZA S.A.I.C.I.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. GRAL. PAZ 5500- MANO CAPITAL.",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.56034,
+      "lon": -58.50486,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/298463840",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6158",
+      "empresa": "GNC GERLI S.R.L.",
+      "bandera": "YPF",
+      "address": "HIPOLITO IRIGOYEN 2298",
+      "localidad": "GERLI",
+      "lat": -34.684504,
+      "lon": -58.385979,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/8875521857",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1363",
+      "empresa": "MOLTO GAS SA",
+      "bandera": "BLANCA",
+      "address": "MARCELO T DE ALVEAR 3060",
+      "localidad": "CIUDADELA",
+      "lat": -34.61814,
+      "lon": -58.54339,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/4344870646",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2101",
+      "empresa": "PROVINCIAS UNIDAS GNC S.R.L.",
+      "bandera": "BLANCA",
+      "address": "BRIGADIER J. M ROSAS 200",
+      "localidad": "LOMAS DEL MIRADOR",
+      "lat": -34.663658,
+      "lon": -58.521062,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3438034445",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2920",
+      "empresa": "UNENS S.R.L.",
+      "bandera": "YPF",
+      "address": "ESPINOSA 605",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61563,
+      "lon": -58.44907,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/552208166",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6270",
+      "empresa": "ALBERDI 2299 SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. JUAN B. ALBERDI 2299",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.630529,
+      "lon": -58.459995,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/477521485",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8681",
+      "empresa": "SERVICIOS LER SA",
+      "bandera": "AXION",
+      "address": "camino de la virgen maria 3085",
+      "localidad": "TAPIALES",
+      "lat": -34.70903,
+      "lon": -58.504607,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/474449537",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6772",
+      "empresa": "TARSVA S.A.",
+      "bandera": "YPF",
+      "address": "MARCELO T. DE ALVEAR 2701",
+      "localidad": "CASEROS",
+      "lat": -34.61656,
+      "lon": -58.54049,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4344870645",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9168",
+      "empresa": "ASAMUL S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV SAN MARTIN 3500",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.601257,
+      "lon": -58.472184,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/6199338074",
+      "enRedPesada": true,
+      "calleRed": "Avenida San Martín"
+    },
+    {
+      "idempresa": "3818",
+      "empresa": "DEHEZA S.A.I.C.I.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "MAZA 391/97",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.615516,
+      "lon": -58.415992,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2047265343",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3559",
+      "empresa": "DEHEZA S.A.I.C.F.I",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. FIGUEROA ALCORTA 3099",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.5796,
+      "lon": -58.40003,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/566865713",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "5717",
+      "empresa": "ESTACION S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Asamblea 19",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.631319,
+      "lon": -58.426025,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/768412854",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3571",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AUT. ILLIA ENTRE 7 Y PEAJE",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.57637,
+      "lon": -58.39094,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/150855414",
+      "enRedPesada": true,
+      "calleRed": "Paseo del Bajo - Presidente Dr. Raúl R. Alfonsín"
+    },
+    {
+      "idempresa": "4463",
+      "empresa": "PETROLFE S.A.",
+      "bandera": "YPF",
+      "address": "Av.San Juan 2901",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62408,
+      "lon": -58.40604,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476767611",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9407",
+      "empresa": "GNC DEVOTO S.R.L.",
+      "bandera": "BLANCA",
+      "address": "Coronel Ramon Lista 5034",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.611572,
+      "lon": -58.520771,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3741860955",
+      "enRedPesada": true,
+      "calleRed": "Avenida Francisco Beiró"
+    },
+    {
+      "idempresa": "2160",
+      "empresa": "GASKO SA",
+      "bandera": "PUMA",
+      "address": "AV SAN MARTÍN 5095 -",
+      "localidad": "FLORIDA",
+      "lat": -34.54487,
+      "lon": -58.52652,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2345087527",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9926",
+      "empresa": "REFINERIA BAHIA BLANCA S.A.U.",
+      "bandera": "PUMA",
+      "address": "JUAN MANUEL DE ROSAS 3003",
+      "localidad": "SAN JUSTO",
+      "lat": -34.679108,
+      "lon": -58.55017,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4840775818",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1586",
+      "empresa": "PESUES S.A.",
+      "bandera": "YPF",
+      "address": "Sanchez de Bustamante 1612",
+      "localidad": "LANUS",
+      "lat": -34.697592,
+      "lon": -58.369724,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3796366139",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1387",
+      "empresa": "INV-EST  S.C.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. ASAMBLEA 1502",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.6369,
+      "lon": -58.44589,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/505071449",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2138",
+      "empresa": "RAMON FRANCO NORTE SRL",
+      "bandera": "YPF",
+      "address": "AV. RAMON FRANCO 5699",
+      "localidad": "WILDE",
+      "lat": -34.69582,
+      "lon": -58.31859,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3894413545",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7829",
+      "empresa": "DESTINATUM S.A.",
+      "bandera": "YPF",
+      "address": "Av Eva Peron 6102",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.66553,
+      "lon": -58.49096,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476183438",
+      "enRedPesada": true,
+      "calleRed": "Murguiondo"
+    },
+    {
+      "idempresa": "2521",
+      "empresa": "ORTFRE SRL",
+      "bandera": "AXION",
+      "address": "RIVADAVIA 10301",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63873,
+      "lon": -58.50874,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/473891030",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3911",
+      "empresa": "JGC SA",
+      "bandera": "YPF",
+      "address": "BELGRANO 1848 Y ELIZALDE",
+      "localidad": "SARANDI",
+      "lat": -34.675,
+      "lon": -58.35825,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3892733029",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "5080",
+      "empresa": "INTEGRAL ESTACION SOLA S.A.",
+      "bandera": "BLANCA",
+      "address": "AUSTRALIA 2550",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.646037,
+      "lon": -58.382975,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/465430600",
+      "enRedPesada": true,
+      "calleRed": "Avenida Australia"
+    },
+    {
+      "idempresa": "8379",
+      "empresa": "CASTAÑO AUTOVOR SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AUT DELLEPIANE 6017 MANO PROVINCIA",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.67741,
+      "lon": -58.47977,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": null,
+      "enRedPesada": true,
+      "calleRed": "Avenida Teniente General Luis Dellepiane"
+    },
+    {
+      "idempresa": "158",
+      "empresa": "GAMVER GAS SA",
+      "bandera": "BLANCA",
+      "address": "AV. GENERAL PAZ 7499",
+      "localidad": "JOSE INGENIEROS",
+      "lat": -34.61817,
+      "lon": -58.53166,
+      "productos": [
+        "GNC"
+      ],
+      "osm": null,
+      "enRedPesada": true,
+      "calleRed": "Puente Beiró"
+    },
+    {
+      "idempresa": "593",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "godoy cruz 3151",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.57419,
+      "lon": -58.42132,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/291838234",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3655",
+      "empresa": "DEHEZA S.A.I.C.I.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. MITRE 3215",
+      "localidad": "SARANDI",
+      "lat": -34.682888,
+      "lon": -58.344043,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4219936357",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1374",
+      "empresa": "GASING S.A.",
+      "bandera": "BLANCA",
+      "address": "SARMIENTO 3412",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.606223,
+      "lon": -58.413961,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3742106936",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9324",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Juan de Garay 1302 (esq. Santiago del Estero)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62715,
+      "lon": -58.38458,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/532822941",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6556",
+      "empresa": "NOCEDA S.A.",
+      "bandera": "YPF",
+      "address": "Warnes 236",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60303,
+      "lon": -58.44096,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1422573870",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1458",
+      "empresa": "SOLMAY S.R.L",
+      "bandera": "YPF",
+      "address": "AV. JUAN BAUTISTA ALBERDI 4402",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.6415,
+      "lon": -58.48784,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2374435448",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7151",
+      "empresa": "PROYECTOS URBANISTICOS S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Hipolito Irigoyen 520",
+      "localidad": "CIUDADELA",
+      "lat": -34.634514,
+      "lon": -58.546208,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/572506696",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4968",
+      "empresa": "ESTACION DE SERVICIO GOLDEN CAR SA",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "PARANA 3684",
+      "localidad": "OLIVOS",
+      "lat": -34.508567,
+      "lon": -58.521204,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/642798206",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7385",
+      "empresa": "ESTACION DE SERVICIO GOLDEN CAR S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "HIPOLITO IRIGOYEN 3200",
+      "localidad": "MARTINEZ",
+      "lat": -34.505115,
+      "lon": -58.533998,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/659462082",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "496",
+      "empresa": "PROODOS SA",
+      "bandera": "YPF",
+      "address": "AV. JUAN B. JUSTO 5315",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61401,
+      "lon": -58.47265,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/470422606",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "9314",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Rivadavia 8201/31 (esq. Joaquin V. Gonzalez)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63288,
+      "lon": -58.47931,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/521435369",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9455",
+      "empresa": "ANALIA SUSANA MARTINEZ",
+      "bandera": "YPF",
+      "address": "AV. LARRAZABAL 801",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.64713,
+      "lon": -58.50761,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3355841585",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2798",
+      "empresa": "ROAL SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "MARIANO ACOSTA 1195",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.643716,
+      "lon": -58.470253,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2092523805",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1004",
+      "empresa": "GOMCOM S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV F.F.DE LA CRUZ 3205",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.660929,
+      "lon": -58.444881,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3736839921",
+      "enRedPesada": true,
+      "calleRed": "Avenida General Francisco Fernández de La Cruz"
+    },
+    {
+      "idempresa": "7137",
+      "empresa": "ROBERTO OTERO Y JAVIER LOPEZ SH",
+      "bandera": "YPF",
+      "address": "Av Rivadavia 6045",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62423,
+      "lon": -58.45066,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/521435370",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9260",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Emilio Castro 6512 (esq. Cafayate)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.650873,
+      "lon": -58.512705,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/474482869",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3931",
+      "empresa": "SAN JUAN Y SOLIS ALVAREZ Y DI LEVA S.A.",
+      "bandera": "YPF",
+      "address": "AV. SAN JUAN 1701",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62245,
+      "lon": -58.39,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4276613330",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3568",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. CORRIENTES 6535",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.588672,
+      "lon": -58.450495,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471549720",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3765",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. CORDOBA 3710",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.597953,
+      "lon": -58.419144,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/370518042",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7849",
+      "empresa": "IMPIERI, PIÑEIRO, RIZZO Y ASOC. S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Mexico 2701",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.616924,
+      "lon": -58.404404,
+      "productos": [
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/560908466",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9275",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Maipú 1055 (esq. Federico Bardi)",
+      "localidad": "VICENTE LOPEZ",
+      "lat": -34.528166,
+      "lon": -58.480985,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272165939",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9237",
+      "empresa": "COMBUSTIBLE MUNRO S.R.L.",
+      "bandera": "DAPSA S.A.",
+      "address": "AV. VELEZ SARSFIELD 5420",
+      "localidad": "MUNRO",
+      "lat": -34.53401,
+      "lon": -58.5319,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1033574457",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2531",
+      "empresa": "SEFER SA",
+      "bandera": "BLANCA",
+      "address": "AV. DEL BARCO CENTENERA 3182",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.652593,
+      "lon": -58.421614,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": null,
+      "enRedPesada": true,
+      "calleRed": "Avenida del Barco Centenera"
+    },
+    {
+      "idempresa": "5270",
+      "empresa": "GNC SAN CAYETANO S.A.",
+      "bandera": "BLANCA",
+      "address": "AV.JUAN B.JUSTO 5940",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.620286,
+      "lon": -58.478858,
+      "productos": [
+        "GNC"
+      ],
+      "osm": null,
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "1556",
+      "empresa": "BEIZAMA S.A.",
+      "bandera": "PUMA",
+      "address": "EMILIO CASTRO 7006",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.652935,
+      "lon": -58.517138,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/474478481",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3921",
+      "empresa": "NICARAGUA SA",
+      "bandera": "YPF",
+      "address": "AV. MITRE 3220",
+      "localidad": "SARANDI",
+      "lat": -34.68224,
+      "lon": -58.34318,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4219936356",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "869",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "VELEZ SARFIELD 850",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.6449,
+      "lon": -58.38923,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/465257488",
+      "enRedPesada": true,
+      "calleRed": "Avenida Vélez Sársfield"
+    },
+    {
+      "idempresa": "3677",
+      "empresa": "RIVAGAS S.A.",
+      "bandera": "YPF",
+      "address": "AV. RIVADAVIA 8101",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63276,
+      "lon": -58.47808,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/477013569",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "798",
+      "empresa": "VIVAPAS SRL",
+      "bandera": "YPF",
+      "address": "GRAL RODRIGUEZ 1087",
+      "localidad": "LANUS",
+      "lat": -34.69905,
+      "lon": -58.38049,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2838905401",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2163",
+      "empresa": "BOTTAZZINI HERMANOS S.H.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "GOB.UGARTE 2105 OLIVOS",
+      "localidad": "OLIVOS",
+      "lat": -34.516428,
+      "lon": -58.496607,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/551152123",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2737",
+      "empresa": "LA BAHIA SA",
+      "bandera": "BLANCA",
+      "address": "AV CABILDO 4899",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.539946,
+      "lon": -58.474667,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/4625740925",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4876",
+      "empresa": "GAS TRES DE FEBRERO S.A.",
+      "bandera": "BLANCA",
+      "address": "AV. DIAZ VELEZ 1686",
+      "localidad": "CIUDADELA",
+      "lat": -34.65397,
+      "lon": -58.52932,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3895227139",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10299",
+      "empresa": "EINER SUR SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "JOSE MARIA MORENO 690",
+      "localidad": "LANUS",
+      "lat": -34.701693,
+      "lon": -58.401313,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/546150629",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1873",
+      "empresa": "ESTACION DE SERVICIO NORTEÑA SRL",
+      "bandera": "YPF",
+      "address": "Av Ricardo Balbin 4491",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.55503,
+      "lon": -58.49584,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/478371629",
+      "enRedPesada": true,
+      "calleRed": "Avenida Doctor Ricardo Balbín"
+    },
+    {
+      "idempresa": "9651",
+      "empresa": "NUVICO S.A.",
+      "bandera": "BLANCA",
+      "address": "Av. Juan B. Justo 4631",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60896,
+      "lon": -58.46511,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/471541125",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "5796",
+      "empresa": "COMBUSTIBLES WARNES SRL",
+      "bandera": "BLANCA",
+      "address": "AV WARNES 880",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60022,
+      "lon": -58.44887,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1422573854",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9294",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Jujuy 164/196 (esq. Alsina)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61214,
+      "lon": -58.40535,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3742085872",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2678",
+      "empresa": "YAPAY NEASA S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. BALBIN 3560",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.55629,
+      "lon": -58.48091,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/483144376",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3798",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV.LIBERTADOR 2365",
+      "localidad": "OLIVOS",
+      "lat": -34.508482,
+      "lon": -58.479044,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/310573731",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "799",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "AV. MITRE Y 9 DE JULIO",
+      "localidad": "AVELLANEDA",
+      "lat": -34.6639,
+      "lon": -58.36282,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2324529206",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8339",
+      "empresa": "SUPER SERVICIOS SA",
+      "bandera": "YPF",
+      "address": "AV AVELLANEDA 1628",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62074,
+      "lon": -58.45426,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/889080651",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1707",
+      "empresa": "GNC POMPEYA SA",
+      "bandera": "YPF",
+      "address": "AV. AMANCIO ALCORTA 3415",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.65168,
+      "lon": -58.40767,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/465523793",
+      "enRedPesada": true,
+      "calleRed": "Avenida Amancio Alcorta"
+    },
+    {
+      "idempresa": "1599",
+      "empresa": "FUENTE DE PETRÓLEO S.A.",
+      "bandera": "YPF",
+      "address": "AV.ALVAREZ JONTE 2695",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60795,
+      "lon": -58.48041,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/472676822",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7486",
+      "empresa": "HUGO MENDIETA S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "9 DE JULIO 2470",
+      "localidad": "LANUS",
+      "lat": -34.717221,
+      "lon": -58.376984,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1050218452",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7208",
+      "empresa": "KALPAT S.A.",
+      "bandera": "YPF",
+      "address": "RIVADAVIA 1185",
+      "localidad": "AVELLANEDA",
+      "lat": -34.67205,
+      "lon": -58.39481,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272167094",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4592",
+      "empresa": "PETRO ARG SRL",
+      "bandera": "YPF",
+      "address": "Blas Parera 2501",
+      "localidad": "OLIVOS",
+      "lat": -34.52303,
+      "lon": -58.51023,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/257431749",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2011",
+      "empresa": "SUPERMERCADOS MAYORISTAS MAKRO S.A.",
+      "bandera": "PUMA",
+      "address": "AV. F. PIENOVI 318",
+      "localidad": "AVELLANEDA",
+      "lat": -34.661656,
+      "lon": -58.388413,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3802538418",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8367",
+      "empresa": "ARGUMAL SA",
+      "bandera": "BLANCA",
+      "address": "25 de Mayo Nº 2692",
+      "localidad": "LANUS",
+      "lat": -34.690909,
+      "lon": -58.426471,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/5251243121",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7227",
+      "empresa": "SERVICIO TABLADA S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "MONSEÑOR BUFANO 5390",
+      "localidad": "LA TABLADA",
+      "lat": -34.69924,
+      "lon": -58.54211,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/475378536",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2506",
+      "empresa": "CORAFAL NORTE S.A.",
+      "bandera": "YPF",
+      "address": "9 DE JULIO 101",
+      "localidad": "SAN MARTIN",
+      "lat": -34.58202,
+      "lon": -58.54014,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/10701071235",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "640",
+      "empresa": "RUTA AL OESTE SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV JUAN B JUSTO 8490",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63467,
+      "lon": -58.50788,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471301336",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "11196",
+      "empresa": "DEL SUR COMBUSTIBLES SRL",
+      "bandera": "BLANCA",
+      "address": "CRISOLOGO LARRALDE 4490",
+      "localidad": "AVELLANEDA",
+      "lat": -34.55999,
+      "lon": -58.48889,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471197805",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2945",
+      "empresa": "ROHMBE SA",
+      "bandera": "BLANCA",
+      "address": "EVA PERÓN 2330",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63932,
+      "lon": -58.454156,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/463977343",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9930",
+      "empresa": "REFINERIA BAHIA BLANCA S.A.U.",
+      "bandera": "PUMA",
+      "address": "VELEZ SARFIELD 522 0 ESQ. CORTEJARENA",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.640861,
+      "lon": -58.389601,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1253162713",
+      "enRedPesada": true,
+      "calleRed": "Avenida Vélez Sársfield"
+    },
+    {
+      "idempresa": "9863",
+      "empresa": "PETRO LANC S.A.",
+      "bandera": "DAPSA S.A.",
+      "address": "25 de Mayo 502",
+      "localidad": "LANUS",
+      "lat": -34.707595,
+      "lon": -58.399102,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1042029853",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3157",
+      "empresa": "MACIA JOSE RAMON",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "America 236",
+      "localidad": "VILLA  BALLESTER",
+      "lat": -34.555781,
+      "lon": -58.552008,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4343571340",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8298",
+      "empresa": "ESTACION DE SERVICIO LA NORIA S.A.",
+      "bandera": "BLANCA",
+      "address": "MOSOTTI 1580",
+      "localidad": "LOMAS DE ZAMORA",
+      "lat": -34.708,
+      "lon": -58.45797,
+      "productos": [
+        "Gas Oil Grado 2",
+        "GNC",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/468051522",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3613",
+      "empresa": "GARAGE Y EST.DE SERV.EL PROGRESO S.A.",
+      "bandera": "YPF",
+      "address": "AV. OLIVERA 1136",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.65122,
+      "lon": -58.48211,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476157308",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3650",
+      "empresa": "MOSCONI S.R.L.",
+      "bandera": "AXION",
+      "address": "AV. MOSCONI 1015",
+      "localidad": "LOMAS DEL MIRADOR",
+      "lat": -34.663147,
+      "lon": -58.538452,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/477557476",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "909",
+      "empresa": "INCAT S.R.L.",
+      "bandera": "YPF",
+      "address": "AV. INDEPENDENCIA 2701",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61871,
+      "lon": -58.40384,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476007119",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1582",
+      "empresa": "GAS LANÚS S.A.",
+      "bandera": "YPF",
+      "address": "25 DE MAYO 883",
+      "localidad": "LANUS",
+      "lat": -34.70557,
+      "lon": -58.40525,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1389436192",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2692",
+      "empresa": "AVELLANEDA 2411 S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. AVELLANEDA 2411",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62397,
+      "lon": -58.46459,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/465012645",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10701",
+      "empresa": "LURIGO COMBUSTIBLES S.A.",
+      "bandera": "PUMA",
+      "address": "HIPOLOTO YRIGOYEN 249/299",
+      "localidad": "AVELLANEDA",
+      "lat": -34.677245,
+      "lon": -58.366144,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4219936353",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10064",
+      "empresa": "SALVA PETROL COMBUSTIBLES S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. BARTOLOME MITRE 3596",
+      "localidad": "MUNRO",
+      "lat": -34.51874,
+      "lon": -58.525486,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1111917890",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3712",
+      "empresa": "ROCCA COMBUSTIBLES S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. ENTRE RIOS 1890",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.630339,
+      "lon": -58.390665,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/640618942",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6655",
+      "empresa": "S.D.S. S.A",
+      "bandera": "YPF",
+      "address": "CENTENARIO URUGUAYO 116",
+      "localidad": "VILLA DOMINICO",
+      "lat": -34.70238,
+      "lon": -58.33944,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4219936363",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "949",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV.FRANCISCO BEIRÓ 5804",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61813,
+      "lon": -58.53019,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/486695400",
+      "enRedPesada": true,
+      "calleRed": "Avenida Francisco Beiró"
+    },
+    {
+      "idempresa": "331",
+      "empresa": "BRAGADO GAS SRL",
+      "bandera": "BLANCA",
+      "address": "BRAGADO 6001",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.653877,
+      "lon": -58.503274,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3736802846",
+      "enRedPesada": true,
+      "calleRed": "Oliden"
+    },
+    {
+      "idempresa": "7124",
+      "empresa": "FRADIGAS S.R.L.",
+      "bandera": "BLANCA",
+      "address": "AV. BELGRANO 1417",
+      "localidad": "AVELLANEDA",
+      "lat": -34.67323,
+      "lon": -58.36168,
+      "productos": [
+        "Gas Oil Grado 2",
+        "GNC",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/548388571",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4112",
+      "empresa": "TECOMB S.A.",
+      "bandera": "YPF",
+      "address": "MONSEÑOR BUFANO 8378",
+      "localidad": "ALDO BONZI",
+      "lat": -34.72232,
+      "lon": -58.51167,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3440239374",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2012",
+      "empresa": "SUPERMERCADOS MAYORISTAS MAKRO S.A.",
+      "bandera": "PUMA",
+      "address": "ESTEBAN ECHEVERRIA 2870",
+      "localidad": "MUNRO",
+      "lat": -34.5215,
+      "lon": -58.51331,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2213104870",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9736",
+      "empresa": "VEGAS KINDONG SRL",
+      "bandera": "PUMA",
+      "address": "Av. Ricardo Balbin (ex Ruta 8) 3030",
+      "localidad": "SAN MARTIN",
+      "lat": -34.57291,
+      "lon": -58.55211,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/10877127247",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "361",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "AV.DEL LIBERTADOR 1850",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.58289,
+      "lon": -58.4,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/13124218168",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7577",
+      "empresa": "UNICOMB S.R.L",
+      "bandera": "AXION",
+      "address": "Ramón L. Falcón 6398",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.640598,
+      "lon": -58.516891,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3366726828",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "175",
+      "empresa": "HERLAUPA S.A.",
+      "bandera": "PUMA",
+      "address": "AV SAN MARTIN 4600",
+      "localidad": "VILLA INSUPERABLE",
+      "lat": -34.6792,
+      "lon": -58.5218,
+      "productos": [
+        "Gas Oil Grado 2",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/474449808",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "849",
+      "empresa": "OPESSA ACA ONCE",
+      "bandera": "YPF",
+      "address": "AV RIVADAVIA 3341",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61046,
+      "lon": -58.41369,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4686295448",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9261",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Gral. Paz 525 (esq. Cuevas)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.64493,
+      "lon": -58.52956,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1018581724",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4661",
+      "empresa": "COMBUSTIBLE LANUS S.A.",
+      "bandera": "DAPSA S.A.",
+      "address": "Av. San Martin 2706",
+      "localidad": "LANUS",
+      "lat": -34.70022,
+      "lon": -58.4117,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/546373659",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3822",
+      "empresa": "DEHEZA S.A.I.C.I.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "TRES ARROYOS 3802",
+      "localidad": "SARANDI",
+      "lat": -34.677183,
+      "lon": -58.33156,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3304383931",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2133",
+      "empresa": "GNC AGUERO S.A.",
+      "bandera": "BLANCA",
+      "address": "AGUERO 1215",
+      "localidad": "AVELLANEDA",
+      "lat": -34.678802,
+      "lon": -58.368274,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/1104182526",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8348",
+      "empresa": "EESS NUEVA BORGHETTO S.A",
+      "bandera": "YPF",
+      "address": "AVENIDA DORREGO 443",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.595253,
+      "lon": -58.451369,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/507122013",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2967",
+      "empresa": "ROSARIO ELENA SICA",
+      "bandera": "BLANCA",
+      "address": "CHILE 702",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.616298,
+      "lon": -58.37617,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/473660645",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3828",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Av.Diaz Velez 4368",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.608906,
+      "lon": -58.429011,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272165529",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3762",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. CRAMER 1691",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.568864,
+      "lon": -58.457372,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/846608793",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1722",
+      "empresa": "LA COLIMBA S.R.L.",
+      "bandera": "DAPSA S.A.",
+      "address": "SARMIENTO 1292",
+      "localidad": "LANUS",
+      "lat": -34.70206,
+      "lon": -58.383854,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1076254417",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3815",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. PASEO COLON 849",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.618076,
+      "lon": -58.369675,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/7229442104",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9565",
+      "empresa": "BUDAS KINGDOM SRL",
+      "bandera": "PUMA",
+      "address": "Presidente Peron 3808",
+      "localidad": "SAN MARTIN",
+      "lat": -34.57287,
+      "lon": -58.544,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272165691",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9293",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av.Cordoba 5657 (esq. Bonpland)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.586741,
+      "lon": -58.441015,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4653627499",
+      "enRedPesada": true,
+      "calleRed": "Avenida Córdoba"
+    },
+    {
+      "idempresa": "2054",
+      "empresa": "NUEVOS EMPRENDIMIENTOS S.R.L.",
+      "bandera": "AXION",
+      "address": "AV. EVA PERON 4350",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.653138,
+      "lon": -58.473356,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/710412138",
+      "enRedPesada": true,
+      "calleRed": "Avenida Eva Perón"
+    },
+    {
+      "idempresa": "1802",
+      "empresa": "MARISSI Y VILLANUEVA S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "SAN MARTIN 4199",
+      "localidad": "LANUS",
+      "lat": -34.712042,
+      "lon": -58.425643,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/468917896",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1348",
+      "empresa": "RAPI-GAS S.A.",
+      "bandera": "BLANCA",
+      "address": "AV. BDO. DE IRIGOYEN 490",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.614074,
+      "lon": -58.380233,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/252209010",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "878",
+      "empresa": "DIAGAS S.A.",
+      "bandera": "BLANCA",
+      "address": "AV. DIAZ VELEZ 4086",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.608775,
+      "lon": -58.424491,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/1436010090",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2740",
+      "empresa": "LE BRETON S.R.L.",
+      "bandera": "YPF",
+      "address": "CONGRESO 4008",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.56433,
+      "lon": -58.47957,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1369432541",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9867",
+      "empresa": "LFS COMBUSTIBLES S.A",
+      "bandera": "GULF",
+      "address": "AV- HIPOLITO YRIGOYEN 501",
+      "localidad": "AVELLANEDA",
+      "lat": -34.663332,
+      "lon": -58.37682,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3797615817",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4480",
+      "empresa": "BELCOMSUR S.A",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "av guemes 934",
+      "localidad": "AVELLANEDA",
+      "lat": -34.677245,
+      "lon": -58.366144,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4219936353",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1100",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV RICHIERI LADO EZEIZA KM 36,25",
+      "localidad": "ALDO BONZI",
+      "lat": -34.7117,
+      "lon": -58.5064,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/784283793",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7784",
+      "empresa": "SUPER SERVICIOS S.A.",
+      "bandera": "YPF",
+      "address": "Escalada 302",
+      "localidad": "SARANDI",
+      "lat": -34.674,
+      "lon": -58.34451,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4219936352",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7820",
+      "empresa": "YAPAY NEASA S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. CORRIENTES N° 3101",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60393,
+      "lon": -58.40905,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/495100856",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "811",
+      "empresa": "ALKUSAN S.R.L.",
+      "bandera": "BLANCA",
+      "address": "ALBERTI 1868",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.631825,
+      "lon": -58.39878,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/1390867199",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1071",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "J B JUSTO 1215 Y NICARAGUA",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.58311,
+      "lon": -58.4322,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/683637413",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "5366",
+      "empresa": "SEMPLENS S.A.",
+      "bandera": "BLANCA",
+      "address": "ANDRADE 138",
+      "localidad": "R. DE ESCALADA",
+      "lat": -34.715687,
+      "lon": -58.395017,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": null,
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3519",
+      "empresa": "SERVIS G.S. S.R.L.",
+      "bandera": "DAPSA S.A.",
+      "address": "MONSEÑOR BUFANO 4295",
+      "localidad": "SAN JUSTO",
+      "lat": -34.69111,
+      "lon": -58.553455,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3158356862",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1368",
+      "empresa": "KUKE S.R.L.",
+      "bandera": "AXION",
+      "address": "AV DIRECTORIO 1796",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63119,
+      "lon": -58.4529,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4692824743",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1140",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "GBDOR UGARTE 3501",
+      "localidad": "MUNRO",
+      "lat": -34.5239,
+      "lon": -58.51176,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/600938050",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "11026",
+      "empresa": "LUCIA MAR S.A.",
+      "bandera": "BLANCA",
+      "address": "AV. REGIMIENTO DE PATRICIOS 1302",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.642033,
+      "lon": -58.36878,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/7241510386",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1453",
+      "empresa": "EMICAS SRL",
+      "bandera": "AXION",
+      "address": "AV. EMILIO CASTRO 7541",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.65562,
+      "lon": -58.523646,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3804418719",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2765",
+      "empresa": "AGUERO NORTE S.R.L",
+      "bandera": "YPF",
+      "address": "CRISOLOGO LARRALDE 5310",
+      "localidad": "WILDE",
+      "lat": -34.70508,
+      "lon": -58.3357,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4219936364",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1569",
+      "empresa": "GASPARQUE  S.A.",
+      "bandera": "YPF",
+      "address": "AV. DR. RICARDO BALBIN 5041",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.55076,
+      "lon": -58.49933,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272164748",
+      "enRedPesada": true,
+      "calleRed": "Avenida Doctor Ricardo Balbín"
+    },
+    {
+      "idempresa": "481",
+      "empresa": "UPAT S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. ALMIRANTE BROWN 600",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.630028,
+      "lon": -58.363559,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/461451808",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "835",
+      "empresa": "OPESSA ACA CABALLITO",
+      "bandera": "YPF",
+      "address": "AV GAONA 1204 Y MARTIN DE GAINZA",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60806,
+      "lon": -58.44685,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/628440859",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6523",
+      "empresa": "CONSTITUYENTES 1806 S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV.CONSTITUYENTES 1806",
+      "localidad": "SAN MARTIN",
+      "lat": -34.564332,
+      "lon": -58.514533,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4343039592",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4555",
+      "empresa": "LIRHE S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. DE MAYO 16/18",
+      "localidad": "VILLA ADELINA",
+      "lat": -34.509253,
+      "lon": -58.539497,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/467028839",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10968",
+      "empresa": "ESTACION DEHEZA S.R.L.",
+      "bandera": "BLANCA",
+      "address": "AV. PTE RAUL ALFONSIN 2580/82",
+      "localidad": "LANUS",
+      "lat": -34.7099,
+      "lon": -58.366622,
+      "productos": [
+        "Gas Oil Grado 2",
+        "GNC",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1050218437",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1295",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "AV. H YRIGOYEN 4901",
+      "localidad": "LANUS",
+      "lat": -34.71179,
+      "lon": -58.39281,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2971994157",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2674",
+      "empresa": "TOPEMA S.A.",
+      "bandera": "BLANCA",
+      "address": "CASEROS 1373/99",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.631439,
+      "lon": -58.382504,
+      "productos": [
+        "Gas Oil Grado 2",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4687899361",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2126",
+      "empresa": "GNC AGRONOMIA SA",
+      "bandera": "BLANCA",
+      "address": "FRANCISCO BEIRÓ 2801",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.59424,
+      "lon": -58.49331,
+      "productos": [
+        "GNC"
+      ],
+      "osm": null,
+      "enRedPesada": true,
+      "calleRed": "Avenida Francisco Beiró"
+    },
+    {
+      "idempresa": "7377",
+      "empresa": "LAUCLAMAR SA",
+      "bandera": "YPF",
+      "address": "ACCESO SUDESTE KM 12",
+      "localidad": "SARANDI",
+      "lat": -34.675555,
+      "lon": -58.329851,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4687889441",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4554",
+      "empresa": "LIRHE S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. MITRE 4297",
+      "localidad": "MUNRO",
+      "lat": -34.513066,
+      "lon": -58.530983,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/466454407",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6863",
+      "empresa": "J B SERVICIOS Y COMBUSTIBLES S.A.",
+      "bandera": "YPF",
+      "address": "AV CROVARA 4625",
+      "localidad": "SAN JUSTO",
+      "lat": -34.700053,
+      "lon": -58.542555,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1267602239",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1818",
+      "empresa": "ROCAL S.R.L.",
+      "bandera": "AXION",
+      "address": "R.DE ESCALADA DE SAN MARTIN 1389",
+      "localidad": "VALENTIN ALSINA",
+      "lat": -34.685151,
+      "lon": -58.398444,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/545346381",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7714",
+      "empresa": "ROCCA COMBUSTIBLES S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Av. Juan B. Alberdi 7019",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.658943,
+      "lon": -58.512661,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1481651552",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Alberdi"
+    },
+    {
+      "idempresa": "4707",
+      "empresa": "KINKA S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV.RAUL S. ORTIZ 1406",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.591919,
+      "lon": -58.426945,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/435421004",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9709",
+      "empresa": "ESTACION DE SERVICIO ALCOVER SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV.  EVA PERON 7460",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.673961,
+      "lon": -58.501216,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/727637924",
+      "enRedPesada": true,
+      "calleRed": "Avenida Eva Perón"
+    },
+    {
+      "idempresa": "3073",
+      "empresa": "DIFEL S.A.",
+      "bandera": "YPF",
+      "address": "AV. REMEDIOS DE ESCALADA DE SAN MARTIN 3710",
+      "localidad": "VALENTIN ALSINA",
+      "lat": -34.66823,
+      "lon": -58.41748,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1077501792",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "770",
+      "empresa": "SUCESORES DE LOPEZ ALDAO Y CIA. S.R. L.",
+      "bandera": "YPF",
+      "address": "AV. SAN MARTI­N 7001",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.59098,
+      "lon": -58.51259,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471552474",
+      "enRedPesada": true,
+      "calleRed": "Avenida San Martín"
+    },
+    {
+      "idempresa": "7762",
+      "empresa": "MARÍA CRISTINA CORTTI",
+      "bandera": "YPF",
+      "address": "Avenida General Paz 6850",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.59467,
+      "lon": -58.52057,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3381165794",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3220",
+      "empresa": "ALVAREZ JONTE 6296 S.R.L.",
+      "bandera": "BLANCA",
+      "address": "ALVAREZ JONTE 6296",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.632822,
+      "lon": -58.520051,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3741860954",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1247",
+      "empresa": "ESTACIÓN DE SERVICIO LASCANO 2000 SA",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "NAZCA 2502",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.606818,
+      "lon": -58.485501,
+      "productos": [
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/473405389",
+      "enRedPesada": true,
+      "calleRed": "Avenida Nazca"
+    },
+    {
+      "idempresa": "1805",
+      "empresa": "MONTAJES Y CONSTRUCCIONES S.A.",
+      "bandera": "YPF",
+      "address": "R. DE ESCALADA DE SAN MARTIN 890",
+      "localidad": "LANUS",
+      "lat": -34.68645,
+      "lon": -58.39756,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/545347987",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4029",
+      "empresa": "JONTE 3386 SRL",
+      "bandera": "YPF",
+      "address": "JONTE 3386",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61129,
+      "lon": -58.48989,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471644916",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2895",
+      "empresa": "ESTADÍAS Y SERVICIOS SA",
+      "bandera": "AXION",
+      "address": "ALMAFUERTE 187",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.64053,
+      "lon": -58.41252,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/463758260",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6820",
+      "empresa": "NAON GNC SA",
+      "bandera": "BLANCA",
+      "address": "CONGRESO 3820",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.562909,
+      "lon": -58.47683,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/1049816865",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2671",
+      "empresa": "DIALINA S.A.",
+      "bandera": "BLANCA",
+      "address": "TERRERO 2483",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.602434,
+      "lon": -58.472318,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3738108267",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10906",
+      "empresa": "NAPHTAS CONHEX S.R.L",
+      "bandera": "BLANCA",
+      "address": "520 Nº 1104 esquina 203",
+      "localidad": "ABASTO",
+      "lat": -34.60393,
+      "lon": -58.40905,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/495100856",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2426",
+      "empresa": "WORKERS S.A.",
+      "bandera": "YPF",
+      "address": "AV.CROVARA 1252",
+      "localidad": "VILLA MADERO",
+      "lat": -34.6815,
+      "lon": -58.51289,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "relation/7002993",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2236",
+      "empresa": "ESTACION DE SERVICIO VAZQUEZ HNOS.SRL",
+      "bandera": "PUMA",
+      "address": "Piedrabuena 4611",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.685069,
+      "lon": -58.47882,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3802854228",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3715",
+      "empresa": "ROCCA COMBUSTIBLES S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. ENTRE RIOS 1803",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62963,
+      "lon": -58.39123,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3415441209",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1156",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV DE LOS CONSTITUYENTES 6070",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.57155,
+      "lon": -58.50692,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/534183802",
+      "enRedPesada": true,
+      "calleRed": "Avenida de los Constituyentes"
+    },
+    {
+      "idempresa": "10866",
+      "empresa": "USHUAIA 0041 S.R.L",
+      "bandera": "PUMA",
+      "address": "AV.HIPOLITO YRIGOYEN 2124/28",
+      "localidad": "AVELLANEDA",
+      "lat": -34.681701,
+      "lon": -58.385423,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/549409942",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6279",
+      "empresa": "CRUCESITA S.A.",
+      "bandera": "AXION",
+      "address": "AV. MITRE 1290",
+      "localidad": "AVELLANEDA",
+      "lat": -34.665043,
+      "lon": -58.359609,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272167066",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10458",
+      "empresa": "SERVEX PANAMERICANA SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "SAN MARTIN 819",
+      "localidad": "SAN MARTIN",
+      "lat": -34.58717,
+      "lon": -58.52579,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2950081874",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7602",
+      "empresa": "ROMBIOLESE S.A.",
+      "bandera": "GULF",
+      "address": "Av. San Martín  3702",
+      "localidad": "LANUS",
+      "lat": -34.709237,
+      "lon": -58.419686,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/469226638",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4658",
+      "empresa": "SAN JORGE S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV JUAN B. JUSTO Nº 9091",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63293,
+      "lon": -58.516747,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/880797211",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "3848",
+      "empresa": "RICSAGAS S. A.",
+      "bandera": "BLANCA",
+      "address": "AV J. DE GARAY 3702",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.631585,
+      "lon": -58.416726,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/463904785",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1145",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV MAIPU 790 Y GUEMES",
+      "localidad": "VICENTE LOPEZ",
+      "lat": -34.53086,
+      "lon": -58.48022,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272166056",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3759",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. FIGUEROA ALCORTA 7786",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.546514,
+      "lon": -58.451933,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4666428306",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1864",
+      "empresa": "CHICLANA 3827 SRL",
+      "bandera": "BLANCA",
+      "address": "CHICLANA 3827",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.638542,
+      "lon": -58.417728,
+      "productos": [
+        "Gas Oil Grado 2",
+        "GNC",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/461008596",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1741",
+      "empresa": "TRIGAS S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV.CNEL.ROCA N° 6883",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.696968,
+      "lon": -58.469329,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4687359159",
+      "enRedPesada": true,
+      "calleRed": "Avenida Coronel Roca"
+    },
+    {
+      "idempresa": "170",
+      "empresa": "VERSALLES MULTISERVICE SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "IRIGOYEN 1260",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.628799,
+      "lon": -58.516089,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/473899533",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "11428",
+      "empresa": "VICINI COMBUSTIBLES S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AVENIDA DIRECTORIO 5698",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.655476,
+      "lon": -58.496289,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476171107",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1819",
+      "empresa": "ROJO Y AMARILLO S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "A.THOMAS 2010",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.578653,
+      "lon": -58.470058,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/205171129",
+      "enRedPesada": true,
+      "calleRed": "Avenida de los Incas"
+    },
+    {
+      "idempresa": "6252",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "H. YRIGOYEN 1067",
+      "localidad": "AVELLANEDA",
+      "lat": -34.66939,
+      "lon": -58.38084,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1527583313",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3214",
+      "empresa": "LICAFRA S.A.",
+      "bandera": "AXION",
+      "address": "AV. MITRE 5525",
+      "localidad": "WILDE",
+      "lat": -34.69806,
+      "lon": -58.3253,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3804418723",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "777",
+      "empresa": "SERVICIO ESCALADA S.A.",
+      "bandera": "YPF",
+      "address": "ESACALADA 678",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.64389,
+      "lon": -58.49628,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/925550185",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "588",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "AV.MONTES DE OCA Y M.GARCIA",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63402,
+      "lon": -58.3753,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/461174050",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2986",
+      "empresa": "BIGO GAS S.A",
+      "bandera": "BLANCA",
+      "address": "BILLINGHURST 1209",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.595479,
+      "lon": -58.413661,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/304177291",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9267",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "AV. F. Beiró 5501 esq. Moliere",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.615767,
+      "lon": -58.527724,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/644174908",
+      "enRedPesada": true,
+      "calleRed": "Avenida Francisco Beiró"
+    },
+    {
+      "idempresa": "1318",
+      "empresa": "GASTAB S.A.",
+      "bandera": "PUMA",
+      "address": "AV. CROVARA 1801",
+      "localidad": "LA TABLADA",
+      "lat": -34.68396,
+      "lon": -58.51733,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476705201",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3614",
+      "empresa": "DEHEZA S.A.I.C.F.I.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. LIBERTADOR 7920",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.541892,
+      "lon": -58.463062,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4687359161",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1624",
+      "empresa": "MELINKA S.R.L.",
+      "bandera": "YPF",
+      "address": "Camino General Belgrano 6602",
+      "localidad": "WILDE",
+      "lat": -34.72468,
+      "lon": -58.33588,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4218075089",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1995",
+      "empresa": "SACOMA S.A.",
+      "bandera": "YPF",
+      "address": "AYACUCHO 2600",
+      "localidad": "SAN MARTIN",
+      "lat": -34.56979,
+      "lon": -58.54002,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272165703",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4015",
+      "empresa": "LA PANAMERICANA SCA",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. SAN MARTIN 3099",
+      "localidad": "VICENTE LOPEZ",
+      "lat": -34.533074,
+      "lon": -58.502967,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/466534747",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1729",
+      "empresa": "LECO S.A.",
+      "bandera": "BLANCA",
+      "address": "25 DE MAYO 1500",
+      "localidad": "SAN MARTIN",
+      "lat": -34.579246,
+      "lon": -58.528106,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/4687359158",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4516",
+      "empresa": "GHIOLDI HNOS.S.A.DE T.C.I.Y F.",
+      "bandera": "BLANCA",
+      "address": "AV.AMANCIO ALCORTA Y LOS PATOS",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63701,
+      "lon": -58.38675,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/465035243",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "507",
+      "empresa": "BOYACA C.I.S.A.",
+      "bandera": "YPF",
+      "address": "AV.ELCANO 4000",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.58278,
+      "lon": -58.4603,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/465019870",
+      "enRedPesada": true,
+      "calleRed": "Avenida Elcano"
+    },
+    {
+      "idempresa": "1025",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "EV EDISON Y LA HABANA",
+      "localidad": "MARTINEZ",
+      "lat": -34.50534,
+      "lon": -58.52572,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272165917",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6198",
+      "empresa": "GENEMAX SRL",
+      "bandera": "BLANCA",
+      "address": "GRAL MADARIAGA 1305",
+      "localidad": "LANUS",
+      "lat": -34.70967,
+      "lon": -58.375366,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/1076254416",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "827",
+      "empresa": "OPESSA ACA AUTODROMO",
+      "bandera": "YPF",
+      "address": "AVENIDA CNEL. JOSE SEGUNDO ROCA 4550",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.68075,
+      "lon": -58.45032,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/917245402",
+      "enRedPesada": true,
+      "calleRed": "Avenida Coronel Roca"
+    },
+    {
+      "idempresa": "10132",
+      "empresa": "SERVIS GS SRL",
+      "bandera": "DAPSA S.A.",
+      "address": "AV. CROVARA 2406",
+      "localidad": "TABLADA",
+      "lat": -34.687634,
+      "lon": -58.522049,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476405849",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "895",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV CABILDO 3501",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.55017,
+      "lon": -58.46686,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1025728918",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3572",
+      "empresa": "RIO DE JANEIRO SA.",
+      "bandera": "YPF",
+      "address": "RIO DE JANEIRO 464",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61019,
+      "lon": -58.43038,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1483982041",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1159",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "AV DIAZ VELEZ 4373 Y YATAY",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.6085,
+      "lon": -58.42903,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272165533",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7218",
+      "empresa": "TECNOLOGIA D´ATRI SRL",
+      "bandera": "AXION",
+      "address": "BRASIL 2984",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63377,
+      "lon": -58.40586,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/463577273",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1620",
+      "empresa": "SOCOROMA S.A.",
+      "bandera": "YPF",
+      "address": "Centenario Uruguayo 979",
+      "localidad": "LANUS",
+      "lat": -34.71778,
+      "lon": -58.35778,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1161501166",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7818",
+      "empresa": "COMBUSTIBLES ESCALADA 4000 S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "REMEDIOS DE ESCALADA DE SAN MARTIN 3999",
+      "localidad": "LANUS",
+      "lat": -34.66526,
+      "lon": -58.41716,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/544888066",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1545",
+      "empresa": "GNC CRUCESITA S.A.",
+      "bandera": "BLANCA",
+      "address": "AV. MITRE 1600",
+      "localidad": "AVELLANEDA",
+      "lat": -34.666603,
+      "lon": -58.356765,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/4359519964",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3055",
+      "empresa": "TORE S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. MITRE 901",
+      "localidad": "FLORIDA",
+      "lat": -34.541403,
+      "lon": -58.505795,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272165907",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9269",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Monroe 3078 (esq. Balbin)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.562204,
+      "lon": -58.466072,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/498983275",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8467",
+      "empresa": "TERGEN SRL",
+      "bandera": "YPF",
+      "address": "Directorio 2578",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63446,
+      "lon": -58.46313,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1410274387",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8936",
+      "empresa": "MARIA DE LOS ANGELES LACEAR",
+      "bandera": "BLANCA",
+      "address": "MORENO 260",
+      "localidad": "SAAVEDRA",
+      "lat": -34.582036,
+      "lon": -58.540256,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/10701071235",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1510",
+      "empresa": "PSF UNISERVICIOS S.R.L",
+      "bandera": "YPF",
+      "address": "Jose m.Moreno 1483",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.63599,
+      "lon": -58.43253,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/463889644",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2497",
+      "empresa": "DEL GOLF S.A.",
+      "bandera": "YPF",
+      "address": "Av. Fondo de la Legua 2129",
+      "localidad": "VILLA ADELINA",
+      "lat": -34.50748,
+      "lon": -58.53578,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/411907712",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6787",
+      "empresa": "SOLAR GAS S.A.",
+      "bandera": "BLANCA",
+      "address": "Nicolas Avellaneda 1811",
+      "localidad": "AVELLANEDA",
+      "lat": -34.65543,
+      "lon": -58.34805,
+      "productos": [
+        "Gas Oil Grado 2",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/509901063",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3264",
+      "empresa": "DARSISA S.A.",
+      "bandera": "YPF",
+      "address": "AV. JUAN B. JUSTO Nº 7099",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62673,
+      "lon": -58.491,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/510055891",
+      "enRedPesada": true,
+      "calleRed": "Avenida Juan Bautista Justo"
+    },
+    {
+      "idempresa": "3575",
+      "empresa": "DEHEZA S.A.C.I.F.I",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "24 DE NOVIEMBRE E INDEPENDENCIA",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.620218,
+      "lon": -58.411008,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1079654605",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3222",
+      "empresa": "REPRESENTACIONES AL.SA.GA.S.R.L.",
+      "bandera": "DAPSA S.A.",
+      "address": "JJOSE MARIA MORENO 1302",
+      "localidad": "LANUS",
+      "lat": -34.70065,
+      "lon": -58.40978,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3664398833",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "382",
+      "empresa": "MAURER & GRUMELLI S.R.L.",
+      "bandera": "YPF",
+      "address": "MIRANDA 5317",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62606,
+      "lon": -58.50969,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/470838546",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9770",
+      "empresa": "FGC FUELS MARKETING SA",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Famatina 3387",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.646056,
+      "lon": -58.409277,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/465057723",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "439",
+      "empresa": "VECINO Y CIA. S.R.L.",
+      "bandera": "YPF",
+      "address": "REMEDIOS DE ESCALADA 2101",
+      "localidad": "VALENTIN ALSINA",
+      "lat": -34.67931,
+      "lon": -58.404202,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/546140895",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "5152",
+      "empresa": "FAST OIL S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. SAN MARTIN 2401",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.603435,
+      "lon": -58.461592,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/498133663",
+      "enRedPesada": true,
+      "calleRed": "Avenida San Martín"
+    },
+    {
+      "idempresa": "314",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "BLAS PARERA 3899 AU. PANAMERICANA Y DEBENEDETTI (ACCESO NORTE I)",
+      "localidad": "OLIVOS",
+      "lat": -34.51205,
+      "lon": -58.5213,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4689509121",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3240",
+      "empresa": "FARMEX SAIC",
+      "bandera": "YPF",
+      "address": "AV MAIPU 999",
+      "localidad": "VICENTE LOPEZ",
+      "lat": -34.52892,
+      "lon": -58.48058,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272166046",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2230",
+      "empresa": "ALBERDI GAS S.A.",
+      "bandera": "YPF",
+      "address": "AV. JUAN BAUTISTA ALBERDI 5628",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.65023,
+      "lon": -58.50073,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/474453222",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "5496",
+      "empresa": "SERVICES NAON  SRL",
+      "bandera": "YPF",
+      "address": "OLAZABAL 3690",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.56841,
+      "lon": -58.47168,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/539888936",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9283",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av Los Incas 3550",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.575093,
+      "lon": -58.46287,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471635564",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1119",
+      "empresa": "ESTACION SERVICIO SHELL ACENAF",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV.DE LOS CONTITUYENTES 4435",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.582669,
+      "lon": -58.490977,
+      "productos": [
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471293189",
+      "enRedPesada": true,
+      "calleRed": "Avenida de los Constituyentes"
+    },
+    {
+      "idempresa": "7063",
+      "empresa": "CALITRI FILOMENA LUCIA Y NIETO HORACIO ALFREDO",
+      "bandera": "YPF",
+      "address": "AVDA ESCALADA 2951",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.66513,
+      "lon": -58.46978,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/256629868",
+      "enRedPesada": true,
+      "calleRed": "Avenida Escalada"
+    },
+    {
+      "idempresa": "9315",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av del Libertador 2376 (esq. Corrientes)",
+      "localidad": "OLIVOS",
+      "lat": -34.508622,
+      "lon": -58.479558,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/310573730",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "7321",
+      "empresa": "TUIN S.R.L.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "Edison 1610",
+      "localidad": "AVELLANEDA",
+      "lat": -34.655269,
+      "lon": -58.33713,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4276613332",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "152",
+      "empresa": "PROINCO SA",
+      "bandera": "YPF",
+      "address": "AV. LA PLATA 901",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.62599,
+      "lon": -58.4272,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1505116176",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9688",
+      "empresa": "ESTACION DE SERVICIOS SANTA TERESITA",
+      "bandera": "PUMA",
+      "address": "AV. EVA PERON 3668",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.64604,
+      "lon": -58.46665,
+      "productos": [
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/509521737",
+      "enRedPesada": true,
+      "calleRed": "Avenida Eva Perón"
+    },
+    {
+      "idempresa": "3238",
+      "empresa": "ALSIGAS S.A.",
+      "bandera": "BLANCA",
+      "address": "REMEDIOS DE ESCALADA DE SAN MARTIN 3589",
+      "localidad": "VALENTIN ALSINA",
+      "lat": -34.669528,
+      "lon": -58.41579,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3437626604",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "4339",
+      "empresa": "CID GAS SA",
+      "bandera": "YPF",
+      "address": "AV. GAONA 1501",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.609381,
+      "lon": -58.45014,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/2160026519",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "810",
+      "empresa": "AUTOMOVIL CLUB ARGENTINO",
+      "bandera": "YPF",
+      "address": "FRANCISCO BEIRO 3561",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.6002,
+      "lon": -58.5031,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/471152829",
+      "enRedPesada": true,
+      "calleRed": "Avenida Francisco Beiró"
+    },
+    {
+      "idempresa": "5487",
+      "empresa": "CAR OKEY S.A.",
+      "bandera": "PUMA",
+      "address": "MONSEÑOR BUFANO 5440",
+      "localidad": "LA TABLADA",
+      "lat": -34.699434,
+      "lon": -58.540995,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/4740920775",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "8314",
+      "empresa": "PROYECTOS SUSTENTABLES S.A.",
+      "bandera": "YPF",
+      "address": "LISANDRO DE LA TORRE 2179",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.66008,
+      "lon": -58.50346,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1037270624",
+      "enRedPesada": true,
+      "calleRed": "Avenida Lisandro de la Torre"
+    },
+    {
+      "idempresa": "1131",
+      "empresa": "KLIVE S.A.",
+      "bandera": "YPF",
+      "address": "COLPAYO 406",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.61583,
+      "lon": -58.44207,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476768152",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "800",
+      "empresa": "GOPA S.A.",
+      "bandera": "YPF",
+      "address": "NOGOYA 3641",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60628,
+      "lon": -58.4981,
+      "productos": [
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/1353319354",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3143",
+      "empresa": "SERVI FE S.R.L.",
+      "bandera": "YPF",
+      "address": "AVDA. EVA PERON 4899 Y OLIVERA",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.6575,
+      "lon": -58.47865,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476349086",
+      "enRedPesada": true,
+      "calleRed": "Avenida Eva Perón"
+    },
+    {
+      "idempresa": "9002",
+      "empresa": "KALPA GROUP S.A.",
+      "bandera": "VOY",
+      "address": "AV RIVADAVIA 3084",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.610616,
+      "lon": -58.410126,
+      "productos": [
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/779802155",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "5149",
+      "empresa": "PARENTE MARGARITA SILVIA",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV.DIRECTORIO 5698",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.655476,
+      "lon": -58.496289,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476171107",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1395",
+      "empresa": "ONSAYBEL S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "FABIAN ONSARI 196",
+      "localidad": "WILDE",
+      "lat": -34.70615,
+      "lon": -58.31967,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3913919000",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1300",
+      "empresa": "PETRUGAS S.A.",
+      "bandera": "BLANCA",
+      "address": "BARTOLOME MITRE 3595-3599",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.609397,
+      "lon": -58.417218,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/272165401",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1070",
+      "empresa": "OPEESA",
+      "bandera": "YPF",
+      "address": "AV LIBERTADOR 901 Y MELO",
+      "localidad": "VICENTE LOPEZ",
+      "lat": -34.5252,
+      "lon": -58.47172,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272165951",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9313",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Av. Congreso 4801 (esq. Galvan)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.567834,
+      "lon": -58.486913,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/470830349",
+      "enRedPesada": true,
+      "calleRed": "Galván"
+    },
+    {
+      "idempresa": "996",
+      "empresa": "OPESSA",
+      "bandera": "YPF",
+      "address": "RUTA PANAM. Y ACC. DEBENEDETTI.(HACIA CAPITAL)",
+      "localidad": "OLIVOS",
+      "lat": -34.5131,
+      "lon": -58.52238,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/8751628922",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "782",
+      "empresa": "GASYDIN S.A.",
+      "bandera": "BLANCA",
+      "address": "AV. INDEPENDENCIA 853",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.617357,
+      "lon": -58.378189,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/3742060925",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6821",
+      "empresa": "PETRO OESTE GNC SRL",
+      "bandera": "YPF",
+      "address": "AV RIVADAVIA 12300",
+      "localidad": "CIUDADELA",
+      "lat": -34.64011,
+      "lon": -58.5371,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476141756",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "9328",
+      "empresa": "PAN AMERICAN ENERGY LLC, SUCURSAL ARGENTINA",
+      "bandera": "AXION",
+      "address": "Las Heras 2499 (esq. Galileo)",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.585982,
+      "lon": -58.398697,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/1300405033",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "549",
+      "empresa": "ESTACIÓN DE SERVICIO SAN LUIS SRL",
+      "bandera": "BLANCA",
+      "address": "SAN LUIS 3187",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.59926,
+      "lon": -58.41041,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/3742109308",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10704",
+      "empresa": "DTP SA",
+      "bandera": "PUMA",
+      "address": "AV. RIVADAVIA 10984",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.639309,
+      "lon": -58.518604,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/690848710",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3933",
+      "empresa": "FOREST GNC  S.A.",
+      "bandera": "BLANCA",
+      "address": "AV. FOREST 639",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.584506,
+      "lon": -58.454385,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/473087494",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1376",
+      "empresa": "10 DE SETIEMBRE S.A.",
+      "bandera": "PUMA",
+      "address": "Av. Mosconi 299",
+      "localidad": "LOMAS DEL MIRADOR",
+      "lat": -34.658476,
+      "lon": -58.529443,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/477560493",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3233",
+      "empresa": "GASOIL SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. HIPOLITO YRIGOYEN 5450",
+      "localidad": "REMEDIOS DE ESCALADA",
+      "lat": -34.71792,
+      "lon": -58.3937,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272167057",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1854",
+      "empresa": "NAF GAS S.A.",
+      "bandera": "BLANCA",
+      "address": "CARACAS 2319",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.60582,
+      "lon": -58.47502,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/471988784",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "3501",
+      "empresa": "PASGAL S.A.",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "ATUEL 1093",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.649838,
+      "lon": -58.405482,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/465196518",
+      "enRedPesada": true,
+      "calleRed": "Avenida Isidro Lorea"
+    },
+    {
+      "idempresa": "6824",
+      "empresa": "CARACAS COMBUSTIBLE SRL",
+      "bandera": "SHELL C.A.P.S.A.",
+      "address": "AV. GAONA 2886 Y CARACAS",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.616842,
+      "lon": -58.466406,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/2160026530",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "2854",
+      "empresa": "SAN JOSE S.H",
+      "bandera": "AXION",
+      "address": "av mitre 3202",
+      "localidad": "MUNRO",
+      "lat": -34.52201,
+      "lon": -58.52263,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/950254539",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10915",
+      "empresa": "GC CONGRESO S.R.L",
+      "bandera": "PUMA",
+      "address": "ENTRE RIOS 1102",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.621686,
+      "lon": -58.391295,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/12253208401",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10429",
+      "empresa": "HAI COMBUSTIBLES S.R.L.",
+      "bandera": "PUMA",
+      "address": "Av. del Libertador General San Martín 417",
+      "localidad": "VILLA LYNCH",
+      "lat": -34.588673,
+      "lon": -58.51977,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272165707",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "6405",
+      "empresa": "TRI-GAS S.A.",
+      "bandera": "BLANCA",
+      "address": "AV.R.DE ESCALADA DE S.MARTIN 2402",
+      "localidad": "VALENTIN ALSINA",
+      "lat": -34.677647,
+      "lon": -58.40714,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "way/546136908",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1575",
+      "empresa": "AUFKOCHEN S.A.C.I.F.I.",
+      "bandera": "YPF",
+      "address": "SAN MARTIN 2298",
+      "localidad": "LANUS",
+      "lat": -34.69607,
+      "lon": -58.40785,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/546160539",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "1801",
+      "empresa": "LA DECADA S.R.L.",
+      "bandera": "YPF",
+      "address": "SAN MARTIN 1509",
+      "localidad": "RAMOS MEJIA",
+      "lat": -34.65502,
+      "lon": -58.54956,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "way/476978979",
+      "enRedPesada": false,
+      "calleRed": null
+    },
+    {
+      "idempresa": "10264",
+      "empresa": "NAFPUR XXI SA",
+      "bandera": "YPF",
+      "address": "ZELARRAYAN 5530",
+      "localidad": "CAPITAL FEDERAL",
+      "lat": -34.67305,
+      "lon": -58.47792,
+      "productos": [
+        "GNC"
+      ],
+      "osm": "node/2622752671",
+      "enRedPesada": true,
+      "calleRed": "Avenida Teniente General Luis Dellepiane"
+    },
+    {
+      "idempresa": "9537",
+      "empresa": "OLIVOS COMBUSTIBLES S.R.L.",
+      "bandera": "AXION",
+      "address": "MARIANO PELLIZA 3892",
+      "localidad": "OLIVOS",
+      "lat": -34.51889,
+      "lon": -58.5143,
+      "productos": [
+        "Gas Oil Grado 2",
+        "Gas Oil Grado 3",
+        "GNC",
+        "Nafta (premium) de más de 95 Ron",
+        "Nafta (súper) entre 92 y 95 Ron"
+      ],
+      "osm": "node/272165884",
+      "enRedPesada": false,
+      "calleRed": null
+    }
+  ]
+}

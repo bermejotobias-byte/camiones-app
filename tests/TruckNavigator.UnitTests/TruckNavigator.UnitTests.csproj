@@ -31,6 +31,8 @@
     -->
     <Compile Include="..\..\src\TruckNavigator.Mobile\Services\BackendAddress.cs"
              Link="Mobile\BackendAddress.cs" />
+    <Compile Include="..\..\src\TruckNavigator.Mobile\Services\ConnectionRetry.cs"
+             Link="Mobile\ConnectionRetry.cs" />
   </ItemGroup>
 
 </Project>

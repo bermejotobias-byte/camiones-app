@@ -17,7 +17,10 @@ import {
   html, raw, icon, wire, q, qa, render, withBusy, toastOk, toastError, askConfirm
 } from '../ui.js';
 
-const VEHICLE_TYPES = [
+// Exportado para que el perfil muestre el tipo del camion que se exhibe. Se
+// comparte en vez de duplicarse: dos copias de la misma lista terminan diciendo
+// cosas distintas.
+export const VEHICLE_TYPES = [
   { value: 0, label: 'Chasis rígido', hint: 'Camión simple, sin acoplado' },
   { value: 1, label: 'Con acoplado', hint: 'Camión más acoplado' },
   { value: 2, label: 'Semirremolque', hint: 'Tractor más semirremolque' }
@@ -212,6 +215,26 @@ export function trucksView(host, { go }) {
             <p class="hint">Para reconocerlo cuando tengas varios.</p>
           </div>
 
+          <!-- Identidad del vehiculo, para el carnet. No entra en el ruteo. -->
+          <div class="stat-grid">
+            <div class="field">
+              <label for="brand">Marca</label>
+              <input class="input" id="brand" value="${truck.brand ?? ''}" placeholder="Scania" maxlength="40">
+            </div>
+            <div class="field">
+              <label for="model">Modelo</label>
+              <input class="input" id="model" value="${truck.model ?? ''}" placeholder="R 450" maxlength="40">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="plate">Patente</label>
+            <input class="input" id="plate" value="${truck.plateDisplay ?? truck.plate ?? ''}"
+                   placeholder="AB 123 CD" maxlength="12" autocapitalize="characters" autocorrect="off"
+                   style="text-transform:uppercase">
+            <p class="hint">Opcional. Como AAA 123 o AB 123 CD; los espacios no importan.</p>
+          </div>
+
           <div class="field">
             <label>Tipo</label>
             <div class="stack-sm">
@@ -300,6 +323,9 @@ export function trucksView(host, { go }) {
 
     return {
       name: q(host, '#name').value.trim(),
+      brand: q(host, '#brand').value.trim() || null,
+      model: q(host, '#model').value.trim() || null,
+      plate: q(host, '#plate').value.trim() || null,
       vehicleType: Number(q(host, 'input[name="vehicleType"]:checked')?.value ?? 0),
       grossWeightKg: number('grossWeightKg'),
       heightMeters: number('heightMeters'),
@@ -374,6 +400,9 @@ export function trucksView(host, { go }) {
 const blankTruck = () => ({
   id: null,
   name: '',
+  brand: '',
+  model: '',
+  plate: '',
   vehicleType: 0,
   grossWeightKg: 18000,
   heightMeters: 3.8,
@@ -384,7 +413,11 @@ const blankTruck = () => ({
   trailerLengthMeters: null
 });
 
-const typeValue = (name) =>
+/**
+ * Del nombre del enum que manda el servidor ("SemiTrailer") al valor numerico.
+ * Lo usa tambien el carnet: es la unica tabla de esa traduccion.
+ */
+export const typeValue = (name) =>
   ({ RigidTruck: 0, TruckWithTrailer: 1, SemiTrailer: 2 })[name] ?? 0;
 
 function escapeText(value) {

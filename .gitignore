@@ -26,3 +26,19 @@ routing/tools/
 
 ## Mapa base vectorial: lo genera data/build-basemap.ps1, pesa decenas de MB
 routing/*.pmtiles
+
+## Claves de firma: NUNCA en el repositorio.
+## La de desarrollo vive en %LOCALAPPDATA%\TruckNavigator y la crea build-apk.ps1.
+## Estas reglas son una red por si alguna termina copiada acá por error.
+*.keystore
+*.jks
+
+# Secretos del despliegue: SMTP y dominio. El repositorio es publico.
+deploy/.env
+
+# Artefacto de Windows, se cuela en cualquier carpeta abierta en el explorador
+desktop.ini
+
+# Prototipo del GPS: el lienzo armado y la vista previa se regeneran con gps.mjs y /design
+docs/diseno/prototipo-gps/gps-de-camiones.html
+docs/diseno/prototipo-gps/index.html

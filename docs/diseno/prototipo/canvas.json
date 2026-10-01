@@ -1,0 +1,212 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 800,
+      "title": "El camino elegido"
+    },
+    {
+      "file": "Iconos.dc.html",
+      "x": 1280,
+      "y": 0,
+      "w": 900,
+      "h": 720,
+      "title": "Íconos ilustrados"
+    },
+    {
+      "file": "Globos.dc.html",
+      "x": 2260,
+      "y": 0,
+      "w": 390,
+      "h": 900,
+      "title": "Globos del mono"
+    },
+    {
+      "file": "Sello.dc.html",
+      "x": 2730,
+      "y": 0,
+      "w": 900,
+      "h": 560,
+      "title": "Sello — la marca"
+    },
+    {
+      "file": "Bienvenida.dc.html",
+      "x": 0,
+      "y": 1020,
+      "w": 390,
+      "h": 844,
+      "title": "Bienvenida"
+    },
+    {
+      "file": "Idioma.dc.html",
+      "x": 470,
+      "y": 1020,
+      "w": 390,
+      "h": 844,
+      "title": "Idioma"
+    },
+    {
+      "file": "Entrar.dc.html",
+      "x": 940,
+      "y": 1020,
+      "w": 390,
+      "h": 844,
+      "title": "Entrar"
+    },
+    {
+      "file": "Mapa.dc.html",
+      "x": 1410,
+      "y": 1020,
+      "w": 390,
+      "h": 844,
+      "title": "Mapa · antes de arrancar"
+    },
+    {
+      "file": "Perfil.dc.html",
+      "x": 1880,
+      "y": 1020,
+      "w": 390,
+      "h": 1240,
+      "title": "Perfil"
+    },
+    {
+      "file": "Racha.dc.html",
+      "x": 2350,
+      "y": 1020,
+      "w": 390,
+      "h": 844,
+      "title": "Racha"
+    },
+    {
+      "file": "Metas.dc.html",
+      "x": 2820,
+      "y": 1020,
+      "w": 390,
+      "h": 844,
+      "title": "Metas"
+    },
+    {
+      "file": "Logros.dc.html",
+      "x": 3290,
+      "y": 1020,
+      "w": 390,
+      "h": 844,
+      "title": "Logros"
+    },
+    {
+      "file": "SubisteDeNivel.dc.html",
+      "x": 0,
+      "y": 2420,
+      "w": 390,
+      "h": 844,
+      "title": "Subiste de nivel"
+    },
+    {
+      "file": "FinViaje.dc.html",
+      "x": 470,
+      "y": 2420,
+      "w": 390,
+      "h": 844,
+      "title": "Fin de viaje"
+    },
+    {
+      "file": "Historial.dc.html",
+      "x": 940,
+      "y": 2420,
+      "w": 390,
+      "h": 844,
+      "title": "Historial"
+    },
+    {
+      "file": "HistorialVacio.dc.html",
+      "x": 1410,
+      "y": 2420,
+      "w": 390,
+      "h": 844,
+      "title": "Historial vacío"
+    },
+    {
+      "file": "SinSenal.dc.html",
+      "x": 1880,
+      "y": 2420,
+      "w": 390,
+      "h": 844,
+      "title": "Sin señal"
+    },
+    {
+      "file": "Camiones.dc.html",
+      "x": 2350,
+      "y": 2420,
+      "w": 390,
+      "h": 844,
+      "title": "Mis camiones"
+    },
+    {
+      "file": "Juegos.dc.html",
+      "x": 2820,
+      "y": 2420,
+      "w": 390,
+      "h": 844,
+      "title": "Juegos"
+    },
+    {
+      "file": "Emergencia.dc.html",
+      "x": 3290,
+      "y": 2420,
+      "w": 390,
+      "h": 844,
+      "title": "S.O.S."
+    },
+    {
+      "file": "Configuracion.dc.html",
+      "x": 3760,
+      "y": 2420,
+      "w": 390,
+      "h": 844,
+      "title": "Configuración"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "entrada",
+      "x": 0,
+      "y": 940,
+      "w": 420,
+      "text": "Entrada: Bienvenida → Idioma → (Condiciones) → Entrar. Condiciones es texto y un botón; no se boceta."
+    },
+    {
+      "id": "mapa-nota",
+      "x": 1410,
+      "y": 1900,
+      "w": 400,
+      "text": "El mapa es la única pantalla sobria. El mono aparece en la hoja SÓLO antes de arrancar; en movimiento no hay mono, ni cromo, ni naranja."
+    },
+    {
+      "id": "perfil-nota",
+      "x": 1880,
+      "y": 2290,
+      "w": 400,
+      "text": "Perfil sin la banda con trama: luz celeste, avatar (el editor llega en la Fase 6; acá un placeholder), la chapa de oro, fichas, el nivel en cromo frío, la tarjeta de completar con el mono, resumen, metas y logros. Scrollea."
+    },
+    {
+      "id": "festejo-nota",
+      "x": 470,
+      "y": 3300,
+      "w": 400,
+      "text": "Fin de viaje y Subiste de nivel comparten la luz de festejo, el confeti y la chapa. Sólo el nivel lleva los rayos."
+    },
+    {
+      "id": "carnet-nota",
+      "x": 3170,
+      "y": 940,
+      "w": 420,
+      "text": "El carnet no está en esta presentación: quedó congelado sin aprobar. Cuando se retome, entra con este mismo vocabulario."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

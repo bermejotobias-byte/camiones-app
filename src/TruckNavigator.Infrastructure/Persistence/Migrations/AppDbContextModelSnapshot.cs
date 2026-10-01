@@ -143,6 +143,39 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("TruckNavigator.Domain.Pois.PoiVote", b =>
+                {
+                    b.Property<Guid>("PoiId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CastAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TruckClass")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Verdict")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("PoiId", "DriverId");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("PoiId");
+
+                    b.ToTable("PoiVotes");
+                });
+
             modelBuilder.Entity("TruckNavigator.Domain.Pois.PointOfInterest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -158,6 +191,12 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                         .HasMaxLength(48)
                         .HasColumnType("TEXT");
 
+                    b.Property<long?>("ContributedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("ContributedBy")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
@@ -170,6 +209,11 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
 
                     b.Property<double>("Longitude")
                         .HasColumnType("REAL");
+
+                    b.Property<bool>("ManagedByDataset")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -200,6 +244,15 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("SourceRetrievedOn")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SuitabilityEvidence")
+                        .HasMaxLength(600)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SuitabilityEvidenceKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool?>("SuitableForHeavyTruck")
                         .HasColumnType("INTEGER");
 
@@ -225,7 +278,244 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Category");
 
+                    b.HasIndex("ContributedBy");
+
                     b.ToTable("PointsOfInterest");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverLoadout", b =>
+                {
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Slot")
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RewardCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("DriverId", "Slot");
+
+                    b.ToTable("Loadout");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverProgressMark", b =>
+                {
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CelebratedUpTo")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DriverId");
+
+                    b.ToTable("ProgressMarks");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverRecord", b =>
+                {
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RecordCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("AchievedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("Value")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DriverId", "RecordCode");
+
+                    b.ToTable("Records");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverReward", b =>
+                {
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RewardCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UnlockedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DriverId", "RewardCode");
+
+                    b.ToTable("Rewards");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverTrackProgress", b =>
+                {
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TrackCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Count")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TierReached")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DriverId", "TrackCode");
+
+                    b.ToTable("TrackProgress");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.LedgerEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Denomination")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("OccurredAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverId", "Denomination", "Reason", "SourceKey")
+                        .IsUnique();
+
+                    b.ToTable("LedgerEntries");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Reports.DriverReputation", b =>
+                {
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DriverId");
+
+                    b.ToTable("DriverReputations");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Reports.Report", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Confirmations")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("ExpiresAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("HeadingDegrees")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("Rejections")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Street")
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("ValidatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("Value")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("CreatedBy", "CreatedAt");
+
+                    b.HasIndex("Latitude", "Longitude");
+
+                    b.ToTable("Reports");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Reports.ReportVote", b =>
+                {
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CastAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("DistanceMeters")
+                        .HasColumnType("REAL");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Verdict")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ReportId", "DriverId");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("ReportId");
+
+                    b.ToTable("ReportVotes");
                 });
 
             modelBuilder.Entity("TruckNavigator.Domain.Trips.Trip", b =>
@@ -280,6 +570,10 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Stops")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid?>("TruckId")
                         .HasColumnType("TEXT");
 
@@ -303,6 +597,10 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Brand")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("GrossWeightKg")
                         .HasColumnType("INTEGER");
 
@@ -318,6 +616,10 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                     b.Property<double>("LengthMeters")
                         .HasColumnType("REAL");
 
+                    b.Property<string>("Model")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -327,6 +629,10 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Plate")
+                        .HasMaxLength(7)
                         .HasColumnType("TEXT");
 
                     b.Property<double?>("TrailerLengthMeters")
@@ -352,12 +658,18 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ActiveTruckId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Alias")
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("AvatarId")
                         .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("BirthDate")
                         .HasColumnType("TEXT");
 
                     b.Property<long>("CreatedAt")
@@ -371,16 +683,87 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Nationality")
+                        .HasMaxLength(2)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("NormalizedAlias")
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ActiveTruckId");
+
                     b.HasIndex("NormalizedAlias")
                         .IsUnique();
 
                     b.ToTable("DriverProfiles");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Users.EmergencyContact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("AddedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "AddedAt");
+
+                    b.ToTable("EmergencyContacts");
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Users.SavedPlace", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SavedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("SavedPlaces");
                 });
 
             modelBuilder.Entity("TruckNavigator.Infrastructure.Identity.AppUser", b =>
@@ -499,6 +882,116 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TruckNavigator.Domain.Pois.PoiVote", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TruckNavigator.Domain.Pois.PointOfInterest", null)
+                        .WithMany()
+                        .HasForeignKey("PoiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Pois.PointOfInterest", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("ContributedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverLoadout", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverProgressMark", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithOne()
+                        .HasForeignKey("TruckNavigator.Domain.Progression.DriverProgressMark", "DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverRecord", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverReward", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.DriverTrackProgress", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Progression.LedgerEntry", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Reports.DriverReputation", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithOne()
+                        .HasForeignKey("TruckNavigator.Domain.Reports.DriverReputation", "DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Reports.Report", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Reports.ReportVote", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TruckNavigator.Domain.Reports.Report", null)
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TruckNavigator.Domain.Trips.Trip", b =>
                 {
                     b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
@@ -523,9 +1016,32 @@ namespace TruckNavigator.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("TruckNavigator.Domain.Users.DriverProfile", b =>
                 {
+                    b.HasOne("TruckNavigator.Domain.Trucks.TruckProfile", null)
+                        .WithMany()
+                        .HasForeignKey("ActiveTruckId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
                         .WithOne()
                         .HasForeignKey("TruckNavigator.Domain.Users.DriverProfile", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Users.EmergencyContact", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TruckNavigator.Domain.Users.SavedPlace", b =>
+                {
+                    b.HasOne("TruckNavigator.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

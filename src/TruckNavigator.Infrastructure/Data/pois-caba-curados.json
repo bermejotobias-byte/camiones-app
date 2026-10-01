@@ -1,7 +1,7 @@
 {
   "generatedOn": "2026-08-14",
   "generatedBy": "relevamiento manual",
-  "sourceNote": "Puntos relevados a mano para las dos categorias que OpenStreetMap no cubre en CABA (playas de camiones y auxilio pesado). Cada entrada cita la URL consultada y la fecha. Se excluyeron deliberadamente los servicios que no publican ubicacion: PinkGruas (gruas24encaba.com.ar) y Remolques del Norte no declaran domicilio ni base, asi que no pueden dibujarse en un mapa. Ver docs/pois.md.",
+  "sourceNote": "Puntos relevados a mano para las dos categorias que OpenStreetMap no cubre en CABA (playas de camiones y auxilio pesado). Cada entrada cita la URL consultada y la fecha. Se excluyeron deliberadamente los servicios que no publican ubicacion: PinkGruas (gruas24encaba.com.ar) y Remolques del Norte no declaran domicilio ni base, asi que no pueden dibujarse en un mapa. Ver docs/pois.md. El 15/09/2026 se agrego la evidencia de cada punto y los dos prestadores pasaron a Confirmed: desde esa fecha, lo que declara el operador confirma.",
   "pois": [
     {
       "name": "CTC - Centro de Transferencia de Cargas",
@@ -27,6 +27,8 @@
       "source": "https://www.buenosaires.gob.ar/corporacionsur/obras/iniciativa-publico-privada/centro-de-transferencia-de-cargas-ctc y https://www.ctcadministradora.com.ar/contacto (consultados 2026-08-14)",
       "sourceRetrievedOn": "2026-08-14",
       "verificationLevel": "Confirmed",
+      "suitabilityEvidenceKind": "Official",
+      "suitabilityEvidence": "La Ciudad y la administradora del predio lo declaran centro de transferencia para unidades de gran porte (sitios oficiales consultados el 14/08/2026). No es playa de uso publico.",
       "isSampleData": true
     },
     {
@@ -51,7 +53,9 @@
       "suitableForTrailer": null,
       "source": "https://auxiliosfulltruck.com.ar/ (consultado 2026-08-14)",
       "sourceRetrievedOn": "2026-08-14",
-      "verificationLevel": "Probable",
+      "verificationLevel": "Confirmed",
+      "suitabilityEvidenceKind": "Operator",
+      "suitabilityEvidence": "El operador declara remolque y asistencia para vehiculos pesados con cobertura en Buenos Aires (sitio del prestador, consultado el 14/08/2026).",
       "isSampleData": true
     },
     {
@@ -77,7 +81,9 @@
       "suitableForTrailer": null,
       "source": "https://gruaselenganche.com.ar/ (consultado 2026-08-14); coordenada del centro de Villa Lugano tomada de OpenStreetMap",
       "sourceRetrievedOn": "2026-08-14",
-      "verificationLevel": "Probable",
+      "verificationLevel": "Confirmed",
+      "suitabilityEvidenceKind": "Operator",
+      "suitabilityEvidence": "El operador declara grua con sistema de tenedor para camiones y cobertura en Capital y GBA (sitio del prestador, consultado el 14/08/2026).",
       "isSampleData": true
     }
   ]

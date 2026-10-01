@@ -105,4 +105,26 @@ public class PoiSuitabilityTests
         Assert.Equal(PoiSuitabilityField.LightTruck, PoiSuitability.FieldFor(atThreshold));
         Assert.Equal(PoiSuitabilityField.HeavyTruck, PoiSuitability.FieldFor(justOver));
     }
+
+    /// <summary>
+    /// Un lugar para comer se juzga con la misma regla que una estacion: el campo de
+    /// aptitud que corresponde al vehiculo. La categoria no cambia el criterio, y la
+    /// evidencia que respalda la marca viaja con el punto.
+    /// </summary>
+    [Fact]
+    public void An_eatery_is_judged_by_the_same_fields_as_any_other_point()
+    {
+        var eatery = new PointOfInterest
+        {
+            Name = "Parador con playa",
+            Category = PoiCategory.TruckFriendlyEatery,
+            Source = "Dato de prueba",
+            SuitableForSemiTrailer = true,
+            SuitabilityEvidenceKind = SuitabilityEvidenceKind.Reviews,
+            SuitabilityEvidence = "Según reseñas de conductores consultadas el 15/09/2026: entran semis."
+        };
+
+        Assert.True(PoiSuitability.Accepts(eatery, SampleTrucks.SemiTrailer()));
+        Assert.Null(PoiSuitability.Accepts(eatery, SampleTrucks.Light()));
+    }
 }

@@ -5,24 +5,61 @@
  * que usa una sola vista se queda adentro de esa vista.
  */
 
+import { PREFERENCIAS_DE_ENTRADA } from './sesion.js';
+
 const PREFS_KEY = 'tn.prefs';
 
 const defaults = {
-  /** Si ya se leyo la pantalla de fuentes. Se pide una sola vez. */
+  /**
+   * Si ya se leyo la pantalla de fuentes.
+   *
+   * Desde el 30/09/2026 ya NO es una puerta: esa pantalla vive en
+   * Configuracion y Condiciones la enlaza. Se sigue leyendo para MIGRAR a
+   * quien venia usando la app: quien la habia aceptado entra directo al paso
+   * 4 de la entrada en vez de dar la vuelta entera (ver sesion.js).
+   */
   sourcesAccepted: false,
+
+  /**
+   * Lo que guarda la entrada: la bienvenida vista, el idioma, la fecha en que
+   * se aceptaron las condiciones, y el sello del invitado con su camion.
+   *
+   * Se declaran en sesion.js y se traen de ahi, no se copian: si cada archivo
+   * las nombrara por su cuenta, un nombre distinto pasaria los tests de los
+   * dos y dejaria a alguien repitiendo la entrada.
+   */
+  ...PREFERENCIAS_DE_ENTRADA,
   /** 'dark' | 'light' | 'auto' */
   theme: 'auto',
   /** Camion elegido para rutear. */
   selectedTruckId: null,
 
   /**
-   * Si se muestran sobre el mapa la Red de Transito Pesado, los galibos y los
-   * pasos a nivel.
-   *
-   * Arranca encendido: es la informacion por la que existe este producto. Se
-   * puede apagar porque a veces hace falta ver la calle limpia.
+   * Las capas del mapa, una por una: { red, galibo, paso, radar, zona }, lo
+   * que se elige en la hoja de capas (js/mapa/capas.js, `capasActivas`).
+   * Hasta que se toque una, rigen los dos valores viejos de abajo.
    */
-  truckLayers: true
+  capas: null,
+
+  /**
+   * Los dos botones de antes: la Red, los galibos y los pasos a nivel juntos,
+   * y las zonas peligrosas aparte. Se siguen leyendo para que lo que alguien
+   * apago siga apagado; lo nuevo se guarda en `capas`.
+   *
+   * Las capas de camion arrancan encendidas: es la informacion por la que
+   * existe este producto. Las zonas arrancan APAGADAS, a proposito: es un
+   * dato de la comunidad y no oficial, cubre area en vez de marcar puntos, y
+   * no es lo que uno necesita para manejar.
+   */
+  truckLayers: true,
+  riskZones: false,
+
+  /**
+   * La voz del guiado. Se silencia desde el boton de sonido del viaje y se
+   * recuerda: quien la apaga una vez no quiere apagarla en cada viaje. La
+   * vibracion no depende de esto (AD-39).
+   */
+  voz: true
 };
 
 function readPrefs() {
@@ -101,45 +138,11 @@ export function applyTheme() {
   }
 }
 
+
 // --- niveles ----------------------------------------------------------------
 //
-// Los niveles se ganan solo con kilometros, asi que no se pueden comprar. Los
-// nombres salen del vocabulario del oficio.
-
-const LEVELS = [
-  { km: 0, name: 'Novato' },
-  { km: 500, name: 'Repartidor' },
-  { km: 2_000, name: 'Fletero' },
-  { km: 6_000, name: 'Transportista' },
-  { km: 15_000, name: 'Rutero' },
-  { km: 40_000, name: 'Veterano' },
-  { km: 100_000, name: 'Leyenda del asfalto' }
-];
-
-/**
- * Nivel alcanzado con esos kilometros, y cuanto falta para el siguiente.
- *
- * En el ultimo nivel no hay siguiente: la barra se muestra llena en vez de
- * dividir por cero.
- */
-export function levelFor(kilometers) {
-  const km = Math.max(0, kilometers || 0);
-
-  let index = 0;
-  while (index + 1 < LEVELS.length && km >= LEVELS[index + 1].km) index++;
-
-  const current = LEVELS[index];
-  const next = LEVELS[index + 1] ?? null;
-
-  const span = next ? next.km - current.km : 0;
-  const done = km - current.km;
-
-  return {
-    number: index + 1,
-    name: current.name,
-    nextName: next?.name ?? null,
-    nextAt: next?.km ?? null,
-    progress: next ? Math.min(1, done / span) : 1,
-    remaining: next ? Math.max(0, next.km - km) : 0
-  };
-}
+// La escala se mudo al SERVIDOR (TruckNavigator.Domain.Progression.LevelScale).
+//
+// Vivia aca, o sea en un lugar donde el usuario puede cambiar la regla, y ademas
+// habria quedado duplicada con la del backend: dos copias de la misma regla
+// terminan divergiendo. El cliente pide /api/progress y muestra lo que le llega.

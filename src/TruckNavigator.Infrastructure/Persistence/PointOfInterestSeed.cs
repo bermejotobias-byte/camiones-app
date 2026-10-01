@@ -13,20 +13,36 @@ namespace TruckNavigator.Infrastructure.Persistence;
 /// y con ese criterio los cambios nunca llegarian a una base ya creada. En su lugar
 /// hace upsert por id, que es determinístico a partir de la fuente.
 ///
-/// Solo toca las filas marcadas como <see cref="PointOfInterest.IsSampleData"/>: lo que
-/// haya cargado el usuario u otro proceso no se pisa ni se borra.
+/// Reconoce lo suyo por <see cref="PointOfInterest.ManagedByDataset"/>, no por
+/// <see cref="PointOfInterest.IsSampleData"/>: hasta el 15/09/2026 filtraba por la
+/// segunda, y un archivo de relevamiento con <c>isSampleData: false</c> se
+/// reinsertaba en cada arranque y chocaba por clave en el segundo. Lo que haya
+/// cargado el usuario u otro proceso (<c>ManagedByDataset = false</c> y un id que no
+/// esta en los archivos) no se pisa ni se borra.
 /// </remarks>
 public static class PointOfInterestSeed
 {
-    public static async Task ApplyAsync(AppDbContext db, CancellationToken cancellationToken = default)
+    public static Task ApplyAsync(AppDbContext db, CancellationToken cancellationToken = default) =>
+        ApplyAsync(db, PoiDataset.Load(), cancellationToken);
+
+    /// <summary>
+    /// Siembra un dataset dado. Los tests lo usan para inyectar puntos sin tocar los
+    /// archivos embebidos.
+    /// </summary>
+    public static async Task ApplyAsync(
+        AppDbContext db,
+        IReadOnlyList<PointOfInterest> dataset,
+        CancellationToken cancellationToken = default)
     {
         await db.Database.MigrateAsync(cancellationToken);
 
-        var dataset = PoiDataset.Load();
         var datasetIds = dataset.Select(p => p.Id).ToHashSet();
 
+        // Las filas del seed son las marcadas como suyas, mas las que coinciden por id
+        // con el dataset aunque no esten marcadas: son las de una base creada antes de
+        // la columna, y se adoptan en vez de duplicarse.
         var existing = await db.PointsOfInterest
-            .Where(p => p.IsSampleData)
+            .Where(p => p.ManagedByDataset || datasetIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, cancellationToken);
 
         foreach (var point in dataset)
@@ -37,6 +53,7 @@ public static class PointOfInterestSeed
             }
             else
             {
+                point.ManagedByDataset = true;
                 db.PointsOfInterest.Add(point);
             }
         }
@@ -73,5 +90,9 @@ public static class PointOfInterestSeed
         to.Source = from.Source;
         to.SourceRetrievedOn = from.SourceRetrievedOn;
         to.VerificationLevel = from.VerificationLevel;
+        to.SuitabilityEvidence = from.SuitabilityEvidence;
+        to.SuitabilityEvidenceKind = from.SuitabilityEvidenceKind;
+        to.IsSampleData = from.IsSampleData;
+        to.ManagedByDataset = true;
     }
 }

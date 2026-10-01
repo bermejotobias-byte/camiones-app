@@ -200,6 +200,21 @@ export const api = {
   saveProfile: (data) => put('/api/profile', data),
   aliasAvailable: (alias) => get(`/api/profile/alias-available${query({ alias })}`),
 
+  // contactos de emergencia — hasta tres, guardados en el servidor para que
+  // sobrevivan a reinstalar la app o a cambiar de telefono
+  emergencyContacts: () => get('/api/profile/emergency-contacts'),
+  addEmergencyContact: (name, phone) =>
+    post('/api/profile/emergency-contacts', { name, phone }),
+  deleteEmergencyContact: (id) => del(`/api/profile/emergency-contacts/${id}`),
+
+  // lugares del camionero — Casa y Deposito en el servidor, por lo mismo que
+  // los contactos; los recientes salen de los viajes
+  savedPlaces: () => get('/api/profile/places'),
+  savePlace: (kind, { label, latitude, longitude }) =>
+    put(`/api/profile/places/${kind}`, { label, latitude, longitude }),
+  deletePlace: (kind) => del(`/api/profile/places/${kind}`),
+  recentPlaces: () => get('/api/profile/recent-places'),
+
   // camiones
   trucks: () => get('/api/trucks'),
   truckTemplates: () => get('/api/trucks/templates'),
@@ -213,8 +228,44 @@ export const api = {
     request('GET', `/api/places/reverse${query({ lat, lng })}`, { auth: false }),
 
   // puntos de interes
-  pois: (categories, truckId) =>
-    request('GET', `/api/pois${query({ categories, truckId })}`, { auth: false }),
+  //
+  // Leer no exige sesion, pero va CON token si lo hay: asi cada lugar vuelve con
+  // el voto propio (yourVote). Con truckId, ademas, trae los votos de camiones
+  // como el elegido y el filtro "solo aptos" cuenta lo que la comunidad recomienda
+  // para ese tipo.
+  pois: (categories, truckId, suitableOnly) =>
+    request('GET', `/api/pois${query({ categories, truckId, suitableOnly })}`),
+
+  // Agregar un lugar: nace de la comunidad, con el primer voto de quien lo carga.
+  // 409 con `existingId` si ya hay uno igual a menos de 25 m; 400 con el motivo
+  // si el nombre no sirve o cae fuera de CABA y su anillo.
+  addPoi: (place) => request('POST', '/api/pois', { body: place }),
+
+  // El voto lleva el camion: de el sale el tipo que se guarda. Votar de nuevo
+  // cambia el voto; `earned` viene null cuando ese lugar ya habia pagado.
+  votePoi: (id, truckId, verdict) =>
+    request('PUT', `/api/pois/${id}/vote`, { body: { truckId, verdict } }),
+  retirePoiVote: (id) => del(`/api/pois/${id}/vote`),
+
+  // reportes de la comunidad (spec del 19/09/2026)
+  //
+  // Leer no exige sesion pero va CON token si lo hay: asi cada reporte dice si
+  // es tuyo y que votaste. `bbox` es `minLon,minLat,maxLon,maxLat`; con truckId
+  // un galibo dice si tu camion pasa (`forYourTruck`).
+  reports: (bbox, truckId) => request('GET', `/api/reports${query({ bbox, truckId })}`),
+
+  // Se reporta en la posicion GPS: el tipo y el ultimo fix tal cual. 409 con
+  // `existingId` si ya hay uno igual cerca; 429 con `retryAfterSeconds` si hay
+  // que esperar; 400 con el motivo.
+  addReport: (report) => request('POST', '/api/reports', { body: report }),
+
+  // "Sigue ahi" o "ya no esta", con la posicion de quien vota: votar exige
+  // estar cerca (400 si no). `earned` viene null cuando el voto no pago.
+  voteReport: (id, verdict, latitude, longitude, truckId) =>
+    request('PUT', `/api/reports/${id}/vote${query({ truckId })}`, { body: { verdict, latitude, longitude } }),
+
+  // El creador cierra el suyo.
+  closeReport: (id) => del(`/api/reports/${id}`),
 
   // Ruteo sin registrar viaje (vista previa).
   //
@@ -223,6 +274,17 @@ export const api = {
   // camiones propios y responde 404 sobre el camion del propio usuario.
   route: (truckId, origin, destination) =>
     post('/api/routes', { truckId, origin, destination }),
+
+  /**
+   * Reparto: el servidor decide en qué orden visitar las paradas.
+   *
+   * `stops` va en el orden en que las cargó el usuario y la respuesta trae
+   * `stopOrder` con los índices sobre ESA lista, no las paradas reordenadas: así
+   * la app puede decir "tu parada 3 se visita quinta" y el usuario reconoce sus
+   * propias direcciones.
+   */
+  delivery: (truckId, origin, stops) =>
+    post('/api/routes/delivery', { truckId, origin, stops }),
 
   // viajes
   startTrip: (data) => post('/api/trips', data),
@@ -234,5 +296,19 @@ export const api = {
   finishTrip: (id) => post(`/api/trips/${id}/finish`),
   cancelTrip: (id) => post(`/api/trips/${id}/cancel`),
   trips: (limit = 20) => get(`/api/trips${query({ limit })}`),
-  tripStats: () => get('/api/trips/stats')
+  tripStats: () => get('/api/trips/stats'),
+
+  // progresion
+  //
+  // El nivel lo calcula el SERVIDOR. Antes se derivaba aca de los kilometros, o
+  // sea en un lugar donde el usuario puede cambiar la regla; y teniendola en dos
+  // lados, tarde o temprano divergen.
+  progress: () => get('/api/progress'),
+  progressTracks: () => get('/api/progress/tracks'),
+  progressRecords: () => get('/api/progress/records'),
+  inventory: () => get('/api/progress/inventory'),
+
+  // No otorgan nada: una marca lo ya visto, la otra elige entre lo desbloqueado.
+  markProgressSeen: () => post('/api/progress/seen'),
+  equip: (slot, rewardCode) => post('/api/progress/equip', { slot, rewardCode })
 };

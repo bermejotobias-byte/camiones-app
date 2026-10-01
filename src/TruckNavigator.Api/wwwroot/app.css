@@ -17,6 +17,45 @@
    y render nativo.
    ========================================================================== */
 
+/* ============================================================================
+   Tipografia
+   ----------------------------------------------------------------------------
+   Nunito, VENDORIZADA. No se carga de Google Fonts ni de ningun CDN: adentro de
+   un camion puede no haber senal, y la interfaz entera viaja dentro del APK.
+
+   Es una fuente variable, asi que estos dos archivos cubren TODOS los pesos de
+   200 a 1000 en 74 KB. Sin variable harian falta seis archivos.
+
+   Redondeada, amigable y muy legible: es la direccion que pidio el usuario,
+   siguiendo el lenguaje de Duolingo sin usar su tipografia, que es propietaria.
+
+   Los dos subconjuntos y sus unicode-range salen del CSS que sirve Google para
+   esta misma familia. El latino alcanza para espanol y portugues; el extendido
+   queda para cuando entren mas idiomas.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('/fonts/nunito/nunito-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                 U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                 U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('/fonts/nunito/nunito-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+                 U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+                 U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
   /* --- superficies: asfalto con sesgo azulado --------------------------- */
   --ground:      #0d1418;
@@ -39,6 +78,68 @@
   --reward:      #a97bf0;
   --reward-soft: #241a3a;
 
+  /* --- la rampa fria: cuatro escalones de UN mismo recorrido -------------
+     El pedido fue "tonalidades dentro del gradiente de lo frio". Estos son los
+     cuatro puntos de ese recorrido, repartidos parejo por matiz:
+
+       197 celeste  ->  213 azul  ->  238 indigo  ->  265 violeta
+
+     Los extremos NO son colores nuevos: son --brand y --reward, o sea que la
+     rampa empieza y termina en tonos que ya significan algo en el sistema. Por
+     eso cuatro fichas de colores distintos no se leen como cuatro colores
+     sueltos sino como un degradado: es variedad sin desorden.
+
+     Sirven para DISTINGUIR piezas de la misma familia —las cuatro cifras del
+     resumen—. No codifican nada: ningun escalon quiere decir "bien" ni "mal".
+     Para eso estan --ok, --warn y --danger, que son los unicos semanticos. */
+  /* El color de la banda del perfil. Es un token y no un valor suelto porque el
+     dia que exista la ranura "fondo" del avatar sale de ahi, como en la
+     referencia. Y porque lo usan dos elementos hermanos —la barra superior y la
+     banda—, asi que no puede vivir en ninguno de los dos. */
+  --band:        #35b8e8;
+  --on-band:     #04222f;
+
+  --cool-1:      var(--brand);
+  --cool-2:      #5b9cf2;
+  --cool-3:      #8a86f2;
+  --cool-4:      var(--reward);
+
+  /* --- acento: el complementario que corta la paleta fria ---------------
+     La marca es celeste (matiz ~197 grados) y su complementario cae en naranja,
+     asi que este contraste no es capricho: es el que mas separa de todo lo demas
+     que hay en pantalla.
+
+     Y por eso mismo hay que usarlo POCO. Un acento complementario funciona
+     porque es raro; puesto en todos los botones deja de cortar y pasa a ser un
+     color mas.
+
+     Dos reglas para que no se desparrame:
+
+       1. UNA sola accion con acento por region de la pantalla.
+       2. NUNCA en el boton de un formulario. Guardar, Crear y Confirmar siguen
+          siendo celestes en toda la app, y tienen que verse iguales en todas:
+          si el acento entra a un formulario, entra a todos, y ahi se acabo.
+
+     Por eso en el perfil conviven el naranja de "Ver mis viajes" —la accion del
+     perfil, registro expresivo— y el celeste de "Guardar" —la accion del
+     formulario, igual que en camiones y en contactos—. No compiten: son de dos
+     registros distintos, y esa diferencia es justamente la que el color cuenta.
+
+     El matiz esta elegido para no chocar con los dos calidos que ya existen:
+       danger  ~4 grados   (rojo)
+       ACENTO  ~24 grados  (naranja)
+       warn    ~41 grados  (ambar)
+     Ese espaciado es lo que impide repetir el problema de AD-38, donde un mismo
+     color codificaba dos cosas distintas.
+
+     NUNCA entra al mapa: ahi el registro es sobrio y la accion sigue siendo
+     celeste. Por eso es una clase aparte y no un cambio de .btn-primary. */
+  --accent:      #f5843a;
+  --accent-ink:  #ffb078;
+  --accent-soft: #3a2010;
+  --accent-deep: #a8501c;   /* el reborde inferior del boton hundible */
+  --on-accent:   #2b1405;
+
   /* --- semanticos: no se usan para nada decorativo ---------------------- */
   --ok:          #43c98b;
   --ok-soft:     #0f2a1f;
@@ -53,6 +154,62 @@
   --origin:      #43c98b;
   --destination: #f0736a;
 
+  /* --- el GPS: la piel de Waze, medida sobre las capturas -----------------
+     Desde el 16/09/2026 la pantalla del mapa tiene sus propios tokens, aparte
+     del resto de la app: es el registro sobrio, y se calco de Waze (AD-48).
+     Cada valor esta sampleado de una captura de docs/referencias/waze/ o
+     medido en ella; ver docs/diseno/prototipo-gps/gps.mjs para de cual.
+
+     Tipografia: la del sistema (Roboto en Android) SOLO dentro del mapa.
+     Nunito sigue en todo lo demas, incluido el zocalo. */
+  --gps-ui:            Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --gps-banda:         #000000;   /* la banda de instruccion */
+  --gps-hoja:          #202125;   /* hojas y tarjetas */
+  --gps-elegida:       #000000;   /* la fila elegida en la lista de rutas */
+  --gps-tarjeta:       #2b3035;   /* tarjetas sobre la hoja: la pregunta, el cuadro, el campo */
+  --gps-filete:        #3a4046;   /* filos entre filas */
+  --gps-pildora:       #3c4043;   /* pildoras grises, chips, circulos */
+  --gps-claro:         #e8e9ed;   /* el circulo de "volver a centrar" */
+  --gps-ruta:          #2ddcff;   /* la linea de la ruta */
+  --gps-accion:        #32ccfe;   /* pildoras celestes */
+  --gps-sobre-accion:  #0a1f2a;   /* texto sobre una pildora celeste */
+  --gps-celeste:       #32c8fb;   /* texto celeste: la calle que viene, "Vista general" */
+  --gps-chevron:       #00b5d0;   /* el vehiculo */
+  --gps-globo:         #1d7699;   /* globos de calle */
+  --gps-reportar:      #4e411e;   /* el boton amarillo de aportar */
+  --gps-amarillo:      #f9c531;   /* fuera de la Red; el dibujo de aportar */
+  --gps-rojo:          #e9463f;   /* S.O.S.; el galibo que NO se pasa, en el mapa */
+  --gps-ink:           #ffffff;
+  --gps-ink-2:         #c9cdd2;   /* "39 min • 32 km" */
+  --gps-ink-3:         #8e959c;   /* placeholders, cruces, secundarios */
+
+  /* El mapa base, con la jerarquia de Waze de noche (waze-03, 06, 08, 02). */
+  --map-tierra:        #272d39;
+  --map-manzana:       #252e3d;
+  --map-manzana-b:     #233041;
+  --map-predio:        #2e3d50;
+  --map-agua:          #22467a;
+  --map-parque:        #216a4f;
+  --map-cementerio:    #1f4d3a;
+  --map-calle:         #40546c;
+  --map-calle-borde:   rgba(0, 0, 0, 0);   /* de noche no hay borde; de dia si */
+  --map-avenida:       #4d6179;
+  --map-red:           #6d89a8;   /* la Red de Transito Pesado: la via mas clara y ancha */
+  --map-autopista:     #7494b4;
+  --map-carril:        #4a5c74;
+  --map-centro:        #c8d3df;
+  --map-ferrocarril:   #3a4553;
+  --map-ferrocarril-2: #aab4bf;
+  --map-edificio:      #2b3543;
+  --map-sendero:       #34455a;
+  --map-rotulo:        #d9e5ee;   /* nombres de calle */
+  --map-rotulo-red:    #e6eef5;   /* la Red, en mayusculas */
+  --map-halo:          #272d39;
+  --map-barrio:        #8b95a5;
+  --map-parque-rotulo: #6fc48a;
+  --map-lugar:         #8fb8e8;
+  --map-flecha:        #8fb3d9;
+
   --radius:      14px;
   --radius-sm:   9px;
   --tap:         48px;              /* blanco de toque minimo */
@@ -60,8 +217,10 @@
   --shadow:      0 2px 6px rgba(0,0,0,.35), 0 12px 32px -14px rgba(0,0,0,.7);
   --shadow-up:   0 -4px 24px -8px rgba(0,0,0,.6);
 
-  --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-        Arial, sans-serif;
+  /* La pila del sistema queda de respaldo: si la fuente no llegara a cargar, la
+     interfaz sigue legible en vez de caer en una serif del navegador. */
+  --ui: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
 
   --safe-top:    env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -88,6 +247,24 @@
   --reward:      #7b4ecd;
   --reward-soft: #efe7fb;
 
+  /* Los dos intermedios se oscurecen igual que el resto: sobre fondo blanco los
+     tonos del modo noche no llegan al contraste que pide un texto. */
+  --cool-2:      #1f68c4;
+  --cool-3:      #5346c4;
+
+  /* En claro la banda se mantiene: es el mismo celeste de la referencia y sobre
+     el va tinta oscura en los dos modos. */
+  --band:        #35b8e8;
+  --on-band:     #04222f;
+
+  /* En claro el naranja se oscurece: sobre fondo blanco, el tono del modo noche
+     no tiene contraste suficiente para texto encima. */
+  --accent:      #d9631d;
+  --accent-ink:  #a8501c;
+  --accent-soft: #fdece0;
+  --accent-deep: #a04716;
+  --on-accent:   #ffffff;
+
   --ok:          #1c7d51;
   --ok-soft:     #dcefe5;
   --warn:        #96650f;
@@ -99,6 +276,57 @@
   --route-halo:  #ffffff;
   --origin:      #1c7d51;
   --destination: #b6362b;
+
+  /* El GPS de dia es DERIVADO, no medido: no hay captura de Waze de dia
+     (16/09/2026). Banda y hojas blancas con tinta oscura; el celeste se
+     oscurece para tener contraste sobre blanco; el mapa claro con calles
+     blancas y un filete gris, la Red en azul acero claro y la autopista en
+     amarillo palido, como la pinta Waze de dia. */
+  --gps-banda:         #ffffff;
+  --gps-hoja:          #ffffff;
+  --gps-elegida:       #eef1f4;
+  --gps-tarjeta:       #ffffff;
+  --gps-filete:        #d3d9e0;
+  --gps-pildora:       #e6e9ed;
+  --gps-claro:         #ffffff;
+  --gps-ruta:          #1fb0ec;
+  --gps-accion:        #1fb0ec;
+  --gps-sobre-accion:  #0a1f2a;
+  --gps-celeste:       #0e87b8;
+  --gps-chevron:       #00a5c0;
+  --gps-globo:         #1d7699;
+  --gps-reportar:      #fff3c4;
+  --gps-amarillo:      #e0a800;
+  --gps-rojo:          #d8392f;
+  --gps-ink:           #111418;
+  --gps-ink-2:         #5b6672;
+  --gps-ink-3:         #6f7a86;
+
+  --map-tierra:        #eef1f4;
+  --map-manzana:       #e9edf1;
+  --map-manzana-b:     #e4eaf0;
+  --map-predio:        #dfe5eb;
+  --map-agua:          #a8d2f1;
+  --map-parque:        #c6e5c0;
+  --map-cementerio:    #b8d8b2;
+  --map-calle:         #ffffff;
+  --map-calle-borde:   #d3d9e0;
+  --map-avenida:       #ffffff;
+  --map-red:           #9db4cc;
+  --map-autopista:     #ffe6a3;
+  --map-carril:        #e8cf85;
+  --map-centro:        #ffffff;
+  --map-ferrocarril:   #c5ccd4;
+  --map-ferrocarril-2: #ffffff;
+  --map-edificio:      #e2e6ea;
+  --map-sendero:       #d8dee5;
+  --map-rotulo:        #2a323b;
+  --map-rotulo-red:    #1f2a35;
+  --map-halo:          #eef1f4;
+  --map-barrio:        #6f7a86;
+  --map-parque-rotulo: #3f8f4f;
+  --map-lugar:         #3c74b8;
+  --map-flecha:        #7fa4cf;
 
   --shadow:      0 1px 3px rgba(14,22,27,.10), 0 10px 28px -14px rgba(14,22,27,.28);
   --shadow-up:   0 -4px 20px -10px rgba(14,22,27,.30);
@@ -215,6 +443,52 @@ button { font-family: inherit; font-size: inherit; }
 .btn[disabled]:active { transform: none; }
 
 .btn-primary { background: var(--brand); color: var(--on-brand); font-weight: 700; }
+
+/* La accion principal de las pantallas de progresion.
+   ---------------------------------------------------------------------------
+   El reborde inferior solido —no una sombra— es lo que la hace ver hundible, y
+   es la firma de la interfaz de la referencia. Al presionar, el boton baja y el
+   reborde se achica: el pixel que se pierde arriba lo gana abajo, asi que nada
+   alrededor se mueve.
+
+   NO se usa en el mapa. Ahi la accion sigue siendo .btn-primary en celeste. */
+.btn-accent {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 800;
+  letter-spacing: .01em;
+  border-bottom: 4px solid var(--accent-deep);
+}
+
+.btn-accent:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+/* Tratamiento de boton de la referencia: MAYUSCULAS, negrita, espaciado y
+   reborde inferior. Es un modificador y no un boton nuevo: se le suma a
+   .btn-accent, .btn-primary o .btn-outline segun que color corresponda.
+
+   Va SOLO en las pantallas del registro expresivo. En el mapa un boton en
+   mayusculas se lee como un grito, y ahi el registro es sobrio. */
+.btn-duo {
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: .06em;
+  font-size: 14px;
+  min-height: 52px;
+  border-radius: 14px;
+}
+
+/* Secundario de la referencia: transparente, borde de 2 px, texto del color del
+   borde. Lo usa la accion que acompaña, nunca la principal. */
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--rule);
+  color: var(--ink-2);
+}
+
+.btn-outline:active { transform: translateY(1px); }
+
 .btn-ghost   { background: transparent; border-color: var(--rule); color: var(--ink-2); }
 .btn-danger  { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
 .btn-block   { width: 100%; }
@@ -373,7 +647,9 @@ button { font-family: inherit; font-size: inherit; }
    Mapa
    ========================================================================== */
 
-.map-screen { position: relative; }
+/* La pantalla del mapa va en la tipografia del sistema —Roboto en Android—,
+   como Waze: es la unica pantalla que no lleva Nunito (AD-48). */
+.map-screen { position: relative; font-family: var(--gps-ui); }
 #map { position: absolute; inset: 0; }
 
 .maplibregl-ctrl-attrib {
@@ -392,6 +668,23 @@ button { font-family: inherit; font-size: inherit; }
   flex-direction: column;
   pointer-events: none;
   padding: calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom));
+
+  /* Por encima de los controles de MapLibre (z-index 2): la atribucion
+     quedaba pintada sobre la hoja de reposo. */
+  z-index: 2;
+
+  /* El `gap` es lo que garantiza que los tres bloques —SOS, controles del mapa y
+     hoja— no se toquen NUNCA.
+
+     La separacion la daban los `margin-top: auto` de `.map-side` y de la hoja,
+     que reparten el espacio SOBRANTE. Con la hoja grande —cuatro paradas del
+     reparto alcanzan— no sobra nada, los margenes colapsan a cero y los tres
+     bloques quedan pegados: medido, 0 px entre el SOS y el zoom, y 0 px entre el
+     boton de ubicacion y la caja de busqueda.
+
+     Un `gap` no colapsa: se respeta aunque no haya espacio libre, y lo que cede
+     es la hoja, que para eso se encoge. Ver AD-44. */
+  gap: 16px;
 }
 
 /* ----------------------------------------------------------------------------
@@ -412,9 +705,14 @@ button { font-family: inherit; font-size: inherit; }
 .map-top,
 .map-side { pointer-events: none; }
 
+/* La hoja se referencia por ID y no por clase: `sheetAs()` le REEMPLAZA la clase
+   segun el estado —`sheet` para buscar y planificar, `nav-bar` durante el
+   viaje—. Con un selector por clase, la barra del viaje dejaba de coincidir,
+   heredaba el `none` del contenedor y el boton "Salir" no respondia: el viaje
+   quedaba imposible de cerrar desde la app. El id no cambia nunca. */
 .map-top > *,
 .map-side > *,
-.map-overlay > .sheet { pointer-events: auto; }
+.map-overlay > #sheet { pointer-events: auto; }
 
 /* El espaciador que empuja el SOS contra el borde no es un control. */
 .map-top .grow { pointer-events: none; }
@@ -436,6 +734,16 @@ button { font-family: inherit; font-size: inherit; }
 
 .pin-origin { background: var(--origin); }
 .pin-destination { background: var(--destination); }
+
+/* Paradas de un reparto. Un poco más grandes que el pin común porque llevan un
+   número adentro que hay que poder leer de reojo, y en la marca del producto
+   para que se distingan del origen y el destino de un viaje simple. */
+.pin-stop {
+  width: 30px; height: 30px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: 13px;
+}
 
 .pin-gps {
   width: 18px; height: 18px;
@@ -523,139 +831,1288 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 /* ============================================================================
-   Navegacion en curso
+   Viaje — la piel de Waze, medida
    ----------------------------------------------------------------------------
    Es la pantalla que se mira de reojo, a sesenta por hora, con el sol de frente.
-   Todo lo demas se corre: una sola maniobra, enorme, y nada que compita con ella.
+   Cada medida sale de una captura (docs/referencias/waze/waze-06.jpeg, 720 px
+   = 360 dp) y esta en la spec del 16/09/2026. Se copian patrones y medidas,
+   no la marca.
+
+   Mientras hay viaje, la capa de controles de reposo (.map-overlay) se esconde
+   entera y esta capa la reemplaza. Los contenedores no reciben toques; los
+   controles si — misma regla que en el reposo, ver AD-34.
    ========================================================================== */
 
-.vehicle {
-  color: var(--brand);
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,.6));
-  display: block;
-  line-height: 0;
+.map-screen.is-viaje .map-overlay { display: none; }
+
+.gps-viaje {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  color: var(--gps-ink);
 }
 
-.maneuver {
-  position: relative;
-  z-index: 3;
-  background: var(--ink);
-  color: var(--ground);
-  border-radius: 0 0 var(--radius) var(--radius);
-  padding: calc(12px + var(--safe-top)) 16px 16px;
+.gps-viaje button { font: inherit; color: inherit; }
+
+/* Los circulos de Waze: 52 dp, negros, con el dibujo blanco adentro. Los de la
+   hoja son de 45 y grises (#3c4043), sin sombra. */
+.gps-circulo {
+  pointer-events: auto;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--gps-pildora);
+  color: var(--gps-ink);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-circulo:active { transform: scale(.94); }
+.gps-circulo.negro { background: var(--gps-banda); }
+.gps-circulo.chico { width: 45px; height: 45px; box-shadow: none; }
+.gps-circulo.sos { background: var(--gps-rojo); color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .02em; }
+.gps-circulo.apagado { color: var(--gps-ink-3); }
+
+/* ----------------------------------------------------------------------------
+   La banda
+
+   Medida: 130 dp con la barra de estado de 35, o sea 95 de contenido; la
+   flecha de 40 x 46 a 20 del borde, el texto a 85; distancia 27 sp regular,
+   calle 24 sp media en celeste. Todo centrado en vertical.
+   -------------------------------------------------------------------------- */
+.gps-banda {
+  pointer-events: auto;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: calc(95px + var(--safe-top));
+  padding: var(--safe-top) 16px 0 20px;
+  box-sizing: border-box;
+  background: var(--gps-banda);
+  color: var(--gps-ink);
   display: flex;
   align-items: center;
-  gap: 14px;
-  box-shadow: var(--shadow);
+  gap: 25px;
+  z-index: 5;
 }
 
-.maneuver-arrow {
-  font-size: 44px;
-  line-height: 1;
-  flex: none;
-  width: 52px;
-  text-align: center;
-}
+.gps-banda-flecha { flex: none; width: 40px; display: grid; place-items: center; line-height: 0; }
+.gps-banda-flecha svg { display: block; }
 
-.maneuver-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gps-banda-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 
-/* La distancia es el dato que se lee de un vistazo: va mas grande que todo. */
-.maneuver-distance {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1;
+.gps-banda-distancia {
+  display: block;
+  font-size: 27px;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -.01em;
   font-variant-numeric: tabular-nums;
-}
-
-.maneuver-street {
-  font-size: 15px;
-  font-weight: 600;
-  opacity: .9;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.gps-banda-calle {
+  display: block;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--gps-celeste);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Segunda linea del bloque de maniobra. Hoy la usa la espera del GPS: dice por
-   que se está esperando, en el mismo lugar donde después va la calle. */
-.maneuver-substreet {
-  font-size: 13px;
-  opacity: .65;
-  line-height: 1.35;
-  margin-top: 3px;
-}
-
-/* El bloque de maniobra tiene fondo oscuro, así que el spinner que se muestra
-   mientras engancha el GPS necesita su propio contraste: el de la app se apoya
-   en los tonos de superficie, que ahí no se ven. */
-.maneuver .spinner {
+/* Buscando señal o recalculando: el titulo baja a 20 y la segunda linea va en
+   gris, porque no es una calle. El spinner necesita su propio contraste sobre
+   el negro. */
+.gps-banda.esperando .gps-banda-distancia { font-size: 20px; font-weight: 500; white-space: normal; }
+.gps-banda.esperando .gps-banda-calle { font-size: 14px; font-weight: 400; color: var(--gps-ink-2); white-space: normal; line-height: 1.3; }
+.gps-banda .spinner {
+  width: 28px; height: 28px;
   border-color: rgba(255, 255, 255, .25);
-  border-top-color: var(--ground);
-  width: 26px;
-  height: 26px;
+  border-top-color: var(--gps-ink);
   display: inline-block;
-  vertical-align: middle;
 }
 
-/* Aviso de restriccion durante la navegacion: solo aparece cuando falta poco. */
-.maneuver-alert {
-  position: relative;
-  z-index: 3;
-  margin: 8px 10px 0;
-  background: var(--warn-soft);
-  border: 1px solid var(--warn);
-  border-radius: var(--radius-sm);
-  padding: 9px 12px;
+/* Compacta (waze-01): 92 con la barra de estado, o sea 57; flecha de 30 y una
+   sola linea de 20. Se usa con una hoja abierta encima del mapa. */
+.gps-banda.compacta { height: calc(57px + var(--safe-top)); gap: 14px; }
+.gps-banda.compacta .gps-banda-flecha { width: 30px; }
+.gps-banda.compacta .gps-banda-flecha svg { width: 30px; height: 34px; }
+.gps-banda.compacta .gps-banda-texto { flex-direction: row; align-items: baseline; gap: 10px; }
+.gps-banda.compacta .gps-banda-distancia { font-size: 20px; font-weight: 500; }
+.gps-banda.compacta .gps-banda-calle { font-size: 20px; }
+
+/* ----------------------------------------------------------------------------
+   El costado: sonido y S.O.S., a 15 del borde y 15 debajo de la banda, con 10
+   entre ellos (medido: 145 y 207,5 desde arriba en waze-06).
+   -------------------------------------------------------------------------- */
+.gps-costado {
+  position: absolute;
+  right: 15px;
+  top: calc(110px + var(--safe-top));
   display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--warn);
-  font-size: 13.5px;
-  font-weight: 600;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 3;
 }
 
-/* Barra inferior compacta: llegada, restante y salir. */
-.nav-bar {
-  position: relative;
+/* ----------------------------------------------------------------------------
+   La calle actual: pildora negra, 18 sp negrita, blanca, centrada, con el
+   borde de abajo a 155 del borde de la pantalla. Waze la deja partir en dos
+   lineas ("Bernardino / Rivadavia") antes que achicar la letra.
+   -------------------------------------------------------------------------- */
+.gps-calle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(155px + var(--safe-bottom));
+  max-width: calc(100% - 190px);
+  min-width: 168px;
+  box-sizing: border-box;
+  background: #000;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.12;
+  text-align: center;
+  padding: 11px 22px 12px;
+  border-radius: 26px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-wrap: balance;
   z-index: 3;
-  margin-top: auto;
-  background: var(--surface);
-  border-top: 1px solid var(--rule);
-  border-radius: var(--radius) var(--radius) 0 0;
-  padding: 12px 14px calc(12px + var(--safe-bottom));
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: var(--shadow-up);
 }
 
-.nav-eta { display: flex; flex-direction: column; }
-.nav-eta b { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.nav-eta span { font-size: 11.5px; color: var(--ink-3); letter-spacing: .05em; text-transform: uppercase; }
+.gps-calle[hidden] { display: none; }
 
-/* Aviso de que se esta recalculando: reemplaza a la maniobra, no se suma. */
-.rerouting {
-  position: relative;
-  z-index: 3;
-  margin: calc(10px + var(--safe-top)) 10px 0;
-  background: var(--brand-soft);
-  border: 1px solid var(--brand);
-  border-radius: var(--radius);
-  padding: 14px 16px;
+/* ----------------------------------------------------------------------------
+   La tarjeta de aviso: como las alertas de Waze. Fondo de hoja, radio 16, el
+   pin de 44 con la calcomania, que es en 18 negrita y a cuanto esta en 14
+   gris. Ocupa el lugar de la pildora y del boton de aportar mientras dura.
+   -------------------------------------------------------------------------- */
+.gps-aviso {
+  pointer-events: auto;
+  position: absolute;
+  left: 15px; right: 15px;
+  bottom: calc(150px + var(--safe-bottom));
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 16px;
+  padding: 12px 8px 12px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--brand-ink);
-  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  z-index: 4;
 }
+
+.gps-aviso[hidden] { display: none; }
+
+.gps-aviso-pin {
+  flex: none;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--gps-pildora);
+  display: grid;
+  place-items: center;
+}
+
+.gps-aviso-texto { flex: 1; min-width: 0; }
+.gps-aviso-texto b { display: block; font-size: 18px; font-weight: 700; line-height: 1.15; }
+.gps-aviso-texto span { display: block; font-size: 14px; color: var(--gps-ink-2); margin-top: 3px; line-height: 1.3; }
+
+/* La cruz de cerrar: un circulo sin fondo. */
+.gps-circulo.plano { background: transparent; color: var(--gps-ink-3); width: 40px; height: 40px; }
+
+.gps-viaje.con-aviso .gps-calle,
+.gps-viaje.con-aviso .gps-aportar { display: none; }
+
+/* ----------------------------------------------------------------------------
+   Aportar: donde Waze pone reportar. 63 dp, radio 16, ambar oscuro, con la
+   calcomania amarilla; a 15 del borde derecho y 155 del de abajo.
+   -------------------------------------------------------------------------- */
+.gps-aportar {
+  pointer-events: auto;
+  position: absolute;
+  right: 15px;
+  bottom: calc(155px + var(--safe-bottom));
+  width: 63px; height: 63px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--gps-reportar);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 3;
+}
+
+.gps-aportar:active { transform: scale(.94); }
+.gps-aportar svg { display: block; }
+
+/* ----------------------------------------------------------------------------
+   La hoja del viaje: 137 dp, de borde a borde, radio 14 arriba; manija de
+   45 x 4 a 12 del borde; la fila con los dos circulos de 45 centrada a 55 del
+   borde de arriba; la hora en 25 sp negrita y "39 min • 32 km" en 20 sp gris.
+   -------------------------------------------------------------------------- */
+.gps-hoja-viaje {
+  pointer-events: auto;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: calc(137px + var(--safe-bottom));
+  box-sizing: border-box;
+  padding: 12px 15px var(--safe-bottom);
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  z-index: 4;
+}
+
+.gps-manija { width: 45px; height: 4px; border-radius: 2px; background: #6b7480; margin: 0 auto; }
+
+.gps-hoja-viaje-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 17px;
+  padding: 0 5px;
+}
+
+/* ----------------------------------------------------------------------------
+   "Volver a centrar" (waze-08, medido): cuando el usuario mueve el mapa, la
+   hoja deja lugar a esta, de borde a borde y con radio 20 arriba: 66 dp con
+   el circulo claro de 36 a 15 del borde, "Volver a centrar" en 18, el
+   restante en 16 gris, y la pildora "Vista general" de 132 x 37 a 16 del
+   borde derecho. En 18 y no en 20 porque a 20 no entra: medido, el texto
+   ocupa 131 dp y la pildora arranca a 212.
+   -------------------------------------------------------------------------- */
+.gps-recentrar {
+  pointer-events: auto;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: calc(66px + var(--safe-bottom));
+  box-sizing: border-box;
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 20px 20px 0 0;
+  padding: 0 16px var(--safe-bottom) 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  z-index: 4;
+}
+
+.gps-recentrar[hidden] { display: none; }
+
+.gps-circulo.claro { flex: none; width: 36px; height: 36px; background: var(--gps-claro); color: #111418; box-shadow: none; }
+
+.gps-recentrar-texto { flex: 1; min-width: 0; }
+.gps-recentrar-texto b { display: block; font-size: 18px; font-weight: 400; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-recentrar-texto span { display: block; font-size: 16px; color: var(--gps-ink-2); margin-top: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Pildoras de accion: 48 dp y 16 sp negrita; gris con texto celeste o celeste
+   con texto oscuro. La de "Vista general" es mas chica: 132 x 37. */
+.gps-pildora {
+  pointer-events: auto;
+  height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--gps-pildora);
+  color: var(--gps-celeste);
+  font-size: 16px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-pildora:active { transform: scale(.97); }
+.gps-pildora.celeste { background: var(--gps-accion); color: var(--gps-sobre-accion); }
+.gps-recentrar .gps-pildora { flex: none; width: 132px; height: 37px; padding: 0; font-weight: 500; }
+
+.gps-viaje.movido .gps-hoja-viaje,
+.gps-viaje.movido .gps-calle,
+.gps-viaje.movido .gps-aportar,
+.gps-viaje.movido .gps-aviso { display: none; }
+
+/* ----------------------------------------------------------------------------
+   La vista general (waze-02 y waze-01, medidas): el conmutador Mapa / Lista
+   de 155 x 40 a 20 de la banda compacta, con el activo en azul oscuro y texto
+   celeste; las tarjetas de ruta de radio 16 con el tiempo en 27 negrita, la
+   pildora de accion de 44, "20:06 • 32 km" en 19, "Por…" en 18 y la linea de
+   tiempo con lo que hay en el camino. En modo Lista el mapa se atenua y las
+   tarjetas se apilan con 20 entre ellas.
+   -------------------------------------------------------------------------- */
+.gps-viaje.general .gps-hoja-viaje,
+.gps-viaje.general .gps-calle,
+.gps-viaje.general .gps-aportar,
+.gps-viaje.general .gps-aviso,
+.gps-viaje.general .gps-recentrar,
+.gps-viaje.general .gps-costado { display: none; }
+
+.gps-viaje.lista::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .5);
+}
+
+.gps-conmutador {
+  pointer-events: auto;
+  position: absolute;
+  top: calc(57px + var(--safe-top) + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 155px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 3px;
+  border-radius: 20px;
+  background: #1b1d21;
+  display: flex;
+  z-index: 5;
+}
+
+.gps-conmutador[hidden] { display: none; }
+
+.gps-conmutador button {
+  flex: 1;
+  border: 0;
+  border-radius: 17px;
+  background: transparent;
+  color: var(--gps-ink-3);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-conmutador button.is-on { background: #164a7a; color: var(--gps-celeste); }
+
+.gps-tarjetas {
+  pointer-events: auto;
+  position: absolute;
+  left: 15px; right: 15px;
+  bottom: calc(16px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 4;
+}
+
+.gps-tarjetas[hidden] { display: none; }
+
+/* En la lista las tarjetas cuelgan de arriba y scrollean si no entran. */
+.gps-viaje.lista .gps-tarjetas {
+  top: calc(57px + var(--safe-top) + 80px);
+  bottom: calc(16px + var(--safe-bottom));
+  overflow-y: auto;
+  justify-content: flex-start;
+}
+
+.gps-tarjeta-ruta {
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 16px;
+  padding: 16px 16px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  flex: none;
+}
+
+.gps-tarjeta-ruta-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.gps-tarjeta-ruta-cabeza b { font-size: 27px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.gps-tarjeta-ruta-sub { font-size: 19px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.gps-tarjeta-ruta-sub i { font-style: normal; color: var(--gps-ink-3); margin: 0 4px; font-size: .8em; }
+.gps-tarjeta-ruta-por { font-size: 18px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* La pildora chica de las tarjetas: 44 de alto, 18 sp; "Reanudar" mide 134. */
+.gps-pildora.chica { height: 44px; padding: 0 20px; font-size: 18px; min-width: 88px; }
+.gps-pildora.chica svg { flex: none; }
+
+/* La linea de tiempo: el triangulo de "vos", la linea de 3 con los tramos
+   amarillos encima y las calcomanias de 16 donde caen los avisos. */
+.gps-lt { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding-right: 6px; }
+.gps-lt-vos {
+  flex: none;
+  width: 0; height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 13px solid var(--gps-ink-3);
+}
+.gps-lt-barra { position: relative; flex: 1; height: 3px; border-radius: 2px; background: var(--gps-ruta); }
+.gps-lt-barra i { position: absolute; top: 0; height: 3px; background: var(--gps-amarillo); }
+.gps-lt-barra em {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  line-height: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5));
+}
+
+.gps-eta { text-align: center; flex: 1; min-width: 0; padding: 0 8px; }
+.gps-eta b { display: block; font-size: 25px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.gps-eta span { display: block; font-size: 20px; color: var(--gps-ink-2); margin-top: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* El vehiculo sobre el mapa: el chevron de Waze (40 x 39 mas la base) sobre
+   su disco de 82 al 6 % de blanco. Marcador de MapLibre: se apila con una
+   grilla, nunca con `position` (ver la trampa del marcador en CLAUDE.md). */
+.gps-chevron {
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 82px;
+  line-height: 0;
+  pointer-events: none;
+}
+
+.gps-chevron > * { grid-area: 1 / 1; }
+
+.gps-chevron-disco {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .06);
+}
+
+.gps-chevron svg { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .5)); }
+
+/* La bandera a cuadros del destino, en viaje. */
+.gps-bandera { line-height: 0; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .6)); }
+
+/* ============================================================================
+   Reposo y busqueda — la piel de Waze, medida
+   ----------------------------------------------------------------------------
+   waze-03: la hoja de reposo de 150 de borde a borde, con la pildora de 50 y
+   los atajos de 45. waze-05: la busqueda como hoja llena, con la pildora de
+   52, los chips de 82 x 65 y las filas de 65. Los controles del mapa son
+   circulos negros de 52.
+   ========================================================================== */
+
+/* Los controles del reposo: circulos negros de 52 (S.O.S. rojo), como los de
+   Waze, en lugar de los fab del sistema. */
+.map-screen .map-side .fab,
+.map-screen .map-top .fab {
+  width: 52px; height: 52px;
+  border: 0;
+  background: var(--gps-banda);
+  color: var(--gps-ink);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+}
+
+.map-screen .fab svg { width: 24px; height: 24px; }
+
+/* El boton de reportar en reposo: amarillo como el del viaje (19/09/2026). */
+.map-screen .map-side .fab-reportar { background: var(--gps-reportar); }
+.map-screen .map-side .fab-reportar svg { width: 30px; height: 30px; }
+.map-screen .map-top .fab-panic { background: var(--gps-rojo); color: #fff; font-size: 13px; letter-spacing: .02em; }
+
+/* --- la hoja de reposo ----------------------------------------------------- */
+
+/* Va de borde a borde: la capa tiene 10 px de aire y la hoja los anula. */
+.gps-hoja-reposo {
+  flex: none;
+  margin: auto -10px calc(-10px - var(--safe-bottom)) -10px;
+  height: calc(150px + var(--safe-bottom));
+  box-sizing: border-box;
+  padding: 12px 15px var(--safe-bottom);
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  font-family: var(--gps-ui);
+}
+
+.gps-manija.ancha { width: 50px; margin-bottom: 14px; }
+
+.gps-buscar-reposo {
+  width: 100%;
+  height: 50px;
+  border: 0;
+  border-radius: 25px;
+  background: var(--gps-pildora);
+  color: var(--gps-ink-3);
+  font: inherit;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-atajos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+
+.gps-atajo {
+  height: 45px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--gps-pildora);
+  color: var(--gps-ink);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-atajo:active { transform: scale(.97); }
+.gps-atajo.nuevo { color: var(--gps-celeste); }
+.gps-atajo svg { flex: none; }
+
+/* --- la hoja de busqueda --------------------------------------------------- */
+
+/* Cubre el mapa entero mientras se busca; los controles se van. */
+.map-screen.is-buscando .map-top,
+.map-screen.is-buscando .map-side { display: none; }
+
+.gps-hoja-buscar {
+  position: absolute;
+  inset: var(--safe-top) 0 0 0;
+  padding: 14px 15px calc(14px + var(--safe-bottom));
+  box-sizing: border-box;
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 14px 14px 0 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--gps-ui);
+  z-index: 6;
+}
+
+.gps-buscar-pildora {
+  flex: none;
+  height: 52px;
+  border-radius: 26px;
+  background: var(--gps-pildora);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 6px;
+}
+
+.gps-buscar-pildora input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--gps-ink);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+  caret-color: var(--gps-celeste);
+}
+
+.gps-buscar-pildora input::placeholder { color: var(--gps-ink-3); }
+.gps-buscar-pildora input::-webkit-search-cancel-button { display: none; }
+
+.gps-buscar-volver,
+.gps-buscar-borrar {
+  flex: none;
+  width: 40px; height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gps-ink-3);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-buscar-borrar[hidden] { display: none; }
+
+.gps-desde {
+  flex: none;
+  margin-top: 10px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--gps-ink-2);
+  font: inherit;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-desde b { font-weight: 500; color: var(--gps-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-desde svg { flex: none; }
+
+.gps-buscar-cuerpo { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; }
+
+/* Chips de categoria, medidos: 82 x 65, radio 12, icono 20, rotulo 14. */
+.gps-chips { display: flex; gap: 11px; overflow-x: auto; scrollbar-width: none; margin: 10px 0 4px; padding-bottom: 2px; }
+.gps-chips::-webkit-scrollbar { display: none; }
+
+.gps-chip-cat {
+  flex: none;
+  width: 82px; height: 65px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  background: var(--gps-pildora);
+  color: var(--gps-ink);
+  font: inherit;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-chip-cat.is-on { border-color: var(--gps-celeste); color: var(--gps-celeste); }
+
+/* Filas de 65: icono de 30, titulo 18 negrita, subtitulo 14. */
+.gps-fila {
+  width: 100%;
+  min-height: 65px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  background: transparent;
+  color: var(--gps-ink);
+  font: inherit;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 2px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-fila:last-child { border-bottom: 0; }
+.gps-fila:active { background: rgba(255, 255, 255, .04); }
+.gps-fila-ico { flex: none; width: 40px; display: grid; place-items: center; color: var(--gps-ink-2); line-height: 0; }
+.gps-fila-texto { flex: 1; min-width: 0; }
+.gps-fila-texto b { display: block; font-size: 18px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-fila-texto span { display: block; font-size: 14px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-fila-texto .celeste { color: var(--gps-celeste); }
+.gps-fila-texto .gris { color: var(--gps-ink-3); }
+
+.gps-seccion { font-size: 14px; color: var(--gps-ink-3); margin: 16px 0 2px; }
+
+/* ============================================================================
+   Elegir ruta — la piel de Waze, medida
+   ----------------------------------------------------------------------------
+   El prototipo, tablero "Rutas": cabecera negra de 55 con el titulo en 18;
+   tira de mapa de 117 —el mapa mismo, sin tapar— con la pildora del camion de
+   42 flotando; la hoja desde 172 con filas de 145 (el tiempo en 27 negrita,
+   celeste y sobre negro en la elegida; km 18 gris; "Por…" 18; estado 16 gris;
+   chips de 25 con 14) y las pildoras "Detalles" y "Arrancar" de 48.
+   ========================================================================== */
+
+.map-screen.is-eligiendo .map-top,
+.map-screen.is-eligiendo .map-side { display: none; }
+
+/* El contenedor es transparente y deja pasar los gestos: la tira de mapa es el
+   mapa. Solo la cabecera, la pildora y la hoja reciben toques. */
+.map-overlay > #sheet.gps-eligiendo {
+  position: absolute;
+  inset: var(--safe-top) 0 0 0;
+  pointer-events: none;
+  color: var(--gps-ink);
+  font-family: var(--gps-ui);
+  z-index: 6;
+}
+
+.gps-eligiendo > * { pointer-events: auto; }
+
+.gps-cabecera {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 55px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 15px;
+  background: var(--gps-banda);
+}
+
+.gps-cabecera-volver {
+  flex: none;
+  width: 36px; height: 36px;
+  margin-left: -7px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gps-ink);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-cabecera-titulo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-right: 29px;   /* el ancho de la flecha: el titulo queda centrado en la pantalla */
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.gps-cabecera-titulo span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-cabecera-titulo span:first-child:not(:only-child) { flex: none; max-width: 45%; }   /* el origen no se come al destino */
+.gps-cabecera-titulo i { font-style: normal; color: var(--gps-ink-3); flex: none; }
+
+.gps-pildora-camion {
+  position: absolute;
+  top: 75px;             /* 20 por debajo de la cabecera */
+  left: 20px;
+  height: 42px;
+  padding: 0 14px 0 16px;
+  border: 0;
+  border-radius: 21px;
+  background: var(--gps-hoja);
+  color: var(--gps-celeste);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .4);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-pildora-camion svg { flex: none; }
+
+.gps-hoja-rutas {
+  position: absolute;
+  top: 172px; left: 0; right: 0; bottom: 0;
+  background: var(--gps-hoja);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  display: flex;
+  flex-direction: column;
+}
+
+.gps-manija.angosta { width: 30px; margin: 8px auto 4px; flex: none; }
+
+.gps-rutas { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* Una fila: 145 dp. Es un boton para que toda la fila responda. */
+.gps-ruta {
+  display: block;
+  width: 100%;
+  min-height: 145px;
+  box-sizing: border-box;
+  padding: 14px 19px 12px 15px;
+  border: 0;
+  border-bottom: 1px solid var(--gps-filete);
+  border-left: 4px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-ruta.elegida { border-left-color: var(--gps-accion); background: var(--gps-elegida); }
+
+.gps-ruta-cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.gps-ruta-cabeza b { font-size: 27px; font-weight: 700; line-height: 32px; font-variant-numeric: tabular-nums; }
+.gps-ruta.elegida .gps-ruta-cabeza b { color: var(--gps-celeste); }
+.gps-ruta-cabeza span { font-size: 18px; color: var(--gps-ink-2); white-space: nowrap; }
+
+.gps-ruta-por { display: block; font-size: 18px; line-height: 22px; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-ruta-estado { display: block; font-size: 16px; line-height: 20px; color: var(--gps-ink-2); margin-top: 4px; }
+.gps-ruta-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* Un chip de 25 con un punto de color y el texto en 14. */
+.gps-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 25px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--gps-pildora);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.gps-chip i { width: 8px; height: 8px; border-radius: 50%; display: block; flex: none; }
+
+/* Las dos pildoras, pegadas abajo, sobre el fondo de la hoja. */
+.gps-acciones {
+  flex: none;
+  display: flex;
+  gap: 15px;
+  padding: 12px 15px calc(15px + var(--safe-bottom));
+  background: var(--gps-hoja);
+}
+
+.gps-acciones .gps-pildora { flex: 1; }
+
+/* --- los detalles de la ruta ----------------------------------------------- */
+
+/* Cubre la pantalla: la cabecera negra, el cuerpo que scrollea y "Arrancar"
+   pegado abajo. El prototipo, tablero "Detalles". */
+.map-overlay > #sheet.gps-detallando {
+  position: absolute;
+  inset: var(--safe-top) 0 0 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  font-family: var(--gps-ui);
+  z-index: 6;
+}
+
+.gps-detallando .gps-cabecera { position: static; flex: none; }
+.gps-cabecera-solo { flex: 1; text-align: center; }
+
+.gps-detalles {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 15px 8px;
+}
+
+/* Las cifras: 27 negrita y debajo la hora y cuanto va por la Red en 16 gris. */
+.gps-cifras { display: flex; gap: 28px; padding: 4px 0 12px; }
+.gps-cifras b { display: block; font-size: 27px; font-weight: 700; line-height: 32px; font-variant-numeric: tabular-nums; }
+.gps-cifras span { display: block; font-size: 16px; color: var(--gps-ink-3); margin-top: 2px; }
+
+/* La tarjeta del mono: la unica vez que habla en el GPS, antes de arrancar. */
+.gps-mono {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin: 4px 0 6px;
+  border-radius: 16px;
+  background: var(--gps-pildora);
+}
+
+.gps-mono .mascota { flex: none; margin: 0; }
+.gps-mono > div { flex: 1; min-width: 0; }
+.gps-mono b { display: block; font-size: 18px; font-weight: 500; line-height: 1.2; }
+.gps-mono span { display: block; font-size: 15px; color: var(--gps-ink-2); line-height: 1.35; margin-top: 3px; }
+
+/* --- la ficha de un lugar ---------------------------------------------------- */
+
+/* Hoja inferior de borde a borde, del alto de lo que dice. Va clavada abajo
+   y no en el flujo de la capa: mas alta que la hoja de reposo, en el flujo
+   quedaba empujada por los controles y se salia de la pantalla. Si no entra,
+   scrollea. El prototipo, tableros "Lugar verificado" y "Lugar de la comunidad". */
+.gps-hoja-ficha {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  max-height: calc(100% - 70px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 0 15px calc(15px + var(--safe-bottom));
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  font-family: var(--gps-ui);
+}
+
+.gps-hoja-ficha .gps-manija { margin: 10px auto 12px; }
+
+.gps-ficha-cabeza { display: flex; gap: 12px; align-items: center; padding-bottom: 12px; }
+.gps-ficha-ico { width: 48px; height: 48px; border-radius: 14px; background: var(--gps-pildora); display: grid; place-items: center; flex: none; line-height: 0; }
+.gps-ficha-titulo { flex: 1; min-width: 0; }
+.gps-ficha-titulo b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 22px; font-weight: 700; line-height: 1.15; }
+.gps-ficha-titulo span { display: block; font-size: 14px; color: var(--gps-ink-3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.gps-ficha-cerrar {
+  flex: none;
+  width: 36px; height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gps-ink-3);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-etiqueta-comunidad {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  background: #0f2f3f;
+  color: #8fdcf7;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+/* Los bloques: verde es un si verificado, rojo es "no recibe tu camion",
+   gris lo probable, celeste lo que dice la comunidad. El color dice de donde
+   sale el dato y que tan seguro es; nunca se mezclan. */
+.gps-bloque { border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+.gps-bloque-titulo { display: flex; gap: 8px; align-items: center; }
+.gps-bloque-titulo b { font-size: 16px; font-weight: 500; line-height: 1.3; }
+.gps-bloque-titulo i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #0d1418; }
+.gps-bloque-titulo svg { flex: none; }
+.gps-bloque > span { display: block; font-size: 14px; margin-top: 5px; line-height: 1.3; }
+
+/* Los bloques de color fijo llevan la tinta fija: de dia la tinta del tema es
+   oscura y desaparecia sobre el verde, el rojo y el celeste. */
+.gps-bloque-confirmado,
+.gps-bloque-no-apto,
+.gps-bloque-comunidad { color: #ffffff; }
+
+.gps-bloque-confirmado { background: #0f2a1f; border: 1px solid #1c7d51; }
+.gps-bloque-confirmado i { background: #43c98b; }
+.gps-bloque-confirmado > span { color: #9fd8b8; }
+
+.gps-bloque-no-apto { background: #2e1416; border: 1px solid #8a2f2a; }
+.gps-bloque-no-apto i { background: var(--gps-rojo); color: #fff; }
+.gps-bloque-no-apto > span { color: #f0a09a; }
+
+.gps-bloque-probable { background: var(--gps-pildora); border: 1px solid var(--gps-filete); }
+.gps-bloque-probable i { background: #8e959c; }
+.gps-bloque-probable > span { color: var(--gps-ink-2); }
+
+.gps-bloque-comunidad { background: #0f2f3f; border: 1px solid #1a6f9a; }
+.gps-bloque-comunidad > span { color: #8fdcf7; }
+
+.gps-voto { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0 4px; }
+.gps-voto > span { font-size: 16px; color: var(--gps-ink-2); }
+.gps-voto-botones { display: flex; gap: 8px; flex: none; }
+.gps-voto-botones .gps-pildora.chica { height: 40px; min-width: 0; padding: 0 16px; font-size: 17px; }
+
+.gps-hoja-ficha .gps-acciones { padding: 8px 0 0; }
+
+/* --- la hoja de capas ------------------------------------------------------- */
+
+/* De Maps se toma solo esta hoja: cuadros de 52 con radio 12 y rotulo en
+   12,5, el prendido con borde de 3 y rotulo del color; celestes sobre la hoja
+   de Waze. Misma hoja clavada abajo que la ficha. */
+.gps-hoja-capas {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 0 15px calc(14px + var(--safe-bottom));
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+  font-family: var(--gps-ui);
+}
+
+.gps-hoja-capas .gps-manija { margin: 10px auto 0; }
+
+.gps-capas-titulo { display: flex; justify-content: space-between; align-items: center; padding: 4px 0 0; }
+.gps-capas-titulo b { font-size: 24px; font-weight: 400; }
+.gps-capas-titulo .gps-ficha-cerrar { margin-right: -8px; color: var(--gps-ink); }
+
+.gps-capas-seccion { font-size: 18px; color: #d7dee5; margin: 10px 0 0; }
+
+.gps-cuadros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
+
+.gps-cuadro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-cuadro-ico {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--gps-pildora);
+  border: 3px solid transparent;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+
+.gps-cuadro.is-on .gps-cuadro-ico { border-color: var(--gps-accion); }
+.gps-cuadro-nombre { font-size: 12.5px; text-align: center; line-height: 1.2; color: var(--gps-ink-2); }
+.gps-cuadro.is-on .gps-cuadro-nombre { color: var(--gps-celeste); }
+.gps-cuadro small { font-size: 10.5px; color: #6b7480; margin-top: -3px; }
+
+.gps-interruptor {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 0 0;
+  border: 0;
+  border-top: 1px solid var(--gps-filete);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-interruptor:disabled { opacity: .55; cursor: default; }
+.gps-interruptor-texto { flex: 1; min-width: 0; }
+.gps-interruptor-texto b { display: block; font-size: 18px; font-weight: 500; }
+.gps-interruptor-texto span { display: block; font-size: 15px; color: var(--gps-ink-3); margin-top: 2px; }
+
+.gps-interruptor-perilla { width: 46px; height: 26px; border-radius: 13px; background: var(--gps-filete); position: relative; flex: none; display: block; transition: background .15s; }
+.gps-interruptor-perilla::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .15s; }
+.gps-interruptor-perilla.is-on { background: var(--gps-accion); }
+.gps-interruptor-perilla.is-on::after { left: 23px; }
+
+.gps-hoja-capas .gps-acciones { padding: 12px 0 0; }
+
+/* --- aportar un lugar ------------------------------------------------------- */
+
+/* Otra capa sobre la pantalla, como la del viaje: sirve en reposo y en viaje.
+   Transparente y sin tocar el mapa salvo en sus hojas. */
+.gps-aporte {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  color: var(--gps-ink);
+  font-family: var(--gps-ui);
+}
+
+.gps-aporte > * { pointer-events: auto; }
+.gps-aporte .gps-cabecera { top: var(--safe-top); }
+
+/* "¿Qué hay acá?" (waze-07, medida): titulo 21 negrita; circulos de 75 con
+   la calcomania de 40 y el rotulo en 14. */
+.gps-hoja-aportar,
+.gps-hoja-marcar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 0 15px calc(14px + var(--safe-bottom));
+  background: var(--gps-hoja);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+}
+
+.gps-hoja-aportar .gps-manija,
+.gps-hoja-marcar .gps-manija { margin: 10px auto 8px; }
+
+.gps-aportar-titulo { display: flex; justify-content: space-between; align-items: center; padding: 6px 0 2px; }
+.gps-aportar-titulo b { font-size: 21px; font-weight: 700; }
+.gps-aportar-titulo .gps-ficha-cerrar { margin-right: -8px; color: var(--gps-ink); }
+
+.gps-redondos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 8px; padding: 10px 0 4px; }
+
+.gps-redondo-grande {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-redondo-grande:active .gps-redondo-ico { transform: scale(.95); }
+.gps-redondo-ico { width: 75px; height: 75px; border-radius: 50%; background: var(--gps-pildora); display: grid; place-items: center; line-height: 0; }
+
+.gps-pie { font-size: 15px; color: var(--gps-ink-3); text-align: center; margin: 14px 0 2px; line-height: 1.4; }
+.gps-pie b { color: var(--gps-ink); font-weight: 500; }
+
+/* Las dos secciones de "¿Qué ves?" (19/09/2026): reportar arriba, agregar un
+   lugar abajo. El rotulo es chico y en mayusculas, como los de la app. */
+.gps-seccion-titulo { margin: 12px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gps-ink-3); }
+
+/* Los metros del galibo: pastillas grandes de un toque, con "Otro" al final. */
+.gps-metros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 0 4px; }
+.gps-metro {
+  height: 56px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--gps-pildora);
+  color: var(--gps-ink);
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.gps-metro.is-on { background: var(--gps-celeste); color: #0b1a22; }
+.gps-metro-otro { font-size: 18px; font-weight: 500; color: var(--gps-celeste); }
+
+/* "¿Sigue ahi?": dos botones grandes que aparecen al pasar junto a un reporte,
+   en el mismo lugar que la tarjeta de aviso, diez segundos. */
+.gps-sigue {
+  pointer-events: auto;
+  position: absolute;
+  left: 15px; right: 15px;
+  bottom: calc(150px + var(--safe-bottom));
+  background: var(--gps-hoja);
+  color: var(--gps-ink);
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  z-index: 5;
+}
+.gps-sigue-que { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500; margin-bottom: 10px; }
+.gps-sigue-que span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gps-sigue-botones { display: flex; gap: 10px; }
+.gps-sigue-botones .gps-pildora { flex: 1; }
+
+/* Marcar: el pin fijo al centro del mapa (la punta en el centro exacto), el
+   chip de la categoria en linea, el campo del nombre y Guardar. */
+.gps-pin-fijo {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -100%);
+  line-height: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, .5));
+}
+
+.gps-chip-elegido {
+  width: auto; height: 44px;
+  flex-direction: row;
+  display: inline-flex;
+  gap: 8px;
+  padding: 0 12px 0 14px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.gps-chip-elegido svg:last-child { color: var(--gps-ink-3); }
+
+.gps-campo { display: block; background: var(--gps-pildora); border-radius: 14px; padding: 10px 14px; margin-top: 12px; }
+.gps-campo > span { display: block; font-size: 12px; color: var(--gps-ink-3); text-transform: uppercase; letter-spacing: .06em; }
+.gps-campo input {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  margin-top: 2px;
+  background: transparent;
+  color: var(--gps-ink);
+  font: inherit;
+  font-size: 20px;
+  outline: none;
+}
+
+.gps-campo input::placeholder { color: var(--gps-ink-3); }
+.gps-hoja-marcar .gps-acciones { padding: 8px 0 0; }
+
+/* --- "¿Seguís yendo a…?" ----------------------------------------------------- */
+
+/* La tarjeta de waze-03, medida: radio 16, el pin de 30, la pregunta en 22
+   negrita, la "i" arriba a la derecha y dos pildoras de 42. Flota sobre la
+   hoja de reposo, a 12 de ella. */
+.gps-pregunta {
+  position: absolute;
+  left: 15px; right: 15px;
+  bottom: calc(150px + 12px + var(--safe-bottom));
+  z-index: 3;
+  padding: 14px 14px 4px;
+  border-radius: 16px;
+  background: var(--gps-tarjeta);
+  color: var(--gps-ink);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  font-family: var(--gps-ui);
+}
+
+.gps-pregunta[hidden] { display: none; }
+.gps-pregunta-cabeza { display: flex; gap: 12px; align-items: center; }
+.gps-pregunta-cabeza > svg { flex: none; }
+.gps-pregunta-cabeza b { flex: 1; min-width: 0; font-size: 22px; font-weight: 700; line-height: 1.2; }
+
+.gps-pregunta-info {
+  flex: none;
+  width: 36px; height: 36px;
+  margin: -7px -7px -7px 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #d7dee5;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gps-pregunta .gps-acciones { padding: 12px 0 8px; gap: 14px; background: transparent; }
+.gps-pregunta .gps-pildora { height: 42px; font-size: 15px; }
+
+/* Las filas de los detalles se leen enteras: sin recorte, 60 de alto minimo. */
+.gps-detalles .gps-fila { min-height: 60px; padding: 9px 0; cursor: default; }
+.gps-detalles .gps-fila-texto b { font-size: 18px; font-weight: 500; white-space: normal; }
+.gps-detalles .gps-fila-texto span { font-size: 15px; white-space: normal; line-height: 1.3; }
 
 /* ============================================================================
    Hoja inferior — el patron principal de la pantalla de busqueda
    ========================================================================== */
 
+/* `flex: 0 1 auto` y no `flex: none`, y el `min-height: 0` es imprescindible.
+
+   Con `flex: none` la hoja NO se encoge, así que al crecer el contenido —cinco
+   paradas del reparto, o el selector de alternativas— la hoja entera terminaba
+   112 px POR DEBAJO del borde de la pantalla, con el botón de calcular afuera y
+   sin forma de llegar a él. Y no había scroll que ayudara: `overflow-y: auto`
+   estaba puesto, pero el contenido cabía en la hoja — lo que no cabía en la
+   pantalla era la hoja.
+
+   `min-height: 0` va porque el mínimo por defecto de un item flex es el tamaño
+   de su contenido: sin eso el `flex-shrink` no puede achicarla y el arreglo no
+   surte efecto. */
 .sheet {
-  flex: none;
+  flex: 0 1 auto;
+  min-height: 0;
   margin-top: auto;
   background: var(--surface);
   border: 1px solid var(--rule);
@@ -767,19 +2224,44 @@ button { font-family: inherit; font-size: inherit; }
 .suggestions .s-sub  { font-size: 12.5px; color: var(--ink-3); }
 
 /* ============================================================================
-   Resumen de ruta y restricciones
+   Reparto y restricciones
    ========================================================================== */
 
-.route-summary {
+/* Paradas de un reparto.
+
+   Se numeran en el orden en que se visitan, y ese número es el mismo que lleva
+   el marcador en el mapa: son las dos mitades de la misma información y tienen
+   que poder cruzarse de un vistazo. */
+.stop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
-  align-items: baseline;
-  gap: 14px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.route-figure { display: flex; flex-direction: column; }
-.route-figure b { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
-.route-figure span { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.stop-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--surface-2, rgba(255,255,255,.03));
+}
+
+.stop-number {
+  flex: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--brand-ink);
+  display: grid;
+  place-items: center;
+  font: 800 12px/1 var(--ui);
+}
+
+.stop-label { flex: 1; min-width: 0; font-size: 14px; }
 
 /* Barra de proporcion sobre la Red de Transito Pesado. Es la medida propia del
    producto, asi que se muestra como dato y no como adorno. */
@@ -793,45 +2275,11 @@ button { font-family: inherit; font-size: inherit; }
 
 .network-bar i { display: block; height: 100%; background: var(--brand); }
 
-.notes { display: flex; flex-direction: column; gap: 8px; }
-
-.note {
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--brand);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  background: var(--surface-2);
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* Fuera de la Red no es una prohibicion: la norma admite salir para llegar al
-   destino. Va en celeste y no en rojo ni naranja, que leerian como infraccion. */
-.note-access { border-left-color: var(--brand); }
-.note-blocked { border-left-color: var(--danger); }
-
-.note-title { font-size: 14px; font-weight: 700; }
-.note-body  { font-size: 13px; color: var(--ink-2); }
-
 .note-source {
   font-size: 11.5px;
   color: var(--ink-3);
   line-height: 1.35;
 }
-
-details.sources > summary {
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--brand-ink);
-  font-weight: 600;
-  padding: 6px 0;
-  list-style: none;
-}
-
-details.sources > summary::-webkit-details-marker { display: none; }
-details.sources > summary::before { content: "Ver fuentes  ▾"; }
-details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
 
 /* ============================================================================
    Menu lateral
@@ -906,22 +2354,6 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
   flex: none;
 }
 
-.avatar-lg { width: 84px; height: 84px; font-size: 40px; }
-
-.level-track {
-  height: 10px;
-  border-radius: 5px;
-  background: var(--surface-3);
-  overflow: hidden;
-}
-
-.level-fill {
-  height: 100%;
-  border-radius: 5px;
-  background: linear-gradient(90deg, var(--brand), var(--reward));
-  transition: width .6s cubic-bezier(.2,.8,.3,1);
-}
-
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 .stat {
@@ -949,8 +2381,1142 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
   font-size: 24px;
 }
 
-.badge-locked { opacity: .32; }
-.badge-earned { border-color: var(--reward); background: var(--reward-soft); }
+/* Lo ELEGIDO en un selector va en celeste, no en violeta.
+   El violeta significa recompensa en todo el sistema —es el de las insignias y el
+   de la insignia de nivel—, y elegir un avatar no es ganarlo. En la referencia el
+   selector de avatar marca la opcion activa con el mismo celeste de la marca.
+
+   Antes se llamaba .badge-earned y pintaba de violeta: un mismo color para dos
+   cosas distintas, que es el problema que ya costo caro en el mapa (AD-38). */
+.badge-picked { border-color: var(--brand); background: var(--brand-soft); }
+
+/* ============================================================================
+   Perfil
+   ----------------------------------------------------------------------------
+   La banda de color detras del avatar sale de la referencia: separa la identidad
+   del resto de la pantalla sin necesidad de una linea ni un titulo. El gradiente
+   se queda dentro del espectro frio —celeste a violeta— porque es el registro de
+   la progresion.
+   ========================================================================== */
+
+/* La barra superior del perfil ES la banda.
+   ---------------------------------------------------------------------------
+   En la referencia no hay dos piezas: el nombre y el engranaje viven adentro del
+   mismo bloque de color que el avatar, sin costura. Por eso la barra toma el
+   color de la banda en vez de su fondo propio, y pierde la linea de abajo. */
+.topbar-band {
+  background: var(--band);
+  border-bottom: none;
+  color: var(--on-band);
+}
+
+.topbar-band h2 { color: var(--on-band); }
+
+.topbar-band .fab {
+  background: rgba(0,0,0,.14);
+  border-color: transparent;
+  color: var(--on-band);
+}
+
+/* La banda del perfil, con el lenguaje del CARNET.
+   ---------------------------------------------------------------------------
+   Pedido del usuario del 10/09/2026: que la parte del avatar se arme con los
+   recursos de las dos referencias de licencia de conducir.
+
+   OJO: esto es el LENGUAJE VISUAL del carnet, no la pantalla del carnet. Siguen
+   siendo dos pantallas distintas —el usuario fue explicito— y lo que se toma de
+   la referencia es como se ve un documento, no que datos lleva. La estructura
+   sigue siendo la de Duolingo: banda de color arriba con la identidad adentro.
+   Es la regla de la casa: la estructura se copia, el tema se cambia.
+
+   Cuatro recursos, todos leidos de la referencia:
+     1. la trama diagonal de seguridad
+     2. la foto enmarcada con su chapita al pie
+     3. los campos en pastillas translucidas, etiqueta y valor
+     4. la banda inferior segmentada y la linea tipo MRZ
+
+   La trama se dibuja con gradientes repetidos y no con una imagen: son dos
+   declaraciones de CSS contra un archivo que habria que versionar, meter en el
+   APK y servir. */
+.profile-band {
+  margin: -16px -16px 0;              /* rompe el padding del .scroll: pega a la barra */
+  padding: 12px 16px 0;
+  color: var(--on-band);
+
+  /* Trama de seguridad sobre el color: dos angulos distintos para que se lea
+     como un tejido y no como un rayado. Muy suave a proposito — tiene que
+     notarse al mirarla, no al pasar. */
+  background:
+    repeating-linear-gradient(115deg,
+      rgba(255,255,255,.10) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(65deg,
+      rgba(0,0,0,.05) 0 1px, transparent 1px 11px),
+    var(--band);
+}
+
+/* La fila del documento: los campos a la izquierda, la foto a la derecha, que es
+   como estan en la referencia. */
+.carnet-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.carnet-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Campo del documento: pastilla translucida con ETIQUETA y valor.
+   La etiqueta va en un tono mas apagado que el valor: en la referencia las dos
+   son del mismo color, pero ahi el fondo es claro y aca hay que separar el dato
+   de su nombre para que se lea de un vistazo. */
+.carnet-field {
+  background: rgba(255,255,255,.22);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.carnet-field span { opacity: .62; }
+
+/* La foto. Marco claro y fondo propio, como en la referencia, donde la foto
+   siempre tiene un color distinto al de la credencial. */
+.carnet-photo {
+  width: 84px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.carnet-photo > div:first-child {
+  width: 84px;
+  height: 84px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, var(--cool-3), var(--cool-4));
+  border: 2px solid rgba(255,255,255,.75);
+  display: grid;
+  place-items: center;
+  font-size: 46px;
+  line-height: 1;
+  overflow: hidden;
+}
+
+/* La chapita al pie de la foto: en la referencia dice "HOLDER'S PHOTO"; aca dice
+   la nacionalidad, que es el dato que una credencial pone al lado de la cara. */
+.carnet-photo b {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: rgba(0,0,0,.22);
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+
+/* La banda inferior segmentada del frente del carnet. */
+.carnet-strip {
+  margin: 10px -16px 0;
+  padding: 6px 16px;
+  background: rgba(0,0,0,.20);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+/* La linea tipo MRZ del dorso.
+   Es DECORATIVA: se arma con el alias y el apellido, no codifica nada y nadie la
+   lee. Esta porque es el recurso que mas hace que algo se sienta un documento —
+   en la referencia es lo unico del dorso que no es un campo ni un codigo. */
+.carnet-mrz {
+  margin: 0 -16px;
+  padding: 5px 16px 7px;
+  background: rgba(0,0,0,.20);
+  border-top: 1px solid rgba(255,255,255,.14);
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: .16em;
+  opacity: .55;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Linea de identidad: alias, nacionalidad y alta. Gris, MAYUSCULAS, apretada.
+   Es la unica linea de la referencia entre la banda y las cifras. */
+.profile-meta {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Las tres cifras: valor grande arriba, etiqueta gris abajo. Sin tarjetas. */
+.figures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.figures > div { display: flex; flex-direction: column; gap: 1px; }
+
+.figures b {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.figures span { font-size: 13px; color: var(--ink-3); }
+
+/* Etiqueta de seccion: gris, MAYUSCULAS, chica y muy espaciada.
+   Sustituye al <h3> blanco en esta pantalla. En la referencia los titulos de
+   seccion no compiten con el contenido: lo separan y se corren. */
+.section-caps {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Tarjeta de "completá tu perfil".
+   Existe SOLO mientras falte algo, igual que en la referencia. Cuando el perfil
+   esta completo desaparece: una tarjeta que felicita por algo ya hecho ocupa el
+   lugar de la proxima cosa por hacer. */
+.complete-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Resumen: SIN tarjetas y SIN bordes.
+   ---------------------------------------------------------------------------
+   Aca estaba el desvio mas grande contra la referencia: eran cuatro fichas con
+   borde de color. En la referencia el resumen es lo mas liviano de la pantalla,
+   cuatro renglones de dibujo + valor sobre el fondo de la pagina.
+
+   Y la unidad va DENTRO del valor —"120 EXP", "2 h 07"— que es lo que permite
+   que no haga falta ninguna etiqueta: el dibujo dice de que se trata y el texto
+   dice cuanto. */
+.summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 12px;
+}
+
+.summary > div { display: flex; align-items: center; gap: 9px; }
+
+.summary svg { width: 23px; height: 23px; flex: none; color: var(--tone, var(--brand)); }
+
+.summary b {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+
+/* Tarjeta con degradado frio.
+   La §10 del diseño habilito los degradados dentro del espectro frio para
+   reforzar lo arcade, y la tarjeta de nivel es donde mas rinde: es la pieza
+   principal de la pantalla y el degradado la separa de las tarjetas comunes sin
+   agregarle un borde ni un titulo. Es tambien el fondo contra el que el acento
+   naranja tiene que cortar, asi que cuanto mas frio sea, mas corta. */
+.card-cool {
+  background: linear-gradient(135deg, var(--brand-soft), var(--reward-soft));
+}
+
+/* La cifra que motiva, en el complementario.
+   El pedido fue que los mensajes corten con el acento. Pero pintar la frase
+   entera de naranja la vuelve un cartel y compite con el boton, que es la unica
+   accion. Se pinta SOLO el numero: la frase se sigue leyendo como frase y el ojo
+   igual cae en el dato, que es lo que la frase vino a decir. */
+.accent-num {
+  color: var(--accent-ink);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barra de progreso con el VALOR ADENTRO. Es como lo resuelve la referencia, y
+   es mejor que ponerlo al lado: el numero y lo que representa quedan en el mismo
+   objeto, asi que no hay que asociarlos con la mirada. */
+.bar {
+  position: relative;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+/* Relleno PLANO, no degradado.
+   El degradado era nuestro; en la referencia la barra es un celeste solido. Un
+   degradado dentro de una barra ademas miente un poco: sugiere que el avance
+   cambia de naturaleza a mitad de camino, y no cambia. */
+.bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: var(--brand);
+  transition: width .6s cubic-bezier(.2,.8,.3,1);
+}
+
+.bar-value {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  /* Vacia, el numero es gris; con relleno, blanco. Asi lo hace la referencia y
+     tiene sentido: sobre el riel apagado un blanco pleno pesa mas que el dato. */
+  color: var(--ink-3);
+  text-shadow: none;
+}
+
+.bar-started .bar-value {
+  color: var(--ink);
+  text-shadow: 0 1px 2px rgba(0,0,0,.55);
+}
+
+/* En claro el texto de la barra es oscuro, asi que la sombra oscura lo empasta.
+   Va blanca: hace de halo cuando el numero cae sobre el relleno saturado, y
+   sobre el riel vacio, que es gris claro, no se ve. La barra es el unico lugar
+   donde un texto se apoya sobre dos fondos distintos segun cuanto llevas. */
+:root[data-theme="light"] .bar-value {
+  text-shadow: 0 1px 2px rgba(255,255,255,.75);
+}
+
+/* La barra de nivel, CROMADA.
+   ---------------------------------------------------------------------------
+   Pedido del usuario del 10/09/2026, recuperando la exploracion del 02/09: la de
+   cromo brillante, "mas agradable y gratificante a la vista".
+
+   La §10 habia descartado el cromo por calido —era cromo y oro—. Se recupera
+   como CROMO FRIO: el metal no lo hace el matiz sino el degradado vertical, asi
+   que el mismo efecto se consigue dentro del celeste y el violeta sin tocar la
+   decision de paleta.
+
+   Como se arma un metal en CSS, de arriba abajo:
+     brillo alto -> caida rapida a sombra -> especular secundario -> sombra
+   Esa curva asimetrica es lo que el ojo lee como superficie curva y pulida. Un
+   degradado parejo se ve plastico.
+
+   Va SOLO en la barra de nivel. Las metas siguen planas: si todas brillaran, el
+   nivel dejaria de ser el momento especial, que es justamente lo que el brillo
+   vino a marcar. Y no entra al mapa, como nada de esto. */
+.bar-chrome {
+  /* Mas alta que las demas. No es capricho: la curva especular necesita alto para
+     leerse, y a 20 px el degradado vertical se aplasta y el metal se ve plano.
+     Ademas la separa de las barras de metas, que es lo que se busca. */
+  height: 26px;
+  border-radius: 13px;
+
+  /* El riel se ve hundido: sombra interna arriba y un filo claro abajo. */
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,.45),
+    inset 0 -1px 0 rgba(255,255,255,.07);
+}
+
+/* En la cromada el valor va blanco SIEMPRE, tambien en modo claro: el relleno es
+   saturado en los dos modos, asi que la regla general —tinta oscura en claro— no
+   aplica y dejaba el numero al limite de contraste sobre el violeta. */
+.bar-chrome.bar-started .bar-value,
+:root[data-theme="light"] .bar-chrome.bar-started .bar-value {
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+
+.bar-chrome .bar-fill {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,.62) 0%,
+      rgba(255,255,255,.18) 22%,
+      rgba(0,0,0,.20)      48%,
+      rgba(255,255,255,.34) 68%,
+      rgba(255,255,255,.04) 84%,
+      rgba(0,0,0,.28)     100%),
+    linear-gradient(90deg, var(--cool-1), var(--cool-3) 55%, var(--cool-4));
+  border-radius: 13px;
+
+  /* El filo claro por dentro es el canto pulido; el resplandor por fuera es lo
+     que hace que se vea encendida y no pintada. */
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.38),
+    0 0 12px -2px var(--cool-2);
+}
+
+/* El destello que recorre el metal. Solo cruza lo LLENO —vive adentro de
+   .bar-fill— porque una barra vacia no tiene nada que brillar.
+
+   Se anima transform y nada mas: es lo unico que el navegador puede mover sin
+   volver a pintar. La pausa larga del arranque es a proposito; un destello
+   continuo deja de ser un destello y pasa a ser un parpadeo. */
+.bar-chrome .bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg,
+    transparent 42%,
+    rgba(255,255,255,.70) 50%,
+    transparent 58%);
+  transform: translateX(-110%);
+  animation: destello-cromo 3.6s ease-in-out infinite;
+}
+
+@keyframes destello-cromo {
+  0%, 62% { transform: translateX(-110%); }
+  100%    { transform: translateX(110%); }
+}
+
+/* Quien pidio menos movimiento no recibe el destello. La barra se sigue viendo
+   cromada: el metal esta en el degradado, no en la animacion. */
+@media (prefers-reduced-motion: reduce) {
+  .bar-chrome .bar-fill::after { animation: none; opacity: 0; }
+}
+
+/* Una meta: el nombre arriba, la barra abajo. */
+.goal { display: flex; flex-direction: column; gap: 5px; }
+
+/* ============================================================================
+   El zocalo inferior
+   ----------------------------------------------------------------------------
+   GPS · JUEGOS · S.O.S. · MAS. Leido de la captura del perfil de Duolingo con el
+   menu "…" abierto: barra de ~68 px con filo claro arriba, iconos ilustrados y
+   a color sin texto, el activo dentro de un recuadro redondeado, y "mas" que
+   abre una hoja desde el zocalo atenuando lo de atras.
+
+   Es una pieza de la cascara, hermana de #view, no parte de ninguna pantalla.
+   Cuando esta oculto (hidden) sale del layout y la vista recupera su alto: eso
+   es lo que le devuelve la pantalla entera al mapa durante el viaje.
+   ========================================================================== */
+
+/* El contenedor de la vista: lo que antes era todo el #app. */
+#view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#dock { flex: none; position: relative; z-index: 30; }
+
+/* La barra. Mismo fondo que la pagina y un filo mas claro arriba, como en la
+   referencia; el area segura del telefono va abajo, adentro de la barra. */
+.dock-bar {
+  height: calc(64px + var(--safe-bottom));
+  padding: 0 6px var(--safe-bottom);
+  background: var(--ground);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+/* Un acceso: solo el dibujo, sin texto. La caja es cuadrada y grande para que el
+   dedo tenga donde caer; el recuadro del activo se dibuja sobre ella. */
+.dock-item {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  border: 2.5px solid transparent;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .12s ease, background .15s ease, border-color .15s ease;
+}
+
+.dock-item:active { transform: scale(.92); }
+
+.dock-item svg { display: block; filter: drop-shadow(0 1px 0 rgba(0,0,0,.25)); }
+
+/* El activo: el recuadro redondeado de la referencia, en un tono apagado de la
+   marca. No cambia el dibujo —que ya es de color— sino su marco. */
+.dock-item.is-active {
+  border-color: color-mix(in srgb, var(--brand) 55%, transparent);
+  background: var(--brand-soft);
+}
+
+/* ---- la hoja de "mas" ---------------------------------------------------- */
+
+/* Atenua lo de atras. Toca afuera y se cierra. */
+.dock-backdrop {
+  position: fixed;
+  inset: 0;
+  bottom: calc(64px + var(--safe-bottom));
+  background: rgba(0,0,0,.55);
+  z-index: 20;
+}
+
+/* La hoja sube desde el zocalo. Fuera del layout: es una capa. Filas de dibujo
+   + texto separadas por un filo, como en la referencia. */
+.dock-sheet {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(64px + var(--safe-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+  z-index: 25;
+  transform: translateY(100%);
+  visibility: hidden;
+  transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s linear .26s;
+}
+
+.dock-sheet.is-open {
+  transform: translateY(0);
+  visibility: visible;
+  transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-sheet, .dock-sheet.is-open { transition: none; }
+}
+
+.dock-row {
+  width: 100%;
+  min-height: 60px;
+  padding: 0 20px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 17px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dock-row:last-child { border-bottom: 0; }
+
+.dock-row:active { background: var(--surface-2); }
+
+.dock-row[disabled] { cursor: default; color: var(--ink-3); }
+
+.dock-row[disabled] svg { opacity: .45; }
+
+.dock-row > span { flex: 1; }
+
+/* "Pronto": la chapita de lo que todavia no esta, en el tono de recompensa. */
+.dock-row > em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--reward);
+  background: var(--reward-soft);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+/* ============================================================================
+   La mascota
+   ----------------------------------------------------------------------------
+   El sistema de momentos vive en js/mascota.js; aca va como se muestra. Los PNG
+   son renders de 326 a 512 px con aire de pixel art, no pixel art nativo: se
+   achican con el suavizado normal (pixelated los llenaria de escalones) al lado
+   que trae el marcado (--mascota-lado). Sin el PNG, el hueco del mismo tamaño:
+   las pantallas se componen previendo donde va y no se rompen sin el dibujo.
+   ========================================================================== */
+
+.mascota {
+  width: var(--mascota-lado);
+  height: var(--mascota-lado);
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.mascota img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* El hueco: un resplandor apenas, para que el espacio se lea como reservado y no
+   como roto. Sin dibujo provisorio, a proposito. */
+.mascota-sin-pose {
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--reward-soft), transparent);
+}
+
+/* ============================================================================
+   Los logros — insignia en pixel art, color por escalon
+   ----------------------------------------------------------------------------
+   El escudo es comun; el simbolo es de cada pista; el color viene por --tier
+   desde js/logros.js. Bloqueado es gris y apagado; el numero pisa el dibujo.
+   ========================================================================== */
+
+.logro {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.logro svg { width: 82%; height: 82%; }
+
+.logro-borde  { fill: #0d1418; }
+.logro-cuerpo { fill: var(--tier); }
+.logro-luz    { fill: rgba(255,255,255,.35); }
+.logro-simbolo rect { fill: #fff; }
+.logro-simbolo .logro-hueco { fill: var(--tier); }
+
+.logro-off { opacity: .5; }
+
+.logro > b {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 0 2px 0 var(--ground), 0 -2px 0 var(--ground),
+               2px 0 0 var(--ground), -2px 0 0 var(--ground);
+}
+
+/* ============================================================================
+   Fin de viaje
+   ----------------------------------------------------------------------------
+   Pantalla de fin de actividad de la referencia: ilustracion grande, titulo en
+   color calido, tres fichas con su color, boton primario ancho. La secuencia de
+   entrada es lo que la hace gratificante; con movimiento reducido no hay
+   secuencia y todo esta quieto desde el principio.
+   ========================================================================== */
+
+.fin-viaje { align-items: stretch; text-align: center; padding-top: 8px; }
+
+/* La escena: la mascota y el confeti que cae alrededor. */
+.fin-escena {
+  position: relative;
+  height: 220px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.fin-mascota {
+  animation: fin-entra .55s cubic-bezier(.2,.9,.3,1.25) both;
+}
+
+@keyframes fin-entra {
+  from { transform: scale(.55) translateY(20px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* El titulo, en el color calido: el acento. Es el unico lugar de la app donde un
+   titulo va en naranja, y es porque esta pantalla es festejo. */
+.fin-titulo {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--accent-ink);
+  animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) .25s both;
+}
+
+.fin-bajada {
+  font-size: 14px;
+  animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) .32s both;
+}
+
+@keyframes fin-sube {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* Las tres fichas (skill §4): borde de su color, etiqueta arriba, valor grande.
+   Entran de a una, con la demora que trae cada una. */
+.fichas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ficha {
+  border: 2px solid var(--ficha);
+  border-radius: 14px;
+  padding: 8px 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--surface);
+
+  /* El resplandor del mismo tono, del prototipo (§16): "fichas con su color y su
+     luz". El usuario señaló esta pieza como referencia de color. */
+  box-shadow: 0 0 18px -6px var(--ficha), inset 0 1px 0 rgba(255,255,255,.06);
+  animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) var(--demora) both;
+}
+
+.ficha > span {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  color: var(--ficha);
+  white-space: nowrap;
+}
+
+.ficha > b {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+
+.fin-seccion { text-align: left; margin-top: 6px; }
+
+.fin-logros { display: flex; flex-direction: column; gap: 10px; }
+
+.fin-logro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) var(--demora) both;
+}
+
+.fin-logro .logro { width: 56px; flex: none; }
+.fin-logro > div { display: flex; flex-direction: column; gap: 2px; }
+.fin-logro b { font-size: 15px; }
+
+.fin-nivel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) .8s both;
+}
+
+.fin-nivel b { font-size: 17px; }
+
+.fin-boton { animation: fin-sube .5s cubic-bezier(.2,.8,.3,1) .9s both; }
+
+/* El confeti: cada papelito cae desde arriba con su color, su x, su demora y su
+   giro, todo por variables. Solo transform y opacity: no repinta nada. */
+.papelito {
+  position: absolute;
+  top: -12px;
+  left: var(--x);
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--color);
+  opacity: 0;
+  animation: fin-cae 2.4s cubic-bezier(.3,.1,.6,1) var(--demora) both;
+}
+
+@keyframes fin-cae {
+  0%   { transform: translateY(0) rotate(0); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(240px) rotate(var(--giro)); opacity: 0; }
+}
+
+/* Con movimiento reducido, nada se mueve: todo esta en su lugar desde el
+   principio y el confeti no existe. */
+.fin-quieto .fin-mascota,
+.fin-quieto .fin-titulo,
+.fin-quieto .fin-bajada,
+.fin-quieto .ficha,
+.fin-quieto .fin-logro,
+.fin-quieto .fin-nivel,
+.fin-quieto .fin-boton { animation: none; }
+
+.fin-quieto .papelito { display: none; }
+
+/* ============================================================================
+   El carnet
+   ----------------------------------------------------------------------------
+   Frente y dorso de una credencial que se da vuelta al tocarla. Los elementos
+   son los de la referencia del 12/09/2026; la ejecucion, la de una tarjeta
+   profesional —pedido del usuario ese mismo dia: "orientate en los diseños
+   profesionales de las grandes empresas"—. Se tomo de Apple Wallet y de las
+   credenciales bancarias:
+
+     JERARQUIA   etiqueta chica, en mayusculas espaciadas, al 60%; valor grande
+                 en caja mixta. Dos tipografias con roles: Nunito para lo que se
+                 lee, Space Mono SOLO para lo que se copia (numero, patente, MRZ).
+     BLOQUES     cada dato en su celda, dentro de un panel translucido; separa el
+                 aire y un hairline, no una caja de color por dato.
+     COLOR       un matiz dominante con pasos tonales (azul, dentro de la paleta
+                 fria) y UN acento: la chapa de nivel, en el naranja de la app.
+                 Oro solo en el chip, porque es metal.
+     PROFUNDIDAD degradado en diagonal, luz radial arriba a la izquierda, sombra
+                 en dos capas (ambiente + contacto), filo claro de 1 px arriba, y
+                 sombra propia en la foto, el chip y la chapa.
+
+   TODOS LOS COLORES SON FIJOS. El carnet es un objeto y no interfaz: no sigue
+   el modo claro u oscuro.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/space-mono/space-mono-400-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/space-mono/space-mono-700-latin.woff2') format('woff2');
+}
+
+.carnet-scene {
+  perspective: 1400px;
+  margin: 0 -6px;
+  padding: 10px 0 14px;
+}
+
+/* La tarjeta que gira. Proporcion de una tarjeta: 1,6. */
+.carnet-card {
+  --c-1:      #163f7c;      /* el matiz dominante, en tres pasos */
+  --c-2:      #2364b3;
+  --c-3:      #3f8fdc;
+  --c-tinta:  #ffffff;
+  --c-suave:  rgba(255,255,255,.62);
+  --c-mono:   'Space Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.6;
+  transform-style: preserve-3d;
+  transition: transform .8s cubic-bezier(.2,.8,.3,1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  font-family: var(--ui);
+  color: var(--c-tinta);
+}
+
+.carnet-card:focus-visible { outline: 3px solid var(--brand); outline-offset: 5px; border-radius: 16px; }
+
+.carnet-card.is-flipped { transform: rotateY(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .carnet-card { transition: none; }
+}
+
+/* Una cara. Degradado en diagonal del matiz dominante, luz radial arriba a la
+   izquierda, y la textura ondulada muy tenue debajo del brillo. */
+.carnet-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  background-image:
+    radial-gradient(120% 90% at 18% -10%, rgba(255,255,255,.22), transparent 55%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='9'><path d='M0 4.5 Q7 1 14 4.5 T28 4.5' fill='none' stroke='rgba(255,255,255,.09)' stroke-width='1'/></svg>"),
+    linear-gradient(135deg, var(--c-1) 0%, var(--c-2) 52%, var(--c-3) 100%);
+  background-size: auto, 28px 9px, auto;
+
+  /* Sombra en dos capas —ambiente lejana y contacto cercana— y el filo claro
+     de arriba, que es lo que hace que la tarjeta parezca tener canto. */
+  box-shadow:
+    0 26px 44px -22px rgba(0,0,0,.7),
+    0 4px 10px -2px rgba(0,0,0,.3),
+    inset 0 1px 0 rgba(255,255,255,.32),
+    inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+/* El brillo: una banda ancha de luz en diagonal, discreta. Se corre al girar. */
+.carnet-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(118deg,
+    transparent 30%,
+    rgba(255,255,255,.14) 42%,
+    rgba(255,255,255,.04) 50%,
+    transparent 58%);
+  transition: transform .8s cubic-bezier(.2,.8,.3,1);
+}
+
+.carnet-card.is-flipped .carnet-face::after { transform: translateX(-10%); }
+
+.carnet-dorso { transform: rotateY(180deg); }
+
+/* ---- piezas comunes ------------------------------------------------------ */
+
+/* La fila del titulo: nombre del documento a la izquierda, chapa a la derecha. */
+.carnet-titulo {
+  position: absolute;
+  left: 5.5%; right: 5.5%; top: 7.5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.carnet-titulo > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--c-suave);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.carnet-titulo > span svg { flex: none; opacity: .85; }
+
+/* La chapa de nivel: EL acento del carnet, y el unico. */
+.carnet-titulo > em {
+  flex: none;
+  font-style: normal;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 4px 9px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.35);
+  white-space: nowrap;
+}
+
+/* En el dorso la chapa es discreta: ahi no hay acento, el frente ya lo tiene. */
+.carnet-titulo > .carnet-em-suave {
+  background: rgba(255,255,255,.14);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+}
+
+/* El panel translucido: vidrio sobre el degradado. Adentro, los campos en
+   grilla, separados por un hairline entre filas. */
+.carnet-panel {
+  position: absolute;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 10px;
+  padding: 0 10px;
+  background: rgba(255,255,255,.13);
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    0 10px 24px -14px rgba(0,0,0,.5);
+  overflow: hidden;
+}
+
+/* Un campo: etiqueta arriba, valor abajo. */
+.carnet-campo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,.14);
+}
+
+.carnet-campo > span {
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-suave);
+  white-space: nowrap;
+}
+
+.carnet-campo > b {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -.005em;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Lo que se copia va en mono, espaciado, como el numero de una tarjeta. */
+.carnet-mono {
+  font-family: var(--c-mono);
+  font-weight: 400;
+  letter-spacing: .10em;
+}
+
+/* La ultima fila del panel no lleva hairline debajo. */
+.carnet-panel > .carnet-campo:nth-last-child(-n+2) { border-bottom: none; }
+
+/* El chip: metal, con su sombra. */
+.carnet-chip { width: 100%; height: 100%; filter: drop-shadow(0 2px 3px rgba(0,0,0,.38)); }
+
+/* ---- FRENTE ------------------------------------------------------------- */
+
+/* La foto: retrato, con filo claro y sombra propia, sobre un fondo frio claro
+   —no amarillo: en una credencial profesional el fondo de la foto es neutro—. */
+.carnet-f-foto {
+  position: absolute;
+  left: 5.5%; top: 21%; width: 21.5%; height: 46%;
+  border-radius: 10px;
+  background: linear-gradient(165deg, #eaf4ff, #c7dff7);
+  display: grid;
+  place-items: center;
+  font-size: 54px;
+  line-height: 1;
+  overflow: hidden;
+  box-shadow:
+    0 10px 18px -8px rgba(0,0,0,.5),
+    inset 0 0 0 1.5px rgba(255,255,255,.7);
+}
+
+/* El panel del frente: a la derecha de la foto, tres filas de dos campos. */
+.carnet-f-panel { left: 30.5%; right: 5.5%; top: 21%; height: 46%; }
+
+/* La firma, en su celda: el garabato en blanco, sin caja. */
+.carnet-campo-firma { color: #fff; }
+.carnet-campo-firma > svg { height: 14px; width: auto; margin-top: 1px; }
+
+/* La fila de abajo: chip, numero y emisor, como en una tarjeta. */
+.carnet-f-chip { position: absolute; left: 5.5%; top: 75%; width: 11.5%; height: 15%; }
+
+.carnet-f-numero {
+  position: absolute;
+  left: 20.5%; top: 74.5%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.carnet-f-numero > span {
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-suave);
+}
+
+.carnet-f-numero > b {
+  font-size: 13.5px;
+  font-weight: 400;
+  letter-spacing: .16em;
+  text-shadow: 0 1px 2px rgba(0,0,0,.25);
+}
+
+.carnet-f-emisor {
+  position: absolute;
+  right: 5.5%; top: 75%;
+  text-align: right;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .10em;
+  line-height: 1.6;
+  text-transform: uppercase;
+  color: var(--c-suave);
+}
+
+/* ---- DORSO -------------------------------------------------------------- */
+
+/* La banda magnetica: oscura, arriba, con el reflejo de la cinta. */
+.carnet-d-banda {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 13%;
+  background: linear-gradient(180deg, #0d1a2e 0%, #1a2d4a 45%, #0f1f36 100%);
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.08), 0 2px 6px rgba(0,0,0,.25);
+}
+
+.carnet-d-titulo { top: 19%; }
+
+/* El panel del dorso: dos filas de dos campos y la silueta en su celda. */
+.carnet-d-panel {
+  left: 5.5%; right: 5.5%; top: 32%; height: 41%;
+  grid-template-columns: 1fr 1fr 1.2fr;
+}
+
+.carnet-d-panel > .carnet-campo:nth-last-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.14); }
+.carnet-d-panel > .carnet-campo:nth-last-child(-n+2):nth-child(n+4) { border-bottom: none; }
+
+.carnet-campo-silueta { grid-column: 3; grid-row: 1 / 3; align-items: flex-end; border-bottom: none !important; }
+.carnet-campo-silueta > span { align-self: flex-end; }
+.carnet-campo-silueta .carnet-silueta { height: 34px; width: auto; color: #fff; filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
+
+.carnet-silueta .carnet-vidrio { fill: var(--c-2); stroke: none; }
+.carnet-silueta .carnet-llanta { fill: var(--c-2); }
+
+/* La fila de abajo del dorso: huella, codigo de barras y chip. */
+.carnet-d-huella {
+  position: absolute;
+  left: 5.5%; top: 77%; height: 15%;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(255,255,255,.7);
+}
+
+.carnet-d-huella > svg { height: 100%; width: auto; }
+
+.carnet-d-huella > span {
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-suave);
+}
+
+.carnet-d-barras {
+  position: absolute;
+  left: 30%; right: 22%; top: 78%; height: 12%;
+  opacity: .92;
+}
+
+.carnet-barras { width: 100%; height: 100%; }
+.carnet-barras rect { fill: #fff; }
+
+.carnet-d-chip { position: absolute; right: 5.5%; top: 76.5%; width: 11.5%; height: 15%; }
+
+/* El MRZ: al pie, minusculo y apagado. Decorativo. */
+.carnet-d-mrz {
+  position: absolute;
+  left: 5.5%; right: 5.5%; bottom: 3.5%;
+  font-family: var(--c-mono);
+  font-size: 6px;
+  letter-spacing: .12em;
+  color: rgba(255,255,255,.38);
+  white-space: nowrap;
+  overflow: hidden;
+}
 
 /* ============================================================================
    Aviso emergente
@@ -1069,4 +3635,730 @@ details.sources[open] > summary::before { content: "Ocultar fuentes  ▴"; }
   }
 
   .sheet { border-radius: var(--radius) var(--radius) 0 0; }
+
+  /* La hoja de "mas" es fija a la ventana: en ancho se acota a la misma columna
+     que el resto, si no cruza la pantalla entera. */
+  .dock-sheet { max-width: 480px; margin: 0 auto; }
 }
+
+/* Contactos de emergencia.
+
+   La fila ENTERA llama, y por eso el nombre y el numero van adentro de un
+   <button> y no de un <div> con un boton chico al costado: esta pantalla se usa
+   con el pulso alterado, y un blanco de 44 px de alto perdona lo que uno de 24
+   no. La cruz de borrar queda aparte justamente para que no se toque sin
+   querer. */
+.contact-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.contact-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contact-call {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-2, rgba(255,255,255,.03));
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.contact-call:active { background: var(--surface-3, rgba(255,255,255,.07)); }
+
+.contact-name {
+  font-weight: 700;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* El numero se muestra tal como se guardo, con sus espacios y guiones: es como
+   la persona lo reconoce en su propia agenda. */
+.contact-phone {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.row-buttons .btn { flex: 1; }
+
+/* La accion principal de la hoja, pegada abajo.
+
+   El boton que cierra la tarea —calcular la ruta, arrancar el viaje, calcular el
+   reparto— no puede quedar del otro lado de un scroll: es lo que la persona vino
+   a hacer. Con la lista larga quedaba fuera de vista y habia que descubrir que
+   la hoja se scrolleaba.
+
+   El fondo NO es decorativo: sin el, el contenido se ve pasando a traves del
+   boton al scrollear. Y `bottom` va NEGATIVO porque `bottom: 0` pega la barra al
+   borde del area de contenido, que queda 14 px arriba del borde real de la hoja
+   por su padding — en esa franja se veia la lista pasar. */
+.sheet-action {
+  position: sticky;
+  bottom: calc(-14px - var(--safe-bottom));
+  z-index: 1;
+  background: var(--surface);
+  margin: 0 -14px calc(-14px - var(--safe-bottom));
+  padding: 10px 14px calc(14px + var(--safe-bottom));
+}
+
+/* Un velo que deja ver que hay mas contenido debajo del borde, en vez de un
+   corte seco que parece el final de la lista. */
+.sheet-action::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 100%;
+  height: 16px;
+  background: linear-gradient(to top, var(--surface), transparent);
+  pointer-events: none;
+}
+
+/* ============================================================================
+   EL VOCABULARIO DEL PROTOTIPO — aprobado el 14/09/2026
+
+   Los cuatro materiales, la chapa de nivel, la fila, el globo del mono y las
+   luces de color. Los valores salen de docs/diseno/prototipo/final.mjs, que es
+   la fuente; el porque de cada uno esta en la skill diseno-camiones-app §16.
+
+   Tres reglas que este vocabulario existe para hacer faciles:
+
+     - UNA sola pieza naranja por region. El naranja es la voz del mono, nunca
+       el boton de un formulario. El globo del mono es esa pieza, y por eso el
+       boton que esta al lado es celeste.
+     - UN cromo por pantalla: frio para el progreso, oro para el nivel, plata
+       para los totales. Si todo brilla, nada brilla.
+     - El mapa en movimiento NO lleva nada de esto. Ahi el registro es sobrio y
+       tiene sus propios tokens (--gps-*).
+
+   Dos diferencias con el prototipo, a proposito:
+
+     - El prototipo esta escrito en modo noche fijo y aca hay dia y noche, asi
+       que todo color que sea del tema sale de su token. Las rgba() que quedan
+       son capas de luz o de sombra, que funcionan sobre los dos fondos.
+     - El prototipo llama "chip" a lo que esta app llama "pill". No se agrega una
+       familia paralela: se suma la variante que faltaba y se le deja el nombre
+       del prototipo como alias, para poder copiar el marcado de los tableros.
+   ========================================================================== */
+
+:root {
+  /* El barniz metalico que llevan los tres cromos por encima de su color. */
+  --metal: linear-gradient(180deg,
+            rgba(255,255,255,.78) 0%, rgba(255,255,255,.28) 20%,
+            rgba(0,0,0,.22) 46%, rgba(255,255,255,.42) 64%,
+            rgba(255,255,255,.06) 82%, rgba(0,0,0,.34) 100%);
+
+  /* La rampa fria: los cuatro escalones del mismo recorrido (celeste a violeta). */
+  --rampa: linear-gradient(90deg, #35b8e8, #8a86f2 55%, #a97bf0);
+
+  /* El oro vuelve a la paleta SOLO para el nivel: lo recupero el usuario para
+     la chapa, y §10 lo habia descartado por calido. No extenderlo. */
+  --oro: linear-gradient(90deg, #e8781f 0%, #f7a53c 32%, #ffe082 58%, #f2b93a 100%);
+
+  --plata: linear-gradient(90deg, #8ea4b3 0%, #eef4f8 42%, #b5c6d1 68%, #e3ecf1 100%);
+}
+
+/* --- las luces: manchas de color de fondo, debajo de todo ------------------ */
+
+.luz { position: absolute; inset: 0; pointer-events: none; }
+
+.luz-brand {
+  background:
+    radial-gradient(70% 45% at 50% 12%, rgba(53,184,232,.40), transparent 70%),
+    radial-gradient(60% 40% at 50% 96%, rgba(138,134,242,.24), transparent 70%),
+    linear-gradient(180deg, #0f1c26 0%, var(--ground) 55%);
+}
+
+.luz-festejo {
+  background:
+    radial-gradient(70% 50% at 50% 30%, rgba(255,200,80,.18), transparent 70%),
+    radial-gradient(80% 60% at 50% 0%, rgba(169,123,240,.40), transparent 65%),
+    linear-gradient(180deg, #171a30 0%, var(--ground) 60%);
+}
+
+.luz-tenue {
+  background:
+    radial-gradient(70% 40% at 50% 20%, rgba(53,184,232,.16), transparent 70%),
+    linear-gradient(180deg, #0f1a22 0%, var(--ground) 60%);
+}
+
+/* De dia la luz se aclara: las mismas manchas sobre fondo claro se ven sucias. */
+:root[data-theme="light"] .luz-brand {
+  background:
+    radial-gradient(70% 45% at 50% 12%, rgba(14,135,184,.16), transparent 70%),
+    linear-gradient(180deg, #e3eef5 0%, var(--ground) 60%);
+}
+
+:root[data-theme="light"] .luz-festejo {
+  background:
+    radial-gradient(70% 50% at 50% 30%, rgba(242,185,58,.20), transparent 70%),
+    linear-gradient(180deg, #f2ecf8 0%, var(--ground) 60%);
+}
+
+:root[data-theme="light"] .luz-tenue {
+  background: linear-gradient(180deg, #e7eef3 0%, var(--ground) 60%);
+}
+
+/* Lo que va sobre una luz necesita su propia capa: la luz es absolute. */
+.sobre-luz { position: relative; z-index: 1; }
+
+/* --- material 1: vidrio ---------------------------------------------------
+   Paneles y globos translucidos sobre los heros con luz. El backdrop-filter es
+   lo que lo hace vidrio: sin el es un gris con borde. */
+
+.vidrio {
+  background: rgba(255,255,255,.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+:root[data-theme="light"] .vidrio {
+  background: rgba(255,255,255,.72);
+  border-color: rgba(14,22,27,.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 8px 24px -14px rgba(14,22,27,.35);
+}
+
+/* --- material 2: neon -----------------------------------------------------
+   Lo ACTIVO se enciende: el camion en uso, el idioma elegido, el campo con
+   foco. UNO por pantalla, o deja de significar "este". */
+
+.neon {
+  border-color: var(--brand) !important;
+  box-shadow:
+    0 0 0 1px rgba(53,184,232,.55),
+    0 0 22px -4px rgba(53,184,232,.75),
+    inset 0 0 18px -12px rgba(53,184,232,.9);
+}
+
+/* --- material 3: cromo, en tres tonos -------------------------------------
+   Frio para el progreso, oro para el nivel, plata para los totales. Uno por
+   pantalla. El texto va en tinta oscura sobre oro y plata, y blanco con sombra
+   doble sobre el frio, que es mas oscuro. */
+
+.cromo-frio {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.85), 0 0 8px rgba(0,0,0,.55);
+  background: var(--metal), var(--rampa);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.4), inset 0 -2px 3px rgba(0,0,0,.25),
+    0 0 0 1px rgba(0,0,0,.35), 0 0 18px -2px rgba(91,156,242,.8);
+}
+
+.cromo-oro {
+  position: relative;
+  overflow: hidden;
+  color: #2b1405;
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  background: var(--metal), var(--oro);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.6), inset 0 -2px 3px rgba(0,0,0,.28),
+    0 0 0 1px rgba(0,0,0,.4), 0 0 26px -2px rgba(255,200,80,.9);
+}
+
+.cromo-plata {
+  position: relative;
+  overflow: hidden;
+  color: #0e161b;
+  text-shadow: 0 1px 0 rgba(255,255,255,.6);
+  background: var(--metal), var(--plata);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.75), inset 0 -2px 3px rgba(0,0,0,.28),
+    0 0 0 1px rgba(0,0,0,.4), 0 0 18px -2px rgba(215,230,240,.7);
+}
+
+/* El brillo que cruza una pieza de cromo. Va en lo que celebra, no en todo. */
+.destello::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 36%, rgba(255,255,255,.9) 50%, transparent 64%);
+  transform: translateX(-110%);
+  animation: destello 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes destello {
+  0%, 62% { transform: translateX(-110%); }
+  100%    { transform: translateX(110%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .destello::after { animation: none; }
+}
+
+/* --- material 4: satinado -------------------------------------------------
+   De vez en cuando: la fila de la cuenta, un catalogo, un dato secundario. Lo
+   demas plano, para que los otros tres se noten. */
+
+.satin {
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
+  border: 1px solid var(--rule);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 2px rgba(0,0,0,.35);
+}
+
+/* --- la chapa de nivel ----------------------------------------------------
+   Pastilla de oro con el numero en un disco oscuro y el nombre en mayusculas:
+   2 · REPARTIDOR. Es el elemento gamificado del usuario y va con el a todos
+   lados: grande en Subiste de nivel, chica junto al nombre en Perfil.
+
+   Subir de nivel es RECIBIR la chapa: es lo que se desbloquea, y por eso no hay
+   que inventar recompensas que el motor no da. */
+
+.chapa {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 7px;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.chapa .n {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(43,20,5,.55);
+  color: #ffe082;
+  font-size: 13px;
+  text-shadow: none;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.25);
+}
+
+.chapa-grande { font-size: 17px; padding: 9px 22px 9px 10px; gap: 12px; }
+.chapa-grande .n { width: 38px; height: 38px; font-size: 19px; }
+
+.chapa-plata .n { background: rgba(14,22,27,.55); color: #eef4f8; }
+
+/* --- el globo del mono ----------------------------------------------------
+   Dos formas que se alternan: VIDRIO naranja con la chip del momento donde hay
+   luz detras o mas texto, y PLENO con el reborde inferior de los botones para
+   una sola frase. La cola va al costado cuando el mono esta al lado, y abajo
+   cuando el mono esta debajo.
+
+   El mono habla, no decora: una pose por momento, siempre la misma. */
+
+.globo {
+  position: relative;
+  flex: none;
+  border-radius: 14px;
+  padding: 11px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: rgba(245,132,58,.16);
+  border: 1px solid rgba(245,132,58,.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+.globo b { font-size: 18px; font-weight: 800; line-height: 1.25; color: var(--accent-ink); }
+.globo p { font-size: 13.5px; line-height: 1.4; color: var(--ink-2); }
+.globo em { font-style: normal; color: var(--accent-ink); font-weight: 800; }
+.globo > .pill { align-self: flex-start; margin-bottom: 2px; }
+
+.globo-abajo { align-items: center; text-align: center; }
+.globo-abajo > .pill { align-self: center; }
+
+.globo-abajo::before,
+.globo-abajo::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  margin-left: -8px;
+  border: 8px solid transparent;
+  border-bottom: 0;
+  border-top-color: rgba(245,132,58,.5);
+}
+
+.globo-abajo::after { bottom: -7px; border-top-color: rgba(245,132,58,.16); }
+
+.globo-lado { flex: 1; min-width: 0; }
+
+.globo-lado::before,
+.globo-lado::after {
+  content: "";
+  position: absolute;
+  left: -9px;
+  bottom: 22px;
+  border: 8px solid transparent;
+  border-left: 0;
+  border-right-color: rgba(245,132,58,.5);
+}
+
+.globo-lado::after { left: -7px; border-right-color: rgba(245,132,58,.16); }
+
+.globo-pleno {
+  background: var(--accent);
+  border: 0;
+  border-bottom: 4px solid var(--accent-deep);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+  backdrop-filter: none;
+}
+
+.globo-pleno b { color: var(--on-accent); }
+.globo-pleno p { color: rgba(43,20,5,.78); }
+.globo-pleno.globo-lado::before { border-right-color: var(--accent); }
+.globo-pleno.globo-lado::after { display: none; }
+.globo-pleno.globo-abajo::before { border-top-color: var(--accent-deep); }
+.globo-pleno.globo-abajo::after { display: none; }
+
+/* El mono va SUELTO con sombra en el piso; el marco de carnet quedo descartado
+   junto con la banda. */
+
+.mono-globo { display: flex; align-items: flex-end; gap: 10px; }
+
+.mono-suelto { width: 96px; height: 96px; flex: none; position: relative; }
+
+.mono-suelto::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 2px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.6), transparent);
+}
+
+.mono-suelto img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.45));
+}
+
+.mono-grande { position: relative; display: flex; justify-content: center; }
+
+.mono-grande img {
+  position: relative;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,.6));
+}
+
+.mono-grande::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 150px;
+  height: 18px;
+  margin-left: -75px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.65), transparent);
+}
+
+/* --- la fila: la caja de toda la app --------------------------------------
+   Icono ilustrado, titulo, subtitulo gris, chip o boton a la derecha, chevron.
+   Es lo que mas le gusto al usuario del prototipo, y por eso es la pieza con la
+   que se arman Configuracion, el menu, los idiomas y los catalogos. */
+
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  text-align: left;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.fila > .grow { display: flex; flex-direction: column; gap: 3px; }
+.fila b { font-size: 15px; line-height: 1.25; }
+.fila .sub { font-size: 12.5px; color: var(--ink-3); line-height: 1.3; }
+.fila > .grow > .pill { align-self: flex-start; }
+
+.chev { flex: none; color: var(--ink-3); }
+
+/* --- los beneficios de la Bienvenida -------------------------------------- */
+
+.beneficio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  flex: 1;
+}
+
+.beneficio span { font-size: 11.5px; color: var(--ink-2); line-height: 1.3; }
+
+/* --- el brillo de un boton y el contorno celeste --------------------------
+   El brillo es lo que hace que un boton se vea pulsado y no plano. El contorno
+   celeste es la accion secundaria de la Bienvenida: no compite con la primera,
+   pero no desaparece como un enlace. */
+
+.btn.brillo { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.18); }
+.btn-primary.brillo { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 24px -4px rgba(53,184,232,.8); }
+
+.btn-outline-brand {
+  background: transparent;
+  border: 2px solid rgba(53,184,232,.55);
+  color: var(--brand-ink);
+}
+
+/* --- la pildora naranja: la voz del mono ----------------------------------
+   El prototipo la llama "chip". Los dos nombres valen para la misma regla, para
+   poder copiar el marcado de los tableros sin traducirlo. */
+
+.pill-accent,
+.chip-accent {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+/* ============================================================================
+   LA ENTRADA — Bienvenida · Idioma · Condiciones · Acceso
+
+   Las cuatro pantallas de los tableros aprobados el 14/09/2026. La maqueta del
+   prototipo esta en estilos en linea; aca va como clases, que es lo que permite
+   que las cuatro compartan la misma columna y el mismo aire sin repetirlos.
+
+   No llevan zocalo: son la puerta. Lo apaga app.js con dock.setPermitido(false).
+   ========================================================================== */
+
+.pantalla-entrada {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ground);
+}
+
+/* La cabecera tambien va sobre la luz.
+
+   Sin esto la luz la TAPA sin dejar rastro: es absolute y la cabecera es
+   estatica, asi que pinta encima aunque este despues en el marcado. Medido el
+   30/09/2026: el titulo y el chip del paso estaban ahi, con su color correcto,
+   y no se veian. Va acotado a la entrada para no tocar la cabecera del resto
+   de la app. */
+.pantalla-entrada > .topbar { position: relative; z-index: 1; }
+
+/* El cuerpo va sobre la luz, que es absolute y ocupa la pantalla entera. */
+.entrada-cuerpo {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22px 20px 0;
+  gap: 4px;
+}
+
+.entrada-rotulo {
+  color: var(--brand-ink);
+  letter-spacing: .14em;
+  text-align: center;
+}
+
+.entrada-centro {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.entrada-centro .globo { max-width: 270px; }
+
+/* El halo detras del mono: lo despega del fondo sin ponerle marco. */
+.entrada-mono { position: relative; margin-top: 6px; }
+
+.entrada-mono::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260px;
+  height: 260px;
+  margin: -130px 0 0 -130px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(53,184,232,.22), transparent);
+}
+
+.entrada-titulo {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -.03em;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.entrada-titulo span { color: var(--brand-ink); }
+
+.entrada-bajada {
+  text-align: center;
+  font-size: 14.5px;
+  color: var(--ink-2);
+  line-height: 1.4;
+  max-width: 300px;
+}
+
+.entrada-beneficios {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 0 4px 18px;
+}
+
+/* Las acciones van pegadas abajo, fuera del cuerpo que scrollea: es la leccion
+   de AD-44 —la accion principal no puede depender de que sobre espacio—. */
+.entrada-acciones {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px 22px;
+}
+
+.entrada-legal { text-align: center; margin-top: 2px; }
+
+/* La columna de los pasos 2 y 3: cabecera, contenido que scrollea, y la accion
+   abajo. El "grow" vacio del marcado es lo que empuja el boton al piso. */
+.entrada-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 16px 20px;
+}
+
+.entrada-scroll > .grow { flex: 1; min-height: 0; }
+
+/* Los terminos: el unico bloque de lectura larga de la app. */
+.condiciones-texto {
+  gap: 12px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.condiciones-texto p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* La tarjeta de vidrio del acceso, y las dos acciones chicas de abajo. El
+   ".enlace" es texto que actua como boton: no compite con la accion principal,
+   pero se toca igual, asi que conserva el alto minimo de un blanco de toque. */
+
+.entrada-tarjeta {
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entrada-secundarias {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.enlace {
+  background: none;
+  border: 0;
+  padding: 8px 0;
+  min-height: 32px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--brand-ink);
+  cursor: pointer;
+}
+
+.enlace.hint { font-weight: 600; color: var(--ink-3); }
+
+/* La fila del menu de "mas" pasa a la fila del prototipo: icono, titulo,
+   subtitulo gris y, cuando corresponde, su chapita. El subtitulo importa: este
+   menu es la pantalla que alguien abre para ver QUE sabe hacer la app. */
+
+.dock-row > .grow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.dock-row > .grow > b { font-size: 16px; font-weight: 800; }
+
+.dock-row > .grow > .sub {
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  line-height: 1.25;
+}
+
+.dock-row[disabled] > .grow > .sub { color: var(--ink-3); opacity: .7; }
+
+/* La fila de la cuenta del invitado: invita, no reta. Es la unica del menu con
+   el acento, porque es la unica accion que se le esta proponiendo. */
+.dock-row-destacada > .grow > b { color: var(--accent-ink); }
+
+/* La lista de Reportes en vivo: la fila del prototipo con el estado a la
+   derecha. Los colores son los mismos que el pin del mapa, para que la lista y
+   el mapa digan lo mismo del mismo reporte. */
+
+.fila-reporte { align-items: flex-start; }
+
+.fila-reporte > .grow { gap: 1px; }
+
+.estado-rojo { background: var(--danger-soft); color: var(--danger); }
+.estado-fijo { background: var(--brand-soft); color: var(--brand-ink); }
+.estado-duda { background: var(--warn-soft); color: var(--warn); }
+.estado-confirmado { background: var(--ok-soft); color: var(--ok); }
+.estado-nuevo { background: var(--surface-2); color: var(--ink-3); }

@@ -6,8 +6,11 @@
  * manana se cambia de biblioteca de mapas, se reescribe este archivo y nada mas.
  */
 
-import { installTruckLayers, setTruckLayersVisible, setTruckHeight, refreshLayerColors } from './layers.js';
-import { registerPmtilesProtocol, buildBasemapStyle } from './basemap.js';
+import { installTruckLayers, setLayerGroupVisible, applyLayerGroups, setCrossingsVisible, setTruckHeight, refreshLayerColors, truckDataset } from './layers.js';
+import { registerPmtilesProtocol, buildBasemapStyle } from './mapa/estilo-mapa.js';
+import { calcomania } from './mapa/piezas.js';
+import { instalarLugares, mostrarLugares, CAPA_LUGARES } from './mapa/lugares.js';
+import { instalarReportes, mostrarReportes, CAPA_REPORTES } from './mapa/reportes.js';
 import { currentApiBase } from './api.js';
 
 const CABA_CENTER = [-58.4370, -34.6083];
@@ -22,7 +25,7 @@ const CABA_CENTER = [-58.4370, -34.6083];
 const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 let map = null;
-let markers = { origin: null, destination: null, gps: null };
+let markers = { origin: null, destination: null, gps: null, flag: null };
 let onLongPress = null;
 
 /** Ya se cayo al raster de respaldo una vez; no hace falta repetirlo. */
@@ -112,21 +115,82 @@ export function createMap(container, handlers = {}) {
         'Generarlo con data/build-basemap.ps1. Detalle: ' + message);
 
       map.setStyle(rasterFallbackStyle());
+      return;
     }
+
+    // Con un oyente puesto, MapLibre deja de imprimir sus errores solo. Y un
+    // estilo con una expresion mal formada falla justamente por aca, sin
+    // excepcion: si no se reimprime, el sintoma es un mapa negro sin una linea
+    // en la consola. Costo una tarde.
+    console.error('Mapa: ' + (message || 'error sin detalle'), event?.error ?? event);
   });
 
-  map.on('click', () => handlers.onTap?.());
+  // El toque lleva ademas que hay debajo del dedo, si hay algo nuestro. Un
+  // icono chico en un mapa no puede explicarse solo: tocarlo tiene que decir en
+  // palabras que es. Sin esto, cada simbolo obliga a aprenderse una leyenda que
+  // no existe.
+  map.on('click', (event) => handlers.onTap?.(featureAt(event.point)));
 
-  // Con estilo vectorial, cambiar de estilo vuelve a disparar 'load'. Las capas
-  // de camion se reinstalan solas porque installTruckLayers es idempotente.
+  // Durante el viaje, si el usuario arrastra o pellizca el mapa, la camara deja
+  // de seguir al camion hasta que toque "Volver a centrar" (waze-08). Solo los
+  // gestos del usuario cuentan: easeTo tambien dispara estos eventos, pero sin
+  // originalEvent, y ese es el que mueve la camara para seguir al vehiculo.
+  for (const gesto of ['dragstart', 'zoomstart']) {
+    map.on(gesto, (event) => {
+      if (!navigating || !following || !event.originalEvent) return;
+      following = false;
+      handlers.onPan?.();
+    });
+  }
+
+  // Los oyentes actuan SOLO si este sigue siendo el mapa de la app. Al cambiar
+  // de pantalla y volver, el mapa viejo se destruye pero su estilo, que venia
+  // cargando, todavia dispara 'load' y 'style.load'; el oyente miraba la
+  // variable `map` y le instalaba capas al mapa NUEVO con el estilo a medio
+  // cargar — o a ningun mapa. Medido en el telefono el 18/09/2026: "use of
+  // text-field requires a style glyphs property" e "Invalid value used in
+  // weak set", con el mapa sin Red ni lugares.
+  const propio = map;
+  const sigueVivo = () => map === propio;
+
+  // Las capas de camion se agregan apenas carga el estilo y antes de que
+  // exista una ruta, para que la ruta quede dibujada por encima.
   map.on('load', async () => {
-    // Las capas de camion se agregan apenas carga el estilo y antes de que
-    // exista una ruta, para que la ruta quede dibujada por encima.
+    if (!sigueVivo()) return;
     await installTruckLayers(map);
+    if (!sigueVivo()) return;
+    instalarLugares(map);
+    instalarReportes(map);
     handlers.onReady?.();
   });
 
+  // 'load' se dispara UNA sola vez por mapa (medido el 17/09/2026): cambiar de
+  // estilo —el raster de respaldo, el dia— no lo vuelve a disparar, y sin esto
+  // el mapa nuevo quedaba sin la Red, sin galibos y sin lugares. 'style.load'
+  // si se dispara en cada estilo; el primero ya lo cubre 'load'.
+  let primerEstilo = true;
+
+  map.on('style.load', async () => {
+    if (primerEstilo) {
+      primerEstilo = false;
+      return;
+    }
+
+    if (!sigueVivo()) return;
+    await installTruckLayers(map);
+    if (!sigueVivo()) return;
+    instalarLugares(map);
+    instalarReportes(map);
+  });
+
   installLongPress();
+
+  // Solo en desarrollo: el mapa a mano desde la consola, para calibrar el
+  // estilo contra los tiles reales (que `kind` hay, como se ve una capa) sin
+  // adivinar. En el telefono y en produccion no existe.
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    window.tnMap = map;
+  }
 
   return map;
 }
@@ -134,7 +198,7 @@ export function createMap(container, handlers = {}) {
 export function destroyMap() {
   map?.remove();
   map = null;
-  markers = { origin: null, destination: null, gps: null };
+  markers = { origin: null, destination: null, gps: null, flag: null };
 }
 
 /* ---------------------------------------------------------------------------
@@ -258,6 +322,67 @@ function place(kind, coords, className, label) {
 export const setOrigin = (coords) => place('origin', coords, 'pin-origin', 'A');
 export const setDestination = (coords) => place('destination', coords, 'pin-destination', 'B');
 
+/**
+ * La bandera a cuadros del destino, durante el viaje (waze-02). Reemplaza al
+ * pin "B" del planificador: en viaje el destino es la llegada, no un punto
+ * que se este eligiendo. Con null se saca.
+ */
+export function setDestinationFlag(coords) {
+  if (!map) return;
+
+  markers.flag?.remove();
+  markers.flag = null;
+
+  if (!coords) return;
+
+  const element = document.createElement('div');
+  element.className = 'gps-bandera';
+  element.innerHTML = calcomania('bandera', 32);
+
+  // El mastil esta a 8 px del borde izquierdo de la calcomania: se corre el
+  // marcador para que su base caiga justo sobre el punto.
+  markers.flag = new maplibregl.Marker({ element, anchor: 'bottom', offset: [8, 2] })
+    .setLngLat([coords.lng, coords.lat])
+    .addTo(map);
+}
+
+/**
+ * Las paradas de un reparto, numeradas en el orden de visita.
+ *
+ * @param {Array<{lat:number, lng:number}>} paradas
+ *   Ya en el orden en que se visitan. El numero que se dibuja es la posicion en
+ *   esta lista, empezando por 1.
+ *
+ * Van como marcadores y no como una capa de simbolos porque tienen que
+ * distinguirse del resto del mapa aunque haya galibos y radares encima: un
+ * marcador se dibuja sobre todo el canvas y no compite por lugar.
+ *
+ * OJO al estilarlos: MapLibre le pone `position: absolute` al elemento y lo ubica
+ * por `transform`. Declarar `position: relative` en `.pin` lo sacaria del mapa —
+ * y con un solo marcador la posicion coincide igual, asi que no se nota hasta
+ * que hay dos.
+ */
+export function setDeliveryStops(paradas) {
+  if (!map) return;
+
+  for (const marcador of deliveryMarkers) {
+    marcador.remove();
+  }
+
+  deliveryMarkers = [];
+
+  for (const [i, parada] of (paradas ?? []).entries()) {
+    if (!Number.isFinite(parada?.lat) || !Number.isFinite(parada?.lng)) continue;
+
+    deliveryMarkers.push(
+      new maplibregl.Marker({ element: pinElement('pin-stop', String(i + 1)) })
+        .setLngLat([parada.lng, parada.lat])
+        .addTo(map));
+  }
+}
+
+let deliveryMarkers = [];
+
 /* ---------------------------------------------------------------------------
    Donde estoy y hacia donde miro
 
@@ -335,29 +460,47 @@ function gpsElement() {
 /* ---------------------------------------------------------------------------
    Ruta
 
-   Se dibuja en tres capas apiladas: un halo grueso que la despega del mapa, la
-   linea de la ruta, y encima los tramos fuera de la Red punteados.
+   Como en Waze (waze-06, medido): una linea de 8 dp en celeste con un canto de
+   1 dp blanco al 35 % que la despega del mapa. Encima, los tramos fuera de la
+   Red en AMARILLO, que en toda la app significa "salis de la Red" — no naranja
+   ni rojo: la norma admite salir de la Red para llegar al destino, asi que
+   pintarlo como infraccion seria mentir sobre lo que dice la ley. El rojo
+   nunca esta sobre una ruta (AD-47).
 
-   Fuera de la Red va en CELESTE y no en naranja ni rojo: la norma admite salir
-   de la Red para llegar al destino, asi que pintarlo como infraccion seria
-   mentir sobre lo que dice la ley.
+   Y sobre la ruta, la flecha blanca de la proxima maniobra: un pedazo de la
+   ruta misma alrededor del giro, con la punta hacia donde se sigue. Es lo que
+   Waze dibuja ademas de la banda, y se mueve cuando cambia la maniobra.
 --------------------------------------------------------------------------- */
 
-const ROUTE_LAYERS = ['route-halo', 'route-line', 'route-access'];
-const ROUTE_SOURCES = ['route', 'route-access'];
+const ROUTE_LAYERS = ['route-casing', 'route-line', 'route-access', 'maniobra-canto', 'maniobra-linea', 'maniobra-punta', 'globo', 'globo-punto'];
+const ROUTE_SOURCES = ['route', 'route-access', 'maniobra', 'maniobra-fin', 'globos'];
+
+/** Ancho de la ruta en px de pantalla y de su canto (1 dp por lado). */
+const ROUTE_WIDTH = 8;
+const ROUTE_CASING = ROUTE_WIDTH + 2;
+
+/** Que maniobra tiene la flecha puesta, para no rehacerla en cada latido. */
+let maniobraDibujada = null;
+
+/** Que paso del viaje tiene los globos puestos, por lo mismo. */
+let globosDibujados = null;
 
 export function clearRoute() {
   if (!map) return;
 
   ROUTE_LAYERS.forEach((id) => map.getLayer(id) && map.removeLayer(id));
   ROUTE_SOURCES.forEach((id) => map.getSource(id) && map.removeSource(id));
+  maniobraDibujada = null;
+  globosDibujados = null;
 }
 
 /**
  * @param {object} route respuesta de la API
  * @param {Array}  accessLegs tramos que usan la excepcion de acceso
+ * @param {{top:number,bottom:number,left:number,right:number}} [encuadre]
+ *   el aire alrededor de la ruta al encuadrarla; sin el, el de la hoja inferior
  */
-export function drawRoute(route, accessLegs = []) {
+export function drawRoute(route, accessLegs = [], encuadre = undefined) {
   if (!map || !route?.geometry?.coordinates?.length) return;
 
   // El estilo puede no haber terminado de cargar cuando llega la ruta: agregar
@@ -367,7 +510,7 @@ export function drawRoute(route, accessLegs = []) {
   // Es intermitente por naturaleza —depende de si contesto antes el servidor o
   // los tiles—, asi que se espera a que el mapa quede quieto y se reintenta.
   if (!map.isStyleLoaded()) {
-    map.once('idle', () => drawRoute(route, accessLegs));
+    map.once('idle', () => drawRoute(route, accessLegs, encuadre));
     return;
   }
 
@@ -380,21 +523,29 @@ export function drawRoute(route, accessLegs = []) {
     data: { type: 'Feature', geometry: { type: 'LineString', coordinates } }
   });
 
+  // DEBAJO de los nombres de calle, no encima.
+  //
+  // Sin esto la ruta tapa justamente el nombre de la calle por la que se va,
+  // que es el dato que el conductor mas necesita durante el viaje. La ruta se
+  // sigue viendo igual: es una linea gruesa y de color, y el texto encima
+  // lleva halo.
+  const antesDeNombres = map.getLayer('calles-nombre') ? 'calles-nombre' : undefined;
+
   map.addLayer({
-    id: 'route-halo',
+    id: 'route-casing',
     type: 'line',
     source: 'route',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: { 'line-color': token('--route-halo'), 'line-width': 11, 'line-opacity': .9 }
-  });
+    paint: { 'line-color': '#ffffff', 'line-width': ROUTE_CASING, 'line-opacity': .35 }
+  }, antesDeNombres);
 
   map.addLayer({
     id: 'route-line',
     type: 'line',
     source: 'route',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: { 'line-color': token('--route'), 'line-width': 6 }
-  });
+    paint: { 'line-color': token('--gps-ruta'), 'line-width': ROUTE_WIDTH }
+  }, antesDeNombres);
 
   // Los tramos de acceso vienen como rangos de indices sobre la geometria.
   const segments = accessLegs
@@ -415,18 +566,293 @@ export function drawRoute(route, accessLegs = []) {
       type: 'line',
       source: 'route-access',
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: {
-        'line-color': token('--route'),
-        'line-width': 6,
-        'line-dasharray': [1.4, 1.1]
-      }
-    });
+      paint: { 'line-color': token('--gps-amarillo'), 'line-width': ROUTE_WIDTH }
+    }, antesDeNombres);
   }
 
-  fitTo(coordinates);
+  fitTo(coordinates, encuadre);
 }
 
-function fitTo(coordinates) {
+/**
+ * Dibuja la flecha blanca de la proxima maniobra sobre la calle.
+ *
+ * @param {{coordinates: number[][], bearing: number}|null} flecha
+ *   la salida de `maneuverArrowPath`, o null para sacarla
+ * @param {number|null} clave que maniobra es (su indice), para no redibujar
+ *   la misma en cada posicion del GPS
+ */
+export function showManeuver(flecha, clave = null) {
+  if (!map) return;
+
+  if (!flecha) {
+    ['maniobra-punta', 'maniobra-linea', 'maniobra-canto'].forEach((id) => map.getLayer(id) && map.removeLayer(id));
+    ['maniobra-fin', 'maniobra'].forEach((id) => map.getSource(id) && map.removeSource(id));
+    maniobraDibujada = null;
+    return;
+  }
+
+  if (clave !== null && clave === maniobraDibujada) return;
+
+  if (!map.isStyleLoaded() || !map.getLayer('route-line')) {
+    map.once('idle', () => showManeuver(flecha, clave));
+    return;
+  }
+
+  const linea = { type: 'Feature', geometry: { type: 'LineString', coordinates: flecha.coordinates } };
+  const fin = {
+    type: 'Feature',
+    properties: { rumbo: flecha.bearing },
+    geometry: { type: 'Point', coordinates: flecha.coordinates[flecha.coordinates.length - 1] }
+  };
+
+  if (map.getSource('maniobra')) {
+    map.getSource('maniobra').setData(linea);
+    map.getSource('maniobra-fin').setData(fin);
+    maniobraDibujada = clave;
+    return;
+  }
+
+  // `lineMetrics` habilita el degradado a lo largo de la linea: la cola de la
+  // flecha nace tenue sobre la ruta y se hace blanca hacia el giro.
+  //
+  // Estas tres capas van ENCIMA de todo, nombres incluidos: en el momento de
+  // la maniobra la flecha es lo unico que importa, y un rotulo que la tape es
+  // un rotulo que se lee despues de doblar.
+  map.addSource('maniobra', { type: 'geojson', lineMetrics: true, data: linea });
+  map.addSource('maniobra-fin', { type: 'geojson', data: fin });
+
+  // Los globos de las calles, si ya estan, quedan encima de la flecha.
+  const antesDeGlobos = map.getLayer('globo-punto') ? 'globo-punto' : undefined;
+
+  map.addLayer({
+    id: 'maniobra-canto',
+    type: 'line',
+    source: 'maniobra',
+    layout: { 'line-join': 'round', 'line-cap': 'butt' },
+    paint: {
+      'line-width': 9,
+      'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(20,26,34,.25)', .2, 'rgba(20,26,34,.9)', 1, 'rgba(20,26,34,.9)']
+    }
+  }, antesDeGlobos);
+
+  map.addLayer({
+    id: 'maniobra-linea',
+    type: 'line',
+    source: 'maniobra',
+    layout: { 'line-join': 'round', 'line-cap': 'butt' },
+    paint: {
+      'line-width': 6,
+      'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(255,255,255,.3)', .2, 'rgba(255,255,255,1)', 1, 'rgba(255,255,255,1)']
+    }
+  }, antesDeGlobos);
+
+  ensureArrowHead();
+
+  map.addLayer({
+    id: 'maniobra-punta',
+    type: 'symbol',
+    source: 'maniobra-fin',
+    layout: {
+      'icon-image': 'maniobra-punta',
+      'icon-size': 1,
+      'icon-rotate': ['get', 'rumbo'],
+      'icon-rotation-alignment': 'map',
+      'icon-pitch-alignment': 'map',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      // La punta se apoya en el final de la linea: el ancla va abajo.
+      'icon-anchor': 'bottom'
+    }
+  }, antesDeGlobos);
+
+  maniobraDibujada = clave;
+}
+
+/**
+ * La punta de la flecha, dibujada en un canvas una sola vez: blanca con el
+ * mismo canto oscuro que la linea. Apunta al norte; la capa la rota.
+ */
+function ensureArrowHead() {
+  if (map.hasImage('maniobra-punta')) return;
+
+  const escala = window.devicePixelRatio || 1;
+  const ancho = 22;
+  const alto = 18;
+  const canvas = document.createElement('canvas');
+  canvas.width = ancho * escala;
+  canvas.height = alto * escala;
+
+  const g = canvas.getContext('2d');
+  g.scale(escala, escala);
+  g.lineJoin = 'round';
+
+  const punta = () => {
+    g.beginPath();
+    g.moveTo(ancho / 2, 1);
+    g.lineTo(ancho - 1, alto - 1);
+    g.lineTo(ancho / 2, alto - 6);
+    g.lineTo(1, alto - 1);
+    g.closePath();
+  };
+
+  punta();
+  g.strokeStyle = 'rgba(20,26,34,.9)';
+  g.lineWidth = 3;
+  g.stroke();
+
+  punta();
+  g.fillStyle = '#ffffff';
+  g.fill();
+
+  map.addImage('maniobra-punta', g.getImageData(0, 0, canvas.width, canvas.height), { pixelRatio: escala });
+}
+
+/* ---------------------------------------------------------------------------
+   Los globos de las calles que vienen
+
+   Como en waze-06: un globo de 30 dp con radio 7 en el azul del globo, el
+   nombre en 18 sp negrita blanco, y la cola apuntando al punto de la calle
+   donde arranca, marcado con un punto blanco. El globo es UNA imagen de nueve
+   partes que MapLibre estira alrededor del texto (`icon-text-fit`), asi que
+   sirve para "Junin" y para "Av. de los / Constituyentes" en dos lineas.
+--------------------------------------------------------------------------- */
+
+/**
+ * Dibuja los globos que devuelve `globosDeRuta`.
+ *
+ * @param {{lineas: string[], punto: number[]}[]} globos
+ * @param {number|null} clave el paso del viaje; con la misma clave no se redibuja
+ */
+export function showBalloons(globos, clave = null) {
+  if (!map) return;
+
+  if (!globos?.length) {
+    ['globo', 'globo-punto'].forEach((id) => map.getLayer(id) && map.removeLayer(id));
+    if (map.getSource('globos')) map.removeSource('globos');
+    globosDibujados = null;
+    return;
+  }
+
+  if (clave !== null && clave === globosDibujados) return;
+
+  if (!map.isStyleLoaded()) {
+    map.once('idle', () => showBalloons(globos, clave));
+    return;
+  }
+
+  const data = {
+    type: 'FeatureCollection',
+    features: globos.map((globo) => ({
+      type: 'Feature',
+      properties: { texto: globo.lineas.join('\n') },
+      geometry: { type: 'Point', coordinates: globo.punto }
+    }))
+  };
+
+  if (map.getSource('globos')) {
+    map.getSource('globos').setData(data);
+    globosDibujados = clave;
+    return;
+  }
+
+  ensureBalloonImage();
+  map.addSource('globos', { type: 'geojson', data });
+
+  // El punto blanco en la calle, con un canto oscuro para que se vea sobre la ruta.
+  map.addLayer({
+    id: 'globo-punto',
+    type: 'circle',
+    source: 'globos',
+    paint: {
+      'circle-radius': 4.5,
+      'circle-color': '#ffffff',
+      'circle-stroke-color': 'rgba(20,26,34,.9)',
+      'circle-stroke-width': 2
+    }
+  });
+
+  map.addLayer({
+    id: 'globo',
+    type: 'symbol',
+    source: 'globos',
+    layout: {
+      'icon-image': 'globo',
+      'icon-text-fit': 'both',
+      // El aire alrededor del texto lo pone el marco de la imagen (5 px, ver
+      // ensureBalloonImage): asi el globo mide 30 con una linea y 48 con dos,
+      // como en Waze.
+      'icon-text-fit-padding': [0, 0, 0, 0],
+      'text-field': ['get', 'texto'],
+      'text-font': ['NotoSans-Bold'],
+      'text-size': 18,
+      'text-line-height': 1.05,
+      'text-justify': 'center',
+      // El globo cuelga arriba y a la izquierda del punto, con la cola en el punto.
+      'text-anchor': 'bottom-right',
+      // La cola termina 8 px arriba y a la izquierda del punto, para no taparlo.
+      'text-offset': [-0.56, -1.22],
+      'text-allow-overlap': true,
+      'icon-allow-overlap': true,
+      'text-ignore-placement': true,
+      'icon-ignore-placement': true
+    },
+    paint: { 'text-color': '#ffffff' }
+  });
+
+  globosDibujados = clave;
+}
+
+/**
+ * La imagen del globo: caja redondeada con la cola abajo a la derecha. Se
+ * dibuja una vez, en un canvas, y se registra con las zonas estirables (todo
+ * menos las esquinas y la cola) y el rectangulo donde va el texto.
+ */
+function ensureBalloonImage() {
+  if (map.hasImage('globo')) return;
+
+  const escala = window.devicePixelRatio || 1;
+  const ancho = 48;
+  const caja = 30;     // alto de la caja sin la cola
+  const cola = 10;     // lo que baja la cola por debajo de la caja
+  const radio = 7;
+  const marco = 5;     // aire entre el texto y el borde de la caja, medido en waze-06
+  const alto = caja + cola;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = ancho * escala;
+  canvas.height = alto * escala;
+
+  const g = canvas.getContext('2d');
+  g.scale(escala, escala);
+  g.fillStyle = token('--gps-globo') || '#1d7699';
+
+  // La caja.
+  g.beginPath();
+  g.roundRect(0, 0, ancho, caja, radio);
+  g.fill();
+
+  // La cola: un triangulo que sale del borde de abajo, a la derecha, y
+  // termina en la esquina inferior derecha de la imagen.
+  g.beginPath();
+  g.moveTo(ancho - 16, caja - 1);
+  g.lineTo(ancho - 1, alto - 1);
+  g.lineTo(ancho - 5, caja - 1);
+  g.closePath();
+  g.fill();
+
+  map.addImage('globo', g.getImageData(0, 0, canvas.width, canvas.height), {
+    pixelRatio: escala,
+    // Se estira el medio de la caja; las esquinas y la cola quedan como estan.
+    stretchX: [[radio + 1, ancho - 16]],
+    stretchY: [[radio + 1, caja - radio - 1]],
+    // El texto va adentro de la caja, a 5 px del borde, nunca sobre la cola.
+    content: [marco, marco, ancho - marco, caja - marco]
+  });
+}
+
+function fitTo(coordinates, padding = { top: 90, bottom: 320, left: 40, right: 40 }, camara = {}) {
+  if (!map || !coordinates?.length) return;
+
   const bounds = coordinates.reduce(
     (box, coord) => box.extend(coord),
     new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
@@ -434,9 +860,19 @@ function fitTo(coordinates) {
 
   map.fitBounds(bounds, {
     // Deja aire arriba para la barra y abajo para la hoja inferior.
-    padding: { top: 90, bottom: 320, left: 40, right: 40 },
-    duration: 600
+    padding,
+    duration: 600,
+    ...camara
   });
+}
+
+/**
+ * Encuadra la ruta entera, cenital y mirando al norte: la vista general del
+ * viaje (waze-02). El aire de arriba y de abajo lo dice quien llama, porque
+ * sabe que tiene puesto sobre el mapa.
+ */
+export function fitRoute(coordinates, padding) {
+  fitTo(coordinates, padding, { pitch: 0, bearing: 0 });
 }
 
 /**
@@ -506,6 +942,10 @@ const VEHICLE_SCREEN_OFFSET = 0.22;
 let vehicleMarker = null;
 let navigating = false;
 
+/** Si la camara sigue al camion. Se suelta con un gesto y se retoma a pedido. */
+let following = true;
+let lastVehicle = null;
+
 /**
  * Pone el mapa en modo viaje.
  *
@@ -521,6 +961,12 @@ let navigating = false;
 export function enterNavigationMode(from) {
   if (!map) return;
   navigating = true;
+  following = true;
+
+  // Los pasos a nivel aparecen recien ahora. Son 312 en la Ciudad y fuera del
+  // viaje no cambian ninguna decision: solo llenan de chapas la pantalla en la
+  // que uno esta armando la ruta.
+  setCrossingsVisible(map, true);
 
   // El punto de la ubicacion propia le deja el lugar a la flecha del vehiculo.
   // Si no, quedan dos marcadores encima del mismo punto y el de la ubicacion
@@ -541,6 +987,10 @@ export function enterNavigationMode(from) {
 export function exitNavigationMode() {
   if (!map) return;
   navigating = false;
+  following = true;
+  lastVehicle = null;
+
+  setCrossingsVisible(map, false);
 
   vehicleMarker?.remove();
   vehicleMarker = null;
@@ -561,8 +1011,9 @@ export function followVehicle(coords, bearing) {
   if (!map) return;
 
   placeVehicle(coords, bearing);
+  lastVehicle = { coords, bearing };
 
-  if (!navigating) return;
+  if (!navigating || !following) return;
 
   map.easeTo({
     center: [coords.lng, coords.lat],
@@ -580,19 +1031,42 @@ export function followVehicle(coords, bearing) {
   });
 }
 
+/** Si la camara esta siguiendo al camion. */
+export const isFollowing = () => following;
+
+/**
+ * Vuelve a seguir al camion: la camara va a donde esta ahora, con la
+ * perspectiva del viaje, y el proximo latido del GPS ya la encuentra ahi.
+ */
+export function setFollowing(si) {
+  following = Boolean(si);
+
+  if (following && navigating && lastVehicle) {
+    followVehicle(lastVehicle.coords, lastVehicle.bearing);
+  }
+}
+
 function placeVehicle(coords, bearing) {
   if (!vehicleMarker) {
+    // El chevron de Waze (waze-06, medido): 40 x 39, celeste con canto blanco
+    // y una base clara que lo hace ver apoyado sobre el mapa, encima de un
+    // disco de 82 apenas mas claro que la calle. Se apilan en una grilla y no
+    // con `position: absolute`, que a un marcador de MapLibre lo saca del mapa.
     const element = document.createElement('div');
-    element.className = 'vehicle';
+    element.className = 'gps-chevron';
     element.innerHTML =
-      '<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">' +
-      '<path d="M12 2 L20 21 L12 17 L4 21 Z" fill="currentColor"/></svg>';
+      '<div class="gps-chevron-disco"></div>' +
+      '<svg viewBox="0 0 40 44" width="40" height="44" aria-hidden="true">' +
+      '<path d="M20 9 L35 35 L20 29 L5 35 Z" fill="#d7e0e3" stroke="#d7e0e3" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M20 4 L35 30 L20 24 L5 30 Z" fill="var(--gps-chevron)" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>' +
+      '</svg>';
 
     vehicleMarker = new maplibregl.Marker({
       element,
       // El marcador rota con el mapa para que la flecha apunte siempre hacia
-      // donde avanza el camion.
-      rotationAlignment: 'map'
+      // donde avanza el camion; se mantiene de pie con la camara inclinada.
+      rotationAlignment: 'map',
+      pitchAlignment: 'viewport'
     }).setLngLat([coords.lng, coords.lat]).addTo(map);
   }
 
@@ -625,9 +1099,68 @@ export function resize() {
    al mapa y no tengan que saber que las capas viven en otro archivo.
 --------------------------------------------------------------------------- */
 
-export const showTruckLayers = (visible) => setTruckLayersVisible(map, visible);
+/** Un cuadro de la hoja de capas: red, galibo, paso, radar o zona. */
+export const showLayerGroup = (grupo, visible) => setLayerGroupVisible(map, grupo, visible);
+export const applyLayers = (capas) => applyLayerGroups(map, capas);
+
+/** Los datasets de camion, para que el motor de avisos los cruce con la ruta. */
+export const datasets = () => ({
+  galibos: truckDataset('alturas'),
+  pasos: truckDataset('pasos'),
+  radares: truckDataset('radares')
+});
 export const useTruckHeight = (metres) => setTruckHeight(map, metres);
 export const refreshColors = () => refreshLayerColors(map);
+
+/** El centro del mapa, donde cae el pin fijo al marcar un lugar. */
+export function center() {
+  if (!map) return null;
+  const { lat, lng } = map.getCenter();
+  return { lat, lng };
+}
+
+/**
+ * Los lugares (puntos de interes) sobre el mapa, como pines. Con el estilo a
+ * medio cargar se espera, como con la ruta: la fuente todavia no existe.
+ */
+export function showPlaces(pois) {
+  if (!map) return;
+
+  if (!map.isStyleLoaded()) {
+    map.once('idle', () => showPlaces(pois));
+    return;
+  }
+
+  instalarLugares(map);
+  mostrarLugares(map, pois);
+}
+
+/** Los reportes de la comunidad sobre el mapa, como pines. Misma espera que los lugares. */
+export function showReports(reportes) {
+  if (!map) return;
+
+  if (!map.isStyleLoaded()) {
+    map.once('idle', () => showReports(reportes));
+    return;
+  }
+
+  instalarReportes(map);
+  mostrarReportes(map, reportes);
+}
+
+/** Los limites de lo que se ve, para pedir los reportes del recuadro. Null sin mapa. */
+export function viewportBounds() {
+  return map?.getBounds() ?? null;
+}
+
+/** Un oyente de 'idle' del mapa (el mapa quedo quieto). Devuelve como sacarlo. */
+export function onIdle(fn) {
+  if (!map) return () => {};
+
+  const propio = map;
+  propio.on('idle', fn);
+  return () => propio.off('idle', fn);
+}
 
 /**
  * Que hay en un punto del mapa, de nuestras capas.
@@ -638,9 +1171,29 @@ export const refreshColors = () => refreshLayerColors(map);
 export function featureAt(point) {
   if (!map) return null;
 
-  const found = map.queryRenderedFeatures(point, {
-    layers: ['altura-fondo', 'paso-punto'].filter((id) => map.getLayer(id))
-  });
+  // El orden de esta lista ES la prioridad, y no es cosmetico: una zona de
+  // riesgo cubre 250 m por lado, asi que cualquier toque adentro de una tambien
+  // le pega a la zona. Si ganara la zona, un puente bajo parado encima de ella
+  // dejaria de poder consultarse. Primero lo puntual, la zona al final.
+  const orden = [CAPA_REPORTES, CAPA_LUGARES, 'altura-senal', 'paso-senal', 'radar-punto', 'zona-riesgo-senal', 'zona-riesgo'];
 
-  return found.length ? found[0] : null;
+  for (const id of orden) {
+    if (!map.getLayer(id)) continue;
+
+    const found = map.queryRenderedFeatures(point, { layers: [id] });
+    if (!found.length) continue;
+
+    // Las manchas de riesgo tienen 450 m de radio y se superponen de a varias,
+    // asi que un toque cae adentro de un monton a la vez. Sin esto contestaria
+    // la primera en orden de dibujo —una cualquiera— y el numero que aparece no
+    // seria el del foco que uno esta viendo. Contesta la peor.
+    if (id === 'zona-riesgo') {
+      return found.reduce((peor, f) =>
+        (f.properties?.hechos ?? 0) > (peor.properties?.hechos ?? 0) ? f : peor);
+    }
+
+    return found[0];
+  }
+
+  return null;
 }

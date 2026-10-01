@@ -32,9 +32,13 @@ public sealed class CabaTruckRoutingPolicy : ITruckRoutingPolicy
     /// </summary>
     private const string OutsideHeavyNetworkPriority = "0.03";
 
-    public CustomModel BuildCustomModel(TruckProfile truck, DateTimeOffset when)
+    public CustomModel BuildCustomModel(TruckProfile truck, DateTimeOffset when) =>
+        BuildCustomModel(truck, when, []);
+
+    public CustomModel BuildCustomModel(TruckProfile truck, DateTimeOffset when, IReadOnlyList<RouteBlockade> blockades)
     {
         ArgumentNullException.ThrowIfNull(truck);
+        ArgumentNullException.ThrowIfNull(blockades);
 
         var priority = new List<CustomModelStatement>();
 
@@ -72,12 +76,38 @@ public sealed class CabaTruckRoutingPolicy : ITruckRoutingPolicy
                 "hgv != DESIGNATED", OutsideHeavyNetworkPriority));
         }
 
+        // --- Bloqueos de la comunidad (reportes validados) ---
+        //
+        // Cada bloqueo es un area del custom model y una sentencia que la deja en
+        // prioridad cero: el motor no pasa por esa cuadra, igual que no pasa por
+        // un tramo mas bajo que el camion. Van despues de las reglas fisicas para
+        // que el modelo sin bloqueos sea byte a byte el de siempre.
+        foreach (var blockade in blockades)
+        {
+            priority.Add(CustomModelStatement.Block($"in_{blockade.Id}"));
+        }
+
         return new CustomModel
         {
             Priority = priority,
-            Speed = []
+            Speed = [],
+            Areas = blockades.Count == 0 ? null : AreasOf(blockades)
         };
     }
+
+    private static GeoJsonFeatureCollection AreasOf(IReadOnlyList<RouteBlockade> blockades) => new()
+    {
+        Features = blockades
+            .Select(b => new GeoJsonFeature
+            {
+                Id = b.Id,
+                Geometry = new GeoJsonPolygon
+                {
+                    Coordinates = [b.Polygon().Select(p => new[] { p.Lon, p.Lat }).ToList()]
+                }
+            })
+            .ToList()
+    };
 
     /// <summary>
     /// Formatea con punto decimal. Imprescindible: el servidor corre en una

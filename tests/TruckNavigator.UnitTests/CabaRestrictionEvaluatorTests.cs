@@ -22,6 +22,35 @@ public class CabaRestrictionEvaluatorTests
         Assert.Contains(verdict.Findings, f => f.Kind == RestrictionKind.MaxWeight);
     }
 
+    // El motor deja pasar un limite de peso con excepcion declarada ("excepto
+    // reparto"): el evaluador tiene que decir lo mismo, o una ruta legal aparece
+    // con "un tramo que no podes transitar".
+    [Fact]
+    public void Weight_limit_with_a_declared_exception_is_conditional_access_not_a_block()
+    {
+        var segment = new RoadSegmentAttributes(
+            StreetName: "Calle con limite salvo reparto", MaxWeightTons: 10, MaxWeightExcept: "delivery",
+            Hgv: HgvAccess.Designated);
+
+        var verdict = _evaluator.Evaluate(segment, SampleTrucks.Heavy(), Noon);
+
+        Assert.True(verdict.IsAllowed);
+        Assert.True(verdict.RequiresAccessException);
+        var finding = Assert.Single(verdict.Findings, f => f.Kind == RestrictionKind.MaxWeight);
+        Assert.Contains("delivery", finding.Description);
+    }
+
+    [Fact]
+    public void Weight_limit_marked_missing_exception_is_still_a_block()
+    {
+        var segment = new RoadSegmentAttributes(
+            StreetName: "Calle con limite de peso", MaxWeightTons: 10, MaxWeightExcept: "missing");
+
+        var verdict = _evaluator.Evaluate(segment, SampleTrucks.Heavy(), Noon);
+
+        Assert.False(verdict.IsAllowed);
+    }
+
     [Fact]
     public void Truck_taller_than_the_segment_clearance_is_forbidden()
     {

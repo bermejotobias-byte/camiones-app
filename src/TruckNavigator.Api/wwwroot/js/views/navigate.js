@@ -12,36 +12,72 @@
  */
 
 import { api } from '../api.js';
+import { hojaDeCuenta } from '../cuenta.js';
+import { CLAVE_DEL_SALTO, CLAVE_DE_POSICION, CLAVE_DE_RECUADRO } from './reportes.js';
 import {
-  getPosition, watchPosition, watchHeading, speak, keepScreenAwake, onTrackingFailed
+  getPosition, watchPosition, watchHeading, speak, keepScreenAwake, onTrackingFailed,
+  vibrate, VIBRACION, call
 } from '../platform.js';
 import {
   prepareRoute, advance, shouldReroute, pendingAnnouncement,
-  speakableInstruction, maneuverArrow
+  speakableInstruction, ANNOUNCE_VIBRATE_AT,
+  alertsAlongRoute, pendingRouteAlert, speakableAlert, maneuverArrowPath
 } from '../navigation.js';
 import * as gl from '../map.js';
+import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso, tarjetaReanudar } from '../mapa/viaje.js';
+import { dibujo, calcomania, pildora } from '../mapa/piezas.js';
+import {
+  porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta,
+  textoDeEstado, chipsDeRuta, cabeceraDeRutas, pildoraDelCamion, hojaRutas,
+  cabeceraSimple, hojaDetalles, loQueImporta, filasDelCamino, fuentesDeLaRuta
+} from '../mapa/rutas.js';
+import { hojaReposo } from '../mapa/reposo.js';
+import { hojaBuscar, cuerpoDeBusqueda, CATEGORIAS } from '../mapa/buscar.js';
+import { hojaCapas, capasActivas } from '../mapa/capas.js';
+import { hojaAportar, hojaMarcar, nombreValido } from '../mapa/aportar.js';
+import { categoriasParaPedir, fichaDeLugar, fichaLugar, metrosEntre } from '../mapa/lugares.js';
+import {
+  featuresParaAvisos, bboxVisible, bboxDeRuta, tipoDeReporte, textoDelToast,
+  hojaGalibo, fichaReporte, promptSigueAhi, deberiaPreguntar, frenoDeRed
+} from '../mapa/reportes.js';
 import { state, setState, prefs, savePrefs, selectedTruck } from '../store.js';
 import {
   html, raw, icon, wire, q, qa, render, debounce, withBusy,
   formatDistance, formatDuration, arrivalTime, toast, toastOk, toastError,
-  cardinal, cardinalName, askChoice, askConfirm
+  cardinal, cardinalName, askChoice, askConfirm, escapeHtml
 } from '../ui.js';
 
-export function navigateView(host, { openDrawer, go }) {
+/**
+ * `puede` dice que permite el estado de la app (app.js). El invitado es una
+ * sesion que en el servidor NO existe, asi que preguntar por isSignedIn() no
+ * alcanza: hay que preguntar por la capacidad concreta.
+ */
+export function navigateView(host, { openDrawer, go, puede }) {
   let origin = null;          // { lat, lng, label }
   let destination = null;
   let route = null;
-  let stage = 'search';       // 'search' | 'route' | 'navigation'
+  let routeOptions = [];      // la recomendada y sus alternativas, ya ordenadas
+  let avisosPorOpcion = [];   // lo que hay en el camino de cada una: radares, galibos, pasos
+  let chosenRoute = 0;        // cuál de todas se está mirando
+  let stage = 'search';       // 'search' (reposo) | 'buscar' | 'route' | 'detalles' | 'ficha' | 'capas' | 'delivery' | 'navigation'
+
+  // --- modo reparto ---
+  let stops = [];             // paradas como las cargó el usuario
+  let deliveryOrder = null;   // índices sobre `stops`, en el orden de visita
   let editing = 'destination';
 
   // --- estado de la navegacion en curso ---
   let prepared = null;        // ruta preparada por el motor
   let navState = null;        // ultimo estado calculado
   let previousNav = null;     // el anterior, para saber que umbral se cruzo
-  let announced = new Set();  // avisos ya dichos
+  let announced = new Set();  // avisos de maniobra ya dichos
+  let routeAlerts = [];       // galibos, pasos a nivel y radares sobre la ruta
+  let alerted = new Set();    // avisos de ruta ya dados
   let stopWatching = null;    // corta el seguimiento del GPS
   let rerouting = false;
   let lastRerouteAt = null;
+  let viaje = null;           // la pantalla del viaje (js/mapa/viaje.js), mientras dura
+  let pregunta = null;        // la tarjeta de "¿Seguís yendo a…?", mientras esta
 
   // Si el viaje arranco pero todavia no llego ninguna posicion. Lo unico que
   // cambia es lo que dice la pantalla, y no es poco: sin esto mostraba un guion
@@ -56,7 +92,6 @@ export function navigateView(host, { openDrawer, go }) {
     <div id="map"></div>
     <div class="map-overlay">
       <div class="map-top">
-        <button class="fab" id="menu" aria-label="Menú">${raw(icon('menu'))}</button>
         <div class="grow"></div>
         <button class="fab fab-panic" id="panic" aria-label="Emergencia">SOS</button>
       </div>
@@ -84,7 +119,8 @@ export function navigateView(host, { openDrawer, go }) {
           <span class="compass-facing" id="compass-facing">—</span>
         </div>
 
-        <button class="fab" id="layers" aria-label="Capas de camión">${raw(icon('bridge'))}</button>
+        <button class="fab fab-reportar" id="reportar" aria-label="Reportar">${raw(calcomania('lugarMas', 30))}</button>
+        <button class="fab" id="capas" aria-label="Capas">${raw(dibujo('capas', 24, 2.2))}</button>
         <button class="fab" id="locate" aria-label="Mi ubicación">${raw(icon('gps'))}</button>
       </div>
 
@@ -99,47 +135,108 @@ export function navigateView(host, { openDrawer, go }) {
       // Las capas de camion ya estan puestas. Se aplican la preferencia
       // guardada y la altura del camion elegido, que es la que decide de que
       // color se pinta cada galibo.
-      gl.showTruckLayers(prefs.truckLayers);
+      gl.applyLayers(capasActivas(prefs));
       gl.useTruckHeight(selectedTruck()?.heightMeters);
-      updateLayerButton();
       locate({ silent: true });
+      cargarLugares();
+      cargarLugaresDelMapa();
+      escucharElMapaParaReportes();
+      cargarReportes();
+
+      // Si se llego tocando una fila de "Reportes", la camara va ahi de una.
+      volarAlDelSalto();
     },
-    onTap: () => hideSuggestions(),
-    onLongPress: (point) => setPointFromMap(point)
+    onTap: (feature) => { hideSuggestions(); explicarSimbolo(feature); },
+    onLongPress: (point) => setPointFromMap(point),
+    // El usuario movio el mapa durante el viaje: la camara deja de seguir al
+    // camion y aparece "Volver a centrar" (waze-08).
+    onPan: () => viaje?.movido(true)
   });
 
+  /**
+   * Tocar un simbolo del mapa dice, en palabras, que es.
+   *
+   * Un icono chico no puede explicarse solo, y una leyenda fija ocupa pantalla y
+   * nadie la lee. Es lo que hacen Maps y Waze: el mapa muestra el simbolo, el
+   * toque lo explica.
+   */
+  function explicarSimbolo(feature) {
+    if (!feature) return;
+
+    const p = feature.properties ?? {};
+
+    if (feature.layer?.id === 'lugar-pin') {
+      abrirFicha(p.id);
+      return;
+    }
+
+    if (feature.layer?.id === 'reporte-pin') {
+      abrirFichaReporte(p.id);
+      return;
+    }
+
+    if (feature.layer?.id === 'altura-senal') {
+      const altura = Number(p.metres).toFixed(2).replace('.', ',');
+      const camion = selectedTruck();
+      const donde = p.name ? ` en ${p.name}` : '';
+
+      if (camion && p.metres < camion.heightMeters) {
+        toastError(`Altura máxima ${altura} m${donde}. No pasás: tu camión mide ${camion.heightMeters} m.`);
+      } else {
+        toast(`Puente con altura máxima de ${altura} m${donde}.`, 'info');
+      }
+
+      return;
+    }
+
+    if (feature.layer?.id === 'paso-senal') {
+      const barrera = {
+        no: 'sin barrera',
+        yes: 'con barrera', full: 'con barrera completa',
+        half: 'con media barrera', double_half: 'con doble media barrera'
+      }[p.barrier];
+
+      toast(`Paso a nivel ${barrera ?? '— la fuente no dice si tiene barrera'}.`, 'info');
+      return;
+    }
+
+    if (feature.layer?.id === 'radar-punto') {
+      toast(`Radar de velocidad · ${p.ubicacion}`, 'info');
+      return;
+    }
+
+    if (feature.layer?.id === 'zona-riesgo' || feature.layer?.id === 'zona-riesgo-senal') {
+      // Sin números, a propósito. Antes decía cuántos robos hubo y cuántas veces
+      // el promedio de la Ciudad: era un dato que el conductor no puede usar
+      // manejando y que además invitaba a comparar zonas con una precisión que
+      // la fuente no tiene. Lo único accionable es si conviene parar acá o no.
+      //
+      // Y no dice "segura" en ningún caso: este mapa marca lo peligroso, así que
+      // lo que no está marcado es lo que nadie marcó, no lo que alguien revisó.
+      const donde = p.barrio ? ` · ${p.barrio}` : '';
+
+      toast(`Zona peligrosa${donde}. Marcada por conductores, no es un dato oficial.`, 'warn', 6000);
+    }
+  }
+
   wire(host, {
-    '#menu': openDrawer,
     '#locate': () => locate({ silent: false }),
     '#panic': () => go('emergencia'),
-    '#layers': () => toggleTruckLayers(),
+    '#capas': () => abrirCapas(),
+    // Reportar es lo primero que un invitado va a querer tocar, y lo primero
+    // que no puede: se lo dice el mono antes de abrir nada.
+    '#reportar': async () => {
+      if (!puede().reportar) {
+        if (await hojaDeCuenta('reportar')) go('cuenta-nueva');
+        return;
+      }
+
+      aportarLugar();
+    },
     '#compass-dial': () => explainHeading(),
     '#zoom-in': () => gl.zoomIn(),
     '#zoom-out': () => gl.zoomOut()
   });
-
-  /**
-   * Prende y apaga las capas de camion.
-   *
-   * Se puede apagar a proposito: con la Red, los galibos y los pasos a nivel
-   * encendidos el mapa dice mucho, y a veces lo que hace falta es ver la calle
-   * limpia. La eleccion se recuerda.
-   */
-  function toggleTruckLayers() {
-    savePrefs({ truckLayers: !prefs.truckLayers });
-    gl.showTruckLayers(prefs.truckLayers);
-    updateLayerButton();
-
-    toastOk(prefs.truckLayers
-      ? 'Red, puentes y pasos a nivel a la vista.'
-      : 'Capas de camión apagadas.');
-  }
-
-  /** El boton se pinta segun si las capas estan encendidas. */
-  function updateLayerButton() {
-    const button = q(host, '#layers');
-    if (button) button.style.color = prefs.truckLayers ? 'var(--brand)' : 'var(--ink-3)';
-  }
 
   /* ------------------------------------------------------------------------
      Brujula
@@ -233,14 +330,808 @@ export function navigateView(host, { openDrawer, go }) {
   }
 
   function drawSheet() {
+    // Mientras se elige ruta, los controles del mapa se van: la pantalla es
+    // la cabecera, la tira de mapa y la lista.
+    host0.classList.toggle('is-eligiendo', stage === 'route' || stage === 'detalles');
+    if (pregunta) pregunta.hidden = stage !== 'search';
+
     if (stage === 'navigation') return drawNavigation();
-    if (stage === 'route') return drawRoute();
-    drawSearch();
+    if (stage === 'route') return drawRutas();
+    if (stage === 'detalles') return drawDetalles();
+    if (stage === 'ficha') return drawFicha();
+    if (stage === 'ficha-reporte') return drawFichaReporte();
+    if (stage === 'capas') return drawCapas();
+    if (stage === 'delivery') return drawDelivery();
+    if (stage === 'buscar') return drawBuscar();
+    drawReposo();
   }
 
-  // --- buscar ---------------------------------------------------------------
+  /* ------------------------------------------------------------------------
+     Reposo y busqueda (waze-03 y waze-05)
 
-  function drawSearch() {
+     En reposo hay una hoja de 150 con la pildora "¿Adónde vas?" y los atajos
+     de Casa, Deposito y Nuevo. Tocar cualquiera abre la busqueda, que cubre el
+     mapa: categorias, Casa y Deposito, recientes, mas opciones y, desde la
+     tercera letra, las sugerencias del geocoder (AD-10). Elegir un destino
+     calcula la ruta directo: no hay boton de "Calcular".
+  ------------------------------------------------------------------------ */
+
+  // Casa y Deposito viven en el servidor (AD-43); los recientes salen de los viajes.
+  let lugares = { Home: null, Depot: null };
+  let recientes = [];
+  let busqueda = null;   // { objetivo, texto, sugerencias } mientras la hoja esta abierta
+
+  /* ------------------------------------------------------------------------
+     La capa de lugares (js/mapa/lugares.js)
+
+     Los puntos de interes de las categorias que el camionero tiene
+     prendidas (prefs.lugares.categorias, los chips de la busqueda) como pines
+     sobre el mapa. Se piden con el camion elegido: asi cada lugar vuelve con
+     los votos de camiones como el suyo y con el voto propio. "Solo aptos"
+     arranca apagado; la hoja de capas lo prende (tarea 24).
+  ------------------------------------------------------------------------ */
+
+  let lugaresEnMapa = [];   // los ultimos pedidos, para abrir la ficha por id
+
+  async function cargarLugaresDelMapa() {
+    const categorias = categoriasParaPedir(prefs.lugares?.categorias ?? []);
+
+    if (!categorias) {
+      lugaresEnMapa = [];
+      gl.showPlaces([]);
+      return;
+    }
+
+    try {
+      lugaresEnMapa = await api.pois(categorias, selectedTruck()?.id, prefs.lugares?.soloAptos ? true : undefined);
+      gl.showPlaces(lugaresEnMapa);
+    } catch (error) {
+      toastError(`No se pudieron traer los lugares: ${error.message}`);
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     La hoja de capas (js/mapa/capas.js)
+
+     Un solo boton flotante en vez de los dos de antes: la hoja prende y
+     apaga cada dato para el camion por separado, las categorias de lugares
+     —los mismos chips que la busqueda— y "solo aptos para este camion", que
+     dice cuantos lugares oculta. Lo elegido se recuerda en prefs.capas y
+     prefs.lugares.
+  ------------------------------------------------------------------------ */
+
+  let ocultosPorSoloAptos = null;   // cuantos lugares esconde el filtro, cuando se sabe
+
+  function abrirCapas() {
+    if (stage !== 'search' && stage !== 'ficha') return;
+    stage = 'capas';
+    drawSheet();
+    contarOcultos();
+  }
+
+  function cerrarCapas() {
+    stage = 'search';
+    drawSheet();
+  }
+
+  function drawCapas() {
+    const hoja = sheetAs('gps-hoja-capas');
+    hoja.innerHTML = hojaCapas({
+      capas: capasActivas(prefs),
+      categorias: prefs.lugares?.categorias ?? [],
+      soloAptos: !!prefs.lugares?.soloAptos,
+      camion: selectedTruck(),
+      ocultos: ocultosPorSoloAptos
+    });
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, id } = boton.dataset;
+      if (accion === 'cerrar') cerrarCapas();
+      if (accion === 'capa') alternarCapa(id);
+      if (accion === 'categoria') { alternarCategoria(id); contarOcultos(); }
+      if (accion === 'solo-aptos') alternarSoloAptos();
+      if (accion === 'aportar') aportarLugar();
+    };
+  }
+
+  function alternarCapa(id) {
+    const capas = capasActivas(prefs);
+    capas[id] = !capas[id];
+    savePrefs({ capas });
+    gl.showLayerGroup(id, capas[id]);
+    drawSheet();
+  }
+
+  /** Prende o apaga una categoria de lugares; lo usan la busqueda y la hoja de capas. */
+  function alternarCategoria(id) {
+    const activas = new Set(prefs.lugares?.categorias ?? []);
+    activas.has(id) ? activas.delete(id) : activas.add(id);
+    savePrefs({ lugares: { ...(prefs.lugares ?? {}), categorias: [...activas] } });
+    cargarLugaresDelMapa();
+    if (stage === 'capas') drawSheet();
+  }
+
+  function alternarSoloAptos() {
+    if (!selectedTruck()) return;
+    savePrefs({ lugares: { ...(prefs.lugares ?? {}), soloAptos: !prefs.lugares?.soloAptos } });
+    cargarLugaresDelMapa();
+    drawSheet();
+  }
+
+  /**
+   * Cuantos lugares de las categorias prendidas esconde "solo aptos": la
+   * diferencia entre pedirlos con y sin el filtro. Se cuenta al abrir la hoja
+   * y al cambiar de categoria; sin camion no hay filtro que contar.
+   */
+  async function contarOcultos() {
+    const camion = selectedTruck();
+    const categorias = categoriasParaPedir(prefs.lugares?.categorias ?? []);
+
+    if (!camion || !categorias) {
+      ocultosPorSoloAptos = categorias ? null : 0;
+      if (stage === 'capas') drawSheet();
+      return;
+    }
+
+    try {
+      const [todos, aptos] = await Promise.all([api.pois(categorias, camion.id), api.pois(categorias, camion.id, true)]);
+      ocultosPorSoloAptos = todos.length - aptos.length;
+    } catch {
+      ocultosPorSoloAptos = null;
+    }
+
+    if (stage === 'capas') drawSheet();
+  }
+
+  /* ------------------------------------------------------------------------
+     Aportar un lugar (js/mapa/aportar.js)
+
+     Es OTRA capa sobre la pantalla, como la del viaje: se abre desde el
+     boton amarillo del viaje y desde "Aportar un lugar" de la hoja de capas,
+     y tiene que verse igual en los dos casos. Primero "¿Qué hay acá?" con
+     las seis categorias; elegida una, el pin fijo en el centro del mapa —se
+     mueve el mapa, no el pin— y la hoja corta con la categoria, el nombre y
+     Guardar. El lugar nace de la comunidad con el voto de quien lo carga
+     (AD-46); lo que paga lo dice el servidor.
+  ------------------------------------------------------------------------ */
+
+  let aporte = null;   // { capa, categoria, nombre } mientras se aporta
+
+  function aportarLugar() {
+    if (stage === 'capas') cerrarCapas();
+    if (aporte) return;
+
+    const capa = document.createElement('div');
+    capa.className = 'gps-aporte';
+    host0.appendChild(capa);
+
+    aporte = { capa, categoria: null, nombre: '' };
+    pintarAporte();
+  }
+
+  function cerrarAporte() {
+    if (!aporte) return;
+    aporte.capa.remove();
+    aporte = null;
+
+    // Marcando durante el viaje la camara dejo de seguir al camion.
+    if (stage === 'navigation') viaje?.movido(!gl.isFollowing());
+  }
+
+  function pintarAporte() {
+    const { capa, categoria, nombre } = aporte;
+
+    capa.innerHTML = aporte.galibo
+      ? `<div class="gps-hoja-aportar">${hojaGalibo({ valor: aporte.galibo.valor })}${aporte.galibo.otro ? otroGaliboMarkup() : ''}</div>`
+      : categoria
+        ? `${cabeceraSimple('Nuevo lugar')}
+         <div class="gps-pin-fijo" aria-hidden="true">${calcomania('lugarMas', 44)}</div>
+         <div class="gps-hoja-marcar">${hojaMarcar({ categoria, nombre })}</div>`
+        : `<div class="gps-hoja-aportar">${hojaAportar()}</div>`;
+
+    capa.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, id } = boton.dataset;
+      if (accion === 'cerrar') cerrarAporte();
+      if (accion === 'volver') { aporte.categoria = null; pintarAporte(); }
+      if (accion === 'guardar') guardarAporte(boton);
+
+      // Los reportes de la comunidad: un toque, salvo el galibo, que pide los metros.
+      if (accion === 'reportar') reportar(boton.dataset.tipo);
+      if (accion === 'galibo-valor') enviarReporte('LowClearance', Number(boton.dataset.valor));
+      if (accion === 'galibo-otro') { aporte.galibo.otro = true; pintarAporte(); q(capa, '#gps-galibo-otro')?.focus(); }
+      if (accion === 'galibo-guardar') {
+        const metros = Number(String(q(capa, '#gps-galibo-otro')?.value ?? '').replace(',', '.'));
+        if (!Number.isFinite(metros) || metros < 2 || metros > 6) { toastError('Los metros del gálibo van entre 2,0 y 6,0.'); return; }
+        enviarReporte('LowClearance', metros);
+      }
+
+      if (accion === 'categoria') {
+        // Desde la grilla se elige; desde el chip de la hoja de marcar se
+        // vuelve a la grilla, guardando lo escrito.
+        aporte.nombre = q(capa, '#gps-aportar-nombre')?.value ?? aporte.nombre;
+        aporte.categoria = id ?? null;
+        pintarAporte();
+      }
+    };
+
+    if (categoria) {
+      const input = q(capa, '#gps-aportar-nombre');
+      input.addEventListener('input', () => { aporte.nombre = input.value; });
+      input.addEventListener('keydown', (event) => { if (event.key === 'Enter') guardarAporte(q(capa, '#gps-aportar-guardar')); });
+      input.focus();
+    }
+  }
+
+  async function guardarAporte(boton) {
+    const { categoria, nombre } = aporte;
+    const camion = selectedTruck();
+    const motivo = nombreValido(nombre);
+
+    if (motivo) { toastError(motivo); return; }
+    if (!camion) { toastError('Elegí un camión: el aporte lleva tu voto, y el voto dice para qué tipo vale.'); return; }
+
+    const centro = gl.center();
+    if (!centro) return;
+
+    const lugar = {
+      name: nombre.trim(),
+      category: CATEGORIAS.find((c) => c.id === categoria)?.categoria ?? categoria,
+      latitude: centro.lat,
+      longitude: centro.lng,
+      truckId: camion.id
+    };
+
+    await withBusy(boton, 'Guardando', async () => {
+      try {
+        const { earned } = await api.addPoi(lugar);
+        toastOk(earned?.contributionExperience ? `Listo • +${earned.contributionExperience} EXP` : 'Listo, lugar guardado.');
+        cerrarAporte();
+        cargarLugaresDelMapa();
+      } catch (error) {
+        // 409: ya hay uno igual a menos de 25 m. Se ofrece votarlo en vez
+        // de duplicarlo: el voto dice lo mismo que el aporte queria decir.
+        if (error.status === 409 && error.problem?.existingId) {
+          const votar = await askConfirm({
+            title: 'Ya hay un lugar ahí',
+            message: 'Hay uno de la misma categoría a menos de 25 metros. ¿Lo votás como apto para tu camión en vez de cargarlo de nuevo?',
+            confirmLabel: 'Votarlo',
+            cancelLabel: 'Dejarlo'
+          });
+
+          if (votar) await votarExistente(error.problem.existingId, camion);
+          cerrarAporte();
+          return;
+        }
+
+        toastError(error.message);
+      }
+    });
+  }
+
+  async function votarExistente(id, camion) {
+    try {
+      const { earned } = await api.votePoi(id, camion.id, 'Suitable');
+      toastOk(earned?.contributionExperience ? `Voto guardado • +${earned.contributionExperience} EXP` : 'Voto guardado.');
+      cargarLugaresDelMapa();
+    } catch (error) {
+      toastError(`No se pudo votar: ${error.message}`);
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Los reportes de la comunidad (js/mapa/reportes.js; spec del 19/09/2026)
+
+     Un toque en la grilla reporta en la posicion GPS; los reportes del
+     recuadro se traen al quedar quieto el mapa (reposo) y cada 60 s sobre
+     el recuadro de la ruta (viaje); entran a los avisos como un dataset mas;
+     tocar un pin abre la ficha con "sigue ahi" / "ya no esta"; y al pasar
+     junto a uno en viaje aparecen los dos botones diez segundos.
+  ------------------------------------------------------------------------ */
+
+  let reportesEnMapa = [];          // los ultimos pedidos, para la ficha por id
+  let fichaReporteAbierta = null;   // el reporte abierto en la hoja, mientras esta
+  let ultimoFix = null;             // el ultimo fix del GPS: {lat, lng, speed, heading}
+  let refrescoDeReportes = null;    // el intervalo de 60 s del viaje
+  let quitarIdle = null;            // saca el oyente de 'idle' del mapa
+  const preguntados = new Set();    // reportes por los que ya se pregunto en este viaje
+  const distanciasAnteriores = new Map();   // id -> distancia en el latido anterior
+  let sigueAbierto = null;          // el "¿sigue ahi?" en pantalla, con su temporizador
+  const freno = frenoDeRed();       // frena los pedidos cuando se cae la red
+
+  const REFRESCO_EN_VIAJE_MS = 60_000;
+  const PROMPT_MS = 10_000;
+  const DESHACER_MS = 5_000;
+
+  /** Los datasets de camion mas los reportes que hay ahora: es lo que cruza el motor de avisos. */
+  const datasetsConReportes = () => ({ ...gl.datasets(), reportes: featuresParaAvisos(reportesEnMapa) });
+
+  async function cargarReportes({ bbox = null } = {}) {
+    const caja = bbox ?? (gl.viewportBounds() ? bboxVisible(gl.viewportBounds()) : null);
+
+    if (caja) recordarRecuadro(caja);
+    if (!caja) return;
+
+    // Con el servidor caido MapLibre reintenta los tiles sin parar y cada
+    // reintento vuelve a disparar 'idle': sin freno son 60 pedidos por minuto
+    // para siempre. El reloj se toma ANTES de pedir y no al fallar: un pedido
+    // que muere por timeout tarda varios segundos, y contar la espera desde ahi
+    // correria el refresco de 60 s del viaje un ciclo entero.
+    const ahora = Date.now();
+    if (!freno.permite(ahora, caja)) return;
+
+    try {
+      reportesEnMapa = await api.reports(caja, selectedTruck()?.id);
+      freno.exito(caja, ahora);
+    } catch (error) {
+      // Sin red el mapa sigue sin reportes; se reintenta mas tarde, cada vez
+      // con mas espera. Que el error frene o no lo decide el freno: un 4xx no.
+      const espera = freno.fallo(error, ahora);
+      console.warn(`reportes: no se pudieron traer: ${error.message}${espera ? ` — se reintenta en ${espera / 1000} s` : ''}`);
+      return;
+    }
+
+    gl.showReports(reportesEnMapa);
+
+    // En viaje, los avisos se rehacen con lo nuevo sin perder los ya dados.
+    if (prepared && stage === 'navigation') {
+      routeAlerts = alertsAlongRoute(prepared, datasetsConReportes());
+    }
+
+    if (fichaReporteAbierta) {
+      const actual = reportesEnMapa.find((r) => r.id === fichaReporteAbierta.id);
+      if (actual) {
+        fichaReporteAbierta = actual;
+        if (stage === 'ficha-reporte') drawFichaReporte();
+      }
+    }
+
+    abrirElQueVieneDeLaLista();
+  }
+
+  /* ------------------------------------------------------------------------
+     El puente con la lista de "Reportes"
+
+     La lista no tiene mapa propio: lee de sessionStorage donde estabas para
+     saber que pedir, y deja ahi el reporte que hay que mostrar cuando alguien
+     toca una fila. La lista dice QUE hay; el mapa dice DONDE.
+  ------------------------------------------------------------------------ */
+
+  const recordarDonde = (punto) => guardar(CLAVE_DE_POSICION, punto);
+  const recordarRecuadro = (caja) => guardar(CLAVE_DE_RECUADRO, caja);
+
+  function guardar(clave, valor) {
+    try {
+      sessionStorage.setItem(clave, JSON.stringify(valor));
+    } catch {
+      // Sin sessionStorage la lista pide prender la ubicacion, que es peor pero
+      // no es un error: no vale la pena romper el mapa por esto.
+    }
+  }
+
+  /**
+   * El reporte que se toco en la lista, esperando a que el mapa lo tenga.
+   *
+   * Se saca de sessionStorage AL MONTAR y se guarda en memoria: si se leyera
+   * cada vez, una clave que quedo sin usar reabriria mas tarde una ficha que
+   * nadie pidio. Y si se consumiera en el primer intento, el salto se perderia,
+   * porque al montar el mapa todavia no pidio los reportes.
+   */
+  let saltoPendiente = (() => {
+    try {
+      const guardado = sessionStorage.getItem(CLAVE_DEL_SALTO);
+      sessionStorage.removeItem(CLAVE_DEL_SALTO);
+      return guardado ? JSON.parse(guardado) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  /**
+   * Vuela al reporte que se toco en la lista.
+   *
+   * El punto viene con el salto, asi que la camara se mueve DE UNA: esperar a
+   * tener los reportes cargados dejaba el mapa donde estaba y el salto se
+   * perdia, que fue lo que paso la primera vez que se probo.
+   */
+  function volarAlDelSalto() {
+    if (!saltoPendiente || !Number.isFinite(saltoPendiente.lat)) return;
+
+    gl.flyTo({ lat: saltoPendiente.lat, lng: saltoPendiente.lng }, { minZoom: 16 });
+  }
+
+  /** Y abre su ficha cuando el reporte aparece entre los del mapa. */
+  function abrirElQueVieneDeLaLista() {
+    if (!saltoPendiente) return;
+
+    const reporte = reportesEnMapa.find((r) => r.id === saltoPendiente.id);
+
+    if (!reporte) return;
+
+    saltoPendiente = null;
+    abrirFichaReporte(reporte.id);
+  }
+
+  /** En reposo, al quedar quieto el mapa: el recuadro visible, con un segundo de espera. */
+  function escucharElMapaParaReportes() {
+    quitarIdle?.();
+    quitarIdle = gl.onIdle(debounce(() => {
+      if (stage !== 'navigation') cargarReportes();
+    }, 1000));
+  }
+
+  /** En viaje: el recuadro de la ruta mas 500 m, ahora y cada 60 s. */
+  function empezarRefrescoDeReportes() {
+    pararRefrescoDeReportes();
+    const pedir = () => {
+      const coords = route?.geometry?.coordinates;
+      if (coords?.length) cargarReportes({ bbox: bboxDeRuta(coords, 500) });
+    };
+    pedir();
+    refrescoDeReportes = setInterval(pedir, REFRESCO_EN_VIAJE_MS);
+  }
+
+  function pararRefrescoDeReportes() {
+    if (refrescoDeReportes) clearInterval(refrescoDeReportes);
+    refrescoDeReportes = null;
+    cerrarSigueAhi();
+    preguntados.clear();
+    distanciasAnteriores.clear();
+  }
+
+  /** Reportar un tipo desde la grilla: el galibo pide los metros primero; el resto sale al toque. */
+  function reportar(tipo) {
+    if (tipoDeReporte(tipo).pideValor) {
+      aporte.galibo = { valor: null, otro: false };
+      pintarAporte();
+      return;
+    }
+
+    enviarReporte(tipo, null);
+  }
+
+  async function enviarReporte(tipo, valor) {
+    const fix = ultimoFix ?? (ultimaPosicion ? { lat: ultimaPosicion.lat, lng: ultimaPosicion.lng } : null);
+
+    if (!fix) {
+      toastError('Sin GPS no se puede reportar: esperá la señal.');
+      return;
+    }
+
+    const cuerpo = {
+      type: tipo,
+      latitude: fix.lat,
+      longitude: fix.lng,
+      headingDegrees: Number.isFinite(fix.heading) ? fix.heading : null,
+      speedMps: Number.isFinite(fix.speed) ? fix.speed : null,
+      // En viaje la calle es la del paso actual (la de la pildora negra); en
+      // reposo no se sabe y la resuelve el servidor.
+      street: stage === 'navigation' ? (navState?.step?.streetName ?? null) : null,
+      value: valor
+    };
+
+    try {
+      const creado = await api.addReport(cuerpo);
+      cerrarAporte();
+      reportesEnMapa = [creado, ...reportesEnMapa.filter((r) => r.id !== creado.id)];
+      gl.showReports(reportesEnMapa);
+      mostrarDeshacer(textoDelToast(creado), creado.id);
+    } catch (error) {
+      // 409: ya hay uno igual cerca. Se ofrece confirmarlo en vez de duplicarlo.
+      if (error.status === 409 && error.problem?.existingId) {
+        const confirmar = await askConfirm({
+          title: 'Ya hay un reporte igual cerca',
+          message: '¿Sigue ahí? Confirmarlo vale más que repetirlo.',
+          confirmLabel: 'Sigue ahí',
+          cancelLabel: 'Dejarlo'
+        });
+
+        cerrarAporte();
+        if (confirmar) await votarReporte(error.problem.existingId, 'StillThere');
+        return;
+      }
+
+      // 429 trae "Espera N segundos"; 400, el motivo. Los dos vienen escritos para la persona.
+      toastError(error.message);
+    }
+  }
+
+  /** "Reportado · Accidente en ..." con Deshacer, cinco segundos, donde va la tarjeta de aviso. */
+  function mostrarDeshacer(texto, id) {
+    cerrarSigueAhi();
+
+    const capa = document.createElement('div');
+    capa.className = 'gps-sigue gps-deshacer';
+    capa.innerHTML = `<div class="gps-sigue-que">${calcomania('comunidad', 24)}<span>${escapeHtml(texto)}</span></div>
+      <div class="gps-sigue-botones"><button type="button" class="gps-pildora" data-accion="deshacer"><span>Deshacer</span></button></div>`;
+    host0.appendChild(capa);
+
+    const timer = setTimeout(() => cerrarSigueAhi(), DESHACER_MS);
+    sigueAbierto = { capa, timer };
+
+    capa.onclick = async (event) => {
+      if (!event.target.closest('[data-accion="deshacer"]')) return;
+      cerrarSigueAhi();
+
+      try {
+        await api.closeReport(id);
+        reportesEnMapa = reportesEnMapa.filter((r) => r.id !== id);
+        gl.showReports(reportesEnMapa);
+        toast('Reporte cerrado.');
+      } catch (error) {
+        toastError(`No se pudo deshacer: ${error.message}`);
+      }
+    };
+  }
+
+  /* --- la ficha de un reporte -------------------------------------------- */
+
+  function abrirFichaReporte(id) {
+    const reporte = reportesEnMapa.find((r) => r.id === id);
+    if (!reporte) return;
+
+    // En viaje o eligiendo ruta el pin solo se nombra: la ficha taparia lo
+    // que se esta mirando. El "¿sigue ahi?" del viaje llega solo al pasar.
+    if (stage !== 'search' && stage !== 'ficha-reporte' && stage !== 'ficha') {
+      const t = tipoDeReporte(reporte.type);
+      toast(reporte.street ? `${t.nombre} · ${reporte.street}` : t.nombre, 'info');
+      return;
+    }
+
+    fichaReporteAbierta = reporte;
+    stage = 'ficha-reporte';
+    drawSheet();
+  }
+
+  function cerrarFichaReporte() {
+    fichaReporteAbierta = null;
+    stage = 'search';
+    drawSheet();
+  }
+
+  function drawFichaReporte() {
+    const hoja = sheetAs('gps-hoja-ficha');
+    hoja.innerHTML = fichaReporte(fichaReporteAbierta, { ahora: Date.now() });
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, veredicto } = boton.dataset;
+      if (accion === 'cerrar') cerrarFichaReporte();
+      if (accion === 'voto') {
+        if (!puede().reportar) {
+          hojaDeCuenta('votar').then((crear) => crear && go('cuenta-nueva'));
+          return;
+        }
+
+        votarReporte(fichaReporteAbierta.id, veredicto, boton);
+      }
+      if (accion === 'cerrar-reporte') cerrarReportePropio(fichaReporteAbierta.id, boton);
+    };
+  }
+
+  /**
+   * "Sigue ahi" o "ya no esta", con la posicion actual: el servidor exige
+   * estar a menos de 500 m y lo dice si no. Lo que paga lo dice el servidor.
+   */
+  async function votarReporte(id, veredicto, boton = null) {
+    const fix = ultimoFix ?? ultimaPosicion;
+
+    if (!fix) {
+      toastError('Sin GPS no se puede confirmar: hay que estar ahí.');
+      return;
+    }
+
+    const enviar = async () => {
+      try {
+        const { report, earned } = await api.voteReport(id, veredicto, fix.lat, fix.lng, selectedTruck()?.id);
+        reportesEnMapa = reportesEnMapa.map((r) => (r.id === report.id ? report : r));
+        gl.showReports(reportesEnMapa);
+        if (fichaReporteAbierta?.id === report.id) fichaReporteAbierta = report;
+        if (stage === 'ficha-reporte') drawFichaReporte();
+        toastOk(earned?.contributionExperience ? `Gracias • +${earned.contributionExperience} EXP` : 'Gracias, anotado.');
+      } catch (error) {
+        toastError(error.message);
+      }
+    };
+
+    if (boton) await withBusy(boton, 'Enviando', enviar);
+    else await enviar();
+  }
+
+  async function cerrarReportePropio(id, boton) {
+    await withBusy(boton, 'Cerrando', async () => {
+      try {
+        await api.closeReport(id);
+        reportesEnMapa = reportesEnMapa.filter((r) => r.id !== id);
+        gl.showReports(reportesEnMapa);
+        toast('Reporte cerrado.');
+        cerrarFichaReporte();
+      } catch (error) {
+        toastError(`No se pudo cerrar: ${error.message}`);
+      }
+    });
+  }
+
+  /* --- "¿sigue ahi?" al pasar, en viaje --------------------------------- */
+
+  /** Con cada latido del GPS: por cada reporte cerca, si ya se paso y uno se aleja, se pregunta. */
+  function preguntarSiSigueAhi(fix) {
+    if (sigueAbierto || !reportesEnMapa.length) return;
+
+    for (const reporte of reportesEnMapa) {
+      const distancia = metrosEntre(fix, { lat: reporte.latitude, lng: reporte.longitude });
+      const anterior = distanciasAnteriores.get(reporte.id);
+
+      // Solo se sigue de cerca lo que esta a menos de 500 m: el resto no importa todavia.
+      if (distancia > 500) { distanciasAnteriores.delete(reporte.id); continue; }
+      distanciasAnteriores.set(reporte.id, distancia);
+
+      if (anterior === undefined) continue;
+
+      if (deberiaPreguntar({ reporte, distancia, distanciaAnterior: anterior, yaPreguntado: preguntados.has(reporte.id) })) {
+        preguntados.add(reporte.id);
+        mostrarSigueAhi(reporte);
+        return;
+      }
+    }
+  }
+
+  function mostrarSigueAhi(reporte) {
+    cerrarSigueAhi();
+
+    const capa = document.createElement('div');
+    capa.innerHTML = promptSigueAhi(reporte);
+    const nodo = capa.firstElementChild;
+    host0.appendChild(nodo);
+
+    const timer = setTimeout(() => cerrarSigueAhi(), PROMPT_MS);
+    sigueAbierto = { capa: nodo, timer };
+
+    nodo.onclick = (event) => {
+      const boton = event.target.closest('[data-accion="sigue"]');
+      if (!boton) return;
+      const { veredicto } = boton.dataset;
+      cerrarSigueAhi();
+      votarReporte(reporte.id, veredicto);
+    };
+  }
+
+  function cerrarSigueAhi() {
+    if (!sigueAbierto) return;
+    clearTimeout(sigueAbierto.timer);
+    sigueAbierto.capa.remove();
+    sigueAbierto = null;
+  }
+
+  /** El campo para escribir los metros cuando ninguna pastilla sirve. */
+  function otroGaliboMarkup() {
+    return `<label class="gps-campo"><span>Metros</span>
+      <input id="gps-galibo-otro" type="number" inputmode="decimal" step="0.1" min="2" max="6" placeholder="3,80"></label>
+      <div class="gps-acciones">${pildora('Reportar', { clase: 'celeste', datos: 'data-accion="galibo-guardar"' })}</div>`;
+  }
+
+  /* ------------------------------------------------------------------------
+     La ficha de un lugar y el voto (el prototipo, tableros "Lugar")
+
+     Tocar un pin en reposo abre la ficha como hoja inferior: lo verificado
+     separado de lo comunitario, el voto propio, Llamar e Ir. Votar de nuevo
+     cambia el voto; tocar el voto que ya esta lo retira. Lo que paga lo dice
+     el servidor (`earned`): el toast del voto es lo unico que dice EXP en el
+     mapa. Los votos nunca tocan lo verificado (AD-46).
+  ------------------------------------------------------------------------ */
+
+  let ficha = null;   // el lugar abierto, mientras la hoja esta
+  let ultimaPosicion = null;
+
+  function abrirFicha(id) {
+    const lugar = lugaresEnMapa.find((p) => p.id === id);
+    if (!lugar) return;
+
+    // Con una ruta en pantalla o en viaje el pin solo se nombra: la ficha
+    // taparia lo que se esta mirando.
+    if (stage !== 'search' && stage !== 'ficha') {
+      toast(lugar.name, 'info');
+      return;
+    }
+
+    ficha = lugar;
+    stage = 'ficha';
+    drawSheet();
+  }
+
+  function cerrarFicha() {
+    ficha = null;
+    stage = 'search';
+    drawSheet();
+  }
+
+  function drawFicha() {
+    const hoja = sheetAs('gps-hoja-ficha');
+    hoja.innerHTML = fichaLugar(fichaDeLugar(ficha, { camion: selectedTruck(), desde: ultimaPosicion }));
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, veredicto } = boton.dataset;
+      if (accion === 'cerrar') cerrarFicha();
+      if (accion === 'votar') votarLugar(veredicto, boton);
+      if (accion === 'llamar') call(ficha.phone);
+      if (accion === 'ir') irAlLugar();
+    };
+  }
+
+  async function votarLugar(veredicto, boton) {
+    const camion = selectedTruck();
+    if (!camion) { toast('Elegí un camión para votar: el voto dice para qué tipo vale.'); return; }
+
+    const lugar = ficha;
+    const retirar = lugar.community?.yourVote === veredicto;
+
+    await withBusy(boton, retirar ? 'Retirando' : 'Guardando', async () => {
+      try {
+        if (retirar) {
+          await api.retirePoiVote(lugar.id);
+          lugar.community = await comunidadActualizada(lugar);
+          toast('Voto retirado.');
+        } else {
+          const { community, earned } = await api.votePoi(lugar.id, camion.id, veredicto);
+          lugar.community = community;
+          toast(earned?.contributionExperience ? `Voto guardado • +${earned.contributionExperience} EXP` : 'Voto guardado.');
+        }
+      } catch (error) {
+        toastError(`No se pudo votar: ${error.message}`);
+        return;
+      }
+
+      // El pin puede cambiar de estado (de "sin confirmar" a "de la comunidad").
+      gl.showPlaces(lugaresEnMapa);
+      if (ficha === lugar) drawFicha();
+    });
+  }
+
+  /** Despues de retirar el voto el servidor no devuelve la ficha: se vuelve a pedir. */
+  async function comunidadActualizada(lugar) {
+    const actual = (await api.pois(lugar.category, selectedTruck()?.id)).find((p) => p.id === lugar.id);
+    return actual?.community ?? { ...lugar.community, yourVote: null };
+  }
+
+  function irAlLugar() {
+    const destino = { label: ficha.name, latitude: ficha.latitude, longitude: ficha.longitude };
+    cerrarFicha();
+    elegirLugar(destino);
+  }
+
+  async function cargarLugares() {
+    // El invitado no tiene Casa ni Depósito ni viajes: pedirlos es un 401 seguro.
+    // El catch lo tragaria igual, pero un 401 en la consola es ruido que despues
+    // tapa al que importa, y dos pedidos que se sabe que van a fallar son dos
+    // pedidos de mas en el telefono de alguien.
+    if (!puede().guardarLugares) {
+      if (stage === 'search' || stage === 'buscar') drawSheet();
+      return;
+    }
+
+    try {
+      const [guardados, ultimos] = await Promise.all([api.savedPlaces(), api.recentPlaces()]);
+      lugares = { Home: null, Depot: null };
+      for (const lugar of guardados ?? []) lugares[lugar.kind] = lugar;
+      recientes = ultimos ?? [];
+    } catch {
+      // Sin sesion o sin red: la hoja anda igual, sin atajos.
+    }
+
+    if (stage === 'search' || stage === 'buscar') drawSheet();
+  }
+
+  function drawReposo() {
     const truck = selectedTruck();
 
     // El mismo puente pasa de informativo a peligroso al cambiar de vehiculo, y
@@ -248,57 +1139,298 @@ export function navigateView(host, { openDrawer, go }) {
     // vuelve a esta pantalla, que es por donde se pasa despues de elegir camion.
     gl.useTruckHeight(truck?.heightMeters);
 
+    const hoja = sheetAs('gps-hoja-reposo');
+    hoja.innerHTML = hojaReposo({ casa: lugares.Home, deposito: lugares.Depot });
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, kind } = boton.dataset;
+      if (accion === 'buscar') abrirBusqueda('destination');
+      if (accion === 'fijar-guardado') abrirBusqueda(kind);
+      if (accion === 'ir-a-guardado') elegirLugar(lugares[kind]);
+    };
+  }
+
+  function abrirBusqueda(objetivo) {
+    stage = 'buscar';
+    busqueda = { objetivo, texto: '', sugerencias: null };
+    host0.classList.add('is-buscando');
+    drawSheet();
+    q(host0, '#gps-buscar-texto')?.focus();
+  }
+
+  function cerrarBusqueda() {
+    busqueda = null;
+    stage = 'search';
+    host0.classList.remove('is-buscando');
+    drawSheet();
+  }
+
+  const estadoDeBusqueda = () => ({
+    ...busqueda,
+    casa: lugares.Home,
+    deposito: lugares.Depot,
+    recientes,
+    origen: origin?.label ?? null,
+    categorias: prefs.lugares?.categorias ?? []
+  });
+
+  function drawBuscar() {
+    const hoja = sheetAs('gps-hoja-buscar');
+    hoja.innerHTML = hojaBuscar(estadoDeBusqueda());
+
+    const input = q(hoja, '#gps-buscar-texto');
+
+    // Mientras se escribe se rehace solo el cuerpo: rehacer la pildora le
+    // sacaria el foco al teclado en cada letra.
+    input.addEventListener('input', () => {
+      busqueda.texto = input.value;
+      q(hoja, '.gps-buscar-borrar').hidden = !input.value;
+      buscarSugerencias(input.value);
+      pintarCuerpoDeBusqueda();
+    });
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion, kind, indice, id } = boton.dataset;
+
+      if (accion === 'volver') cerrarBusqueda();
+      if (accion === 'borrar') { input.value = ''; input.dispatchEvent(new Event('input')); input.focus(); }
+      if (accion === 'sugerencia') elegirLugar(busqueda.sugerencias?.[Number(indice)]);
+      if (accion === 'reciente') elegirLugar(recientes[Number(indice)]);
+      if (accion === 'ir-a-guardado') elegirLugar(lugares[kind]);
+      if (accion === 'fijar-guardado') abrirBusqueda(kind);
+      if (accion === 'origen') abrirBusqueda('origin');
+      if (accion === 'reparto') { cerrarBusqueda(); entrarEnReparto(); }
+      if (accion === 'fijar-en-mapa') { cerrarBusqueda(); toast('Mantené apretado el mapa donde querés ir.'); }
+
+      if (accion === 'categoria') { alternarCategoria(id); pintarCuerpoDeBusqueda(); }
+    };
+  }
+
+  function pintarCuerpoDeBusqueda() {
+    const cuerpo = q(host0, '.gps-buscar-cuerpo');
+    if (cuerpo && busqueda) cuerpo.innerHTML = cuerpoDeBusqueda(estadoDeBusqueda());
+  }
+
+  /**
+   * Se espera a que deje de escribir y se exigen tres caracteres: el geocoder
+   * es un servicio publico y gratuito, consultar en cada tecla seria abusar
+   * de el (AD-10). Si la respuesta llega para un texto que ya no es el que
+   * esta escrito, se descarta.
+   */
+  const buscarSugerencias = debounce(async (texto) => {
+    const consulta = texto.trim();
+    if (!busqueda || consulta.length < 3) return;
+
+    busqueda.sugerencias = null;
+
+    try {
+      const lugares = await api.searchPlaces(consulta);
+      if (busqueda?.texto.trim() !== consulta) return;
+      busqueda.sugerencias = lugares.map((p) => ({ label: p.label, secondary: p.secondary, latitude: p.latitude, longitude: p.longitude }));
+    } catch {
+      if (busqueda) busqueda.sugerencias = [];
+    }
+
+    pintarCuerpoDeBusqueda();
+  }, 350);
+
+  /**
+   * Un lugar elegido en la busqueda, segun que se buscaba: el destino se
+   * rutea directo; el origen se fija y se sigue buscando el destino; Casa y
+   * Deposito se guardan una vez y se va ("Establecer una vez e ir").
+   */
+  async function elegirLugar(lugar) {
+    if (!lugar) return;
+
+    const punto = { lat: lugar.latitude, lng: lugar.longitude, label: lugar.label };
+    const objetivo = busqueda?.objetivo ?? 'destination';
+
+    if (objetivo === 'origin') {
+      origin = punto;
+      gl.setOrigin(punto);
+      abrirBusqueda('destination');
+      return;
+    }
+
+    if (objetivo === 'Home' || objetivo === 'Depot') {
+      try {
+        lugares[objetivo] = await api.savePlace(objetivo, { label: lugar.label, latitude: lugar.latitude, longitude: lugar.longitude });
+        toastOk(objetivo === 'Home' ? 'Casa guardada.' : 'Depósito guardado.');
+      } catch (error) {
+        toastError(`No se pudo guardar: ${error.message}`);
+        return;
+      }
+    }
+
+    cerrarBusqueda();
+    setPoint('destination', punto);
+    await calculate(null);
+  }
+
+  /* ------------------------------------------------------------------------
+     Modo reparto
+
+     Hasta diez paradas, y el servidor decide en qué orden conviene visitarlas.
+     El orden NO es el que uno carga: se calcula con distancias reales de ruta
+     —no en línea recta— porque en una ciudad con un río y autopistas la ruta
+     real llega a ser 1,67 veces la recta, y ahí el orden cambia. Ver AD-41.
+  ------------------------------------------------------------------------ */
+
+  function entrarEnReparto() {
+    stage = 'delivery';
+
+    // El destino de un viaje simple pasa a ser la primera parada: si uno ya lo
+    // había cargado, perderlo al cambiar de modo es tirarle el trabajo.
+    if (destination && !stops.length) {
+      stops = [destination];
+      destination = null;
+      gl.setDestination(null);
+    }
+
+    editing = 'stop';
+    deliveryOrder = null;
+    drawSheet();
+  }
+
+  function salirDelReparto() {
+    stage = 'search';
+    stops = [];
+    deliveryOrder = null;
+    editing = 'destination';
+
+    gl.setDeliveryStops([]);
+    gl.clearRoute();
+    drawSheet();
+  }
+
+  /** Las paradas en el orden en que se visitan, o como se cargaron si no se calculó. */
+  const paradasEnOrden = () =>
+    deliveryOrder ? deliveryOrder.map((i) => stops[i]) : stops;
+
+  function drawDelivery() {
+    const truck = selectedTruck();
+    const orden = paradasEnOrden();
+    const lleno = stops.length >= 10;
+
     render(sheetAs('sheet'), html`
       <div class="sheet-grab"></div>
 
-      <button class="row card-tap" id="pick-truck"
-              style="background:none;border:0;padding:4px 2px;color:inherit;width:100%">
-        <span style="color:var(--brand)">${raw(icon('truck', 20))}</span>
-        <span class="grow truncate" style="text-align:left;font-weight:600;font-size:14.5px">
-          ${truck ? truck.name : 'Elegí un camión'}
-        </span>
-        <span class="muted">${truck ? formatTruck(truck) : 'Tocá para elegir'}</span>
-      </button>
+      <div class="row-between">
+        <b style="font-size:15px">Reparto</b>
+        <button class="fab" id="close-delivery" aria-label="Salir del reparto">${raw(icon('close', 20))}</button>
+      </div>
 
       <div class="waypoint">
         <span class="dot dot-a"></span>
         <input id="origin" placeholder="Origen" autocomplete="off"
                value="${origin?.label ?? ''}">
-        <button class="waypoint-clear" id="clear-origin" type="button"
-                aria-label="Borrar el origen"
-                ${origin?.label ? '' : 'hidden'}>${raw(icon('close', 16))}</button>
       </div>
 
-      <div class="waypoint">
-        <span class="dot dot-b"></span>
-        <input id="destination" placeholder="¿A dónde vas?" autocomplete="off"
-               value="${destination?.label ?? ''}">
-        <button class="waypoint-clear" id="clear-destination" type="button"
-                aria-label="Borrar el destino"
-                ${destination?.label ? '' : 'hidden'}>${raw(icon('close', 16))}</button>
-      </div>
+      ${orden.length ? raw(`<ol class="stop-list">${orden.map((parada, i) => `
+        <li>
+          <span class="stop-number">${i + 1}</span>
+          <span class="stop-label truncate">${escapeText(parada.label ?? 'Parada')}</span>
+          <button class="waypoint-clear" data-quitar="${stops.indexOf(parada)}"
+                  type="button" aria-label="Quitar esta parada">${icon('close', 16)}</button>
+        </li>`).join('')}</ol>`) : raw(`
+        <p class="hint">Agregá las paradas del día. El orden lo resolvemos nosotros.</p>
+      `)}
+
+      ${raw(lleno
+        ? '<p class="hint">Llegaste a las 10 paradas.</p>'
+        : `<div class="waypoint">
+             <span class="dot dot-b"></span>
+             <input id="new-stop" placeholder="Agregar parada" autocomplete="off" value="">
+           </div>`)}
 
       <div id="suggestions"></div>
 
-      <button class="btn btn-primary btn-block" id="calc"
-              ${origin && destination && truck ? '' : 'disabled'}>
-        Calcular ruta
-      </button>
+      ${deliveryOrder ? raw(`
+        <div class="stack-sm">
+          <div class="network-bar"><i style="width:${Math.round(route.heavyNetworkSharePercent)}%"></i></div>
+          <p class="hint">
+            <b class="num">${formatDistance(route.distanceMeters)}</b> ·
+            <b class="num">${formatDuration(route.durationSeconds)}</b> ·
+            <b style="color:var(--brand-ink)">${Math.round(route.heavyNetworkSharePercent)}%</b> por la Red
+          </p>
+        </div>`) : ''}
 
-      <p class="hint" style="text-align:center">
-        Mantené apretado el mapa para fijar un punto.
-      </p>
+      <div class="sheet-action">
+        ${deliveryOrder ? raw(`
+          <button class="btn btn-primary btn-block" id="start-delivery">
+            Arrancar reparto
+          </button>
+          <button class="btn btn-ghost btn-block" id="calc-delivery"
+                  style="margin-top:8px">
+            Recalcular
+          </button>
+        `) : raw(`
+          <button class="btn btn-primary btn-block" id="calc-delivery"
+                  ${stops.length && origin && truck ? '' : 'disabled'}>
+            Calcular reparto
+          </button>
+        `)}
+      </div>
     `);
 
     wire(sheet(), {
-      '#pick-truck': () => go('camiones'),
-      '#calc': (event) => calculate(event.currentTarget),
+      '#close-delivery': () => salirDelReparto(),
+      '#calc-delivery': (event) => calcularReparto(event.currentTarget),
+      '#start-delivery': (event) => startTrip(event.currentTarget),
       '#origin@input': onInput('origin'),
-      '#destination@input': onInput('destination'),
       '#origin@focus': () => { editing = 'origin'; },
-      '#destination@focus': () => { editing = 'destination'; },
-      '#clear-origin': () => clearPoint('origin'),
-      '#clear-destination': () => clearPoint('destination')
+      '#new-stop@input': onInput('stop'),
+      '#new-stop@focus': () => { editing = 'stop'; }
+    });
+
+    for (const boton of qa(sheet(), '[data-quitar]')) {
+      boton.addEventListener('click', () => quitarParada(Number(boton.dataset.quitar)));
+    }
+  }
+
+  function quitarParada(index) {
+    if (!Number.isInteger(index) || index < 0 || index >= stops.length) return;
+
+    stops.splice(index, 1);
+
+    // El orden calculado apunta a los índices viejos: sacar una parada lo
+    // invalida entero. Mostrarlo igual haría que los números de la lista y los
+    // del mapa dejaran de corresponderse con la ruta dibujada.
+    deliveryOrder = null;
+
+    gl.setDeliveryStops(stops);
+    gl.clearRoute();
+    drawSheet();
+  }
+
+  async function calcularReparto(button) {
+    const truck = selectedTruck();
+    if (!truck || !origin || !stops.length) return;
+
+    await withBusy(button, 'Ordenando paradas', async () => {
+      try {
+        const resultado = await api.delivery(
+          truck.id,
+          { latitude: origin.lat, longitude: origin.lng },
+          stops.map((p) => ({ latitude: p.lat, longitude: p.lng })));
+
+        route = resultado.route;
+        deliveryOrder = resultado.stopOrder;
+
+        gl.drawRoute(route, route.accessLegs ?? []);
+        gl.setDeliveryStops(paradasEnOrden());
+        drawSheet();
+
+        toastOk(`${stops.length} paradas ordenadas.`);
+      } catch (error) {
+        toastError(error.message);
+      }
     });
   }
 
@@ -335,77 +1467,129 @@ export function navigateView(host, { openDrawer, go }) {
     if (button) button.hidden = !visible;
   }
 
-  /**
-   * Borra un extremo del viaje.
-   *
-   * Borra las tres cosas que forman ese extremo —el texto, el punto guardado y
-   * el marcador del mapa—, no solo la que se ve. Borrar el texto y dejar el
-   * marcador puesto seria peor que no borrar nada: la pantalla diria una cosa y
-   * el mapa otra.
-   *
-   * No hace falta ocuparse de la ruta: con una calculada la hoja muestra el
-   * resumen, que no tiene estos campos. Para volver acá hay que descartarla
-   * antes, y de eso se encarga su propio boton.
-   */
-  function clearPoint(which) {
-    editing = which;
-    setPoint(which, null);
+  /* ------------------------------------------------------------------------
+     Elegir ruta (el prototipo, tablero "Rutas")
 
-    // El teclado queda listo para escribir el reemplazo. Borrar casi siempre es
-    // el primer paso de corregir, no un fin en si mismo.
-    q(host0, `#${which}`)?.focus();
+     Cabecera negra con "origen → destino", la tira de mapa con la ruta que se
+     esta mirando y la pildora del camion, y una fila por ruta: el tiempo
+     manda, y debajo por donde va, cuanto va por la Red y que hay en el
+     camino. Tocar una fila la dibuja en el mapa; "Arrancar" arranca por la
+     que se esta mirando. Las rutas vienen del servidor ya ordenadas para
+     camion y filtradas (AD-47): la primera es la recomendada.
+
+     La hoja es transparente en el medio: la tira de mapa es el mapa mismo,
+     encuadrado para que la ruta entre entre la cabecera y la lista.
+  ------------------------------------------------------------------------ */
+
+  /** Lo que dice la fila de una opcion. */
+  function filaDeOpcion(ruta, indice) {
+    return {
+      tiempo: formatDuration(ruta.durationSeconds),
+      km: formatDistance(ruta.distanceMeters),
+      por: porDonde(ruta.instructions),
+      estado: textoDeEstado(ruta, indice === 0),
+      chips: chipsDeRuta(avisosPorOpcion[indice] ?? [], ruta)
+    };
   }
 
-  // --- ruta calculada -------------------------------------------------------
+  function drawRutas() {
+    const hoja = sheetAs('gps-eligiendo');
+    hoja.innerHTML = `
+      ${cabeceraDeRutas({ origen: origin, destino: destination })}
+      ${pildoraDelCamion(selectedTruck())}
+      <div class="gps-hoja-rutas">${hojaRutas({ rutas: routeOptions.map(filaDeOpcion), elegida: chosenRoute })}</div>`;
 
-  function drawRoute() {
-    const share = Math.round(route.heavyNetworkSharePercent);
-    const notes = groupNotes(route);
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
 
-    render(sheetAs('sheet'), html`
-      <div class="sheet-grab"></div>
+      const { accion, indice } = boton.dataset;
+      if (accion === 'volver') descartarRuta();
+      if (accion === 'camion') go('camiones');
+      if (accion === 'elegir') elegirRuta(Number(indice));
+      if (accion === 'detalles') abrirDetalles();
+      if (accion === 'arrancar') startTrip(boton);
+    };
 
-      <div class="row-between">
-        <div class="route-summary">
-          <div class="route-figure">
-            <b class="num">${formatDistance(route.distanceMeters)}</b>
-            <span>Distancia</span>
-          </div>
-          <div class="route-figure">
-            <b class="num">${formatDuration(route.durationSeconds)}</b>
-            <span>Llegás ${arrivalTime(route.durationSeconds)}</span>
-          </div>
-        </div>
-        <button class="fab" id="close-route" aria-label="Descartar">${raw(icon('close', 20))}</button>
-      </div>
+    gl.drawRoute(route, route.accessLegs ?? [], encuadreDeLaTira());
+  }
 
-      <div class="stack-sm">
-        <div class="network-bar"><i style="width:${share}%"></i></div>
-        <p class="hint">
-          <b style="color:var(--brand-ink)">${share}%</b> del recorrido va por la Red
-          de Tránsito Pesado${route.truckName ? `, con ${route.truckName}` : ''}.
-        </p>
-      </div>
+  /**
+   * El aire alrededor de la ruta para que entre en la tira de mapa: lo que
+   * tapan la cabecera y la hoja, medido en el DOM, mas un margen.
+   */
+  function encuadreDeLaTira() {
+    const pantalla = host0.getBoundingClientRect();
+    const cabecera = q(host0, '.gps-cabecera')?.getBoundingClientRect();
+    const hoja = q(host0, '.gps-hoja-rutas')?.getBoundingClientRect();
+    if (!cabecera || !hoja) return undefined;
 
-      ${notes.length ? raw(notesMarkup(notes)) : raw(`
-        <div class="note" style="border-left-color:var(--ok)">
-          <div class="note-title">Sin restricciones en el camino</div>
-          <div class="note-body">Ningún tramo de esta ruta limita a tu vehículo.</div>
-        </div>
-      `)}
+    return {
+      top: cabecera.bottom - pantalla.top + 12,
+      bottom: pantalla.bottom - hoja.top + 12,
+      left: 30,
+      right: 30
+    };
+  }
 
-      <button class="btn btn-primary btn-block" id="start">Arrancar viaje</button>
-    `);
+  /** Volver atras: la ruta se descarta y queda el mapa en reposo. */
+  function descartarRuta() {
+    route = null;
+    routeOptions = [];
+    avisosPorOpcion = [];
+    chosenRoute = 0;
+    stage = 'search';
+    gl.clearRoute();
+    drawSheet();
+  }
 
-    wire(sheet(), {
-      '#close-route': () => {
-        route = null;
-        stage = 'search';
-        gl.clearRoute();
-        drawSheet();
-      },
-      '#start': (event) => startTrip(event.currentTarget)
-    });
+  /** Cambia la ruta que se está mirando, y la dibuja. */
+  function elegirRuta(index) {
+    if (!Number.isInteger(index) || !routeOptions[index] || index === chosenRoute) return;
+
+    chosenRoute = index;
+    route = routeOptions[index];
+    drawSheet();
+  }
+
+  /* ------------------------------------------------------------------------
+     Los detalles de la ruta (el prototipo, tablero "Detalles")
+
+     Las cifras, el mono diciendo lo unico que importa de esta ruta —habla
+     una vez, aca, antes de arrancar—, lo que hay en el camino con la calle
+     y el km de cada cosa, y las fuentes. "Arrancar" arranca por esta ruta.
+  ------------------------------------------------------------------------ */
+
+  function abrirDetalles() {
+    stage = 'detalles';
+    drawSheet();
+  }
+
+  function drawDetalles() {
+    const camion = selectedTruck();
+    const avisos = avisosPorOpcion[chosenRoute] ?? [];
+
+    const hoja = sheetAs('gps-detallando');
+    hoja.innerHTML = `
+      ${cabeceraSimple('Detalles de la ruta')}
+      ${hojaDetalles({
+        tiempo: formatDuration(route.durationSeconds),
+        hora: `llegás ${arrivalTime(route.durationSeconds)}`,
+        km: formatDistance(route.distanceMeters),
+        red: textoDeEstado(route, chosenRoute === 0).replace(/^Mejor ruta, /, ''),
+        mono: loQueImporta(route, avisos, camion),
+        camino: filasDelCamino(route, avisos, camion),
+        fuentes: fuentesDeLaRuta(route, avisos)
+      })}`;
+
+    hoja.onclick = (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion } = boton.dataset;
+      if (accion === 'volver') { stage = 'route'; drawSheet(); }
+      if (accion === 'arrancar') startTrip(boton);
+    };
   }
 
   // --- viaje en curso: navegacion -------------------------------------------
@@ -415,100 +1599,73 @@ export function navigateView(host, { openDrawer, go }) {
    *
    * Se mira de reojo, a sesenta por hora. Una sola maniobra, enorme, y la
    * distancia mas grande que todo lo demas: es el dato que se lee de un vistazo.
-   * El resto —restricciones, fuentes, kilometros— se corre de en medio.
+   *
+   * La dibuja `js/mapa/viaje.js` con las medidas de Waze; aca solo se le dice
+   * que mostrar. Mientras dura el viaje, la capa de controles del reposo se
+   * esconde entera (`is-viaje`): la pantalla del viaje tiene los suyos.
    */
   function drawNavigation() {
+    if (!viaje) {
+      host0.classList.add('is-viaje');
+
+      viaje = montarViaje(host0, {
+        alSalir: () => askToStop(),
+        alVistaGeneral: () => entrarVistaGeneral(),
+        alModo: (modo) => cambiarModoGeneral(modo),
+        alReanudar: () => salirVistaGeneral(),
+        alIr: (indice) => irPorOpcion(indice),
+        alAportar: () => aportarLugar(),
+        alSos: () => go('emergencia'),
+        alVoz: () => alternarVoz(),
+        alRecentrar: () => { gl.setFollowing(true); viaje?.movido(false); },
+        vozApagada: prefs.voz === false
+      });
+
+      empezarRefrescoDeReportes();
+    }
+
+    pintarViaje();
+  }
+
+  /** Lo que muestra la pantalla del viaje, a partir del estado de la vista. */
+  function pintarViaje() {
+    if (!viaje) return;
+
     const trip = state.activeTrip;
-    const nav = navState;
 
-    if (rerouting) {
-      render(sheetAs('nav-bar'), '');
-      renderOverlay(html`
-        <div class="rerouting">
-          <span class="spinner"></span>
-          <span>Te saliste de la ruta. Buscando otra…</span>
-        </div>
-      `);
-      return;
-    }
+    viaje.banda(estadoDeBanda({
+      recalculando: rerouting,
+      esperandoGps: waitingForGps,
+      problema: trackingProblem,
+      nav: navState
+    }));
 
-    // Todavia sin posicion: se dice que se esta buscando, en vez de un guion.
-    // Es la diferencia entre "esperá, está enganchando" y "esto no anda".
-    if (waitingForGps && !nav) {
-      renderOverlay(html`
-        <div class="maneuver">
-          <div class="maneuver-arrow"><span class="spinner"></span></div>
-          <div class="maneuver-body">
-            <div class="maneuver-street" style="font-size:15px">
-              ${trackingProblem ?? 'Buscando señal de GPS…'}
-            </div>
-            <div class="maneuver-substreet">
-              ${trackingProblem
-                ? 'El viaje quedó abierto: podés cerrarlo desde Salir.'
-                : 'Bajo techo puede tardar. Al aire libre engancha enseguida.'}
-            </div>
-          </div>
-        </div>
-      `);
-    } else {
-      const upcoming = nav?.next ?? null;
-      const arrow = upcoming ? maneuverArrow(upcoming.kind) : '↑';
-      const distance = nav ? formatDistance(nav.distanceToManeuver) : '—';
+    viaje.hoja(navState
+      ? { segundos: navState.remainingSeconds, metros: navState.remainingMeters }
+      // Sin posicion todavia, lo que dice la ruta que se sigue (o el viaje, si
+      // tampoco hay ruta): asi cambiar de ruta se refleja antes del primer fix.
+      : { segundos: route?.durationSeconds ?? trip?.plannedDurationSeconds ?? null, metros: route?.distanceMeters ?? trip?.plannedDistanceMeters ?? null });
 
-      renderOverlay(html`
-        <div class="maneuver">
-          <div class="maneuver-arrow">${arrow}</div>
-          <div class="maneuver-body">
-            <div class="maneuver-distance num">${distance}</div>
-            <div class="maneuver-street">
-              ${upcoming ? (upcoming.streetName || upcoming.text) : 'Seguí la ruta'}
-            </div>
-          </div>
-        </div>
+    viaje.calle(navState?.step?.streetName ?? null);
 
-        ${raw(restrictionAheadMarkup(nav))}
-      `);
-    }
-
-    const bar = sheetAs('nav-bar');
-    bar.innerHTML = html`
-      <div class="nav-eta">
-        <b>${nav ? arrivalTime(nav.remainingSeconds) : arrivalTime(trip.plannedDurationSeconds)}</b>
-        <span>Llegada</span>
-      </div>
-      <div class="nav-eta">
-        <b class="num">${nav ? formatDistance(nav.remainingMeters) : formatDistance(trip.plannedDistanceMeters)}</b>
-        <span>Restante</span>
-      </div>
-      <div class="grow"></div>
-      <button class="btn btn-ghost" id="stop-nav">Salir</button>
-    `;
-
-    wire(bar, { '#stop-nav': () => askToStop() });
+    if (vistaGeneral) pintarVistaGeneral();
   }
 
   /**
-   * Aviso de restriccion, solo cuando esta cerca.
-   *
-   * Mostrar la lista entera de restricciones mientras se maneja es ruido: lo
-   * util es saber que el puente bajo esta a doscientos metros, no que la ruta
-   * tiene nueve tramos fuera de la Red.
+   * La voz se puede silenciar desde el viaje, como en Waze. Se recuerda: quien
+   * la apaga una vez no quiere volver a apagarla en cada viaje. La vibracion
+   * sigue: es el canal que no compite con el ruido de la cabina (AD-39).
    */
-  function restrictionAheadMarkup(nav) {
-    if (!nav || !route) return '';
+  function alternarVoz() {
+    savePrefs({ voz: prefs.voz === false });
+    viaje?.voz(prefs.voz === false);
+    toast(prefs.voz === false ? 'Voz silenciada. Las vibraciones siguen.' : 'Voz activada.');
+  }
 
-    const ahead = (route.restrictionNotes ?? []).find((note) => {
-      if (note.requiresAccessException) return false;
-      if (note.fromPointIndex < nav.index) return false;
-      return note.fromPointIndex - nav.index <= 6;
-    });
-
-    if (!ahead) return '';
-
-    const finding = ahead.findings?.[0];
-    if (!finding) return '';
-
-    return `<div class="maneuver-alert"><span>⚠</span><span>${escapeText(finding.description)}</span></div>`;
+  /** Dice una frase, salvo que la voz este silenciada. */
+  function decir(texto) {
+    if (prefs.voz === false) return;
+    speak(texto);
   }
 
   /**
@@ -531,25 +1688,186 @@ export function navigateView(host, { openDrawer, go }) {
 
     if (choice === 'stay' || choice === null) return;
 
-    closeTrip(document.getElementById('stop-nav'), choice === 'arrived');
+    // Sin boton: la accion sale de un circulo con una cruz, donde no cabe un
+    // "Cerrando…". El cartel de eleccion ya se cerro; lo que sigue es rapido.
+    closeTrip(null, choice === 'arrived');
   }
 
-  /** Capa de maniobra por encima del mapa, encima de la barra superior. */
-  function renderOverlay(markup) {
-    let host = q(host0, '#nav-overlay');
+  /* ------------------------------------------------------------------------
+     La vista general del viaje (waze-02 y waze-01)
 
-    if (!host) {
-      host = document.createElement('div');
-      host.id = 'nav-overlay';
-      host.style.cssText = 'position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;z-index:3';
-      q(host0, '.map-overlay').after(host);
+     La ruta entera, cenital, con la tarjeta de lo que falta; o la lista con
+     las otras rutas posibles desde donde esta el camion, cada una con "Ir".
+     Cambiar de ruta no cierra el viaje: el viaje guarda origen, destino y
+     paradas, no la ruta (AD-45).
+  ------------------------------------------------------------------------ */
+
+  let vistaGeneral = null;   // { modo: 'mapa' | 'lista', opciones: [...] } mientras esta abierta
+
+  function entrarVistaGeneral() {
+    if (!viaje || !route) return;
+
+    gl.setFollowing(false);
+    viaje.movido(false);
+    vistaGeneral = { modo: 'mapa', opciones: [] };
+    pintarVistaGeneral();
+
+    // Aire para la banda compacta y el conmutador arriba, y la tarjeta abajo.
+    gl.fitRoute(route.geometry.coordinates, { top: 150, bottom: 260, left: 40, right: 40 });
+  }
+
+  function salirVistaGeneral() {
+    vistaGeneral = null;
+    viaje?.general(null);
+    gl.setFollowing(true);
+  }
+
+  async function cambiarModoGeneral(modo) {
+    if (!vistaGeneral) return;
+
+    vistaGeneral.modo = modo;
+    pintarVistaGeneral();
+
+    if (modo === 'lista' && vistaGeneral.opciones.length === 0) {
+      await cargarOpcionesDeRuta();
+    }
+  }
+
+  /** La tarjeta de la ruta que se esta siguiendo, con lo que falta. */
+  function tarjetaDeLaRutaActual() {
+    const segundos = navState?.remainingSeconds ?? state.activeTrip?.plannedDurationSeconds ?? null;
+    const metros = navState?.remainingMeters ?? state.activeTrip?.plannedDistanceMeters ?? null;
+
+    return {
+      accion: 'reanudar',
+      tiempo: formatDuration(segundos),
+      hora: segundos === null ? '—' : arrivalTime(segundos),
+      km: formatDistance(metros),
+      por: porDonde(route.instructions, navState?.stepIndex ?? 0),
+      linea: lineaDeTiempo(prepared, {
+        travelled: navState?.travelledMeters ?? 0,
+        alerts: routeAlerts,
+        accessLegs: route.accessLegs ?? []
+      })
+    };
+  }
+
+  /** La tarjeta de una ruta alternativa calculada desde donde esta el camion. */
+  function tarjetaDeOpcion(opcion, indice) {
+    const preparada = prepareRoute(opcion);
+
+    return {
+      accion: 'ir',
+      indice,
+      tiempo: formatDuration(opcion.durationSeconds),
+      hora: arrivalTime(opcion.durationSeconds),
+      km: formatDistance(opcion.distanceMeters),
+      por: porDonde(opcion.instructions),
+      linea: lineaDeTiempo(preparada, {
+        alerts: alertsAlongRoute(preparada, datasetsConReportes()),
+        accessLegs: opcion.accessLegs ?? []
+      })
+    };
+  }
+
+  function pintarVistaGeneral() {
+    if (!viaje || !vistaGeneral) return;
+
+    const tarjetas = [tarjetaDeLaRutaActual()];
+
+    if (vistaGeneral.modo === 'lista') {
+      tarjetas.push(...vistaGeneral.opciones.map(({ ruta, indice }) => tarjetaDeOpcion(ruta, indice)));
     }
 
-    host.innerHTML = markup;
+    viaje.general({ modo: vistaGeneral.modo, tarjetas });
   }
 
-  function clearOverlay() {
-    q(host0, '#nav-overlay')?.remove();
+  /**
+   * Las otras rutas posibles desde donde esta el camion, para la lista.
+   *
+   * Se piden recien al abrir la lista, y desde la posicion actual: las
+   * alternativas que se calcularon al planificar salian del origen y ya no
+   * dicen nada. El servidor las devuelve ordenadas para camion y filtradas
+   * (AD-47), como siempre.
+   */
+  async function cargarOpcionesDeRuta() {
+    const desde = navState?.snapped ?? origin;
+    if (!desde || !destination) return;
+
+    try {
+      const respuesta = await api.route(
+        selectedTruck().id,
+        { latitude: desde.lat, longitude: desde.lng },
+        { latitude: destination.lat, longitude: destination.lng }
+      );
+
+      if (!vistaGeneral) return;   // se cerro mientras se calculaba
+
+      // La recomendada desde aca suele ser la ruta que ya se sigue: ofrecer
+      // "Ir" por ella seria ofrecer nada. Se la reconoce por sus vias y su
+      // largo, y se la deja afuera; las demas conservan su posicion.
+      const actual = {
+        por: porDonde(route.instructions, navState?.stepIndex ?? 0),
+        metros: navState?.remainingMeters ?? route.distanceMeters
+      };
+
+      vistaGeneral.opciones = opcionesDeRuta(respuesta)
+        .map((ruta, indice) => ({ ruta, indice }))
+        .filter(({ ruta }) => !mismaRuta(actual, { por: porDonde(ruta.instructions), metros: ruta.distanceMeters }));
+      vistaGeneral.respuesta = respuesta;
+      pintarVistaGeneral();
+    } catch (error) {
+      toastError(`No se pudieron calcular otras rutas: ${error.message}`);
+    }
+  }
+
+  /**
+   * "Ir" por otra ruta, sin cerrar el viaje.
+   *
+   * Es el mismo movimiento que recalcular al salirse de la ruta, con la ruta
+   * elegida en vez de la recomendada: todo lo que estaba calculado sobre la
+   * ruta anterior deja de valer.
+   */
+  function irPorOpcion(indice) {
+    const elegida = elegirAlternativa(vistaGeneral?.respuesta, indice);
+    if (!elegida) return;
+
+    seguirRuta(elegida, navState?.snapped ?? origin);
+    setState({ activeRoute: elegida });
+    salirVistaGeneral();
+    pintarViaje();
+    decir('Nueva ruta.');
+  }
+
+  /** Pasa a guiar por otra ruta desde un punto dado. */
+  function seguirRuta(nueva, desde) {
+    route = nueva;
+    prepared = prepareRoute(nueva);
+
+    // La ruta nueva pasa por otro lado: lo que había sobre la anterior no
+    // sirve, y las claves de los avisos ya dados apuntan a otros índices.
+    routeAlerts = alertsAlongRoute(prepared, datasetsConReportes());
+    alerted = new Set();
+
+    // El estado arranca de cero: los indices de la ruta vieja no significan
+    // nada sobre la nueva, y los avisos ya dichos son de otras maniobras.
+    navState = null;
+    previousNav = null;
+    announced = new Set();
+
+    gl.drawRoute(nueva, nueva.accessLegs ?? []);
+
+    if (desde) origin = { lat: desde.lat, lng: desde.lng, label: 'Tu ubicación actual' };
+  }
+
+  /** Saca la pantalla del viaje y devuelve los controles del reposo. */
+  function desmontarViaje() {
+    vistaGeneral = null;
+    pararRefrescoDeReportes();
+    cerrarAporte();
+    viaje?.destruir();
+    viaje = null;
+    host0.classList.remove('is-viaje');
   }
 
   /* ------------------------------------------------------------------------
@@ -615,6 +1933,21 @@ export function navigateView(host, { openDrawer, go }) {
   ------------------------------------------------------------------------ */
 
   function setPoint(which, point) {
+    if (which === 'stop') {
+      // Una parada más del reparto. El orden calculado deja de valer: sus
+      // índices son sobre la lista anterior.
+      if (stops.length < 10) stops.push(point);
+
+      deliveryOrder = null;
+      gl.setDeliveryStops(stops);
+      gl.clearRoute();
+
+      hideSuggestions();
+      drawSheet();
+      gl.flyTo(point);
+      return;
+    }
+
     if (which === 'origin') {
       origin = point;
       gl.setOrigin(point);
@@ -641,6 +1974,11 @@ export function navigateView(host, { openDrawer, go }) {
     } catch {
       setPoint(which, { ...point, label: `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}` });
     }
+
+    // En reposo no hay boton de calcular: el destino fijado se rutea directo.
+    if (which === 'destination' && stage === 'search' && origin) {
+      await calculate(null);
+    }
   }
 
   /**
@@ -661,6 +1999,8 @@ export function navigateView(host, { openDrawer, go }) {
     }
 
     gl.setGpsPosition(point);
+    ultimaPosicion = point;
+    ultimoFix = { lat: point.lat, lng: point.lng, speed: null, heading: null };
 
     // Solo se toma como origen si todavia no hay uno elegido a mano.
     if (origin) {
@@ -671,7 +2011,9 @@ export function navigateView(host, { openDrawer, go }) {
       return;
     }
 
-    setPoint('origin', { ...point, label: 'Tu ubicación actual' });
+    // `actual` marca que el origen es la posicion del GPS: la lista de rutas
+    // lo llama "Mi ubicación" aunque ya tenga direccion.
+    setPoint('origin', { ...point, label: 'Tu ubicación actual', actual: true });
     editing = 'destination';
 
     try {
@@ -681,7 +2023,7 @@ export function navigateView(host, { openDrawer, go }) {
       // resolver la direccion tarda, y pisarle lo que eligio seria peor que no
       // mostrar la calle.
       if (place && origin?.label === 'Tu ubicación actual') {
-        origin = { ...point, label: place.label };
+        origin = { ...point, label: place.label, actual: true };
         drawSheet();
       }
     } catch {
@@ -699,13 +2041,24 @@ export function navigateView(host, { openDrawer, go }) {
 
     await withBusy(button, 'Calculando', async () => {
       try {
-        route = await api.route(
+        const calculada = await api.route(
           truck.id,
           { latitude: origin.lat, longitude: origin.lng },
           { latitude: destination.lat, longitude: destination.lng }
         );
 
-        gl.drawRoute(route, route.accessLegs ?? []);
+        // El backend manda la recomendada en la raíz y las otras en
+        // `alternatives`, ya ordenadas por lo que le conviene a un camión:
+        // primero las que menos tramos prohibidos tienen, después las que
+        // menos dependen de la excepción de acceso, y recién ahí por tiempo.
+        routeOptions = opcionesDeRuta(calculada);
+        chosenRoute = 0;
+        route = calculada;
+
+        // Lo que hay en el camino de cada una se cruza una sola vez, aca: es
+        // lo que cuentan los chips de la lista y los detalles.
+        avisosPorOpcion = routeOptions.map((ruta) => alertsAlongRoute(prepareRoute(ruta), datasetsConReportes()));
+
         stage = 'route';
         drawSheet();
       } catch (error) {
@@ -714,26 +2067,84 @@ export function navigateView(host, { openDrawer, go }) {
     });
   }
 
+  /**
+   * Arranca el guiado con la ruta que se esta mirando.
+   *
+   * NO habla con el servidor: eso es guardar el viaje, y solo ocurre con
+   * cuenta. Separarlas es lo que permite que un invitado navegue de verdad
+   * —voz, galibos, avisos, vibracion— sin que el servidor aprenda nada de el.
+   */
+  function arrancarViaje(rutaElegida) {
+    route = rutaElegida;
+    gl.drawRoute(rutaElegida, rutaElegida.accessLegs ?? []);
+    stage = 'navigation';
+    startNavigating();
+  }
+
+  /** Los metros que se anduvieron sobre la ruta, que es lo que la app sabe. */
+  const metrosAndados = () =>
+    Math.max(0, (route?.distanceMeters ?? 0) - (navState?.remainingMeters ?? route?.distanceMeters ?? 0));
+
   async function startTrip(button) {
+    // Se termino el dia de prueba. El mapa y las capas siguen andando: lo unico
+    // que se apaga es navegar, que es lo que la cuenta paga.
+    if (!puede().navegar) {
+      if (await hojaDeCuenta('vencido')) go('cuenta-nueva');
+      return;
+    }
+
     const truck = selectedTruck();
+
+    // El invitado navega con la ruta que ya tiene calculada. Sin viaje en el
+    // servidor no hay historial, ni kilometros, ni EXP, y eso se le dice al
+    // cerrar: es el momento en que acaba de comprobar que la app le sirve.
+    if (!puede().guardarViaje) {
+      setState({
+        activeTrip: {
+          invitado: true,
+          startedAt: new Date().toISOString(),
+          originLabel: origin.label,
+          destinationLabel: destination.label
+        },
+        activeRoute: route
+      });
+
+      arrancarViaje(route);
+      return;
+    }
+
+    // Desde el reparto el viaje es el mismo, con una diferencia: el destino es la
+    // ULTIMA parada del orden calculado y las demas viajan como intermedias. Sin
+    // esto el servidor recalcularia una ruta directa y se perderian las paradas
+    // —el camion saldria a hacer el reparto por un camino que no es el que se le
+    // mostro—. Ver AD-45.
+    const enReparto = stage === 'delivery' && deliveryOrder;
+    const orden = enReparto ? paradasEnOrden() : null;
+
+    const destino = enReparto ? orden[orden.length - 1] : destination;
+    const intermedias = enReparto ? orden.slice(0, -1) : [];
 
     await withBusy(button, 'Arrancando', async () => {
       try {
         const started = await api.startTrip({
           truckId: truck.id,
           origin: { latitude: origin.lat, longitude: origin.lng },
-          destination: { latitude: destination.lat, longitude: destination.lng },
+          destination: { latitude: destino.lat, longitude: destino.lng },
           originLabel: origin.label,
-          destinationLabel: destination.label
+          destinationLabel: destino.label,
+
+          // Campo opcional: sin paradas el pedido queda igual que siempre.
+          ...(intermedias.length
+            ? { stops: intermedias.map((p) => ({ latitude: p.lat, longitude: p.lng })) }
+            // La ruta que se está mirando es la que arranca: el servidor la
+            // vuelve a calcular por el mismo camino y toma la de esta posición.
+            : { routeIndex: chosenRoute })
         });
 
         // La ruta se guarda en el estado compartido, no solo en la variable de
         // la vista: es lo que permite retomar el viaje si la app se cierra.
         setState({ activeTrip: started.trip, activeRoute: started.route });
-        route = started.route;
-        gl.drawRoute(started.route, started.route.accessLegs ?? []);
-        stage = 'navigation';
-        startNavigating();
+        arrancarViaje(started.route);
       } catch (error) {
         // 409: quedo un viaje abierto de antes. Se ofrece cerrarlo en vez de
         // dejar al usuario trabado sin saber por que.
@@ -763,8 +2174,41 @@ export function navigateView(host, { openDrawer, go }) {
     });
   }
 
+  /**
+   * El cierre de un viaje de invitado, armado en la pantalla.
+   *
+   * `creditedDistanceMeters` va en CERO a proposito y no es un olvido: nadie
+   * le acredito esos kilometros, y el numero que se le muestra es lo que
+   * anduvo, no lo que gano.
+   */
+  const cierreDeInvitado = (trip) => ({
+    invitado: true,
+    creditedDistanceMeters: 0,
+    distanceMeters: metrosAndados(),
+    elapsedSeconds: Math.round((Date.now() - new Date(trip.startedAt).getTime()) / 1000),
+    originLabel: trip.originLabel,
+    destinationLabel: trip.destinationLabel
+  });
+
   async function closeTrip(button, arrived) {
     const trip = state.activeTrip;
+
+    // El viaje del invitado se cierra donde vive: en la pantalla.
+    if (trip?.invitado) {
+      const cerrado = arrived ? cierreDeInvitado(trip) : null;
+
+      stopNavigating();
+      setState({ activeTrip: null, activeRoute: null, cerrado });
+      stage = 'search';
+      route = null;
+      stops = [];
+      deliveryOrder = null;
+      gl.setDeliveryStops([]);
+      gl.clearRoute();
+
+      go(arrived ? 'fin' : 'mapa');
+      return;
+    }
 
     await withBusy(button, arrived ? 'Cerrando' : 'Abandonando', async () => {
       try {
@@ -786,6 +2230,23 @@ export function navigateView(host, { openDrawer, go }) {
         setState({ activeTrip: null, activeRoute: null });
         stage = 'search';
         route = null;
+
+        // Tambien se limpia el reparto, si el viaje venia de uno. Sin esto las
+        // paradas quedaban en memoria y sus marcadores numerados en el mapa,
+        // mientras la hoja mostraba la busqueda vacia: puntos en la pantalla que
+        // ya no pertenecen a ningun viaje ni figuran en ninguna lista.
+        stops = [];
+
+        // Si llego, la pantalla de fin de viaje: es donde se ve lo que dejo.
+        // Abandonar no festeja nada.
+        if (arrived) {
+          setState({ cerrado: closed });
+          go('fin');
+          return;
+        }
+        deliveryOrder = null;
+        gl.setDeliveryStops([]);
+
         gl.clearRoute();
         drawSheet();
 
@@ -814,6 +2275,13 @@ export function navigateView(host, { openDrawer, go }) {
   function startNavigating() {
     prepared = prepareRoute(route);
 
+    // Lo que hay sobre el camino se calcula UNA vez, acá, y no en cada latido
+    // del GPS: cruzar la posición contra 685 gálibos, 312 pasos a nivel y 129
+    // radares una vez por segundo es trabajo de sobra para un teléfono que
+    // además está dibujando el mapa.
+    routeAlerts = alertsAlongRoute(prepared, datasetsConReportes());
+    alerted = new Set();
+
     navState = null;
     previousNav = null;
     announced = new Set();
@@ -824,8 +2292,15 @@ export function navigateView(host, { openDrawer, go }) {
     // tocar el boton y el primer fix pueden pasar decenas de segundos, y sin
     // ningun cambio en pantalla la app parece no haber hecho nada.
     gl.enterNavigationMode(origin);
+
+    // En viaje el destino es la bandera a cuadros (waze-02) y el pin del
+    // origen sobra: el camion ya arranco de ahi.
+    gl.setOrigin(null);
+    gl.setDestination(null);
+    gl.setDestinationFlag(destination);
     showZoomControls(false);
     keepScreenAwake(true);
+    avisarViaje(true);
 
     waitingForGps = true;
     drawSheet();
@@ -835,10 +2310,22 @@ export function navigateView(host, { openDrawer, go }) {
     const first = prepared?.instructions?.[1] ?? prepared?.instructions?.[0];
 
     if (first) {
-      speak(speakableInstruction(first, first.distanceMeters));
+      decir(speakableInstruction(first, first.distanceMeters));
     }
 
     stopWatching = watchPosition(onPosition, destination?.label);
+  }
+
+  /**
+   * Le avisa a la cascara que el viaje empieza o termina. Es un evento y no una
+   * llamada para que el mapa no tenga que conocer al zocalo: el zocalo se
+   * esconde durante el viaje (decision del usuario del 12/09/2026) y al irse le
+   * devuelve su alto al mapa, que hay que redimensionar al frame siguiente,
+   * cuando el layout ya cambio.
+   */
+  function avisarViaje(enCurso) {
+    document.dispatchEvent(new CustomEvent('viaje', { detail: { enCurso } }));
+    requestAnimationFrame(() => gl.resize());
   }
 
   function stopNavigating() {
@@ -847,10 +2334,14 @@ export function navigateView(host, { openDrawer, go }) {
 
     keepScreenAwake(false);
     gl.exitNavigationMode();
+    gl.setDestinationFlag(null);
     showZoomControls(true);
-    clearOverlay();
+    desmontarViaje();
+    avisarViaje(false);
 
     prepared = null;
+    routeAlerts = [];
+    alerted = new Set();
     navState = null;
     previousNav = null;
     announced = new Set();
@@ -869,18 +2360,37 @@ export function navigateView(host, { openDrawer, go }) {
     waitingForGps = false;
     trackingProblem = null;
 
+    ultimaPosicion = { lat: fix.lat, lng: fix.lng };
+    ultimoFix = fix;
+
+    // La lista de reportes no tiene mapa y no puede pedir el GPS de nuevo solo
+    // para armarse: lee de aca donde estabas.
+    recordarDonde(ultimaPosicion);
     previousNav = navState;
     navState = advance(prepared, fix, navState);
 
     gl.followVehicle(navState.snapped, navState.bearing);
     gl.trimRoute(route.geometry.coordinates, navState.index, navState.snapped);
+    marcarManiobra();
+    gl.showBalloons(globosDeRuta(route, navState), navState.stepIndex);
 
     const announcement = pendingAnnouncement(navState, previousNav, announced);
 
     if (announcement) {
       announced.add(announcement.key);
-      speak(speakableInstruction(navState.next, navState.distanceToManeuver));
+      decir(speakableInstruction(navState.next, navState.distanceToManeuver));
+
+      // Vibra sólo en el último aviso, el de 80 m, y no en los tres. Vibrar en
+      // cada umbral convierte la maniobra en tres sacudones desde 800 m antes,
+      // y a esa altura uno deja de prestarles atención — que es justo lo que la
+      // vibración no se puede permitir.
+      if (announcement.meters === ANNOUNCE_VIBRATE_AT) {
+        vibrate(VIBRACION.maniobra);
+      }
     }
+
+    avisarLoQueViene();
+    preguntarSiSigueAhi(fix);
 
     // El primer fix cambia la forma de la pantalla —del cartel de "buscando" al
     // bloque de maniobra—, asi que se rehace entera. Los demas latidos solo
@@ -903,34 +2413,74 @@ export function navigateView(host, { openDrawer, go }) {
   }
 
   /**
+   * Avisa de lo que viene sobre el camino: un puente que no da, un paso a nivel
+   * o un radar.
+   *
+   * Cada tipo vibra distinto. Si todo vibrara igual, lo único que se sabría es
+   * "algo pasa" y habría que mirar la pantalla — que es justo lo que la
+   * vibración vino a evitar.
+   */
+  function avisarLoQueViene() {
+    if (!navState) return;
+
+    const alerta = pendingRouteAlert(
+      routeAlerts, navState.travelledMeters, previousNav?.travelledMeters ?? null, alerted);
+
+    if (!alerta) return;
+
+    alerted.add(alerta.key);
+
+    // Un reporte por el que este camión no pasa —un gálibo más bajo, una calle
+    // cerrada— vibra como peligro; el resto de los reportes, como información.
+    const patron = alerta.tipo === 'reporte' && alerta.forYourTruck === 'incompatible'
+      ? VIBRACION.peligro
+      : VIBRACION[alerta.tipo] ?? VIBRACION.maniobra;
+
+    vibrate(patron);
+
+    const frase = speakableAlert(alerta);
+    if (frase) decir(frase);
+
+    // Además del sonido y la vibración, queda escrito: si el teléfono está en
+    // silencio o el motor tapó la voz, el aviso tiene que poder leerse. Va en
+    // la tarjeta del viaje, como las alertas de Waze, y se va sola. Es
+    // informativo —el motor ya excluyó los gálibos que no se pasan (AD-47)—.
+    const tarjeta = textoDeAviso(alerta, selectedTruck());
+    if (tarjeta) viaje?.avisar(tarjeta);
+  }
+
+  /**
+   * La flecha blanca sobre la calle, en la proxima maniobra.
+   *
+   * Se calcula sobre la ruta preparada y el mapa la redibuja solo cuando la
+   * maniobra cambia (la clave es su vertice). La llegada no lleva flecha: ahi
+   * lo que se ve es la bandera del destino.
+   */
+  function marcarManiobra() {
+    const proxima = navState?.next;
+
+    if (!proxima || proxima.kind === 'Finish') {
+      gl.showManeuver(null);
+      return;
+    }
+
+    gl.showManeuver(maneuverArrowPath(prepared, proxima.fromPointIndex), proxima.fromPointIndex);
+  }
+
+  /**
    * Actualiza los numeros sin volver a dibujar la pantalla.
    *
-   * Rehacer el marcado en cada latido del GPS tira el trabajo del navegador una
-   * vez por segundo y, sobre todo, corta cualquier animacion en curso. Se tocan
-   * solo los tres nodos que cambian.
+   * La pantalla del viaje toca solo los nodos que cambian: rehacer el marcado
+   * en cada latido del GPS tira el trabajo del navegador una vez por segundo
+   * y corta cualquier animacion en curso.
    */
   function updateNavigationUi() {
-    const overlay = q(host0, '#nav-overlay');
-
-    if (!overlay || rerouting) {
+    if (!viaje) {
       drawSheet();
       return;
     }
 
-    const upcoming = navState?.next ?? null;
-
-    setText(overlay, '.maneuver-distance', formatDistance(navState.distanceToManeuver));
-    setText(overlay, '.maneuver-arrow', upcoming ? maneuverArrow(upcoming.kind) : '↑');
-    setText(overlay, '.maneuver-street',
-      upcoming ? (upcoming.streetName || upcoming.text) : 'Seguí la ruta');
-
-    const bar = q(host0, '#sheet');
-    const figures = bar ? bar.querySelectorAll('.nav-eta b') : [];
-
-    if (figures.length === 2) {
-      figures[0].textContent = arrivalTime(navState.remainingSeconds);
-      figures[1].textContent = formatDistance(navState.remainingMeters);
-    }
+    pintarViaje();
   }
 
   function setText(root, selector, text) {
@@ -951,7 +2501,7 @@ export function navigateView(host, { openDrawer, go }) {
     lastRerouteAt = Date.now();
     drawSheet();
 
-    speak('Recalculando.');
+    decir('Recalculando.');
 
     try {
       const truck = selectedTruck();
@@ -962,17 +2512,7 @@ export function navigateView(host, { openDrawer, go }) {
         { latitude: destination.lat, longitude: destination.lng }
       );
 
-      route = fresh;
-      prepared = prepareRoute(fresh);
-
-      // El estado arranca de cero: los indices de la ruta vieja no significan
-      // nada sobre la nueva, y los avisos ya dichos son de otras maniobras.
-      navState = null;
-      previousNav = null;
-      announced = new Set();
-
-      gl.drawRoute(fresh, fresh.accessLegs ?? []);
-      origin = { ...fix, label: 'Tu ubicación actual' };
+      seguirRuta(fresh, fix);
     } catch (error) {
       toastError(`No se pudo recalcular: ${error.message}`);
     } finally {
@@ -993,6 +2533,53 @@ export function navigateView(host, { openDrawer, go }) {
    * El origen y el destino salen del viaje registrado, no de lo que hubiera
    * quedado escrito en los campos de busqueda.
    */
+  /* ------------------------------------------------------------------------
+     "¿Seguís yendo a…?" (waze-03 y el prototipo)
+
+     La tarjeta sobre la hoja de reposo, con la pregunta y dos pildoras:
+     "No" abre las tres salidas de siempre —llegue, abandono, sigo— porque
+     cerrar un viaje decide si suma o no; "Continuar viaje" retoma la
+     navegacion. La tarjeta se queda mientras el viaje siga abierto y la
+     pantalla en reposo.
+  ------------------------------------------------------------------------ */
+
+
+  function preguntarPorElViaje() {
+    if (pregunta) return;
+
+    pregunta = document.createElement('div');
+    pregunta.className = 'gps-pregunta';
+    pregunta.innerHTML = tarjetaReanudar(state.activeTrip);
+    host0.appendChild(pregunta);
+
+    pregunta.onclick = async (event) => {
+      const boton = event.target.closest('[data-accion]');
+      if (!boton) return;
+
+      const { accion } = boton.dataset;
+
+      if (accion === 'info') {
+        toast('El viaje quedó abierto cuando se cerró la app. Si llegaste, se acreditan los kilómetros; si lo abandonás, no suma nada.', 'info', 6000);
+      }
+
+      if (accion === 'continuar') {
+        quitarPregunta();
+        resumeTrip();
+      }
+
+      if (accion === 'no') {
+        await askToStop();
+        // Si eligio seguir, el viaje sigue abierto y la pregunta tambien.
+        if (!state.activeTrip) quitarPregunta();
+      }
+    };
+  }
+
+  function quitarPregunta() {
+    pregunta?.remove();
+    pregunta = null;
+  }
+
   function resumeTrip() {
     const trip = state.activeTrip;
 
@@ -1028,16 +2615,38 @@ export function navigateView(host, { openDrawer, go }) {
     const trip = state.activeTrip;
     if (!trip) return;
 
+    // Lo que anduvo se mide ANTES de apagar la navegacion: apagarla se lleva el
+    // estado del guiado, y con el los metros.
+    const cerradoDelInvitado = trip.invitado ? cierreDeInvitado(trip) : null;
+
     stopNavigating();
-    speak('Llegaste a destino.');
+    decir('Llegaste a destino.');
+
+    // El viaje del invitado no existe en el servidor: se cierra donde vive. Sin
+    // esto, llegar dejaba el viaje ABIERTO en memoria y la pantalla de vuelta en
+    // el mapa, sin explicar nada. Es el mismo caso que closeTrip.
+    if (trip.invitado) {
+      setState({ activeTrip: null, activeRoute: null, cerrado: cerradoDelInvitado });
+
+      stage = 'search';
+      route = null;
+      gl.clearRoute();
+      go('fin');
+      return;
+    }
 
     try {
       const closed = await api.finishTrip(trip.id);
-      setState({ activeTrip: null, activeRoute: null });
+      setState({ activeTrip: null, activeRoute: null, cerrado: closed });
 
-      toastOk(closed.creditedDistanceMeters > 0
-        ? `Llegaste. Sumaste ${formatDistance(closed.creditedDistanceMeters)}.`
-        : 'Llegaste. No sumó kilómetros: pasó muy poco tiempo.');
+      stage = 'search';
+      route = null;
+      gl.clearRoute();
+
+      // La pantalla de fin de viaje reemplaza al aviso de antes: ahi se ven los
+      // kilometros, la EXP y lo desbloqueado, y ahi esta la mascota.
+      go('fin');
+      return;
     } catch (error) {
       toastError(error.message);
     }
@@ -1064,9 +2673,10 @@ export function navigateView(host, { openDrawer, go }) {
   // bateria y ninguna otra pantalla la muestra.
   const stopListeningHeading = watchHeading(onHeading);
 
-  // Si quedo un viaje abierto de una sesion anterior, se retoma.
+  // Si quedo un viaje abierto de una sesion anterior, se pregunta antes de
+  // meterse en la navegacion de golpe (waze-03).
   if (state.activeTrip) {
-    resumeTrip();
+    preguntarPorElViaje();
   }
 
   drawSheet();
@@ -1075,88 +2685,16 @@ export function navigateView(host, { openDrawer, go }) {
     stopListeningTracking();
     stopListeningHeading();
     stopNavigating();
+    quitarIdle?.();
+    pararRefrescoDeReportes();
+    cerrarSigueAhi();
     gl.destroyMap();
   };
 }
 
 /* ---------------------------------------------------------------------------
-   Restricciones
+   Utilidades
 --------------------------------------------------------------------------- */
-
-/**
- * Agrupa los hallazgos por regla en vez de listar tramo por tramo.
- *
- * Una ruta larga puede traer decenas de notas que dicen todas lo mismo. Al
- * camionero le sirve "salís de la Red en 3 tramos, 2,1 km en total", no treinta
- * renglones iguales.
- */
-function groupNotes(route) {
-  const all = [...(route.restrictionNotes ?? []), ...(route.accessLegs ?? [])];
-  const groups = new Map();
-
-  for (const note of all) {
-    for (const finding of note.findings ?? []) {
-      const key = finding.kind;
-
-      if (!groups.has(key)) {
-        groups.set(key, {
-          kind: finding.kind,
-          description: finding.description,
-          ruleReference: finding.ruleReference,
-          dataReference: finding.dataReference,
-          isAccess: note.requiresAccessException,
-          segments: 0,
-          meters: 0,
-          streets: new Set()
-        });
-      }
-
-      const group = groups.get(key);
-      group.segments += 1;
-      group.meters += note.distanceMeters ?? 0;
-      if (note.streetName) group.streets.add(note.streetName);
-    }
-  }
-
-  return [...groups.values()];
-}
-
-const KIND_TITLES = {
-  OutsideHeavyTrafficNetwork: 'Salís de la Red de Tránsito Pesado',
-  MaxHeight: 'Altura limitada',
-  MaxWeight: 'Peso limitado',
-  MaxWidth: 'Ancho limitado',
-  MaxLength: 'Largo limitado',
-  HgvProhibited: 'Camiones prohibidos'
-};
-
-function notesMarkup(groups) {
-  return `<div class="notes">${groups.map((group) => {
-    const title = KIND_TITLES[group.kind] ?? group.kind;
-    const streets = [...group.streets].slice(0, 3).join(', ');
-
-    return `
-      <div class="note ${group.isAccess ? 'note-access' : 'note-blocked'}">
-        <div class="note-title">${escapeText(title)}</div>
-        <div class="note-body">${escapeText(group.description)}</div>
-        <div class="note-source">
-          ${group.segments} ${group.segments === 1 ? 'tramo' : 'tramos'} ·
-          ${formatDistance(group.meters)}${streets ? ` · ${escapeText(streets)}` : ''}
-        </div>
-        <details class="sources">
-          <summary></summary>
-          <div class="note-source">
-            <b>Regla:</b> ${escapeText(group.ruleReference)}<br>
-            <b>Dato:</b> ${escapeText(group.dataReference)}
-          </div>
-        </details>
-      </div>
-    `;
-  }).join('')}</div>`;
-}
-
-const formatTruck = (truck) =>
-  `${(truck.grossWeightKg / 1000).toFixed(1).replace('.0', '')} t · ${truck.heightMeters} m`;
 
 function escapeText(value) {
   return String(value ?? '')

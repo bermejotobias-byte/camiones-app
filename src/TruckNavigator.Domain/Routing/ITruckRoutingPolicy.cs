@@ -15,4 +15,11 @@ namespace TruckNavigator.Domain.Routing;
 public interface ITruckRoutingPolicy
 {
     CustomModel BuildCustomModel(TruckProfile truck, DateTimeOffset when);
+
+    /// <summary>
+    /// Lo mismo, mas los bloqueos de la comunidad validados que le tocan a este
+    /// camion: cada uno entra como un area con prioridad cero (spec de reportes,
+    /// 19/09/2026). Un reporte solo, sin validar, nunca llega aca.
+    /// </summary>
+    CustomModel BuildCustomModel(TruckProfile truck, DateTimeOffset when, IReadOnlyList<RouteBlockade> blockades);
 }

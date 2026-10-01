@@ -1,0 +1,393 @@
+/**
+ * Los reportes de la comunidad (spec del 19/09/2026): el catálogo como lo ve
+ * la app, la edad legible, el sentido de marcha, la capa, el toast, y cuándo
+ * preguntar "¿sigue ahí?".
+ *
+ * Correr con:  node --test tests/web/
+ */
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  TIPOS, tipoDeReporte, etiquetaEdad, mismoSentido, estadoDelPin, featuresDeReportes, featuresParaAvisos,
+  textoDelToast, deberiaPreguntar, bboxDeRuta, bboxVisible, esperaTrasFallas, esFalloDeRed, frenoDeRed,
+  MINIMO_MISMO_RECUADRO_MS,
+  seccionReportar, hojaGalibo, fichaReporte, promptSigueAhi,
+  pinReporteSvg, nombresDePinesDeReporte, instalarReportes, mostrarReportes, CAPA_REPORTES
+} from '../../src/TruckNavigator.Api/wwwroot/js/mapa/reportes.js';
+
+const ahora = Date.parse('2026-09-19T15:00:00-03:00');
+
+const reporte = (extra = {}) => ({
+  id: 'r1', type: 'Accident', kind: 'info', latitude: -34.6, longitude: -58.4, street: 'Av. Corrientes 5500',
+  headingDegrees: null, value: null, createdAt: '2026-09-19T14:48:00-03:00', expiresAt: '2026-09-19T16:48:00-03:00',
+  status: 'Active', fixed: false, reliability: { score: 50, label: 'new' }, confirmations: 0, rejections: 0,
+  validated: false, reportedBy: { alias: 'elgaucho' }, mine: false, yourVote: null, forYourTruck: null, ...extra
+});
+
+/* ---------------------------------------------------------------------------
+   El catálogo
+--------------------------------------------------------------------------- */
+
+test('son diez tipos, sin repetidos, en el orden de la grilla', () => {
+  assert.equal(TIPOS.length, 10);
+  assert.equal(new Set(TIPOS.map((t) => t.id)).size, 10);
+  assert.equal(new Set(TIPOS.map((t) => t.tipo)).size, 10);
+  assert.deepEqual(TIPOS.map((t) => t.tipo), [
+    'Accident', 'Traffic', 'Checkpoint', 'Police', 'Camera', 'Roadworks', 'Pothole', 'Hazard', 'RoadClosed', 'LowClearance'
+  ]);
+});
+
+test('sólo el gálibo pide un valor, y sólo la calle cerrada y el gálibo son restricción', () => {
+  assert.deepEqual(TIPOS.filter((t) => t.pideValor).map((t) => t.tipo), ['LowClearance']);
+  assert.deepEqual(TIPOS.filter((t) => t.restriccion).map((t) => t.tipo), ['RoadClosed', 'LowClearance']);
+});
+
+test('cada tipo tiene nombre y calcomanía propia', () => {
+  for (const t of TIPOS) {
+    assert.ok(t.nombre.length > 2, t.tipo);
+    assert.ok(t.calcomania, t.tipo);
+  }
+  assert.equal(new Set(TIPOS.map((t) => t.calcomania)).size, 10);
+});
+
+test('se busca un tipo por el nombre del enum, y uno desconocido no rompe', () => {
+  assert.equal(tipoDeReporte('Pothole').nombre, 'Bache');
+  assert.equal(tipoDeReporte('Ovni').nombre, 'Reporte');
+});
+
+/* ---------------------------------------------------------------------------
+   La edad
+--------------------------------------------------------------------------- */
+
+test('la edad se lee como la diría una persona', () => {
+  assert.equal(etiquetaEdad('2026-09-19T14:59:30-03:00', ahora), 'recién');
+  assert.equal(etiquetaEdad('2026-09-19T14:48:00-03:00', ahora), 'hace 12 min');
+  assert.equal(etiquetaEdad('2026-09-19T11:40:00-03:00', ahora), 'hace 3 h');
+  assert.equal(etiquetaEdad('2026-09-17T09:00:00-03:00', ahora), 'hace 2 días');
+  assert.equal(etiquetaEdad('2026-09-18T09:00:00-03:00', ahora), 'hace 1 día');
+});
+
+test('una cámara fija no tiene edad', () => {
+  assert.equal(etiquetaEdad('2026-09-01T09:00:00-03:00', ahora, { fija: true }), null);
+});
+
+/* ---------------------------------------------------------------------------
+   El sentido de marcha
+--------------------------------------------------------------------------- */
+
+test('sin rumbo en el reporte, le importa a todos; con rumbo, sólo a quien va parecido', () => {
+  assert.equal(mismoSentido(null, 90), true);
+  assert.equal(mismoSentido(90, 90), true);
+  assert.equal(mismoSentido(90, 170), true);      // 80° de diferencia
+  assert.equal(mismoSentido(90, 200), false);     // 110°
+  assert.equal(mismoSentido(350, 10), true);      // 20°, cruzando el norte
+  assert.equal(mismoSentido(90, 270), false);     // en contra
+  assert.equal(mismoSentido(90, null), true);     // la ruta no sabe: no se filtra
+});
+
+/* ---------------------------------------------------------------------------
+   La capa
+--------------------------------------------------------------------------- */
+
+test('el estado del pin: nuevo, confirmado, en duda, rojo para lo que no le sirve al camión, y fijo', () => {
+  assert.equal(estadoDelPin(reporte()), 'nuevo');
+  assert.equal(estadoDelPin(reporte({ reliability: { score: 74, label: 'confirmed' } })), 'confirmado');
+  assert.equal(estadoDelPin(reporte({ reliability: { score: 40, label: 'disputed' } })), 'duda');
+  assert.equal(estadoDelPin(reporte({ type: 'LowClearance', kind: 'restriction', forYourTruck: 'incompatible' })), 'rojo');
+  assert.equal(estadoDelPin(reporte({ type: 'Camera', fixed: true, status: 'Fixed' })), 'fijo');
+});
+
+test('lo que no le sirve al camión es rojo aunque esté confirmado', () => {
+  assert.equal(estadoDelPin(reporte({
+    type: 'RoadClosed', kind: 'restriction', forYourTruck: 'incompatible', reliability: { score: 80, label: 'confirmed' }
+  })), 'rojo');
+});
+
+test('la capa lleva un feature por reporte con lo que el pin necesita', () => {
+  const geojson = featuresDeReportes([reporte(), reporte({ id: 'r2', type: 'Camera', fixed: true })]);
+
+  assert.equal(geojson.type, 'FeatureCollection');
+  assert.equal(geojson.features.length, 2);
+  assert.deepEqual(geojson.features[0].geometry, { type: 'Point', coordinates: [-58.4, -34.6] });
+  assert.equal(geojson.features[0].properties.id, 'r1');
+  assert.equal(geojson.features[0].properties.pin, 'reporte-accidente-nuevo');
+  assert.equal(geojson.features[1].properties.pin, 'reporte-camara-fijo');
+});
+
+test('para los avisos de la ruta viaja todo lo que el aviso necesita', () => {
+  const geojson = featuresParaAvisos([reporte({ headingDegrees: 90, type: 'LowClearance', kind: 'restriction', value: 3.8, validated: true, forYourTruck: 'incompatible' })]);
+
+  assert.deepEqual(geojson.features[0].properties, {
+    id: 'r1', type: 'LowClearance', street: 'Av. Corrientes 5500', headingDegrees: 90, value: 3.8,
+    validated: true, fixed: false, forYourTruck: 'incompatible'
+  });
+  assert.deepEqual(featuresParaAvisos(null).features, []);
+});
+
+test('una lista vacía o nula da una capa vacía', () => {
+  assert.deepEqual(featuresDeReportes([]).features, []);
+  assert.deepEqual(featuresDeReportes(null).features, []);
+});
+
+/* ---------------------------------------------------------------------------
+   El toast
+--------------------------------------------------------------------------- */
+
+test('el toast dice qué se reportó y dónde, si se sabe', () => {
+  assert.equal(textoDelToast(reporte()), 'Reportado · Accidente en Av. Corrientes 5500');
+  assert.equal(textoDelToast(reporte({ street: null })), 'Reportado · Accidente');
+  assert.equal(textoDelToast(reporte({ type: 'LowClearance', value: 3.8, street: null })), 'Reportado · Gálibo bajo 3,80 m');
+});
+
+/* ---------------------------------------------------------------------------
+   ¿Sigue ahí?
+--------------------------------------------------------------------------- */
+
+test('se pregunta una vez, al alejarse después de haber pasado cerca', () => {
+  const base = { reporte: reporte(), yaPreguntado: false, mio: false, votado: false };
+
+  assert.equal(deberiaPreguntar({ ...base, distancia: 40, distanciaAnterior: 80 }), false);   // acercándose
+  assert.equal(deberiaPreguntar({ ...base, distancia: 55, distanciaAnterior: 40 }), true);    // pasó y se aleja
+  assert.equal(deberiaPreguntar({ ...base, distancia: 120, distanciaAnterior: 90 }), false);  // nunca estuvo cerca
+  assert.equal(deberiaPreguntar({ ...base, distancia: 55, distanciaAnterior: 40, yaPreguntado: true }), false);
+  assert.equal(deberiaPreguntar({ ...base, distancia: 55, distanciaAnterior: 40, mio: true }), false);
+  assert.equal(deberiaPreguntar({ ...base, distancia: 55, distanciaAnterior: 40, votado: true }), false);
+});
+
+/* ---------------------------------------------------------------------------
+   Los recuadros
+--------------------------------------------------------------------------- */
+
+test('el recuadro de la ruta la envuelve con margen, en el orden que pide la API', () => {
+  const bbox = bboxDeRuta([[-58.44, -34.60], [-58.42, -34.59]], 500);
+  const [minLon, minLat, maxLon, maxLat] = bbox.split(',').map(Number);
+
+  assert.ok(minLon < -58.44 && maxLon > -58.42);
+  assert.ok(minLat < -34.60 && maxLat > -34.59);
+  assert.ok(Math.abs((maxLat - (-34.59)) * 111_320 - 500) < 5);
+});
+
+test('el recuadro visible sale de los límites del mapa', () => {
+  assert.equal(bboxVisible({ west: -58.44, south: -34.61, east: -58.42, north: -34.59 }), '-58.44,-34.61,-58.42,-34.59');
+});
+
+/* ---------------------------------------------------------------------------
+   Cuándo se puede volver a pedir (el freno de la red)
+--------------------------------------------------------------------------- */
+
+test('la espera crece con cada fallo seguido y se queda en el tope', () => {
+  assert.equal(esperaTrasFallas(0), 0);
+  assert.equal(esperaTrasFallas(1), 2_000);
+  assert.equal(esperaTrasFallas(2), 5_000);
+  assert.equal(esperaTrasFallas(3), 15_000);
+  assert.equal(esperaTrasFallas(4), 60_000);
+  assert.equal(esperaTrasFallas(5), 60_000);
+  assert.equal(esperaTrasFallas(99), 60_000);
+});
+
+test('sólo frena el error de no haber podido contactar al servidor, no lo que el servidor contesta', () => {
+  assert.equal(esFalloDeRed({ status: 0 }), true);
+  assert.equal(esFalloDeRed({ status: 400 }), false);
+  assert.equal(esFalloDeRed({ status: 429 }), false);
+  assert.equal(esFalloDeRed({ status: 500 }), false);
+  assert.equal(esFalloDeRed(new Error('cualquier cosa')), false);
+  assert.equal(esFalloDeRed(null), false);
+});
+
+test('el primer pedido sale sin esperar nada', () => {
+  assert.equal(frenoDeRed().permite(1_000), true);
+});
+
+test('después de un fallo de red no se vuelve a pedir hasta que pasa la espera', () => {
+  const freno = frenoDeRed();
+
+  assert.equal(freno.fallo({ status: 0 }, 1_000), 2_000);
+  assert.equal(freno.permite(1_999), false);
+  assert.equal(freno.permite(2_999), false);
+  assert.equal(freno.permite(3_000), true);
+});
+
+test('el mismo recuadro no se vuelve a pedir enseguida, aunque todo ande bien', () => {
+  // El freno de fallas no alcanza: con los TILES caidos y la API sana,
+  // MapLibre reintenta los tiles sin parar, cada reintento dispara 'idle' y la
+  // app pide reportes que contestan 200. Medido con el mapa QUIETO: 42 pedidos
+  // por minuto, todos con el mismo recuadro. No frena nada porque nada falla.
+  const freno = frenoDeRed();
+  const caja = '-58.44,-34.64,-58.37,-34.53';
+
+  assert.equal(freno.permite(1_000, caja), true);
+  freno.exito(caja, 1_000);
+
+  assert.equal(freno.permite(2_000, caja), false);
+  assert.equal(freno.permite(1_000 + MINIMO_MISMO_RECUADRO_MS - 1, caja), false);
+  assert.equal(freno.permite(1_000 + MINIMO_MISMO_RECUADRO_MS, caja), true);
+});
+
+test('mover el mapa a otro lado pide de una: lo que se frena es repetir, no mirar', () => {
+  const freno = frenoDeRed();
+
+  freno.exito('-58.44,-34.64,-58.37,-34.53', 1_000);
+
+  assert.equal(freno.permite(1_200, '-58.50,-34.70,-58.43,-34.59'), true);
+});
+
+test('el refresco de 60 s del viaje sigue pasando: el mínimo es más corto a propósito', () => {
+  assert.ok(MINIMO_MISMO_RECUADRO_MS < 60_000,
+    `${MINIMO_MISMO_RECUADRO_MS} ms dejaria al viaje sin refrescar reportes`);
+});
+
+test('sin recuadro el freno se comporta como siempre: sólo mira las fallas', () => {
+  const freno = frenoDeRed();
+
+  freno.exito();
+  assert.equal(freno.permite(1_000), true);
+});
+
+test('cada fallo encadenado espera más que el anterior', () => {
+  const freno = frenoDeRed();
+
+  assert.equal(freno.fallo({ status: 0 }, 0), 2_000);
+  assert.equal(freno.fallo({ status: 0 }, 2_000), 5_000);
+  assert.equal(freno.fallo({ status: 0 }, 7_000), 15_000);
+  assert.equal(freno.fallo({ status: 0 }, 22_000), 60_000);
+  assert.equal(freno.fallo({ status: 0 }, 82_000), 60_000);
+  assert.equal(freno.permite(142_000), true);
+});
+
+test('un pedido que vuelve bien borra la espera y la escalera arranca de nuevo', () => {
+  const freno = frenoDeRed();
+
+  freno.fallo({ status: 0 }, 0);
+  freno.fallo({ status: 0 }, 2_000);
+  freno.exito();
+
+  assert.equal(freno.permite(2_001), true);
+  assert.equal(freno.fallo({ status: 0 }, 3_000), 2_000);
+});
+
+test('un 4xx del servidor no frena ni cuenta para la escalera', () => {
+  const freno = frenoDeRed();
+
+  assert.equal(freno.fallo({ status: 404 }, 0), 0);
+  assert.equal(freno.fallo({ status: 429 }, 0), 0);
+  assert.equal(freno.permite(0), true);
+  assert.equal(freno.fallo({ status: 0 }, 0), 2_000);
+});
+
+/* ---------------------------------------------------------------------------
+   Las hojas
+--------------------------------------------------------------------------- */
+
+test('la sección de reportar: diez círculos, uno por tipo, con su nombre', () => {
+  const html = seccionReportar();
+
+  assert.equal((html.match(/data-accion="reportar" data-tipo="[A-Za-z]+"/g) ?? []).length, 10);
+  assert.ok(html.includes('data-tipo="LowClearance"'));
+  assert.ok(html.includes('Calle cerrada'));
+  assert.ok(html.includes('Reportar'));
+});
+
+test('el gálibo pide los metros con valores grandes prearmados y "otro"', () => {
+  const html = hojaGalibo({ valor: null });
+
+  for (const v of ['3,5', '3,8', '4,0', '4,3', '4,5']) assert.ok(html.includes(`>${v}<`), v);
+  assert.equal((html.match(/data-accion="galibo-valor" data-valor="[0-9.]+"/g) ?? []).length, 5);
+  assert.ok(html.includes('data-accion="galibo-otro"'));
+  assert.ok(html.includes('data-accion="cerrar"'));
+});
+
+test('la ficha: tipo, calle o "cerca de acá", edad y conteos, quién, y los dos botones', () => {
+  const html = fichaReporte(reporte({ confirmations: 2 }), { ahora });
+
+  assert.ok(html.includes('Accidente'));
+  assert.ok(html.includes('Av. Corrientes 5500'));
+  assert.ok(html.includes('hace 12 min'));
+  assert.ok(html.includes('2 confirmaciones'));
+  assert.ok(html.includes('@elgaucho'));
+  assert.ok(html.includes('data-accion="voto" data-veredicto="StillThere"'));
+  assert.ok(html.includes('data-accion="voto" data-veredicto="Gone"'));
+  assert.ok(!html.includes('data-accion="cerrar-reporte"'), 'no es mío: no se puede cerrar');
+  assert.ok(html.includes('data-accion="cerrar"'));
+});
+
+test('la ficha de lo mío ofrece cerrarlo y no votarlo; sin calle dice "cerca de acá"; sin alias, anónimo', () => {
+  const html = fichaReporte(reporte({ mine: true, street: null, reportedBy: { alias: null } }), { ahora });
+
+  assert.ok(html.includes('data-accion="cerrar-reporte"'));
+  assert.ok(!html.includes('data-veredicto='));
+  assert.ok(html.includes('cerca de acá'));
+  assert.ok(html.includes('@anónimo'));
+});
+
+test('la ficha de una restricción dice si está sin confirmar y si tu camión no pasa', () => {
+  const sinConfirmar = fichaReporte(reporte({ type: 'RoadClosed', kind: 'restriction', validated: false }), { ahora });
+  assert.match(sinConfirmar, /sin confirmar/i);
+
+  const noPasa = fichaReporte(reporte({ type: 'LowClearance', kind: 'restriction', value: 3.8, forYourTruck: 'incompatible', validated: true }), { ahora });
+  assert.ok(noPasa.includes('3,80 m'));
+  assert.ok(noPasa.includes('Tu camión no pasa'));
+  assert.doesNotMatch(noPasa, /sin confirmar/i);
+});
+
+test('la ficha marca el voto propio y una cámara fija no tiene edad', () => {
+  const votado = fichaReporte(reporte({ yourVote: 'StillThere' }), { ahora });
+  assert.ok(/data-veredicto="StillThere"[^>]*class="[^"]*celeste/.test(votado) || /class="[^"]*celeste[^"]*"[^>]*data-veredicto="StillThere"/.test(votado));
+
+  const fija = fichaReporte(reporte({ type: 'Camera', fixed: true, status: 'Fixed', createdAt: '2026-09-01T09:00:00-03:00' }), { ahora });
+  assert.ok(!fija.includes('hace '));
+  assert.ok(fija.includes('Cámara fija'));
+});
+
+/* ---------------------------------------------------------------------------
+   Los pines y la capa en MapLibre
+--------------------------------------------------------------------------- */
+
+test('un pin por tipo y estado: el rojo lleva el rojo del GPS, el fijo no lleva anillo de edad', () => {
+  const nuevo = pinReporteSvg('accidente', 'nuevo');
+  const rojo = pinReporteSvg('galiboReporte', 'rojo');
+  const fijo = pinReporteSvg('camaraComunidad', 'fijo');
+
+  assert.match(nuevo, /^<svg/);
+  // El anillo del disco (stroke de 3) es lo que cambia; la calcomanía puede ser roja de por sí.
+  assert.ok(rojo.includes('stroke="#e9463f" stroke-width="3"'));
+  assert.ok(!nuevo.includes('stroke="#e9463f" stroke-width="3"'));
+  assert.notEqual(fijo, pinReporteSvg('camaraComunidad', 'confirmado'));
+  assert.equal(pinReporteSvg('inexistente', 'nuevo'), '');
+});
+
+test('las imágenes que la capa puede pedir: diez tipos por cinco estados', () => {
+  const nombres = nombresDePinesDeReporte();
+
+  assert.equal(nombres.length, 50);
+  assert.ok(nombres.includes('reporte-accidente-nuevo'));
+  assert.ok(nombres.includes('reporte-galibo-rojo'));
+  assert.ok(nombres.includes('reporte-camara-fijo'));
+  assert.equal(new Set(nombres).size, 50);
+});
+
+test('instalar y mostrar sin mapa no rompen: el mapa destruido sigue disparando eventos', () => {
+  instalarReportes(null);
+  mostrarReportes(null, []);
+  mostrarReportes(undefined, null);
+});
+
+test('mostrar sobre un mapa de mentira le pasa la capa a la fuente', () => {
+  let recibido = null;
+  const map = { getSource: () => ({ setData: (d) => { recibido = d; } }) };
+
+  mostrarReportes(map, [reporte()]);
+
+  assert.equal(recibido.features.length, 1);
+  assert.equal(recibido.features[0].properties.pin, 'reporte-accidente-nuevo');
+});
+
+test('el "¿sigue ahí?" son dos botones grandes con el id del reporte', () => {
+  const html = promptSigueAhi(reporte({ id: 'abc' }));
+
+  assert.ok(html.includes('data-reporte="abc"'));
+  assert.ok(html.includes('data-accion="sigue" data-veredicto="StillThere"'));
+  assert.ok(html.includes('data-accion="sigue" data-veredicto="Gone"'));
+  assert.ok(html.includes('Accidente'));
+});

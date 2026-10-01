@@ -100,6 +100,7 @@ export function wire(root, handlers) {
 const ICONS = {
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
+  chevron: '<path d="M9 5l7 7-7 7"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   gps: '<circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/>',
   truck: '<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
@@ -113,7 +114,8 @@ const ICONS = {
   warning: '<path d="M12 3l9 17H3z"/><path d="M12 9v5M12 17.5v.5"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   flag: '<path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/>',
-  bridge: '<path d="M3 8h18M5 8v10M19 8v10M9 18v-5a3 3 0 0 1 6 0v5"/>'
+  bridge: '<path d="M3 8h18M5 8v10M19 8v10M9 18v-5a3 3 0 0 1 6 0v5"/>',
+  carnet: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M6 16c.5-1.5 1.5-2 2.5-2s2 .5 2.5 2M14 9h4M14 12.5h4"/>'
 };
 
 export function icon(name, size = 22) {
@@ -300,10 +302,16 @@ export const cardinal = (degrees) =>
 export const cardinalName = (degrees) =>
   Number.isFinite(degrees) ? CARDINAL_LONG[cardinalIndex(degrees)] : '';
 
-/** Hora de llegada estimada a partir de ahora. */
-export function arrivalTime(seconds) {
-  const at = new Date(Date.now() + seconds * 1000);
-  return at.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+/**
+ * Hora de llegada estimada a partir de ahora, en 24 horas.
+ *
+ * El ciclo horario va explicito: la hoja del viaje la muestra en 25 sp y un
+ * "p. m." al lado no entra ni se lee de reojo. `now` se recibe para poder
+ * probarla con una hora fija.
+ */
+export function arrivalTime(seconds, now = Date.now()) {
+  const at = new Date(now + seconds * 1000);
+  return at.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 }
 
 // --- utilidades -------------------------------------------------------------
@@ -330,8 +338,14 @@ export function guard(fn) {
   };
 }
 
-/** Marca un boton como ocupado mientras corre una promesa. */
+/**
+ * Marca un boton como ocupado mientras corre una promesa. Sin boton —la
+ * accion salio de un circulo con un dibujo, donde no cabe un texto— corre
+ * el trabajo y nada mas.
+ */
 export async function withBusy(button, label, work) {
+  if (!button) return work();
+
   const original = button.innerHTML;
   button.disabled = true;
   button.innerHTML = `<span class="spinner"></span> ${escapeHtml(label)}`;

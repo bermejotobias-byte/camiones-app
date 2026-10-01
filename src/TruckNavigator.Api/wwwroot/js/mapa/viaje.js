@@ -1,0 +1,531 @@
+/**
+ * La pantalla del viaje: lo que se ve mientras el camion anda.
+ *
+ * Cinco piezas, cada una en su lugar, con las medidas de waze-06 (ver
+ * docs/superpowers/specs/2026-09-16-gps-waze-design.md, seccion 2):
+ *
+ *   · la BANDA negra de arriba, con la flecha de la maniobra, la distancia en
+ *     27 sp y la calle que viene en 24 sp celeste; compacta, de 57, cuando
+ *     hay una hoja abierta encima del mapa;
+ *   · el COSTADO derecho: sonido y S.O.S., circulos de 52;
+ *   · la pildora negra con la CALLE ACTUAL, 18 sp negrita, a 155 del borde;
+ *   · el boton amarillo de APORTAR, de 63, donde Waze pone reportar;
+ *   · la HOJA de abajo, de 137: salir, la hora de llegada en 25 sp con el
+ *     resto en 20, y la vista general.
+ *
+ * Este modulo dibuja y actualiza; no sabe de GPS ni de rutas. Quien lo monta
+ * le dice que mostrar y que hacer cuando se toca algo. Las piezas se
+ * actualizan en su lugar, sin rehacer el marcado: rehacerlo en cada latido
+ * del GPS tira el trabajo del navegador una vez por segundo.
+ *
+ * Lo que decide QUE se muestra —`estadoDeBanda`, `resumenRestante`— es puro
+ * y esta probado en tests/web/viaje.test.mjs.
+ */
+
+import { iconoDeManiobra, calcomania, circulo, dibujo, pildora } from './piezas.js';
+import { formatDistance, formatDuration, arrivalTime, escapeHtml } from '../ui.js';
+import { tarjetaDeRutaMarkup, nombreCorto } from './rutas.js';
+import { tipoDeReporte } from './reportes.js';
+
+/* ---------------------------------------------------------------------------
+   Que dice la banda
+--------------------------------------------------------------------------- */
+
+/**
+ * El estado de la banda a partir del estado del viaje.
+ *
+ * Tres estados, en este orden de prioridad:
+ *   recalculando  →  se salio de la ruta y se esta buscando otra;
+ *   buscando      →  el viaje arranco y todavia no llego ninguna posicion
+ *                    (o el GPS fallo: entonces se dice eso);
+ *   maniobra      →  lo que viene: flecha, distancia y calle.
+ *
+ * Un `nav` presente gana a la bandera de espera: en el latido en que llega la
+ * primera posicion las dos cosas son ciertas a la vez, y lo que importa es
+ * que ya se puede guiar.
+ */
+export function estadoDeBanda({ recalculando = false, esperandoGps = false, problema = null, nav = null }) {
+  if (recalculando) return { tipo: 'recalculando' };
+
+  if (esperandoGps && !nav) {
+    return problema
+      ? { tipo: 'buscando', titulo: problema, sub: 'El viaje quedó abierto: podés cerrarlo desde Salir.' }
+      : { tipo: 'buscando', titulo: 'Buscando señal de GPS…', sub: 'Bajo techo puede tardar. Al aire libre engancha enseguida.' };
+  }
+
+  const proxima = nav?.next ?? null;
+
+  return {
+    tipo: 'maniobra',
+    kind: proxima?.kind ?? 'Continue',
+    distancia: nav ? formatDistance(nav.distanceToManeuver) : '—',
+    calle: proxima ? (proxima.streetName || proxima.text) : 'Seguí la ruta'
+  };
+}
+
+/** "39 min • 32 km", como en la hoja de waze-06. */
+export function resumenRestante(segundos, metros) {
+  return `${formatDuration(segundos)} • ${formatDistance(metros)}`;
+}
+
+/* ---------------------------------------------------------------------------
+   Los globos de las calles que vienen
+
+   Waze clava sobre el mapa el nombre de la calle a la que se va a doblar, y
+   el de la siguiente (waze-06, waze-08): un globo de 30 dp en 18 sp negrita,
+   con la cola en el vertice donde empieza esa calle. Aca se decide cuales y
+   donde; el mapa los dibuja.
+--------------------------------------------------------------------------- */
+
+const ABREVIATURAS = [
+  [/^Avenida\b/, 'Av.'],
+  [/^Diagonal\b/, 'Diag.'],
+  [/^Autopista\b/, 'Au.'],
+  [/^Boulevard\b/, 'Bv.'],
+  [/\bDoctor\b/, 'Dr.'],
+  [/\bDoctora\b/, 'Dra.'],
+  [/\bGeneral\b/, 'Gral.'],
+  [/\bPresidente\b/, 'Pte.'],
+  [/\bIngeniero\b/, 'Ing.'],
+  [/\bTeniente\b/, 'Tte.'],
+  [/\bCoronel\b/, 'Cnel.'],
+  [/\bCapitán\b/, 'Cap.']
+];
+
+/** El nombre como en los carteles: "Av. Gral. Paz". Solo el tipo de via y los titulos. */
+export function abreviarCalle(nombre) {
+  return ABREVIATURAS.reduce((texto, [patron, corto]) => texto.replace(patron, corto), nombre ?? '');
+}
+
+/**
+ * Parte un nombre en una o dos lineas de hasta `max` caracteres, por el
+ * espacio mas cercano al medio. Lo que no entra en dos lineas se corta con
+ * puntos suspensivos: un globo es una etiqueta, no un parrafo.
+ */
+export function partirNombre(nombre, max = 14) {
+  const texto = (nombre ?? '').trim();
+  if (texto.length <= max) return [texto];
+
+  const espacios = [...texto.matchAll(/ /g)].map((m) => m.index);
+  const medio = texto.length / 2;
+  const corte = espacios.length
+    ? espacios.reduce((mejor, i) => (Math.abs(i - medio) < Math.abs(mejor - medio) ? i : mejor))
+    : -1;
+
+  const lineas = corte > 0
+    ? [texto.slice(0, corte), texto.slice(corte + 1)]
+    : [texto];
+
+  return lineas.map((linea) => (linea.length > max + 1 ? `${linea.slice(0, max)}…` : linea));
+}
+
+/**
+ * Hasta dos globos: las proximas calles con nombre, distintas de la actual y
+ * entre si, cada una en el vertice donde arranca su instruccion.
+ *
+ * @returns {{nombre: string, lineas: string[], punto: number[]}[]}
+ */
+export function globosDeRuta(route, navState) {
+  if (!route?.instructions || !route.geometry?.coordinates || !navState) return [];
+
+  const { instructions } = route;
+  const coordinates = route.geometry.coordinates;
+  const actual = instructions[navState.stepIndex]?.streetName ?? '';
+  const globos = [];
+  const vistos = new Set([actual]);
+
+  for (let i = (navState.stepIndex ?? 0) + 1; i < instructions.length && globos.length < 2; i++) {
+    const instruccion = instructions[i];
+    const nombre = (instruccion.streetName ?? '').trim();
+
+    if (!nombre || instruccion.kind === 'Finish' || vistos.has(nombre)) continue;
+
+    const punto = coordinates[instruccion.fromPointIndex];
+    if (!punto) continue;
+
+    vistos.add(nombre);
+
+    const corto = abreviarCalle(nombre);
+    globos.push({ nombre: corto, lineas: partirNombre(corto), punto });
+  }
+
+  return globos;
+}
+
+/* ---------------------------------------------------------------------------
+   La tarjeta de aviso
+
+   Un aviso de la ruta —galibo, paso a nivel, radar— aparece como Waze muestra
+   sus alertas: una tarjeta entre el mapa y la hoja, con la calcomania, que es
+   en 18 sp negrita y a cuanto esta en 14 gris. El galibo es informativo por
+   construccion: uno por el que el camion no pasa no llega a la ruta (AD-47).
+--------------------------------------------------------------------------- */
+
+const BARRERAS = {
+  no: 'Sin barrera',
+  yes: 'Con barrera',
+  full: 'Con barrera completa',
+  half: 'Con media barrera',
+  double_half: 'Con doble media barrera'
+};
+
+const metrosConComa = (valor) => Number(valor).toFixed(2).replace('.', ',');
+
+/**
+ * Que dice la tarjeta de un aviso de `pendingRouteAlert`.
+ *
+ * @returns {{calcomania: string, titulo: string, sub: string}|null}
+ */
+export function textoDeAviso(alerta, camion = null) {
+  if (!alerta) return null;
+
+  const distancia = `en ${Math.round(alerta.meters ?? 0)} m`;
+
+  if (alerta.tipo === 'galibo') {
+    const pasa = camion?.name
+      ? `Pasás: ${camion.name} mide ${metrosConComa(camion.heightMeters)} m`
+      : 'Pasás';
+
+    return {
+      calcomania: 'galiboOk',
+      titulo: `Gálibo de ${metrosConComa(alerta.metres)} m ${distancia}`,
+      sub: alerta.name ? `${pasa} · ${alerta.name}` : pasa
+    };
+  }
+
+  if (alerta.tipo === 'paso') {
+    const barrera = BARRERAS[alerta.barrier];
+
+    return {
+      calcomania: 'paso',
+      titulo: `Paso a nivel ${distancia}`,
+      sub: barrera ? `${barrera} · Bajá la velocidad` : 'Bajá la velocidad'
+    };
+  }
+
+  if (alerta.tipo === 'radar') {
+    return {
+      calcomania: 'radar',
+      titulo: `Radar de velocidad ${distancia}`,
+      sub: alerta.ubicacion || 'Controlá la velocidad'
+    };
+  }
+
+  // Un reporte de la comunidad (19/09/2026): el tipo y la calle; la
+  // restriccion dice ademas si esta sin confirmar o si tu camion no pasa.
+  if (alerta.tipo === 'reporte') {
+    const tipo = tipoDeReporte(alerta.subtipo);
+    const calle = alerta.street ?? null;
+
+    if (alerta.subtipo === 'LowClearance' && Number.isFinite(alerta.value)) {
+      const noPasa = alerta.forYourTruck === 'incompatible';
+      const veredicto = noPasa
+        ? (camion?.name ? `No pasás: ${camion.name} mide ${metrosConComa(camion.heightMeters)} m` : 'No pasás')
+        : (camion?.name ? `Pasás: ${camion.name} mide ${metrosConComa(camion.heightMeters)} m` : 'Pasás');
+      const confirmado = alerta.validated ? 'Confirmado' : 'Sin confirmar';
+
+      return {
+        calcomania: tipo.calcomania,
+        titulo: `Gálibo reportado de ${metrosConComa(alerta.value)} m ${distancia}`,
+        sub: [veredicto, confirmado, calle].filter(Boolean).join(' · ')
+      };
+    }
+
+    if (alerta.subtipo === 'RoadClosed') {
+      return {
+        calcomania: tipo.calcomania,
+        titulo: `Calle cerrada ${distancia}`,
+        sub: [alerta.validated ? 'Confirmada por la comunidad' : 'Sin confirmar todavía', calle].filter(Boolean).join(' · ')
+      };
+    }
+
+    return {
+      calcomania: tipo.calcomania,
+      titulo: `${tipo.nombre} ${distancia}`,
+      sub: [calle, alerta.fixed ? 'Dato de la app' : 'Reportado por la comunidad'].filter(Boolean).join(' · ')
+    };
+  }
+
+  return null;
+}
+
+/* ---------------------------------------------------------------------------
+   Reanudar (waze-03 y el prototipo)
+
+   Al abrir la app con un viaje abierto en el servidor, en vez de meterse en
+   la navegacion de golpe: la tarjeta con la pregunta en 22 negrita, la "i"
+   arriba a la derecha y dos pildoras de 42, "No" gris con texto celeste y
+   "Continuar viaje" celeste. "No" abre las tres salidas de siempre —llegue,
+   abandono, sigo—, porque cerrar un viaje decide si suma o no.
+--------------------------------------------------------------------------- */
+
+/** "¿Seguís yendo a Puerto de Buenos Aires?", con el destino en corto. */
+export function preguntaDeReanudar(trip) {
+  const destino = nombreCorto(trip?.destinationLabel);
+  return destino ? `¿Seguís yendo a ${destino}?` : '¿Seguís con el viaje que quedó abierto?';
+}
+
+export function tarjetaReanudar(trip) {
+  return `
+  <div class="gps-pregunta-cabeza">
+    ${calcomania('lugar', 30)}
+    <b>${escapeHtml(preguntaDeReanudar(trip))}</b>
+    <button type="button" class="gps-pregunta-info" data-accion="info" aria-label="Qué es esto">${dibujo('info', 22, 2)}</button>
+  </div>
+  <div class="gps-acciones">
+    ${pildora('No', { datos: 'data-accion="no"' })}
+    ${pildora('Continuar viaje', { clase: 'celeste', datos: 'data-accion="continuar"' })}
+  </div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   El marcado
+--------------------------------------------------------------------------- */
+
+const bandaMarkup = () => `
+  <div class="gps-banda" id="gps-banda">
+    <div class="gps-banda-flecha"></div>
+    <div class="gps-banda-texto">
+      <b class="gps-banda-distancia"></b>
+      <span class="gps-banda-calle"></span>
+    </div>
+  </div>`;
+
+const costadoMarkup = (vozApagada) => `
+  <div class="gps-costado">
+    ${circulo(dibujo(vozApagada ? 'sonidoApagado' : 'sonido', 26), { clase: 'negro', id: 'gps-voz', etiqueta: vozApagada ? 'Activar la voz' : 'Silenciar la voz' })}
+    ${circulo('SOS', { clase: 'sos', id: 'gps-sos', etiqueta: 'Emergencia' })}
+  </div>`;
+
+/**
+ * "Volver a centrar", medida en waze-08: 62 dp, radio 20, el circulo claro de
+ * 36 con la cruceta, el texto en 20 y el resto en 16 gris, y la pildora de
+ * "Vista general" de 132 x 37. Reemplaza a la hoja mientras el mapa esta
+ * movido.
+ */
+const recentrarMarkup = () => `
+  <div class="gps-recentrar" id="gps-recentrar" hidden>
+    ${circulo(dibujo('centrar', 22), { clase: 'claro', id: 'gps-recentrar-boton', etiqueta: 'Volver a centrar' })}
+    <div class="gps-recentrar-texto"><b>Volver a centrar</b><span id="gps-recentrar-restante"></span></div>
+    ${pildora('Vista general', { clase: 'chip', id: 'gps-recentrar-general' })}
+  </div>`;
+
+/**
+ * La vista general (waze-02 y waze-01): el conmutador Mapa / Lista de
+ * 155 x 40 debajo de la banda compacta, y las tarjetas de ruta abajo — una
+ * sola sobre el mapa, o todas apiladas sobre el mapa atenuado.
+ */
+const generalMarkup = () => `
+  <div class="gps-conmutador" id="gps-conmutador" hidden>
+    <button type="button" data-modo="mapa" class="is-on">Mapa</button>
+    <button type="button" data-modo="lista">Lista</button>
+  </div>
+  <div class="gps-tarjetas" id="gps-tarjetas" hidden></div>`;
+
+const hojaMarkup = () => `
+  <div class="gps-hoja-viaje" id="gps-hoja">
+    <div class="gps-manija"></div>
+    <div class="gps-hoja-viaje-fila">
+      ${circulo(dibujo('cerrar', 24), { clase: 'chico', id: 'stop-nav', etiqueta: 'Salir del viaje' })}
+      <div class="gps-eta"><b id="gps-hora"></b><span id="gps-restante"></span></div>
+      ${circulo(dibujo('rutas', 24), { clase: 'chico', id: 'gps-general', etiqueta: 'Vista general' })}
+    </div>
+  </div>`;
+
+/**
+ * Monta la pantalla del viaje sobre `host` y devuelve como actualizarla.
+ *
+ * @param {HTMLElement} host   la pantalla del mapa
+ * @param {object} acciones    que hacer al tocar: alSalir, alVistaGeneral, alAportar, alSos, alVoz
+ * @param {boolean} vozApagada si la voz arranca silenciada
+ */
+export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, alVoz, alRecentrar, alModo, alReanudar, alIr, vozApagada = false } = {}) {
+  const capa = document.createElement('div');
+  capa.className = 'gps-viaje';
+  capa.innerHTML = `
+    ${bandaMarkup()}
+    ${costadoMarkup(vozApagada)}
+    <div class="gps-calle" id="gps-calle" hidden></div>
+    <div class="gps-aviso" id="gps-aviso" hidden role="status">
+      <div class="gps-aviso-pin"></div>
+      <div class="gps-aviso-texto"><b></b><span></span></div>
+      ${circulo(dibujo('cerrar', 22), { clase: 'chico plano', id: 'gps-aviso-cerrar', etiqueta: 'Cerrar el aviso' })}
+    </div>
+    <button type="button" class="gps-aportar" id="gps-aportar" aria-label="Aportar un lugar">${calcomania('lugarMas', 36)}</button>
+    ${recentrarMarkup()}
+    ${generalMarkup()}
+    ${hojaMarkup()}`;
+
+  host.appendChild(capa);
+
+  const q = (selector) => capa.querySelector(selector);
+  const tocar = (selector, accion) => {
+    const nodo = q(selector);
+    if (nodo && accion) nodo.addEventListener('click', accion);
+  };
+
+  tocar('#stop-nav', alSalir);
+  tocar('#gps-general', alVistaGeneral);
+  tocar('#gps-aportar', alAportar);
+  tocar('#gps-sos', alSos);
+  tocar('#gps-voz', alVoz);
+  tocar('#gps-recentrar-boton', alRecentrar);
+  tocar('#gps-recentrar-general', alVistaGeneral);
+
+  for (const boton of capa.querySelectorAll('#gps-conmutador button')) {
+    boton.addEventListener('click', () => alModo?.(boton.dataset.modo));
+  }
+
+  // Las tarjetas se rehacen en cada estado; sus botones se atienden por
+  // delegacion para no volver a enganchar cada vez.
+  q('#gps-tarjetas').addEventListener('click', (event) => {
+    const boton = event.target.closest('button[data-accion]');
+    if (!boton) return;
+    if (boton.dataset.accion === 'reanudar') alReanudar?.();
+    else alIr?.(Number(boton.dataset.indice));
+  });
+
+  // La tarjeta de aviso se va sola a los 6 s, o antes si se la cierra. Un
+  // aviso nuevo reemplaza al anterior y reinicia el reloj.
+  let temporizadorDeAviso = null;
+
+  const esconderAviso = () => {
+    clearTimeout(temporizadorDeAviso);
+    temporizadorDeAviso = null;
+    q('#gps-aviso').hidden = true;
+    capa.classList.remove('con-aviso');
+  };
+
+  tocar('#gps-aviso-cerrar', esconderAviso);
+
+  const poner = (selector, texto) => {
+    const nodo = q(selector);
+    if (nodo && nodo.textContent !== texto) nodo.textContent = texto;
+  };
+
+  // La banda se rehace solo cuando cambia de forma (de "buscando" a maniobra,
+  // o de una maniobra a otra); la distancia se toca en su lugar.
+  let formaDeBanda = null;
+
+  return {
+    /** Pinta la banda segun el estado que devuelve `estadoDeBanda`. */
+    banda(estado) {
+      const banda = q('#gps-banda');
+      const forma = estado.tipo === 'maniobra' ? `maniobra:${estado.kind}` : estado.tipo;
+
+      if (forma !== formaDeBanda) {
+        formaDeBanda = forma;
+        banda.classList.toggle('esperando', estado.tipo !== 'maniobra');
+
+        if (estado.tipo === 'maniobra') {
+          q('.gps-banda-flecha').innerHTML = iconoDeManiobra(estado.kind, 40);
+        } else {
+          q('.gps-banda-flecha').innerHTML = '<span class="spinner"></span>';
+        }
+      }
+
+      if (estado.tipo === 'maniobra') {
+        poner('.gps-banda-distancia', estado.distancia);
+        poner('.gps-banda-calle', estado.calle);
+      } else if (estado.tipo === 'recalculando') {
+        poner('.gps-banda-distancia', 'Recalculando…');
+        poner('.gps-banda-calle', 'Te saliste de la ruta. Buscando otra.');
+      } else {
+        poner('.gps-banda-distancia', estado.titulo);
+        poner('.gps-banda-calle', estado.sub);
+      }
+    },
+
+    /** La hora de llegada y lo que falta. Sin cifras, guiones. */
+    hoja({ segundos = null, metros = null } = {}) {
+      poner('#gps-hora', segundos === null ? '—' : arrivalTime(segundos));
+      poner('#gps-restante', resumenRestante(segundos, metros));
+      poner('#gps-recentrar-restante', resumenRestante(segundos, metros));
+    },
+
+    /**
+     * La vista general del viaje, o nada para volver al viaje.
+     *
+     * @param {{modo: 'mapa'|'lista', tarjetas: object[]}|null} estado
+     *   cada tarjeta: { tiempo, hora, km, por, linea, accion: 'reanudar'|'ir', indice }
+     */
+    general(estado) {
+      const activa = Boolean(estado);
+      capa.classList.toggle('general', activa);
+      capa.classList.toggle('lista', activa && estado.modo === 'lista');
+      q('#gps-conmutador').hidden = !activa;
+      q('#gps-tarjetas').hidden = !activa;
+      q('#gps-banda').classList.toggle('compacta', activa);
+
+      if (!activa) return;
+
+      for (const boton of capa.querySelectorAll('#gps-conmutador button')) {
+        boton.classList.toggle('is-on', boton.dataset.modo === estado.modo);
+      }
+
+      q('#gps-tarjetas').innerHTML = (estado.tarjetas ?? []).map((t) => tarjetaDeRutaMarkup({
+        ...t,
+        accion: t.accion === 'reanudar' ? 'Reanudar' : 'Ir',
+        datos: t.accion === 'reanudar' ? 'data-accion="reanudar"' : `data-accion="ir" data-indice="${t.indice}"`
+      })).join('');
+    },
+
+    /**
+     * El mapa esta movido por el usuario: la hoja, la pildora de la calle y el
+     * boton de aportar dejan lugar a la tarjeta de "Volver a centrar".
+     */
+    movido(si) {
+      capa.classList.toggle('movido', Boolean(si));
+      q('#gps-recentrar').hidden = !si;
+    },
+
+    /** La calle por la que se va. Sin nombre, la pildora se esconde. */
+    calle(nombre) {
+      const pildora = q('#gps-calle');
+      const texto = (nombre ?? '').trim();
+      pildora.hidden = !texto;
+      poner('#gps-calle', texto);
+    },
+
+    /** Banda compacta mientras hay una hoja abierta sobre el mapa. */
+    compacta(si) {
+      q('#gps-banda').classList.toggle('compacta', Boolean(si));
+    },
+
+    /** El dibujo del boton de sonido segun si la voz esta silenciada. */
+    voz(apagada) {
+      const boton = q('#gps-voz');
+      if (!boton) return;
+      boton.innerHTML = dibujo(apagada ? 'sonidoApagado' : 'sonido', 26);
+      boton.setAttribute('aria-label', apagada ? 'Activar la voz' : 'Silenciar la voz');
+      boton.classList.toggle('apagado', Boolean(apagada));
+    },
+
+    /**
+     * Muestra la tarjeta de un aviso de la ruta (ver `textoDeAviso`).
+     * Mientras esta, la pildora de la calle y el boton de aportar se corren:
+     * ocupan el mismo lugar y el aviso es lo que hay que leer.
+     */
+    avisar({ calcomania: nombre, titulo, sub }, ms = 6000) {
+      const tarjeta = q('#gps-aviso');
+      tarjeta.querySelector('.gps-aviso-pin').innerHTML = calcomania(nombre, 28);
+      poner('.gps-aviso-texto b', titulo);
+      poner('.gps-aviso-texto span', sub ?? '');
+      tarjeta.hidden = false;
+      capa.classList.add('con-aviso');
+
+      clearTimeout(temporizadorDeAviso);
+      temporizadorDeAviso = setTimeout(esconderAviso, ms);
+    },
+
+    /** Saca la pantalla del viaje. */
+    destruir() {
+      clearTimeout(temporizadorDeAviso);
+      capa.remove();
+    },
+
+    /** Por si hace falta mirar adentro (tests, depuracion). */
+    get elemento() { return capa; }
+  };
+}
+

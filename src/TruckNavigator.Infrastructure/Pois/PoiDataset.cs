@@ -101,7 +101,10 @@ public static class PoiDataset
             Source = entry.Source,
             SourceRetrievedOn = entry.SourceRetrievedOn,
             VerificationLevel = entry.VerificationLevel,
-            IsSampleData = entry.IsSampleData
+            SuitabilityEvidence = entry.SuitabilityEvidence,
+            SuitabilityEvidenceKind = entry.SuitabilityEvidenceKind,
+            IsSampleData = entry.IsSampleData,
+            ManagedByDataset = true
         };
     }
 
@@ -141,5 +144,7 @@ public static class PoiDataset
         string Source,
         DateOnly SourceRetrievedOn,
         VerificationLevel VerificationLevel,
+        string? SuitabilityEvidence,
+        SuitabilityEvidenceKind SuitabilityEvidenceKind,
         bool IsSampleData);
 }

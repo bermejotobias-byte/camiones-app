@@ -8,15 +8,28 @@
  */
 
 import { api, isSignedIn, signOut, setApiBase } from './api.js';
-import { initPlatform, call } from './platform.js';
+import { initPlatform, call, pickContact, canPickContact } from './platform.js';
 import { prefs, state, setState, applyTheme, savePrefs } from './store.js';
-import { html, raw, icon, wire, q, render, toastError } from './ui.js';
+import {
+  html, raw, icon, wire, q, qa, render, toastError, toastOk,
+  askConfirm, withBusy, escapeHtml
+} from './ui.js';
 
-import { onboardingView } from './views/onboarding.js';
+import { fuentesView } from './views/fuentes.js';
+import { estadoDeSesion, permisos } from './sesion.js';
+import { entradaView } from './entrada/entrada.js';
+import { hojaDeCuenta } from './cuenta.js';
+import { icono } from './iconos.js';
+import { idiomaView } from './entrada/idioma.js';
+import { reportesView } from './views/reportes.js';
 import { authView } from './views/auth.js';
 import { navigateView } from './views/navigate.js';
 import { trucksView } from './views/trucks.js';
 import { profileView } from './views/profile.js';
+import { carnetView } from './views/carnet.js';
+import { juegosView } from './views/juegos.js';
+import { finViajeView } from './views/fin-viaje.js';
+import { createDock } from './dock.js';
 
 /* ---------------------------------------------------------------------------
    Que ningun error se pierda
@@ -48,13 +61,70 @@ window.addEventListener('unhandledrejection', (event) => {
 
 const root = document.getElementById('app');
 
+// La cascara tiene dos piezas: la vista, que cambia con cada navegacion, y el
+// zocalo, que es persistente. Antes swap() reemplazaba todo el #app; ahora
+// reemplaza solo el contenedor de la vista, y el zocalo queda al lado.
+const viewRoot = document.createElement('div');
+viewRoot.id = 'view';
+root.replaceChildren(viewRoot);
+
 /** Limpieza que dejo la vista anterior, si dejo alguna. */
 let teardown = null;
+
+/**
+ * En que estado esta la app, recalculado en cada montaje.
+ *
+ * Las vistas preguntan por `puede()` en vez de por `isSignedIn()`: el
+ * invitado es una sesion que en el servidor NO existe, asi que una pantalla
+ * que pregunta por la sesion no lo ve y lo trata como si estuviera afuera.
+ */
+let estado = { tipo: 'nueva', pasoQueFalta: 'bienvenida', invitadoVencido: false };
+
+export const estadoActual = () => estado;
+export const puede = () => permisos(estado);
 
 const ROUTES = {
   mapa: navigateView,
   camiones: trucksView,
-  perfil: profileView
+  perfil: profileView,
+  carnet: carnetView,
+  juegos: juegosView,
+  fin: finViajeView,
+
+  // Los reportes vigentes cerca: la cara visible de la Fase 5 (v3 §12).
+  reportes: reportesView,
+
+  // El alta de una cuenta: se llega desde el acceso y desde las hojas que le
+  // ofrecen la cuenta a un invitado.
+  'cuenta-nueva': (host, { go }) => authView(host, {
+    onSignedIn: () => boot().then(() => go('mapa')),
+    onVolverAEntrar: () => go('acceso')
+  }),
+
+  // De donde salen los datos. Hasta el 30/09/2026 era la puerta de la app.
+  fuentes: (host) => fuentesView(host, { alVolver: () => history.back() }),
+
+  // El idioma, fuera de la entrada: la misma pantalla, con lo elegido puesto.
+  idioma: (host) => idiomaView(host, {
+    chip: null,
+    onContinuar: (elegido) => {
+      savePrefs({ idioma: elegido });
+      history.back();
+    }
+  })
+};
+
+/**
+ * Que pantallas no existen sin cuenta, y con que motivo se le explica.
+ *
+ * El S.O.S. NO esta en esta lista y no puede estarlo: nada de las cuentas ni
+ * de la gamificacion puede estorbar un pedido de auxilio.
+ */
+const NECESITAN_CUENTA = {
+  perfil: 'perfil',
+  carnet: 'perfil',
+  camiones: 'perfil',
+  juegos: 'juegos'
 };
 
 applyTheme();
@@ -87,19 +157,47 @@ function mount() {
   // encuentra nada. Costo un "Container not found" con la pantalla en blanco.
   swap(host);
 
-  // Puerta 1: las fuentes se leen una vez, antes que nada.
-  if (!prefs.sourcesAccepted) {
-    onboardingView(host, { onDone: () => go(isSignedIn() ? "mapa" : "cuenta") });
-    return;
-  }
-
-  // Puerta 2: sin sesion no hay camiones ni viajes que mostrar.
-  if (!isSignedIn()) {
-    authView(host, { onSignedIn: () => boot().then(() => go("mapa")) });
-    return;
-  }
-
   const name = (location.hash || '#mapa').slice(1);
+
+  estado = estadoDeSesion(prefs, isSignedIn(), new Date());
+
+  // UNA sola puerta: si falta un paso de la entrada, se monta ese paso. Las
+  // fuentes y el alta son las dos excepciones, porque se llega a ellas DESDE
+  // la entrada y tienen que poder abrirse sin haberla terminado.
+  const desdeLaEntrada = name === 'fuentes' || name === 'cuenta-nueva';
+
+  if (estado.pasoQueFalta && !desdeLaEntrada) {
+    dock.setPermitido(false);
+
+    entradaView(host, {
+      paso: estado.pasoQueFalta,
+      verFuentes: () => go('fuentes'),
+      crearCuenta: () => go('cuenta-nueva'),
+
+      // Cada pantalla ya guardo lo suyo: volver a montar recalcula el estado y
+      // cae solo en el paso que sigue. Con null, la entrada termino.
+      onListo: (siguiente) => (siguiente ? mount() : boot().then(() => go('mapa')))
+    });
+
+    return;
+  }
+
+  // Pasada la puerta hay zocalo. Las pantallas a las que se llega desde la
+  // entrada no lo llevan: todavia no se entro a la app.
+  dock.setPermitido(!desdeLaEntrada);
+  dock.setInvitado(estado.tipo === 'invitado');
+  dock.setActive(name);
+
+  // Las pantallas que no existen sin cuenta. El invitado no se choca con una
+  // pantalla vacia ni con un 401: el mono le dice por que, con el motivo de
+  // ESA pantalla, y decide.
+  const motivo = NECESITAN_CUENTA[name];
+
+  if (motivo && !puede().perfil) {
+    go('mapa');
+    hojaDeCuenta(motivo).then((crear) => crear && go('cuenta-nueva'));
+    return;
+  }
 
   if (name === 'emergencia') {
     emergencyView(host, { go });
@@ -112,12 +210,20 @@ function mount() {
   }
 
   const view = ROUTES[name] ?? navigateView;
-  teardown = view(host, { go, openDrawer }) ?? null;
+
+  // `puede` viaja como parametro y no se importa: app.js ya importa las
+  // vistas, asi que importarlo al reves seria un ciclo. Ademas deja explicito
+  // que una vista no decide sobre permisos, los recibe.
+  teardown = view(host, { go, openDrawer, puede }) ?? null;
 }
 
 function swap(host) {
-  root.replaceChildren(host);
+  viewRoot.replaceChildren(host);
 }
+
+// El zocalo se crea una sola vez y va despues de la vista, o sea abajo.
+const dock = createDock({ go });
+root.append(dock.nodo);
 
 /* ---------------------------------------------------------------------------
    Menu lateral
@@ -129,6 +235,7 @@ const MENU = [
   { name: 'mapa', label: 'Navegar', icon: 'route' },
   { name: 'camiones', label: 'Mis camiones', icon: 'truck' },
   { name: 'perfil', label: 'Mi perfil', icon: 'user' },
+  { name: 'carnet', label: 'Mi carnet', icon: 'carnet' },
   { name: 'chat', label: 'Chat', icon: 'chat', soon: true },
   { name: 'configuracion', label: 'Configuración', icon: 'settings' }
 ];
@@ -209,42 +316,211 @@ const avatarGlyph = (id) =>
 --------------------------------------------------------------------------- */
 
 /**
- * Emergencia.
+ * Emergencia: el 911 y hasta tres personas de confianza.
  *
- * Todavia sin los tres contactos ni el compartir viaje —eso es la Fase 3—, pero
- * el boton ya existe y llama al 911, que es lo unico que no puede faltar. Se
- * prefiere esto a un boton que no haga nada.
+ * Toda la pantalla esta pensada para usarse UNA vez cada mucho tiempo y en el
+ * peor momento posible. De ahi tres decisiones:
+ *
+ *   · el 911 va primero, grande y sin depender de nada — es lo unico que no
+ *     puede fallar, y funciona aunque no haya sesion ni contactos cargados;
+ *   · los contactos se tocan enteros para llamar, no con un boton chico al
+ *     costado: el dedo tiembla y la fila entera es un blanco mas grande;
+ *   · llamar ABRE EL DISCADOR con el numero puesto, no llama solo. Un toque de
+ *     manga no puede despertar a nadie a las cuatro de la mañana.
+ *
+ * Los contactos viven en el servidor. Uno que se pierde al reinstalar la app es
+ * un contacto que no esta el dia que hace falta.
  */
 function emergencyView(host, { go }) {
   host.className = 'screen';
-  host.innerHTML = html`
-    <div class="topbar">
-      <button class="fab" id="back" aria-label="Volver">${raw(icon('back', 20))}</button>
-      <h2>Emergencia</h2>
-    </div>
-    <div class="scroll">
-      <button class="btn btn-danger btn-block" id="call-911"
-              style="min-height:64px;font-size:18px">
-        Llamar al 911
-      </button>
 
-      <div class="card">
-        <h3>Todavía en camino</h3>
-        <p class="hint">
-          Los tres contactos de emergencia y compartir el viaje en tiempo real por
-          WhatsApp se agregan en la próxima etapa. Por ahora el botón hace lo único
-          que no puede fallar: llamar.
-        </p>
+  let contacts = [];
+  let loading = true;
+  let adding = false;
+
+  function draw() {
+    const lleno = contacts.length >= 3;
+
+    render(host, html`
+      <div class="topbar">
+        <button class="fab" id="back" aria-label="Volver">${raw(icon('back', 20))}</button>
+        <h2>Emergencia</h2>
       </div>
-    </div>
-  `;
+      <div class="scroll">
+        <button class="btn btn-danger btn-block" id="call-911"
+                style="min-height:64px;font-size:18px">
+          Llamar al 911
+        </button>
 
-  wire(host, {
-    '#back': () => go('mapa'),
-    // Adentro del WebView un `tel:` no abre el discador solo: lo resuelve la
-    // cascara nativa por el puente.
-    '#call-911': () => call('911')
-  });
+        <div class="card">
+          <h3>Mis contactos</h3>
+
+          ${loading ? raw('<p class="hint">Buscando tus contactos…</p>') : raw(`
+            ${contacts.length ? `<ul class="contact-list">${contacts.map((c) => `
+              <li>
+                <button class="contact-call" data-llamar="${escapeHtml(c.phone)}" type="button">
+                  <span class="contact-name">${escapeHtml(c.name)}</span>
+                  <span class="contact-phone">${escapeHtml(c.phone)}</span>
+                </button>
+                <button class="waypoint-clear" data-borrar="${c.id}" type="button"
+                        aria-label="Borrar a ${escapeHtml(c.name)}">${icon('close', 16)}</button>
+              </li>`).join('')}</ul>` : `
+              <p class="hint">
+                Todavía no cargaste ninguno. Poné hasta tres personas a las que
+                quieras poder llamar de un toque.
+              </p>`}
+          `)}
+
+          ${loading || lleno ? '' : raw(`
+            ${adding ? `
+              <div class="stack">
+                <div class="field">
+                  <label for="c-name">Nombre</label>
+                  <input class="input" id="c-name" placeholder="Mi vieja"
+                         autocomplete="off" maxlength="80">
+                </div>
+
+                <div class="field">
+                  <label for="c-phone">Teléfono</label>
+                  <input class="input" id="c-phone" placeholder="11 4567-8900"
+                         inputmode="tel" autocomplete="off" maxlength="40">
+                  <p class="hint">
+                    Como lo tengas anotado. Los espacios y guiones no molestan.
+                  </p>
+                </div>
+
+                <div class="row-buttons">
+                  <button class="btn btn-primary" id="c-save">Guardar</button>
+                  <button class="btn btn-ghost" id="c-cancel">Cancelar</button>
+                </div>
+              </div>` : `
+              <div class="row-buttons">
+                ${canPickContact
+                  ? '<button class="btn btn-primary" id="c-agenda">Elegir de la agenda</button>'
+                  : ''}
+                <button class="btn btn-ghost" id="c-manual">Escribirlo a mano</button>
+              </div>`}
+          `)}
+
+          ${lleno ? raw(`
+            <p class="hint">
+              Llegaste a los tres. Borrá uno si querés cambiarlo.
+            </p>`) : ''}
+        </div>
+
+        <div class="card">
+          <h3>Todavía en camino</h3>
+          <p class="hint">
+            Compartir el viaje en tiempo real por WhatsApp se agrega más adelante.
+          </p>
+        </div>
+      </div>
+    `);
+
+    wire(host, {
+      '#back': () => go('mapa'),
+      // Adentro del WebView un `tel:` no abre el discador solo: lo resuelve la
+      // cascara nativa por el puente.
+      '#call-911': () => call('911'),
+      // Con "?": la pantalla tiene dos modos (lista y alta) y cada boton existe
+      // en uno solo; sin la marca, wire avisaba por consola en cada dibujo.
+      '#c-agenda?': (event) => desdeLaAgenda(event.currentTarget),
+      '#c-manual?': () => { adding = true; draw(); },
+      '#c-cancel?': () => { adding = false; draw(); },
+      '#c-save?': (event) => guardar(event.currentTarget)
+    });
+
+    for (const boton of qa(host, '[data-llamar]')) {
+      boton.addEventListener('click', () => call(boton.dataset.llamar));
+    }
+
+    for (const boton of qa(host, '[data-borrar]')) {
+      boton.addEventListener('click', () => borrar(boton.dataset.borrar));
+    }
+  }
+
+  async function cargar() {
+    try {
+      contacts = await api.emergencyContacts();
+    } catch (error) {
+      // Sin contactos la pantalla sigue sirviendo: el 911 no depende de esto.
+      toastError(error.message);
+    } finally {
+      loading = false;
+      draw();
+    }
+  }
+
+  /**
+   * Trae un contacto de la libreta del telefono y lo guarda.
+   *
+   * Si la persona sale sin elegir no pasa nada y no se le dice nada: cancelar es
+   * una respuesta, no un error. Ver AD-42.
+   */
+  async function desdeLaAgenda(button) {
+    try {
+      const elegido = await pickContact();
+
+      if (!elegido) return;
+
+      await withBusy(button, 'Guardando', () => alta(elegido.name, elegido.phone));
+    } catch (error) {
+      toastError(error.message);
+    }
+  }
+
+  async function guardar(button) {
+    const name = q(host, '#c-name')?.value ?? '';
+    const phone = q(host, '#c-phone')?.value ?? '';
+
+    await withBusy(button, 'Guardando', () => alta(name, phone));
+  }
+
+  async function alta(name, phone) {
+    try {
+      const guardado = await api.addEmergencyContact(name, phone);
+
+      contacts = [...contacts, guardado];
+      adding = false;
+      draw();
+
+      // "Guardaste a X" y no "X quedó guardado": el nombre lo escribe el usuario
+      // y puede ser de cualquier genero — "Mi vieja quedo guardado" se lee mal.
+      // Esta forma no concuerda con el nombre, asi que no puede fallar.
+      toastOk(`Guardaste a ${guardado.name}.`);
+    } catch (error) {
+      // El servidor valida con las mismas reglas del dominio, asi que su mensaje
+      // ya viene escrito para mostrarse. No se duplica la validacion aca.
+      toastError(error.message);
+    }
+  }
+
+  async function borrar(id) {
+    const contacto = contacts.find((c) => c.id === id);
+
+    // askConfirm y no confirm(): el WebView de Android no dibuja los dialogos de
+    // JavaScript y confirm() devuelve false sin mostrar nada. Ver AD-28.
+    const seguro = await askConfirm({
+      title: 'Borrar contacto',
+      message: `¿Sacamos a ${contacto?.name ?? 'este contacto'} de tus contactos de emergencia?`,
+      confirmLabel: 'Borrar',
+      danger: true
+    });
+
+    if (!seguro) return;
+
+    try {
+      await api.deleteEmergencyContact(id);
+
+      contacts = contacts.filter((c) => c.id !== id);
+      draw();
+    } catch (error) {
+      toastError(error.message);
+    }
+  }
+
+  draw();
+  cargar();
 }
 
 function settingsView(host, { go }) {
@@ -273,33 +549,38 @@ function settingsView(host, { go }) {
         </div>
       </div>
 
-      <div class="field">
-        <label>Idioma</label>
-        <div class="card">
-          <p class="hint">
-            Por ahora sólo español. Portugués, guaraní e inglés llegan más adelante.
-          </p>
+      <button class="fila" id="cfg-idioma">
+        ${raw(icono('idioma', 32))}
+        <div class="grow">
+          <b>Idioma</b>
+          <span class="sub">Los otros tres están en camino</span>
         </div>
-      </div>
+        <span class="pill pill-brand">Español</span>
+        ${raw(icon('chevron', 18))}
+      </button>
 
-      <div class="card">
-        <h3>Fuentes de los datos</h3>
-        <p class="hint">
-          Mapa y atributos: OpenStreetMap (ODbL). Normativa: Ley 2148 de la Ciudad,
-          artículos 9.10.1 y 9.10.5. Qué calle pertenece a la Red lo aporta la
-          comunidad de OpenStreetMap, no una capa oficial.
-        </p>
-        <button class="btn btn-ghost btn-block" id="review">Volver a leer el aviso</button>
-      </div>
+      <button class="fila" id="cfg-fuentes">
+        ${raw(icono('fuentes', 32))}
+        <div class="grow">
+          <b>De dónde salen los datos</b>
+          <span class="sub">La Ley 2148, OpenStreetMap y lo que la app no sabe</span>
+        </div>
+        ${raw(icon('chevron', 18))}
+      </button>
     </div>
   `;
 
   wire(host, {
     '#back': () => go('mapa'),
-    '#review': () => {
-      savePrefs({ sourcesAccepted: false });
-      mount();
-    },
+    // Ya no hay puerta que reabrir: desde el 30/09/2026 las fuentes son una
+    // pantalla mas y se va a ella. Antes esto apagaba la preferencia para que
+    // la puerta volviera a aparecer.
+    '#cfg-fuentes': () => go('fuentes'),
+
+    // La misma pantalla del paso 2 de la entrada. Hoy solo se puede elegir
+    // español, y esa es justamente la razon de mostrarla: que se vea que el
+    // lugar existe y que los otros tres estan en camino.
+    '#cfg-idioma': () => go('idioma'),
     '#theme@change': (event) => {
       savePrefs({ theme: event.target.value });
       applyTheme();
@@ -313,7 +594,20 @@ function settingsView(host, { go }) {
 
 /** Carga lo que varias pantallas necesitan tener a mano. */
 async function boot() {
-  if (!isSignedIn()) return;
+  if (!isSignedIn()) {
+    // Sin sesion no hay perfil ni viajes, pero los camiones del catalogo SI son
+    // anonimos, y el invitado los necesita: sin ellos selectedTruck() devuelve
+    // null y no se puede calcular NINGUNA ruta. Medido el 30/09/2026: el
+    // invitado elegia su camion y el mapa se quedaba sin ninguno, asi que
+    // tocar un destino volvia a la hoja de siempre sin decir nada.
+    try {
+      setState({ trucks: await api.trucks() });
+    } catch (error) {
+      console.error(error);
+    }
+
+    return;
+  }
 
   try {
     const [profile, trucks] = await Promise.all([api.profile(), api.trucks()]);

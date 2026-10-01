@@ -73,6 +73,34 @@ Notas de lectura:
   locale es-AR una coma decimal partiría la expresión y GraphHopper la
   rechazaría.
 
+### Los bloqueos de la comunidad (desde el 19/09/2026)
+
+Un cierre o un gálibo **reportados por la comunidad y validados** (ver
+`docs/reportes.md` y AD-49) entran al mismo custom model como **áreas**: un
+`FeatureCollection` en `areas` con un polígono por bloqueo (rectángulo de
+40 × 16 m a lo largo del rumbo, o cuadrado de 24 m sin rumbo) y una sentencia
+`in_r1` de prioridad cero por cada uno, después de las reglas físicas:
+
+```json
+{
+  "areas": { "type": "FeatureCollection", "features": [
+    { "type": "Feature", "id": "r1", "properties": {},
+      "geometry": { "type": "Polygon", "coordinates": [[[-58.4238, -34.5706], "..."]] } }
+  ] },
+  "priority": [
+    { "if": "max_height < 4.2", "multiply_by": "0" },
+    { "if": "in_r1", "multiply_by": "0" }
+  ]
+}
+```
+
+Los lee `RouteBlockades` de la base una vez por pedido —ruta, alternativas y
+la matriz del reparto— y sólo los que le tocan a ese camión: la calle cerrada a
+todos, el gálibo a los que no pasan por debajo. Sin bloqueos el JSON es byte a
+byte el de siempre. Medido contra GraphHopper 11: un cuadrado de once metros
+sobre la ruta alcanza para que el motor cambie de cuadra, sin tocar el grafo
+ni reiniciar nada.
+
 ## Contrato de la API
 
 ### `POST /api/routes`
@@ -98,7 +126,9 @@ Respuesta:
   "accessLegs": [ ... ],
   "heavyNetworkSharePercent": 91.8,
   "truckName": "Semirremolque",
-  "attribution": "Datos de mapa © colaboradores de OpenStreetMap (ODbL). ..."
+  "attribution": "Datos de mapa © colaboradores de OpenStreetMap (ODbL). ...",
+  "alternatives": [ ... ],
+  "hazards": [ { "kind": "galibo", "metres": 4.5, "streetName": "Av. Sáenz", "fromPointIndex": 120, "toPointIndex": 126 } ]
 }
 ```
 
@@ -109,9 +139,51 @@ Respuesta:
 - **`accessLegs`** es el subconjunto que circula fuera de la Red al amparo de la
   excepción de acceso. La app los dibuja punteados en naranja.
 - **`heavyNetworkSharePercent`** es la porción del trazado que va por la Red.
+- **`alternatives`** son las otras rutas ofrecibles, completas, ya ordenadas por
+  lo que le conviene a un camión (AD-40). Campo opcional.
+- **`hazards`** es lo que hay sobre la ruta y conviene avisar al pasar: hoy los
+  gálibos declarados en los tramos que la ruta recorre, con su altura y sus
+  índices. **Es de acá de donde la app saca el aviso del viaje**, y no de la capa
+  de gálibos del mapa: es el mismo dato con el que se calculó, y por construcción
+  es informativo —un gálibo más bajo que el camión no llega a la ruta— (AD-47).
+  Campo opcional.
 
-Errores: `404` si el camión no existe, `422` si no hay ruta posible para ese
-vehículo, `503` si GraphHopper no responde. Todos como `ProblemDetails`.
+**Una ruta con un tramo prohibido para el camión no se ofrece.** Las alternativas
+que lo tengan se descartan; si la recomendada lo tiene, la respuesta es `422` con
+el hallazgo (`RouteOffer`, AD-47).
+
+Errores: `404` si el camión no existe, `422` si no hay ruta posible o apta para
+ese vehículo, `503` si GraphHopper no responde. Todos como `ProblemDetails`.
+
+### El viaje arranca por la ruta que se eligió
+
+`POST /api/trips` vuelve a calcular la ruta **por el mismo camino** que
+`POST /api/routes` —alternativas ordenadas para camión y el filtro de AD-47— y
+toma la de la posición `routeIndex` (opcional: `0` la recomendada, `1` la primera
+alternativa…). Una posición que ya no existe cae en la recomendada, nunca en
+otra (`RouteOffer.Chosen`). Sin ruta apta, `422` igual que al calcular. Con
+`stops` la ruta es una sola, la que pasa por todas (AD-45), y sólo se comprueba
+que sea ofrecible.
+
+Antes el viaje pedía **una sola ruta** al motor, la más rápida por peso, y salía
+por otra que la recomendada —medido el 16/09/2026 en Nueva Pompeya: 2,7 km al
+52 % por la Red contra los 2,2 km al 60 % que se acababan de mostrar— y además
+sin pasar por el filtro. `GET /api/trips/active` retoma por la recomendada; si
+no hay ruta apta, devuelve el viaje sin ruta y con el motivo, porque cerrarlo no
+necesita rutear. Lo cubre `TripRoutesTests` (con GraphHopper levantado).
+
+### Cómo se eligen en pantalla
+
+Desde el 17/09/2026 la app muestra las opciones como la lista de Waze
+(`wwwroot/js/mapa/rutas.js`, AD-48): una fila por ruta en el orden del servidor
+—el tiempo manda; "Por A; B" son las dos vías más largas; "Mejor ruta, 85 % por
+la Red" / "Sale de la Red 9,3 km" / "Toda por la Red"; chips con lo que hay en
+el camino, contado una sola vez al calcular con `alertsAlongRoute`—, y
+"Detalles" con las cifras, el mono diciendo lo único que importa, las filas de
+lo que hay en el camino con la calle y el km, y las fuentes tal como las
+declara cada hallazgo (`ruleReference`, `dataReference`). Durante el viaje,
+"Vista general → Lista" pide otras rutas **desde donde está el camión** y "Ir"
+cambia de ruta sin cerrar el viaje (AD-45).
 
 ## Cómo se anota la ruta
 

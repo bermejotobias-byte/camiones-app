@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -9,9 +10,13 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using TruckNavigator.Api.Contracts;
 using TruckNavigator.Api.Identity;
+using TruckNavigator.Api.RateLimiting;
+using TruckNavigator.Api.Routing;
 using TruckNavigator.Domain.Places;
 using TruckNavigator.Domain.Pois;
+using TruckNavigator.Domain.Progression;
 using TruckNavigator.Domain.Restrictions;
+using TruckNavigator.Domain.Reports;
 using TruckNavigator.Domain.Routing;
 using TruckNavigator.Domain.Trips;
 using TruckNavigator.Domain.Trucks;
@@ -20,6 +25,10 @@ using TruckNavigator.Infrastructure;
 using TruckNavigator.Infrastructure.Email;
 using TruckNavigator.Infrastructure.Identity;
 using TruckNavigator.Infrastructure.Persistence;
+using TruckNavigator.Infrastructure.Pois;
+using TruckNavigator.Infrastructure.Progression;
+using TruckNavigator.Infrastructure.Reports;
+using TruckNavigator.Infrastructure.Routing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,6 +101,34 @@ builder.Services.AddIdentityApiEndpoints<AppUser>(options =>
 // Los mails de Identity salen por el envio propio de Infrastructure.
 builder.Services.AddSingleton<IEmailSender<AppUser>, IdentityEmailSender>();
 
+// Scoped como el DbContext del que depende: acredita dentro de la misma unidad de
+// trabajo que cierra el viaje.
+builder.Services.AddScoped<ProgressionRecorder>();
+builder.Services.AddScoped<ProgressionReader>();
+builder.Services.AddScoped<CommunityReader>();
+builder.Services.AddScoped<PoiVoting>();
+builder.Services.AddScoped<PoiContributing>();
+builder.Services.AddScoped<ReportWriter>();
+builder.Services.AddScoped<ReportReader>();
+
+// Los cierres y galibos validados por la comunidad entran a cada calculo de
+// ruta como areas del custom model; sin esta linea el calculador no los ve.
+builder.Services.AddScoped<IRouteBlockadeSource, RouteBlockades>();
+
+// El limite de tasa. Los numeros y la clave contra la que se cuenta viven en
+// Api/RateLimiting; aca solo se decide si esta prendido. En Development queda
+// apagado salvo que la configuracion diga lo contrario: con recarga en caliente
+// y pruebas a mano molesta mas de lo que cuida.
+var rateLimit = RateLimitSettings.From(builder.Configuration);
+
+if (builder.Environment.IsDevelopment()
+    && builder.Configuration[$"{RateLimitSettings.Section}:Enabled"] is null)
+{
+    rateLimit.Enabled = false;
+}
+
+TruckRateLimiter.AddTo(builder.Services, rateLimit);
+
 var app = builder.Build();
 
 // El seed corre al arrancar para que el MVP sea usable sin pasos manuales.
@@ -115,6 +152,14 @@ await using (var scope = app.Services.CreateAsyncScope())
             DevUserSeed.Email,
             DevUserSeed.Password);
     }
+
+    // Va ultimo, y despues de la cuenta de prueba: acredita la progresion de los
+    // viajes que se cerraron antes de que el motor existiera. Es idempotente, asi
+    // que correrla en cada arranque no duplica nada.
+    await ProgressionSeed.RunAsync(
+        db,
+        scope.ServiceProvider.GetRequiredService<ProgressionRecorder>(),
+        DateTimeOffset.UtcNow);
 }
 
 // Sin SMTP configurado no se envia ningun mail y los enlaces de verificacion van
@@ -220,6 +265,11 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Despues de la autenticacion a proposito: asi los pedidos con sesion se
+// cuentan contra el camionero y no contra la IP, que en el telefono cambia.
+// Los archivos estaticos y los tiles ya salieron antes por UseStaticFiles.
+app.UseRateLimiter();
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -273,7 +323,14 @@ profiles.MapGet("/", async (
         await db.SaveChangesAsync(ct);
     }
 
-    return Results.Ok(DriverProfileDto.From(profile, user));
+    // El nombre del camion se resuelve aca y no lo busca el cliente: el perfil lo
+    // ven otros usuarios, y esos otros no tienen la lista de camiones de esta
+    // persona.
+    var activeTruck = profile.ActiveTruckId is { } id
+        ? await db.TruckProfiles.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct)
+        : null;
+
+    return Results.Ok(DriverProfileDto.From(profile, user, activeTruck));
 })
 .WithSummary("Perfil del camionero autenticado. Lo crea si es el primer acceso.");
 
@@ -335,6 +392,43 @@ profiles.MapPut("/", async (
     profile.FirstName = Clean(request.FirstName);
     profile.LastName = Clean(request.LastName);
     profile.AvatarId = Clean(request.AvatarId);
+    profile.Nationality = Clean(request.Nationality)?.ToUpperInvariant();
+
+    // "Hoy" en hora de Buenos Aires, igual que el resto de las reglas de fecha:
+    // a las 23:00 locales ya es mañana en UTC, y un cumpleaños de hoy se
+    // rechazaria como del futuro.
+    var hoy = DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TripProgression.LocalOffset).DateTime);
+    var nacimiento = BirthDate.Validate(request.BirthDate, hoy);
+
+    if (!nacimiento.IsValid)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["birthDate"] = [nacimiento.Error!]
+        });
+    }
+
+    profile.BirthDate = request.BirthDate;
+
+    // El camion que se exhibe tiene que ser propio o una plantilla del catalogo.
+    // Uno ajeno se rechaza: es la misma regla por la que no se puede equipar una
+    // recompensa que no se desbloqueo.
+    TruckProfile? activeTruck = null;
+
+    if (request.ActiveTruckId is { } truckId)
+    {
+        activeTruck = await FindUsableTruckAsync(db, truckId, user.Id, ct);
+
+        if (activeTruck is null)
+        {
+            return Results.Problem(
+                title: "Ese camion no esta disponible",
+                detail: "Solo se puede exhibir un camion propio o del catalogo.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+    }
+
+    profile.ActiveTruckId = activeTruck?.Id;
 
     try
     {
@@ -345,7 +439,7 @@ profiles.MapPut("/", async (
         return AliasConflict(profile.Alias ?? request.Alias!);
     }
 
-    return Results.Ok(DriverProfileDto.From(profile, user));
+    return Results.Ok(DriverProfileDto.From(profile, user, activeTruck));
 })
 .WithSummary("Guarda nombre, apellido, alias y avatar. El alias es unico.");
 
@@ -376,6 +470,247 @@ profiles.MapGet("/alias-available", async (
         taken ? "Ese alias ya esta en uso." : null));
 })
 .WithSummary("Consulta si un alias esta libre, para avisar mientras se escribe.");
+
+// ------------------------------------------------ contactos de emergencia
+//
+// Hasta tres personas a las que llamar de un toque. Cuelgan del grupo de perfil
+// porque son datos de la cuenta y ya exige sesion.
+//
+// Viven en el servidor y no en el telefono a proposito: un contacto de
+// emergencia que se pierde al reinstalar la app, o al cambiar de equipo, es un
+// contacto que no esta el dia que hace falta.
+
+profiles.MapGet("/emergency-contacts", async (
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    var contacts = await db.EmergencyContacts
+        .Where(c => c.OwnerId == userId)
+        .OrderBy(c => c.AddedAt)
+        .AsNoTracking()
+        .ToListAsync(ct);
+
+    return Results.Ok(contacts.Select(EmergencyContactDto.From));
+})
+.WithSummary("Los contactos de emergencia del camionero, en orden de carga.");
+
+profiles.MapPost("/emergency-contacts", async (
+    SaveEmergencyContactRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    var validation = EmergencyContactRules.Validate(request.Name, request.Phone);
+
+    if (!validation.IsValid)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["contacto"] = [validation.Error!]
+        });
+    }
+
+    var already = await db.EmergencyContacts.CountAsync(c => c.OwnerId == userId, ct);
+
+    if (already >= EmergencyContact.MaxPerDriver)
+    {
+        return Results.Problem(
+            title: "Ya tenes tres contactos",
+            detail: $"Se pueden guardar hasta {EmergencyContact.MaxPerDriver}. " +
+                    "Borra uno para agregar otro.",
+            statusCode: StatusCodes.Status409Conflict);
+    }
+
+    var contact = new EmergencyContact
+    {
+        OwnerId = userId,
+        Name = validation.Name!,
+        Phone = validation.Phone!
+    };
+
+    db.EmergencyContacts.Add(contact);
+    await db.SaveChangesAsync(ct);
+
+    return Results.Created(
+        $"/api/profile/emergency-contacts/{contact.Id}",
+        EmergencyContactDto.From(contact));
+})
+.WithSummary("Agrega un contacto de emergencia. Hasta tres por camionero.");
+
+profiles.MapDelete("/emergency-contacts/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    // El filtro por dueno va en la consulta y no despues: buscar por Id solo y
+    // comparar el dueno a continuacion deja la puerta abierta a borrar el
+    // contacto de otra persona si alguna vez se olvida la comparacion.
+    var contact = await db.EmergencyContacts
+        .FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == userId, ct);
+
+    if (contact is null)
+    {
+        return Results.NotFound();
+    }
+
+    db.EmergencyContacts.Remove(contact);
+    await db.SaveChangesAsync(ct);
+
+    return Results.NoContent();
+})
+.WithSummary("Borra un contacto de emergencia propio.");
+
+// ------------------------------------------------------- lugares del camionero
+//
+// Casa y Deposito, y los destinos recientes. Cuelgan del grupo de perfil por lo
+// mismo que los contactos: son datos de la cuenta, y viven en el servidor
+// porque un atajo que se pierde al reinstalar la app es un atajo que no esta
+// el dia que se necesita.
+
+profiles.MapGet("/places", async (
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    var places = await db.SavedPlaces
+        .Where(p => p.OwnerId == userId)
+        .AsNoTracking()
+        .ToListAsync(ct);
+
+    // Casa antes que Deposito: el orden del enum, no el del texto guardado.
+    return Results.Ok(places.OrderBy(p => p.Kind).Select(SavedPlaceDto.From));
+})
+.WithSummary("Casa y Deposito del camionero, los que tenga guardados.");
+
+profiles.MapPut("/places/{kind}", async (
+    string kind,
+    SaveSavedPlaceRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<SavedPlaceKind>(kind, ignoreCase: true, out var parsedKind))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["kind"] = ["El lugar tiene que ser Home o Depot."]
+        });
+    }
+
+    var validation = SavedPlaceRules.Validate(request.Label, request.Latitude, request.Longitude);
+
+    if (!validation.IsValid)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["lugar"] = [validation.Error!]
+        });
+    }
+
+    // Uno por tipo: si ya hay, se pisa. El indice unico de la tabla lo
+    // garantiza aunque dos pedidos lleguen juntos.
+    var place = await db.SavedPlaces
+        .FirstOrDefaultAsync(p => p.OwnerId == userId && p.Kind == parsedKind, ct);
+
+    if (place is null)
+    {
+        place = new SavedPlace { OwnerId = userId, Kind = parsedKind };
+        db.SavedPlaces.Add(place);
+    }
+
+    place.Label = validation.Label!;
+    place.Latitude = request.Latitude;
+    place.Longitude = request.Longitude;
+    place.SavedAt = DateTimeOffset.UtcNow;
+
+    await db.SaveChangesAsync(ct);
+
+    return Results.Ok(SavedPlaceDto.From(place));
+})
+.WithSummary("Guarda o reemplaza Casa o Deposito.");
+
+profiles.MapDelete("/places/{kind}", async (
+    string kind,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<SavedPlaceKind>(kind, ignoreCase: true, out var parsedKind))
+    {
+        return Results.NotFound();
+    }
+
+    var place = await db.SavedPlaces
+        .FirstOrDefaultAsync(p => p.OwnerId == userId && p.Kind == parsedKind, ct);
+
+    if (place is null)
+    {
+        return Results.NotFound();
+    }
+
+    db.SavedPlaces.Remove(place);
+    await db.SaveChangesAsync(ct);
+
+    return Results.NoContent();
+})
+.WithSummary("Borra Casa o Deposito.");
+
+profiles.MapGet("/recent-places", async (
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    CancellationToken ct) =>
+{
+    if (CurrentUserId(principal) is not { } userId)
+    {
+        return Results.Unauthorized();
+    }
+
+    // Salen de los viajes: no hay tabla propia que se pueda desincronizar. Se
+    // traen los ultimos por fecha y el dominio deja los ocho destinos distintos
+    // mas nuevos; el tope de lectura cubre a alguien que va siempre al mismo
+    // lugar sin traerse el historial entero.
+    var trips = await db.Trips
+        .Where(t => t.DriverId == userId)
+        .OrderByDescending(t => t.StartedAt)
+        .Take(60)
+        .AsNoTracking()
+        .ToListAsync(ct);
+
+    return Results.Ok(RecentPlaces.From(trips).Select(RecentPlaceDto.From));
+})
+.WithSummary("Los ultimos destinos distintos del camionero, el mas nuevo primero.");
 
 // ---------------------------------------------------------------- camiones
 //
@@ -448,6 +783,11 @@ trucks.MapPost("/", async (
         return Results.Unauthorized();
     }
 
+    if (InvalidPlate(request) is { } badPlate)
+    {
+        return badPlate;
+    }
+
     var truck = new TruckProfile { OwnerId = userId };
     request.ApplyTo(truck);
 
@@ -486,6 +826,11 @@ trucks.MapPut("/{id:guid}", async (
         return await TruckIsATemplateAsync(db, id, ct)
             ? TemplateIsReadOnly()
             : Results.NotFound();
+    }
+
+    if (InvalidPlate(request) is { } badPlate)
+    {
+        return badPlate;
     }
 
     request.ApplyTo(truck);
@@ -566,6 +911,7 @@ pois.MapGet("/", async (
     bool? suitableOnly,
     ClaimsPrincipal principal,
     AppDbContext db,
+    CommunityReader communityReader,
     CancellationToken ct) =>
 {
     if (ParseCategories(categories) is not { } filter)
@@ -612,19 +958,389 @@ pois.MapGet("/", async (
 
     var points = await query.OrderBy(p => p.Name).ToListAsync(ct);
 
-    var results = points.Select(p => PoiDto.From(p, truck));
+    // Lo que la comunidad dice va aparte de lo verificado y siempre viaja: una
+    // consulta de votos por lote, filtrada por el tipo del camion indicado, y los
+    // alias de quienes aportaron lugares.
+    var community = await communityReader.ForPlacesAsync(
+        points.Select(p => p.Id).ToList(),
+        truck is null ? null : PoiSuitability.FieldFor(truck),
+        CurrentUserId(principal),
+        ct);
 
-    // El filtro deja pasar solo la aptitud confirmada: lo desconocido se oculta
-    // igual que lo no apto. Es la lectura estricta, y por eso el cliente lo trae
-    // apagado por defecto y avisa cuantos puntos escondio.
+    var aliases = await ContributorAliasesAsync(db, points, ct);
+
+    var results = points.Select(p => PoiDto.From(
+        p,
+        truck,
+        community[p.Id],
+        p.ContributedBy is { } by && aliases.TryGetValue(by, out var alias) ? alias : null));
+
+    // El filtro deja pasar lo verificado apto para el camion, o lo que la comunidad
+    // de ese tipo de camion recomienda cuando la fuente no dice nada. Lo desconocido
+    // y lo discutido se ocultan; el cliente lo trae apagado por defecto y avisa
+    // cuantos puntos escondio. La regla vive en el dominio (PoiFilter).
     if (suitableOnly == true)
     {
-        results = results.Where(p => p.SuitableForSelectedTruck == true);
+        results = results.Where(p => PoiFilter.PassesSuitableOnly(
+            p.SuitableForSelectedTruck,
+            Enum.TryParse<CommunitySeal>(p.Community.ForYourTruck?.Seal, out var seal) ? seal : null));
     }
 
     return Results.Ok(results.ToList());
 })
-.WithSummary("Playas, estaciones, talleres, gomerias y auxilio pesado para camiones.");
+.WithSummary("Playas, estaciones, talleres, gomerias, comer y auxilio pesado para camiones, con lo que la comunidad dice de cada uno.");
+
+// Agregar un lugar. Aparece enseguida, marcado como de la comunidad, sin
+// aptitud verificada y con el primer voto de quien lo cargo (decision del usuario
+// del 15/09/2026). Un duplicado no es un error a secas: se devuelve el existente
+// para que la interfaz ofrezca votarlo.
+pois.MapPost("/", async (
+    AddPoiRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    PoiContributing contributing,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<PoiCategory>(request.Category, ignoreCase: true, out var category))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["category"] =
+            [
+                "Categoria desconocida. Valores validos: " +
+                string.Join(", ", Enum.GetNames<PoiCategory>()) + "."
+            ]
+        });
+    }
+
+    var truck = await FindUsableTruckAsync(db, request.TruckId, userId, ct);
+
+    if (truck is null)
+    {
+        return Results.Problem(
+            title: "Camion inexistente",
+            detail: $"No existe un perfil de camion con id {request.TruckId}.",
+            statusCode: StatusCodes.Status404NotFound);
+    }
+
+    AddPlaceResult result;
+
+    try
+    {
+        result = await contributing.AddAsync(
+            userId.Value,
+            new NewPlace(request.Name, category, request.Latitude, request.Longitude, request.Address, request.Description),
+            truck,
+            DateTimeOffset.UtcNow,
+            ct);
+    }
+    catch (ArgumentException ex)
+    {
+        // El dominio ya escribio el motivo para la persona; .NET le pega el nombre
+        // del parametro al final, y eso no es para la persona.
+        var reason = ex.Message.Split(" (Parameter", StringSplitOptions.None)[0];
+
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [ex.ParamName ?? "place"] = [reason]
+        });
+    }
+
+    if (result.DuplicateOf is { } existingId)
+    {
+        return Results.Problem(
+            title: "Ya hay un lugar ahi",
+            detail: "Hay un lugar de la misma categoria a menos de 25 metros. Votalo en vez de cargarlo de nuevo.",
+            statusCode: StatusCodes.Status409Conflict,
+            extensions: new Dictionary<string, object?> { ["existingId"] = existingId });
+    }
+
+    var alias = await db.DriverProfiles.AsNoTracking()
+        .Where(d => d.Id == userId.Value)
+        .Select(d => d.Alias)
+        .FirstOrDefaultAsync(ct);
+
+    var dto = new AddedPoiDto(
+        PoiDto.From(result.Place!, truck, result.Community, alias),
+        result.Earned is null ? null : ContributionEarnedDto.From(result.Earned));
+
+    return Results.Created($"/api/pois/{result.Place!.Id}", dto);
+})
+.RequireAuthorization()
+.WithSummary("Agrega un lugar de la comunidad, con el primer voto de quien lo carga.");
+
+// El voto se emite con un camion: de el sale el tipo que guarda el voto. Se puede
+// cambiar (misma ruta) y retirar. La EXP la decide el servidor y se paga una vez
+// por lugar: el cliente nunca informa lo que gano.
+pois.MapPut("/{id:guid}/vote", async (
+    Guid id,
+    VoteRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    PoiVoting voting,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<PoiVerdict>(request.Verdict, ignoreCase: true, out var verdict))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["verdict"] = ["Vale Suitable o NotSuitable."]
+        });
+    }
+
+    var poi = await db.PointsOfInterest.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    if (poi is null)
+    {
+        return Results.NotFound();
+    }
+
+    var truck = await FindUsableTruckAsync(db, request.TruckId, userId, ct);
+
+    if (truck is null)
+    {
+        return Results.Problem(
+            title: "Camion inexistente",
+            detail: $"No existe un perfil de camion con id {request.TruckId}.",
+            statusCode: StatusCodes.Status404NotFound);
+    }
+
+    var result = await voting.CastAsync(userId.Value, id, truck, verdict, DateTimeOffset.UtcNow, ct);
+
+    var alias = poi.ContributedBy is { } by
+        ? await db.DriverProfiles.AsNoTracking().Where(d => d.Id == by).Select(d => d.Alias).FirstOrDefaultAsync(ct)
+        : null;
+
+    return Results.Ok(new VoteResultDto(
+        CommunityDto.From(result.Community, poi, alias),
+        result.Earned is null ? null : ContributionEarnedDto.From(result.Earned)));
+})
+.RequireAuthorization()
+.WithSummary("Vota un lugar como apto o no apto para el camion elegido; cambiarlo es votar de nuevo.");
+
+// Retirar no devuelve EXP: el libro no resta y el voto ya se pago una vez.
+pois.MapDelete("/{id:guid}/vote", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    PoiVoting voting,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    await voting.RetireAsync(userId.Value, id, ct);
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithSummary("Retira el voto propio sobre un lugar.");
+
+// ------------------------------------------------- reportes de la comunidad
+//
+// Lo que un camionero vio en su posicion: aparece, otros lo confirman o rechazan
+// al pasar, vive lo que su tipo dice y muere solo. Solo lo validado toca la ruta,
+// y eso lo lee el calculador, no estos endpoints (spec del 19/09/2026).
+
+var reports = app.MapGroup("/api/reports").WithTags("Reports");
+
+// Leer es anonimo, como los lugares; con sesion ademas dice cual es tuyo y que
+// votaste. El camion es opcional: sin el, un galibo no dice si pasas.
+reports.MapGet("/", async (
+    string? bbox,
+    Guid? truckId,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    ReportReader reader,
+    CancellationToken ct) =>
+{
+    if (!TryParseBox(bbox, out var box))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["bbox"] = ["Va como minLon,minLat,maxLon,maxLat, con punto decimal."]
+        });
+    }
+
+    var userId = CurrentUserId(principal);
+    TruckProfile? truck = null;
+
+    if (truckId is { } id)
+    {
+        truck = await FindUsableTruckAsync(db, id, userId, ct);
+
+        if (truck is null)
+        {
+            return Results.Problem(
+                title: "Camion inexistente",
+                detail: $"No existe un perfil de camion con id {id}.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+    }
+
+    var views = await reader.InBoxAsync(box.MinLon, box.MinLat, box.MaxLon, box.MaxLat, truck, userId, DateTimeOffset.UtcNow, ct);
+
+    return Results.Ok(views.Select(ReportDto.From).ToList());
+})
+.WithSummary("Los reportes vigentes de un recuadro, con su confiabilidad y lo que le dicen al camion.");
+
+// Crear: en la posicion GPS de quien reporta. No paga nada; lo que paga es que
+// otros lo validen. El duplicado devuelve el existente para ofrecer "sigue ahi";
+// la espera devuelve 429 con los segundos.
+reports.MapPost("/", async (
+    CreateReportRequest request,
+    ClaimsPrincipal principal,
+    HttpContext http,
+    ReportWriter writer,
+    ReportReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<ReportType>(request.Type, ignoreCase: true, out var type))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["type"] =
+            [
+                "Tipo de reporte desconocido. Valores validos: " +
+                string.Join(", ", Enum.GetNames<ReportType>()) + "."
+            ]
+        });
+    }
+
+    var input = new NewReport(type, request.Latitude, request.Longitude, request.HeadingDegrees, request.SpeedMps, request.Street, request.Value);
+    var result = await writer.CreateAsync(userId.Value, input, DateTimeOffset.UtcNow, ct);
+
+    if (result.DuplicateOf is { } existingId)
+    {
+        return Results.Problem(
+            title: "Ya hay un reporte igual cerca",
+            detail: result.Error,
+            statusCode: StatusCodes.Status409Conflict,
+            extensions: new Dictionary<string, object?> { ["existingId"] = existingId });
+    }
+
+    if (result.RetryAfterSeconds > 0)
+    {
+        http.Response.Headers.RetryAfter = result.RetryAfterSeconds.ToString(CultureInfo.InvariantCulture);
+
+        return Results.Problem(
+            title: "Muy seguido",
+            detail: result.Error,
+            statusCode: StatusCodes.Status429TooManyRequests,
+            extensions: new Dictionary<string, object?> { ["retryAfterSeconds"] = result.RetryAfterSeconds });
+    }
+
+    if (result.Report is null)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["report"] = [result.Error ?? "No se pudo crear el reporte."]
+        });
+    }
+
+    var view = await reader.ForOneAsync(result.Report.Id, null, userId, DateTimeOffset.UtcNow, ct);
+
+    return Results.Created($"/api/reports/{result.Report.Id}", ReportDto.From(view!));
+})
+.RequireAuthorization()
+.WithSummary("Reporta algo en tu posicion GPS. Un toque: el tipo y el ultimo fix.");
+
+// "Sigue ahi" o "ya no esta". Con la posicion de quien vota: votar exige estar
+// cerca. El camion es opcional y solo sirve para lo que el reporte le dice.
+reports.MapPut("/{id:guid}/vote", async (
+    Guid id,
+    ReportVoteRequest request,
+    Guid? truckId,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    ReportWriter writer,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!Enum.TryParse<ReportVerdict>(request.Verdict, ignoreCase: true, out var verdict))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["verdict"] = ["Vale StillThere o Gone."]
+        });
+    }
+
+    TruckProfile? truck = truckId is { } tid ? await FindUsableTruckAsync(db, tid, userId, ct) : null;
+
+    var result = await writer.VoteAsync(userId.Value, id, verdict, request.Latitude, request.Longitude, truck, DateTimeOffset.UtcNow, ct);
+
+    return result.Outcome switch
+    {
+        VoteOutcome.NotFound => Results.NotFound(),
+        VoteOutcome.Expired => Results.Problem(
+            title: "Ese reporte ya vencio",
+            statusCode: StatusCodes.Status410Gone),
+        VoteOutcome.OwnReport => Results.Problem(
+            title: "Es tu reporte",
+            detail: "Lo tuyo no se vota: si ya no esta, cerralo.",
+            statusCode: StatusCodes.Status403Forbidden),
+        VoteOutcome.TooFar => Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["position"] = ["Tenes que estar cerca para confirmarlo."]
+        }),
+        _ => Results.Ok(new ReportVoteResultDto(
+            ReportDto.From(result.View!),
+            result.Earned is null ? null : ContributionEarnedDto.From(result.Earned)))
+    };
+})
+.RequireAuthorization()
+.WithSummary("Sigue ahi o ya no esta, desde cerca del lugar; cambiarlo es votar de nuevo.");
+
+// El creador cierra el suyo. Nadie mas puede, y un reporte vencido no se cierra.
+reports.MapDelete("/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal principal,
+    ReportWriter writer,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    return await writer.CloseAsync(userId.Value, id, DateTimeOffset.UtcNow, ct)
+        ? Results.NoContent()
+        : Results.NotFound();
+})
+.RequireAuthorization()
+.WithSummary("Cierra un reporte propio.");
 
 // ------------------------------------------------------------------- viajes
 //
@@ -681,14 +1397,38 @@ trips.MapPost("/", async (
 
     var departure = request.DepartureTime ?? DateTimeOffset.Now;
 
+    // Las paradas intermedias son opcionales: sin ellas el viaje es de un tramo,
+    // como siempre. Con ellas —un reparto ya calculado— la ruta tiene que pasar
+    // por todas, y en ESE orden: el usuario ya lo vio en la pantalla.
+    var stops = request.Stops ?? [];
+
+    if (stops.Count > DeliveryOrder.MaxStops)
+    {
+        return Results.Problem(
+            title: "Demasiadas paradas",
+            detail: $"Un reparto admite hasta {DeliveryOrder.MaxStops} paradas y llegaron {stops.Count}.",
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
     try
     {
-        var route = await calculator.CalculateAsync(
-            truck,
-            new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude),
-            new GeoPoint(request.Destination!.Latitude, request.Destination.Longitude),
-            departure,
-            ct);
+        var origen = new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude);
+        var destino = new GeoPoint(request.Destination!.Latitude, request.Destination.Longitude);
+
+        // La misma ruta que se eligio en pantalla, por el mismo camino que la
+        // recomendo: alternativas ordenadas para camion y el filtro de AD-47.
+        var (route, reason) = await TripRoutes.ForTripAsync(
+            calculator, truck, origen, destino,
+            stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)).ToList(),
+            request.RouteIndex, departure, ct);
+
+        if (route is null)
+        {
+            return Results.Problem(
+                title: "No hay ruta apta para este camion",
+                detail: reason,
+                statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
 
         var trip = new Trip
         {
@@ -705,6 +1445,12 @@ trips.MapPost("/", async (
             DestinationLatitude = request.Destination.Latitude,
             DestinationLongitude = request.Destination.Longitude,
             DestinationLabel = Clean(request.DestinationLabel),
+
+            // Se guardan las paradas, no la geometria de la ruta: la ruta se
+            // recalcula al recuperar el viaje —el mapa y el trafico cambian— pero
+            // por donde hay que pasar, no. Sin esto un reparto vuelve convertido
+            // en un tramo directo. Ver AD-45.
+            Stops = [.. stops.Select(s => new TripStop(s.Latitude, s.Longitude, null))],
 
             PlannedDistanceMeters = route.DistanceMeters,
             PlannedDurationSeconds = route.DurationSeconds,
@@ -775,17 +1521,26 @@ trips.MapGet("/active", async (
 
     try
     {
-        var route = await calculator.CalculateAsync(
-            truck,
-            new GeoPoint(trip.OriginLatitude, trip.OriginLongitude),
-            new GeoPoint(trip.DestinationLatitude, trip.DestinationLongitude),
-            DateTimeOffset.Now,
-            ct);
+        var origen = new GeoPoint(trip.OriginLatitude, trip.OriginLongitude);
+        var destino = new GeoPoint(trip.DestinationLatitude, trip.DestinationLongitude);
 
+        // La ruta se recalcula, pero POR DONDE hay que pasar sale del viaje
+        // guardado. Sin las paradas, recuperar un reparto devolvia una ruta
+        // directa —31 km por tres paradas se volvian 10 km de un tramo— y el
+        // guiado mandaba al camion por donde no correspondia. Ver AD-45.
+        //
+        // Se retoma por la recomendada: la eleccion original no se guarda y de
+        // todos modos el guiado recalcula desde donde este el camion.
+        var (route, reason) = await TripRoutes.ForTripAsync(
+            calculator, truck, origen, destino,
+            trip.Stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)).ToList(),
+            routeIndex: null, DateTimeOffset.Now, ct);
+
+        // Sin ruta apta el viaje se devuelve igual: cerrarlo no necesita rutear.
         return Results.Ok(new ActiveTripDto(
             TripDto.From(trip),
-            RouteResponse.From(route, truck.Name, Attribution),
-            null));
+            route is null ? null : RouteResponse.From(route, truck.Name, Attribution),
+            reason));
     }
     catch (Exception ex) when (ex is RoutingException or HttpRequestException)
     {
@@ -800,17 +1555,122 @@ trips.MapPost("/{id:guid}/finish", async (
     Guid id,
     ClaimsPrincipal principal,
     AppDbContext db,
+    ProgressionRecorder progression,
     CancellationToken ct) =>
-    await CloseTripAsync(db, id, CurrentUserId(principal), arrived: true, ct))
-.WithSummary("Marca el viaje como llegado y acredita los kilometros que correspondan.");
+    await CloseTripAsync(db, progression, id, CurrentUserId(principal), arrived: true, ct))
+.WithSummary("Marca el viaje como llegado, acredita los kilometros y la progresion.");
 
 trips.MapPost("/{id:guid}/cancel", async (
     Guid id,
     ClaimsPrincipal principal,
     AppDbContext db,
+    ProgressionRecorder progression,
     CancellationToken ct) =>
-    await CloseTripAsync(db, id, CurrentUserId(principal), arrived: false, ct))
-.WithSummary("Abandona el viaje. No acredita kilometros.");
+    await CloseTripAsync(db, progression, id, CurrentUserId(principal), arrived: false, ct))
+.WithSummary("Abandona el viaje. No acredita kilometros ni progresion.");
+
+// ------------------------------------------------------------------ progresion
+//
+// Ningun endpoint de aca otorga nada. Todo lo que se gana ocurre como efecto de que
+// el servidor cierre un viaje: el cliente pregunta cuanto tiene, nunca informa
+// cuanto gano. Es la misma regla que ya rige los kilometros.
+var progress = app.MapGroup("/api/progress").WithTags("Progresion").RequireAuthorization();
+
+progress.MapGet("/", async (
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    return userId is null
+        ? Results.Unauthorized()
+        : Results.Ok(await reader.GetProgressAsync(userId.Value, ct));
+})
+.WithSummary("Nivel, meta en curso, kilometros, EXP y lo que falta festejar.");
+
+progress.MapGet("/tracks", async (
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    return userId is null
+        ? Results.Unauthorized()
+        : Results.Ok(await reader.GetTracksAsync(userId.Value, ct));
+})
+.WithSummary("Las pistas con su escalon en curso. Es la vista de metas y logros.");
+
+progress.MapGet("/records", async (
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    return userId is null
+        ? Results.Unauthorized()
+        : Results.Ok(await reader.GetRecordsAsync(userId.Value, ct));
+})
+.WithSummary("Records personales: la mejor marca historica, con su fecha.");
+
+progress.MapGet("/inventory", async (
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    return userId is null
+        ? Results.Unauthorized()
+        : Results.Ok(await reader.GetInventoryAsync(userId.Value, ct));
+})
+.WithSummary("Recompensas desbloqueadas y que hay puesto en cada ranura.");
+
+// La marca solo avanza. Dejarla retroceder permitiria pedir el mismo festejo dos
+// veces, asi que el momento lo pone el servidor y no el cliente.
+progress.MapPost("/seen", async (
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    await reader.MarkSeenAsync(userId.Value, DateTimeOffset.UtcNow, ct);
+
+    return Results.NoContent();
+})
+.WithSummary("Marca como visto lo festejado hasta ahora.");
+
+progress.MapPost("/equip", async (
+    EquipRequest request,
+    ClaimsPrincipal principal,
+    ProgressionReader reader,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var equipped = await reader.EquipAsync(userId.Value, request.Slot, request.RewardCode, ct);
+
+    return equipped
+        ? Results.NoContent()
+        : Results.Problem(
+            title: "Esa recompensa no esta desbloqueada",
+            detail: "Solo se puede equipar lo que ya esta en el inventario.",
+            statusCode: StatusCodes.Status409Conflict);
+})
+.WithSummary("Pone una recompensa del inventario en su ranura.");
 
 trips.MapGet("/", async (
     int? limit,
@@ -832,7 +1692,7 @@ trips.MapGet("/", async (
         .AsNoTracking()
         .ToListAsync(ct);
 
-    return Results.Ok(history.Select(TripDto.From));
+    return Results.Ok(history.Select(t => TripDto.From(t)));
 })
 .WithSummary("Historial de viajes, del mas nuevo al mas viejo.");
 
@@ -925,14 +1785,38 @@ app.MapPost("/api/routes", async (
 
     try
     {
-        var route = await calculator.CalculateAsync(
+        var calculadas = await calculator.CalculateAlternativesAsync(
             truck,
             new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude),
             new GeoPoint(request.Destination!.Latitude, request.Destination.Longitude),
             departure,
             ct);
 
-        return Results.Ok(RouteResponse.From(route, truck.Name, Attribution));
+        // Lo que el motor excluyo no se ofrece: una ruta con un tramo prohibido
+        // para este camion no es una opcion, ni recomendada ni alternativa. Si
+        // la recomendada lo tiene, no hay ruta apta y se dice por que (AD-47).
+        var routes = RouteOffer.Offerable(calculadas);
+
+        if (routes is null)
+        {
+            return Results.Problem(
+                title: "No hay ruta apta para este camion",
+                detail: TripRoutes.Unofferable(truck, calculadas.Count > 0 ? RouteOffer.WhyNot(calculadas[0]) : null),
+                statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
+
+        // La raiz de la respuesta conserva EXACTAMENTE la forma de antes —la ruta
+        // recomendada— y `alternatives` se suma como campo. Asi la app que ya
+        // esta instalada en el telefono sigue funcionando sin cambios: lee lo que
+        // siempre leyo e ignora el campo nuevo.
+        var alternativas = routes.Skip(1)
+            .Select(r => RouteResponse.From(r, truck.Name, Attribution))
+            .ToList();
+
+        return Results.Ok(RouteResponse.From(routes[0], truck.Name, Attribution) with
+        {
+            Alternatives = alternativas
+        });
     }
     catch (RoutingException ex)
     {
@@ -950,7 +1834,60 @@ app.MapPost("/api/routes", async (
     }
 })
 .WithTags("Routing")
-.WithSummary("Calcula una ruta compatible con el camion indicado.");
+.WithSummary("Calcula una ruta compatible con el camion indicado, con alternativas.");
+
+// ------------------------------------------------------------------- reparto
+
+app.MapPost("/api/routes/delivery", async (
+    DeliveryRequest request,
+    ClaimsPrincipal principal,
+    AppDbContext db,
+    ITruckRouteCalculator calculator,
+    CancellationToken ct) =>
+{
+    if (Validate(request) is { } problem)
+    {
+        return problem;
+    }
+
+    var truck = await FindUsableTruckAsync(db, request.TruckId, CurrentUserId(principal), ct);
+
+    if (truck is null)
+    {
+        return Results.Problem(
+            title: "Camion inexistente",
+            detail: $"No existe un perfil de camion con id {request.TruckId}.",
+            statusCode: StatusCodes.Status404NotFound);
+    }
+
+    try
+    {
+        var delivery = await calculator.CalculateDeliveryAsync(
+            truck,
+            new GeoPoint(request.Origin!.Latitude, request.Origin.Longitude),
+            request.Stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)).ToList(),
+            request.DepartureTime ?? DateTimeOffset.Now,
+            ct);
+
+        return Results.Ok(DeliveryResponse.From(delivery, truck.Name, Attribution));
+    }
+    catch (RoutingException ex)
+    {
+        return Results.Problem(
+            title: "No se pudo armar el reparto",
+            detail: ex.Message,
+            statusCode: StatusCodes.Status422UnprocessableEntity);
+    }
+    catch (HttpRequestException ex)
+    {
+        return Results.Problem(
+            title: "Motor de ruteo no disponible",
+            detail: $"No se pudo contactar a GraphHopper: {ex.Message}",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+})
+.WithTags("Routing")
+.WithSummary("Ordena hasta 10 paradas y calcula la ruta que las recorre.");
 
 app.Run();
 
@@ -1023,8 +1960,25 @@ static IResult? Validate<T>(T instance) where T : notnull
 /// duplicada en dos endpoints. El filtro por camionero va en la misma consulta:
 /// el viaje de otro tiene que dar 404 y no 403.
 /// </remarks>
+/// <summary>
+/// 400 con el motivo si la patente no tiene forma de patente. Vacia es valida.
+/// </summary>
+/// <remarks>
+/// Va en un ayudante porque lo usan el alta y la edicion, y los dos tienen que
+/// dar el mismo veredicto con el mismo mensaje.
+/// </remarks>
+static IResult? InvalidPlate(SaveTruckProfileRequest request)
+{
+    var plate = LicensePlate.Validate(request.Plate);
+
+    return plate.IsValid
+        ? null
+        : Results.ValidationProblem(new Dictionary<string, string[]> { ["plate"] = [plate.Error!] });
+}
+
 static async Task<IResult> CloseTripAsync(
     AppDbContext db,
+    ProgressionRecorder progression,
     Guid tripId,
     Guid? userId,
     bool arrived,
@@ -1063,7 +2017,13 @@ static async Task<IResult> CloseTripAsync(
 
     await db.SaveChangesAsync(ct);
 
-    return Results.Ok(TripDto.From(trip));
+    // La progresion se acredita DESPUES de guardar el viaje: el kilometraje se
+    // recalcula sumando los viajes completados, asi que este tiene que estar en la
+    // base para contar. Un viaje cancelado no acredita nada y el grabador lo
+    // descarta solo.
+    var earnings = await progression.RecordAsync(trip, now, ct);
+
+    return Results.Ok(TripDto.From(trip, earnings));
 }
 
 static Task<TruckProfile?> FindUsableTruckAsync(
@@ -1090,6 +2050,60 @@ static IResult TemplateIsReadOnly() => Results.Problem(
     detail: "Es un tipo de transporte del catalogo y lo comparten todas las cuentas. " +
             "Carga un camion propio a partir de el para poder cambiarle las medidas.",
     statusCode: StatusCodes.Status403Forbidden);
+
+/// <summary>
+/// Los alias de quienes aportaron lugares, en una consulta. El alias es publico por
+/// diseño (el perfil se ve); lo que no se expone es el id de la cuenta.
+/// </summary>
+static async Task<Dictionary<Guid, string?>> ContributorAliasesAsync(
+    AppDbContext db,
+    IEnumerable<PointOfInterest> points,
+    CancellationToken ct)
+{
+    var ids = points
+        .Where(p => p.ContributedBy != null)
+        .Select(p => p.ContributedBy!.Value)
+        .Distinct()
+        .ToList();
+
+    return ids.Count == 0
+        ? []
+        : await db.DriverProfiles
+            .AsNoTracking()
+            .Where(d => ids.Contains(d.Id))
+            .ToDictionaryAsync(d => d.Id, d => d.Alias, ct);
+}
+
+/// <summary>El recuadro del mapa como lo manda la app: minLon,minLat,maxLon,maxLat con punto decimal.</summary>
+static bool TryParseBox(string? bbox, out (double MinLon, double MinLat, double MaxLon, double MaxLat) box)
+{
+    box = default;
+
+    var parts = (bbox ?? string.Empty).Split(',');
+
+    if (parts.Length != 4)
+    {
+        return false;
+    }
+
+    var values = new double[4];
+
+    for (var i = 0; i < 4; i++)
+    {
+        if (!double.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out values[i]))
+        {
+            return false;
+        }
+    }
+
+    if (values[0] >= values[2] || values[1] >= values[3])
+    {
+        return false;
+    }
+
+    box = (values[0], values[1], values[2], values[3]);
+    return true;
+}
 
 static Guid? CurrentUserId(ClaimsPrincipal principal) =>
     Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id)

@@ -1385,26 +1385,31 @@ en el código.
 | `Cascara` | el puente nativo: configuración, posiciones, brújula, errores al evaluar JavaScript |
 | `Brujula` | cada rumbo calculado, con la inclinación y la declinación aplicada |
 
-### ⚠ Sin verificar en el equipo de prueba — 26/08/2026
+### ✅ Verificado en el equipo de prueba — 28/08/2026
 
-**Esto todavía no se comprobó que funcione.** En el Xiaomi de prueba
-(`24117RN76L`, HyperOS) el APK de Release corrió con un `Log.Info` incondicional
-en el arranque de `ConnectAsync` y **no apareció ni una línea** bajo ninguna de
-las tres etiquetas. Lo medido, para que la próxima sesión no repita el camino:
+**Funciona, y funciona bien.** En el Xiaomi de prueba (`24117RN76L`, HyperOS) el
+APK de Release escribe las tres etiquetas y `adb logcat` las entrega:
 
-- El proceso de la app produjo **24 líneas de logcat, todas del framework de
-  Android/MIUI**. Ninguna del runtime de .NET ni de nuestro código.
-- **No es un filtro de etiquetas**: escribir a mano
-  `adb shell log -p i -t Cascara "..."` sí aparece.
-- **No es que el código no se ejecute**: la pantalla muestra el error de conexión,
-  que sale de la misma función, dos líneas después del log.
-- `log.tag` global está en `M`, un valor que no es de los estándar
-  (`V D I W E F S`). Sin confirmar que sea la causa.
+```
+Cascara : conectando a http://192.168.1.52:5080 (compilada: http://192.168.100.106:5080, fijada a mano: True)
+Cascara : resultado: alcanzable=True motivo=ninguno
+Web     : interfaz cargada · https://0.0.0.1/  [app.js:36]
+Brujula : rumbo=23.4 plano=False confiable=True declinacion=-10.3
+```
 
-La sospecha abierta es que **MIUI descarta los logs de aplicaciones de terceros**
-—las líneas de prueba pasaron porque `shell` es privilegiado—, pero no está
-demostrado. Hasta que lo esté, **no dar por sentado que el log alcanza para
-diagnosticar en este equipo**, y dejar siempre un camino visible en pantalla.
+**La sospecha de que MIUI filtraba los logs de terceros era falsa**, y quedó
+anotada un día como si fuera plausible. La explicación real es más simple: el
+26/08 la app **nunca pasaba de la pantalla de conexión**, así que no llegaba a
+ejecutarse ninguna línea de las que loguean. Ausencia de salida no era ausencia
+de puente.
+
+Vale como advertencia sobre el método: **una hipótesis que explica los datos no
+es una causa**, y anotarla como sospecha en la documentación le da más peso del
+que merece. Lo que la descartó fue reproducir con el log limpio, no razonar
+mejor.
+
+El `Web` trae además archivo y línea de origen (`[app.js:36]`), que es la mitad
+del valor.
 
 ---
 
@@ -1528,6 +1533,47 @@ validarse al escribirlo, y tiene que tener una forma de deshacerse sin conocer
 el valor original.** Si además le gana a la configuración de fábrica, sobrevive a
 la reinstalación, que es lo último que le queda a alguien cuando algo no anda.
 
+### Apéndice (01/09/2026) · El arranque insiste tres veces, no una
+
+Quedaba un defecto medido en la misma pantalla: **la app hacía un solo intento** y
+fallaba al abrirla, pero a la segunda andaba. El motivo es que al abrir la app la
+red del teléfono suele no estar lista todavía —la WiFi reconecta al salir de
+suspensión— y ese único intento agarraba el hueco. Medio segundo de red dormida
+terminaba en la pantalla de "no se pudo contactar al servidor".
+
+Eso es peor que una molestia: manda al usuario a **tocar una dirección que estaba
+bien**, que es exactamente como se rompen las que funcionaban.
+
+Ahora hay **3 intentos**, con la política en `ConnectionRetry` — que no depende de
+MAUI, igual que `BackendAddress`, y por eso se testea (17 casos):
+
+| | Espera antes | Tiempo de respuesta |
+|---|---|---|
+| Intento 1 | 0 | 4 s |
+| Intento 2 | 1,2 s | 7 s |
+| Intento 3 | 2,5 s | 7 s |
+
+- **El primero sale sin esperar**: con la red sana el backend contesta en
+  milisegundos, y meter una demora ahí sería castigar el caso normal para cubrir
+  el excepcional. Su espera es corta por lo mismo: si no llegó en 4 s, conviene
+  reintentar antes que seguir esperando.
+- **Peor caso ~22 s**, y hay un test que lo fija en 30. Pasado ese rato la app
+  parece colgada aunque el cartel diga lo que está haciendo, y lo que el usuario
+  necesita es llegar a la pantalla de configurar servidor.
+- **No todas las fallas se reintentan.** Una dirección mal escrita va a fallar
+  igual las tres veces: `HealthCheck` ahora trae `Retriable`, y sólo reintenta lo
+  que puede resolverse solo — timeouts, conexión rechazada, y los 502/503/504 de
+  un intermediario que todavía no llegó al backend (el túnel Cloudflare recién
+  levantado es el caso típico).
+- **La pantalla dice qué está pasando** (*"Sin respuesta. Reintentando… (2 de 3)"*).
+  Una espera silenciosa de veinte segundos no se distingue de una app colgada. El
+  primer intento **no** anuncia reintentos: en el caso normal dura milisegundos y
+  decir "1 de 3" sólo sembraría la duda de que algo anda mal.
+- El auto-rescate con la dirección de fábrica se queda con **un** intento, con la
+  espera larga: la dirección guardada ya se llevó sus tres, encadenar otra tanda
+  pasaría del medio minuto, y para entonces la red ya tuvo todo ese tiempo para
+  levantar.
+
 ---
 
 ## AD-34 · Fuera del viaje la cámara es cenital y fija; la perspectiva es del viaje
@@ -1607,3 +1653,1567 @@ Medido con `document.elementFromPoint` sobre una grilla: **29 de 36 sondas sobre
 el área del mapa llegan al canvas**, y las 7 que no son exactamente donde están
 los botones. Es una comprobación barata y vale la pena repetirla cada vez que se
 toca esa capa.
+
+### Y el arreglo trajo su propio error: la hoja se referencia por id
+
+La primera versión de la regla decía `.map-overlay > .sheet { pointer-events:
+auto }`. **`sheetAs()` le reemplaza la clase a ese mismo elemento** según el
+estado: `sheet` para buscar y planificar, `nav-bar` durante el viaje. Con el
+selector por clase, en modo viaje la barra dejaba de coincidir, heredaba el
+`none` del contenedor y **el botón "Salir" no respondía**.
+
+La consecuencia no es cosmética: el viaje abierto vive en el servidor y sobrevive
+a cerrar la app (AD-27), así que **quedaba imposible de cerrar desde la
+aplicación**. Cada reapertura volvía a la pantalla de viaje con el único botón que
+podía sacarte de ahí sin responder.
+
+Va por **`#sheet`**, que no cambia nunca. Reproducido y medido:
+
+| Selector | `pointer-events` de la barra | del botón |
+|---|---|---|
+| `.sheet` (roto) | `none` | `none` |
+| `#sheet` | `auto` | `auto` |
+
+La lección: **un selector CSS que depende de una clase que el código reescribe es
+una bomba de tiempo**, y el síntoma aparece lejos —en otra pantalla, en otro
+estado— de donde está la causa.
+
+---
+
+## AD-35 · El APK se firma con una clave estable, fuera del repositorio
+
+Instalar una versión nueva sobre la anterior fallaba con
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE: signatures do not match`. La única salida
+era desinstalar, y eso borra la sesión y los ajustes del teléfono **en cada
+versión**. Sobre un ciclo de prueba que ya es lento —compilar, instalar, abrir,
+loguearse, reconfigurar el servidor— ese costo se paga entero cada vez.
+
+### Por qué pasaba
+
+El proyecto no declaraba ninguna clave, así que .NET Android firmaba con la de
+depuración que genera sola. **Esa clave se regeneró** en algún momento entre el
+26 y el 28 de agosto de 2026: el `debug.keystore` que quedó en
+`%LOCALAPPDATA%\Xamarin\Mono for Android` es del 20/08, anterior a la app
+instalada, y aun así la firma del APK nuevo no coincidía.
+
+Android no permite actualizar una app con una firma distinta, y hace bien: es lo
+que impide que cualquiera publique una "actualización" de una aplicación ajena.
+
+### Lo que se hizo
+
+`build-apk.ps1` crea la clave la primera vez —con `keytool`, RSA 2048, validez
+larga— y a partir de ahí firma siempre con la misma. La ruta, el alias y la
+contraseña son parámetros, así que una clave de distribución se pasa sin tocar el
+script.
+
+**La clave vive fuera del repositorio**, en
+`%LOCALAPPDATA%\TruckNavigator\firma-desarrollo.keystore`, para que no pueda
+commitearse por accidente. `.gitignore` bloquea además `*.keystore` y `*.jks`
+como red de seguridad.
+
+El script imprime la **huella SHA-256** de la firma al terminar. Si cambia entre
+dos compilaciones, el teléfono va a rechazar la actualización; conviene enterarse
+ahí y no al instalar.
+
+### Lo que esto NO es
+
+**No es una clave de distribución.** Es de desarrollo, con una contraseña
+conocida y escrita en el script, y su único propósito es que la firma no cambie
+entre compilaciones. Publicar la app pide una clave propia, generada aparte,
+**con copia de respaldo**: si se pierde, esa aplicación no se puede volver a
+actualizar nunca más, ni siquiera por su autor.
+
+Se puede pasar por parámetro o por la variable de entorno
+`TRUCKNAVIGATOR_KEYSTORE_PASS`, sin cambiar el código.
+
+### La primera instalación después de este cambio todavía duele
+
+El teléfono tiene instalada una app firmada con la clave vieja, así que hay que
+desinstalarla una última vez. **De ahí en adelante las actualizaciones entran
+sin desinstalar.**
+
+---
+
+## AD-36 · Las zonas peligrosas salen de un mapa comunitario, no del dato oficial
+
+**Fecha:** 01/09/2026 (reemplaza la primera versión del mismo día)
+**Estado:** aceptada
+
+### Contexto
+
+El pedido era mostrar zonas peligrosas de CABA con escala de color, sin recargar
+el mapa, tomando como referencia un mapa colaborativo de Google My Maps.
+
+Se construyó **primero con el dato oficial** —el Mapa del Delito del GCBA, CC-BY,
+133.203 hechos de 2025 con coordenadas— y hubo que descartarlo.
+
+### Por qué el dato oficial no servía
+
+**1. Contar delitos denunciados mide dónde hay gente, no dónde hay peligro.**
+
+Palermo encabezaba la Ciudad con 4.126 hechos. Filtrar a robos a mano armada
+corregía buena parte del sesgo —Villa Soldati tiene 30,9% de robos con arma
+contra 6,3% de Palermo— y era una mejora real, pero no tocaba el fondo: **un
+conteo de hechos no es un mapa de peligro**.
+
+**2. El dataset cubre exactamente CABA.**
+
+Y ése fue el que lo mató. El mapa de calor terminaba dibujando **la silueta de la
+Ciudad**: un manchón rojo con la forma del límite administrativo, que en pantalla
+decía *"toda la Ciudad es peligrosa y el conurbano es seguro"*. Absurdo, y al
+revés de la realidad.
+
+Ese fallo tiene una forma general que conviene reconocer: **cuando la cobertura de
+una fuente coincide con una frontera, el mapa termina dibujando la frontera.** No
+es un problema de calibración ni de colores — ningún ajuste de opacidad lo
+arregla, porque el dato está diciendo dónde hay dataset, no dónde hay riesgo.
+
+### Decisión
+
+Se usan las **19 zonas del mapa colaborativo** que tocan CABA: 8,8 km², el 4,3%
+de la Ciudad, contra el 100% que pintaba el anterior. Caen en Villa Soldati,
+Villa 21-24, Villa Lugano, Villa 31, Villa 1-11-14, La Boca, Nueva Pompeya y
+otros — donde cualquiera que maneje por la Ciudad esperaría.
+
+Las zonas que un repartidor evita son **un juicio**, y este mapa las tiene
+marcadas a mano por gente que anda por ahí todos los días. Eso es exactamente lo
+que un conteo no puede darte.
+
+**El precio, y se paga con los ojos abiertos:** autoría anónima, sin metodología,
+sin fecha y sin licencia declarada. Por eso el toque dice *"Marcada por
+conductores, no es un dato oficial"* cada vez. Ver la sección 7 de
+`data-sources.md`.
+
+### Cómo se dibuja
+
+Se mantiene el mapa de calor, que era lo que funcionaba visualmente. El script
+rellena cada polígono con puntos cada 60 m y el `heatmap` los difumina — 2.449
+puntos en un solo MultiPoint.
+
+Dos razones para muestrear en vez de dibujar el polígono: una capa `heatmap` de
+MapLibre **sólo acepta puntos**, y el difuminado **evita prometer un borde exacto
+que este dato no tiene**. El límite de una zona marcada a mano no es una línea,
+es un degradado.
+
+### El interruptor, y por qué arranca apagado
+
+Las zonas se prenden y apagan con **su propio botón**, aparte de las capas de
+camión, y arrancan **apagadas**.
+
+Son datos de naturaleza distinta: la Red y los gálibos son oficiales y dicen por
+dónde puede pasar el vehículo; esto es un juicio de la comunidad sobre dónde no
+conviene parar. Quien quiere una no necesariamente quiere la otra. Y el sombreado
+cubre área, así que es lo primero que uno quiere sacar del medio para leer el
+mapa.
+
+Es el segundo botón que se agrega a la columna lateral, así que vale repetir la
+advertencia de AD-34: **cada control nuevo agranda la franja que se come el
+arrastre del mapa si los contenedores pierden `pointer-events: none`.**
+
+### El toque no dice números
+
+Antes decía cuántos robos hubo y cuántas veces el promedio de la Ciudad. Ahora
+dice **"Zona peligrosa · Barracas"** y nada más.
+
+Dos razones. El número no es accionable manejando: lo único que el conductor
+puede hacer con esa información es decidir si para ahí o no. Y comparar zonas por
+cantidad invita a una precisión que la fuente no tiene.
+
+**Y no dice "segura" en ningún caso.** El dato tiene dos estados —marcada y no
+marcada— y ninguno de los dos es "revisada y limpia". Que una zona no aparezca
+significa que nadie la marcó.
+
+### Consecuencias
+
+- El archivo pasó de 180 KB a 60 KB.
+- La capa que contesta el toque es un `fill`, no un `circle`: las zonas son
+  polígonos, y **una capa `circle` de MapLibre sólo dibuja puntos** — con un
+  polígono no dibuja nada ni contesta nada, sin emitir un solo error.
+- El análisis del Mapa del Delito queda documentado en `data-sources.md` §7
+  aunque no se use: sirve para contrastar y explica por qué no se usa.
+
+### Una trampa que apareció dos veces en la misma sesión
+
+Mover bloques grandes de `layers.js` por rango de líneas se llevó puestas
+definiciones que seguían en uso —`chapa`, `LADO`, `rectangulo`, `imagen` la
+primera vez; `RIESGO` la segunda—. **`node --check` no lo detecta**: un
+`RIESGO.extrema` sin `const RIESGO` es sintaxis válida y sólo revienta al
+ejecutar, adentro del teléfono, donde el único rastro es una capa que no aparece.
+
+El chequeo que sí lo encuentra es buscar identificadores usados y nunca
+declarados en el módulo. Vale correrlo después de cualquier reorganización
+grande de un archivo de `wwwroot/js`.
+
+---
+
+## AD-37 · El nombre de la calle por la que vas se rotula sobre el mapa base
+
+**Fecha:** 01/09/2026
+**Estado:** reemplazada el 16/09/2026 — el rótulo verde se sacó a pedido del
+usuario ("es algo que te pedí yo pero no queda bien"). La calle actual va ahora
+en la píldora negra de la pantalla del viaje, como en Waze (ver AD-48). Lo que
+sigue queda como registro de por qué un rótulo sobre línea no se dibuja si el
+texto no entra en el tramo, que sigue siendo cierto.
+
+### Contexto
+
+El brainstorm v2 lo pedía así: *"el nombre de la calle por la que vas, legible
+durante el viaje; debe verse 3× más grande que las calles que no se toman, y en
+verde"*. Y anotaba el defecto: **hoy lo tapa la línea de la ruta**.
+
+### Las dos partes del problema
+
+**1. La ruta tapaba los rótulos.** `drawRoute` agregaba sus capas sin `beforeId`,
+o sea al final del estilo, y los 17 px entre el halo y la línea pasaban por
+encima del nombre. Ahora se insertan **antes de `calles-nombre`**. La ruta se
+sigue viendo igual —es una línea gruesa y de color— y el texto encima lleva halo.
+
+**2. Ninguna calle estaba destacada.** Para eso hay que saber cuál se está
+tomando, y eso sólo lo sabe el motor de guiado: `advance()` devuelve `step` con
+su `streetName`.
+
+### Decisión: rotular sobre la geometría del mapa base, filtrando por nombre
+
+La capa `calle-actual` va sobre la misma fuente que usa el mapa base para
+rotular calles (`base` / `source-layer: roads`), con un filtro por nombre que se
+actualiza en cada latido del GPS.
+
+**El primer intento fue dibujar el tramo de la ruta, y no funciona.** Los tramos
+entre maniobras son cortísimos — medidos sobre una ruta real del centro:
+
+| Calle | Largo |
+|---|---:|
+| Avenida Corrientes | 50 m |
+| Avenida 9 de Julio | **29 m** |
+| Carlos Pellegrini | 69 m |
+| Lavalle | 91 m |
+| Avenida 9 de Julio | 2.192 m |
+| Constitución | 83 m |
+
+`symbol-placement: line` **no dibuja nada si el texto no entra a lo largo de la
+línea**. A zoom 16, 29 m son 15 px y "Avenida 9 de Julio" necesita unos 300: el
+rótulo no aparecía casi nunca, y cuando aparecía era por casualidad. La calle del
+mapa base, en cambio, viene entera en el tile: hay largo de sobra y el texto
+sigue su curva.
+
+El precio es que si dos calles distantes comparten nombre se rotulan las dos. En
+el entorno visible eso prácticamente no pasa.
+
+### Por qué no son 3× sino 1,5×
+
+El mapa base rotula en 11 px, así que 3× serían 33. **En 33 px el texto no entra
+en el largo del tramo y MapLibre no dibuja nada** — se probó, y la diferencia
+entre 33 y 18 era que con 33 no se veía absolutamente nada.
+
+Queda en `interpolate` de 15 a 19 px según el zoom: entre **1,4× y 1,7×**. El
+motivo va adelante del gusto: **los tiles fragmentan las avenidas en pedazos de
+una cuadra**, y en el zoom de navegación —16,5— una cuadra son unos 79 px
+mientras que "Avenida 9 de Julio" en 22 px mide 200. Cuanto más grande, en menos
+tramos entra y menos veces aparece.
+
+Es menos de lo pedido y el objetivo se cumple igual, porque el contraste real lo
+dan tres cosas a la vez: el tamaño, **el verde** contra el gris de las demás, y
+la prioridad de colisión.
+
+### Que no se encime consigo mismo
+
+La primera versión usaba `text-allow-overlap: true` para ganarle a los nombres
+grises. Eso trae un efecto que no es obvio: **MapLibre deja de comparar los
+símbolos también dentro de la misma capa**, y como los tiles traen la avenida
+partida en varios tramos, el mismo nombre se dibujaba encimado sobre las cuadras
+cortas — de forma distinta según el zoom.
+
+La colisión va **activada**. La prioridad sobre los demás nombres se consigue por
+el **orden de la capa**: MapLibre resuelve las colisiones en el orden en que
+dibuja, así que `calle-actual` va antes de `calles-nombre`, ve el lugar libre
+primero y el nombre gris cede.
+
+### Consecuencias
+
+- La capa se borra al limpiar la ruta, pero **su fuente no**: es la del mapa
+  base, y borrarla se llevaría puesto el mapa entero. Por eso `calle-actual` está
+  en `ROUTE_LAYERS` y no en `ROUTE_SOURCES`.
+- Si el mapa base cae al raster de OSM (falta `amba.pmtiles`), no existe la
+  fuente `base` y la función sale sin hacer nada, en vez de tirar.
+- El alta reintenta con `once('idle')` si el estilo no terminó de cargar. Sin eso
+  la capa no se crea nunca y el nombre no aparece **en todo el viaje**, de forma
+  intermitente según quién conteste primero — el mismo defecto que ya tenía
+  cubierto `drawRoute`.
+
+## AD-38 · Los pasos a nivel se muestran sólo durante el viaje, y sin escala de color
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### El color decía dos cosas distintas
+
+Los pasos a nivel se dibujaban con tres chapas según el tipo de barrera: **roja**
+sin barrera, ámbar con barrera, pizarra sin dato.
+
+El problema lo señaló el usuario, y es de fondo: **en el resto del mapa el rojo
+significa "tu camión no pasa"** — es lo que dice un gálibo rojo. Un paso a nivel
+en rojo se lee igual, cuando en realidad decía "no tiene barrera". El mismo color
+con dos significados, en la pantalla que se mira de reojo manejando.
+
+Ahora hay **una sola chapa**, en pizarra. El tipo de barrera es un **dato**, no un
+veredicto sobre si se puede pasar, y va en palabras al tocar la señal:
+*"Paso a nivel sin barrera"*, *"con media barrera"*, o *"— la fuente no dice si
+tiene barrera"*.
+
+La distinción vale más allá de este caso: **el color de una señal debería
+codificar una sola dimensión en todo el producto.** Acá esa dimensión es "cuánto
+te afecta a vos y a tu camión", y el tipo de barrera no es eso.
+
+### Sólo durante el viaje
+
+Son **312 en la Ciudad** y fuera del viaje no cambian ninguna decisión: llenan de
+chapas la pantalla en la que uno está armando la ruta, que es justo cuando
+necesita verla limpia. Aparecen al entrar en modo navegación y desaparecen al
+salir.
+
+**No se filtró por tamaño del camión, que era el pedido original, porque el dato
+no existe.** Los pasos a nivel de OpenStreetMap traen `barrier`, `name` y `osm` —
+ninguna dimensión. No hay forma de saber si un semirremolque queda varado sobre
+las vías, y calcularlo sería inventarlo.
+
+### Consecuencias
+
+- `paso-senal` **sale de `LAYER_IDS`**: depende de dos cosas a la vez —el botón de
+  capas de camión y que haya viaje— y el bucle genérico lo prendía fuera del
+  viaje. Los dos estados se guardan por separado en `layers.js` porque cada uno
+  llega por su lado y ninguno sabe del otro.
+- Quedan tres imágenes menos que registrar: `senal-paso-sin-barrera`,
+  `senal-paso-con-barrera` y `senal-paso-sin-dato` se reemplazan por `senal-paso`.
+
+### Dos íconos más, en la misma tanda
+
+**El gálibo pasa a ser el mismo puente del botón de capas** (`icon('bridge')` de
+`ui.js`). Antes eran dos puentes distintos, dibujados cada uno por su lado: uno en
+el botón y otro en el mapa. Que sean el mismo es lo que hace entender sin leer
+nada que ese botón controla estas señales.
+
+**El radar pasa de cámara de fotos a cámara de vigilancia**: cuerpo alargado
+inclinado, lente en el morro y brazo a la pared. La anterior —cuerpo chato con
+visor arriba— se lee como "sacar una foto" y no como un control de velocidad.
+
+Al dibujarla apareció una regla de proporción que no es obvia: **el morro tiene
+que ser más alto que el diámetro del lente**. Con el lente más grande que la
+punta, el círculo se sale del cuerpo y el dibujo deja de leerse como una cámara.
+
+## AD-39 · La vibración avisa lo que la vista no puede mirar
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Por qué
+
+Manejando no se mira la pantalla, y la voz se pierde con la ventanilla baja, la
+radio o el motor de un camión. La vibración llega igual: es el único canal que no
+compite con el ruido de la cabina.
+
+### Un patrón distinto por tipo de aviso
+
+Ésta es la decisión que hace que sirva. **Si todo vibrara igual, lo único que se
+sabría es "algo pasa" y habría que mirar la pantalla** — que es justo lo que la
+vibración vino a evitar. Con patrones distintos se aprenden en dos viajes.
+
+| Aviso | Patrón (ms) | Por qué |
+|---|---|---|
+| Maniobra | `70` | Un toque corto: es el más frecuente |
+| Gálibo que no pasa | `140·90·140·90·140` | Tres golpes largos, el más insistente: es el único que anticipa un choque |
+| Radar | `50·90·50` | Dos toques secos, como un parpadeo |
+| Paso a nivel | `110·110·110` | Dos golpes medios, más pesados que el radar |
+
+**No se usa `Vibration.Default.Vibrate` de MAUI**: sólo acepta una duración
+suelta. Va contra el `Vibrator` de Android con `VibrationEffect.CreateWaveform`,
+que sí acepta formas de onda. En Android 12+ el vibrador se pide por
+`VibratorManager`; antes, por el servicio directo.
+
+La forma de onda **arranca vibrando**, así que el primer tramo tiene que ser una
+espera de cero: sin eso el patrón sale invertido y todos los avisos empiezan con
+un silencio del largo de su primer pulso.
+
+### Se vibra en un solo umbral de maniobra
+
+Las maniobras se anuncian a 800, 300 y 80 m. **Vibra sólo en el último.** Vibrar
+en los tres convierte cada giro en tres sacudones desde 800 m antes, y a esa
+altura uno deja de prestarles atención — que es lo que la vibración no se puede
+permitir.
+
+### Los avisos de lo que hay sobre la ruta
+
+Los gálibos, los pasos a nivel y los radares estaban en el mapa desde hace rato,
+pero manejando no se miran. `alertsAlongRoute` los cruza contra la ruta y
+`pendingRouteAlert` decide cuál toca.
+
+**El cálculo se hace una vez, al preparar la ruta.** Cruzar cada posición contra
+685 gálibos, 312 pasos a nivel y 129 radares una vez por segundo es trabajo de
+sobra para un teléfono que además está dibujando el mapa. Hacerlo al principio
+deja una lista corta y ordenada, y después avisar es comparar dos números.
+
+**Corredor de 30 m.** Más ancho empieza a levantar la calle paralela y la
+colectora — y avisar de un puente por el que uno no va a pasar es peor que no
+avisar, porque enseña a desconfiar del aviso. Más angosto se pierden cosas por el
+error de la propia geometría de OSM.
+
+**De los gálibos, sólo los que este camión no pasa.** Un puente de 5 m no le
+importa a nadie que quepa debajo, y avisarlo gasta la atención que hace falta
+para el que sí importa. Sin altura declarada del camión no se avisa ninguno: no
+se puede decir "no pasás" sin saber cuánto mide.
+
+Se avisa **al cruzar** los 200 m, no por estar debajo: con "estar debajo" el
+aviso saltaría en cada latido del GPS durante doscientos metros. Es la misma
+regla que ya tenían las maniobras.
+
+### Los datasets se guardan al descargarlos
+
+`layers.js` expone `truckDataset(key)`. No alcanza con `querySourceFeatures`:
+ése devuelve **lo que hay dibujado en pantalla**, o sea lo que uno ya está
+viendo — no lo que viene más adelante en el camino, que es justo lo que hay que
+avisar.
+
+### Un bug que encontró un test
+
+`Number(null)` es **0**, no `NaN`. Un gálibo sin altura declarada pasaba el
+filtro de `Number.isFinite` y se habría avisado como *"puente de 0,00 m, no
+pasás"* — con vibración de peligro incluida. Va con `Number.parseFloat`, que sí
+da `NaN`.
+
+El generador hoy descarta los gálibos sin altura, pero el motor no puede depender
+de eso: es exactamente la clase de dato faltante que la regla de la casa manda
+tratar como faltante.
+
+## AD-40 · Las rutas alternativas se ordenan por restricciones, no por tiempo
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+El brainstorm v2 pedía *"alternativas de ruta cuando la recomendada está
+deshabilitada"*. GraphHopper las sabe dar con `algorithm=alternative_route`, y ya
+se pedía `ch.disable=true`, que es su requisito.
+
+### La decisión: el orden
+
+**El motor devuelve las alternativas ordenadas por peso, que es básicamente
+duración. Para un camión ese orden es el equivocado.** Una ruta dos minutos más
+larga que no obliga a salir de la Red de Tránsito Pesado es mejor que la más
+rápida que sí obliga: la primera se maneja tranquilo y la segunda es una multa
+esperando.
+
+`TruckRouteComparer` vive en el **dominio** —es una regla del producto, no un
+detalle del cliente HTTP— y compara en cuatro escalones:
+
+1. **Tramos que el camión no puede transitar.** Una ruta que obliga a pasar por
+   donde este vehículo tiene prohibido circular no es una alternativa más lenta:
+   es una ruta que no se puede hacer.
+2. **Tramos que dependen de la excepción de acceso.** Salir de la Red para llegar
+   al destino es legal, pero hay que poder justificarlo. Menos es mejor.
+3. **Duración**, con una tolerancia de **60 segundos**.
+4. **Cuánto va por la Red**, sólo cuando la duración empata dentro de esa
+   tolerancia.
+
+**La tolerancia es la pieza que hace que el cuarto criterio sirva sin ser
+peligroso.** Sin ella, una ruta que va entera por la Red pierde contra otra que va
+por calles de barrio sólo por llegar tres segundos antes — una diferencia que
+además es una estimación del motor, no un hecho, y que en la calle desaparece en
+el primer semáforo. Y al ir *después* de la duración, la Red nunca puede elegir un
+rodeo largo: cinco minutos de más ya no es ruido.
+
+Medido contra el motor real, Obelisco → Bajo Flores:
+
+| | Tiempo | Red |
+|---|---:|---:|
+| **Recomendada** | 803 s | **3,9%** |
+| Alternativa 1 | 831 s | 3,3% |
+| Alternativa 2 | **797 s** | 0,0% |
+
+La más rápida queda **última**. Un GPS de auto la habría puesto primera.
+
+### La respuesta no cambia de forma
+
+`alternatives` se suma como **campo opcional de `RouteResponse`**, no como un
+envoltorio nuevo. Así la raíz conserva exactamente la forma de siempre y **la app
+que ya está instalada en el teléfono sigue funcionando**: lee lo que siempre leyó
+e ignora el campo nuevo. Cambiar la raíz a `{ route, alternatives }` la habría
+roto hasta actualizarla.
+
+### Los parámetros del motor
+
+- `max_paths: 3`. Cada alternativa se evalúa entera contra el motor de
+  restricciones —tramo por tramo, con sus gálibos y su pertenencia a la Red—, así
+  que pedir más cuesta tiempo de respuesta real. Y elegir entre más de tres
+  opciones en la pantalla de un camión no es ayudar.
+- `max_weight_factor: 1.6`. Deja entrar rodeos que valen la pena para un camión
+  —esquivar un tramo prohibido cuesta kilómetros— sin llegar a ofrecer paseos.
+- `max_share_factor: 0.7`. Sin esto las "alternativas" son la misma ruta con dos
+  cuadras distintas, y elegir no cambia nada. **Como efecto, en tramos cortos y
+  directos no hay alternativas** —Obelisco a Constitución por la 9 de Julio no
+  tiene ninguna que comparta menos del 70%— y el selector no aparece. Es
+  correcto: no hay nada que elegir.
+
+### En la pantalla
+
+Cada opción es un botón ancho que dice **lo que decide**: si hay tramos
+prohibidos, cuánto tarda y cuánto va por la Red. El tiempo no va primero. La
+elegida se marca con borde y fondo, no sólo con color de texto: se mira de reojo
+y tiene que distinguirse sin leer.
+
+## AD-41 · El orden del reparto se calcula con distancias reales, no en línea recta
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+El brainstorm v1 pedía *"modo reparto: hasta 10 direcciones con la ruta óptima
+desde el origen"*. Es el problema del viajante, y **GraphHopper self-hosted no
+trae optimizador** — el de ellos es del servicio pago. Así que el orden lo
+resolvemos nosotros.
+
+### La pregunta era con qué distancias ordenar
+
+Para ordenar N paradas hace falta saber lo que cuesta ir de cada una a cada otra.
+Hay dos caminos: distancia en línea recta, que es gratis, o consultarle cada par
+al motor de ruteo. **Medido sobre diez paradas de CABA:**
+
+| | |
+|---|---|
+| Matriz real (90 pares) | **2,7 s** secuencial · 30 ms por consulta |
+| Ruta real vs línea recta | **1,27×** en promedio, hasta **1,67×** |
+| Penalidad de ordenar por línea recta | **0,0%** en ese caso |
+
+La línea recta acertó el orden en la prueba. **Pero no había razón para
+arriesgarse:** los peores pares —La Boca a Constitución, Retiro al Obelisco— se
+apartan 1,67×, y ahí el orden puede cambiar. Un río, una autopista sin bajada o
+un puñado de calles de un solo sentido bastan.
+
+Con paralelismo de 8, el endpoint completo tarda **1,2 s para nueve paradas**.
+
+### El algoritmo
+
+`DeliveryOrder` vive en el dominio y es código puro: vecino más cercano para
+arrancar, y **2-opt** para deshacer los cruces que ése deja. Con diez paradas
+converge en dos o tres pasadas.
+
+Detalles que no son obvios:
+
+- **La matriz no tiene por qué ser simétrica.** Ir y volver entre dos puntos
+  puede costar distinto: calles de un solo sentido, una autopista con bajada de
+  un solo lado. El algoritmo no lo supone.
+- **Un par sin ruta vale infinito y no tumba el reparto.** La parada sigue
+  existiendo y el orden se resuelve con lo que se sabe. Perder una parada en
+  silencio es la peor forma de fallar acá: el camión vuelve al depósito con un
+  bulto y nadie se entera hasta el final del día.
+- **Hay un tope de pasadas de 2-opt y un piso de mejora de medio metro.** Sin el
+  piso, la aritmética de punto flotante encuentra mejoras de una millonésima para
+  siempre; un GPS colgado calculando un reparto es peor que uno que da una vuelta
+  de más.
+- **Cada consulta de la matriz lleva el custom model del camión.** Sin eso el
+  orden se calcularía con distancias de auto, que es exactamente el error que
+  este producto existe para no cometer.
+
+### La ruta final es una sola consulta
+
+Con todos los puntos en el orden elegido, no pegando tramos sueltos: así la
+geometría, las instrucciones y la evaluación de restricciones salen de la ruta de
+verdad.
+
+### Se devuelven índices, no la lista reordenada
+
+`stopOrder` son los índices sobre las paradas **tal como las cargó el usuario**.
+Con la lista ya ordenada esa correspondencia se pierde y el usuario no reconoce
+sus propias direcciones: la app tiene que poder decir *"tu parada 3 se visita
+quinta"*.
+
+### En la pantalla
+
+Las paradas se numeran en la lista **y en el mapa con el mismo número**: son las
+dos mitades de la misma información y tienen que poder cruzarse de un vistazo.
+
+Agregar o quitar una parada **invalida el orden calculado** y borra la ruta. Sus
+índices son sobre la lista anterior, así que mostrarlo igual haría que los
+números de la lista y los del mapa dejaran de corresponderse con lo dibujado.
+
+### Una trampa de la plantilla
+
+El markup se arma con `html\`\`` que **escapa por defecto**, y lo anidado va con
+`raw()`. Un `html\`\`` adentro de otro `html\`\`` se escapa y **el usuario ve las
+etiquetas como texto** — pasó con el campo de agregar parada. Todo bloque
+condicional que devuelva marcado va envuelto en `raw`.
+
+
+---
+
+## AD-42 · El selector de contactos se pide prestado a Android, sin permiso de agenda
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+Los tres contactos de emergencia y compartir el viaje por WhatsApp —los dos
+ítems que quedan de la Fase 3— necesitan lo mismo: que la persona elija a alguien
+de su libreta. La fase se pospuso, pero **el puente se construyó igual**, y a
+propósito: es la pieza que las dos comparten, vive en la costura entre la cáscara
+nativa y la web, y ahí el proyecto ya se lastimó cinco veces. Hacerlo aislado,
+con su propia verificación, sale más barato que descubrirlo metido adentro de una
+pantalla grande.
+
+### La decisión: `ACTION_PICK`, no `READ_CONTACTS`
+
+Hay dos formas de llegar a un contacto en Android, y la diferencia no es técnica
+sino de qué le pedimos al usuario:
+
+| | `READ_CONTACTS` | `ACTION_PICK` (elegida) |
+|---|---|---|
+| Qué se pide | acceso a **toda la agenda**, siempre | nada |
+| Quién dibuja la lista | nosotros | **el sistema** |
+| Qué vuelve | lo que consultemos | sólo el contacto que se tocó |
+| En la ficha de la tienda | queda declarado | no aparece |
+
+Con `ACTION_PICK` la app lanza un Intent, **Android** muestra la agenda, y de
+vuelta llega un URI que apunta a ese único registro con permiso de lectura
+temporal. La app nunca ve el resto de la libreta.
+
+El permiso no se pide porque **no hace falta**, y un permiso que no hace falta es
+un permiso que no se pide: en la pantalla de instalación, "acceder a tus
+contactos" es de los que más frenan a la gente.
+
+### El Intent se declara por tipo MIME, no por URI de datos
+
+**Esto se descubrió en el teléfono y es el motivo de existir de la prueba
+manual.** La primera versión pasaba el URI —`ACTION_PICK` sobre
+`Phone.ContentUri`, que es lo que dice todo tutorial— y en el equipo de prueba
+abrió **el explorador de archivos de Xiaomi**. No la agenda.
+
+Medido con `cmd package query-activities` sobre ese teléfono:
+
+| Intent | Quién dice poder resolverlo |
+|---|---|
+| `PICK` + data `content://com.android.contacts/data/phones` | `com.mi.android.globalFileexplorer`, `com.miui.gallery`. **La agenda ni aparece** |
+| `PICK` + data **y** tipo | la agenda **y** el explorador: sigue ambiguo, Android muestra el "abrir con" |
+| **`PICK` + tipo `vnd.android.cursor.dir/phone_v2`** | `com.google.android.contacts`, **y sólo esa** |
+
+Va la tercera. Alcanza con `SetType` porque el filtro de la agenda declara ese
+MIME, y agregar el data sólo vuelve a abrir la puerta a los otros.
+
+**`SetType` borra el data y `SetData` borra el tipo** — para tener los dos hace
+falta `SetDataAndType`, que es justamente lo que no se quiere acá.
+
+Se pide el tipo de **`Phone`** y no el de `Contacts`: aquél lista los **números**,
+así que quien tiene tres líneas elige cuál y lo que vuelve ya es el número. Con
+el de contactos volvería la persona y habría que resolver sus teléfonos aparte,
+lo que sí necesita el permiso.
+
+La lección general: **un Intent no es una dirección, es un pedido a un concurso
+de candidatos**, y quién se presenta depende del teléfono. Que abra lo correcto
+en un equipo no dice nada de otro, y `query-activities` lo contesta sin adivinar.
+
+### Y NO se pregunta con `ResolveActivity` antes de lanzar
+
+Parecía lo prudente, se hizo, y **rompió lo que funcionaba**: devolvía `null` y la
+app decía *"este teléfono no tiene una aplicación de contactos"* con la agenda
+instalada y andando.
+
+La causa es el **filtrado de visibilidad entre aplicaciones** de Android 11
+(`targetSdk` 30+): *consultar* qué app resuelve un Intent exige declarar
+`<queries>` en el manifiesto. Por eso `adb shell cmd package query-activities` —que
+corre sin ese filtro— veía la agenda y la app no. **Lanzar el Intent nunca estuvo
+bloqueado; sólo preguntar.**
+
+Así que se lanza y listo. Si de verdad no hay agenda salta
+`ActivityNotFoundException`, y ese `catch` da la frase entendible. **Un chequeo
+defensivo que introduce el fallo que venía a evitar es peor que no tenerlo**, y
+esta es la lección que sobrevive al caso particular.
+
+Se podría declarar `<queries>` y recuperar la consulta, pero no hace falta para
+nada hoy: no se gana un mensaje que el `catch` no dé igual. Cuando llegue
+compartir viaje habrá que evaluarlo — ahí sí puede querer saberse **si WhatsApp
+está instalado** antes de ofrecer el botón, y eso es una consulta de verdad.
+
+**Los nombres de las columnas también hay que buscarlos, no suponerlos.** Son
+asimétricos: `Phone.Number` cuelga directo de `Phone`, y `DisplayName` de su
+`InterfaceConsts`. Verificado contra el `Mono.Android.xml` del pack 36, después de
+que la primera versión no compilara.
+
+### Cancelar no es fallar
+
+Es la decisión que más se nota usando la app. Salir de la agenda sin elegir es
+una **respuesta**, no un error: quien lo hizo no necesita ver un cartel rojo. No
+poder abrir la agenda sí lo es. Por eso el puente tiene dos vueltas distintas:
+
+- `TN_contactPicked(nombre, numero)` → resuelve el contacto.
+- `TN_contactCancelled(motivo)` → **sin** motivo resuelve `null`; **con** motivo
+  rechaza con ese texto.
+
+Si las dos viajaran iguales, la app le mentiría a una de las dos personas.
+
+### El número viaja tal como está en la agenda
+
+Sin normalizar. Las reglas argentinas —el 0 de larga distancia, el 15, el `+54 9`—
+son de verdad y merecen sus propios tests, pero **no son de este puente**, y
+además no valen fuera del país. Quien guarde el dato decide qué hacer con él.
+
+`Phone.NormalizedNumber` trae además el formato internacional que va a necesitar
+compartir viaje. No se lee hoy porque **viene nulo si el contacto se cargó sin
+país**, y nadie lo usa todavía.
+
+### La promesa siempre termina
+
+No hay temporizador: la persona puede tardar lo que quiera buscando en su agenda,
+y una promesa que vence sola mientras el selector sigue abierto dejaría el
+resultado sin destino. A cambio, **la cáscara contesta en todas las ramas** —
+eligió, canceló, falló, no había Activity, no hay app de agenda. Una rama muda
+dejaría el pedido colgado para siempre.
+
+Un pedido por vez: si llega un segundo mientras el primero sigue abierto, se
+devuelve **la misma promesa** en vez de apilar selectores.
+
+### El resultado vuelve por otra puerta
+
+Abrir el selector es un viaje de ida y vuelta por **afuera** de la aplicación: se
+lanza el Intent, Android dibuja lo suyo, y la respuesta llega a
+`MainActivity.OnActivityResult` — no a donde se pidió. `AppPage` no es una
+Activity y no puede sobrescribirlo, así que `MainActivity` expone un evento y la
+página se suscribe **sólo mientras hay un pedido en curso**: la Activity vive más
+que la página, y un manejador olvidado se la lleva puesta.
+
+### Verificación
+
+10 tests de JS sobre la mitad de este lado —que la promesa siempre termine, y que
+termine distinto según lo que pasó—, que suben el total web a 55.
+
+**La mitad nativa sólo se puede probar en el teléfono, y ningún test la habría
+salvado.** El código compilaba, instalaba, arrancaba sin un error, la promesa se
+resolvía bien y los diez tests pasaban — y abría el explorador de archivos. Lo
+encontró una persona tocando el botón, que es la sexta vez que esta costura falla
+de una forma que no se ve desde acá.
+
+Y el log estaba **vacío**: la primera versión no dejaba rastro hasta que alguien
+elegía un contacto, así que cuando abrió la app equivocada no había por dónde
+empezar. Ahora deja constancia al lanzar el selector.
+
+Mientras no exista la pantalla de los tres contactos, el único disparador es un
+botón de prueba en la pantalla de Emergencia, marcado como tal en el código.
+**Se borra cuando llegue la pantalla de verdad.**
+
+---
+
+## AD-43 · Los tres contactos de emergencia viven en el servidor
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+El brainstorm v1 pedía *"3 llamadas de emergencia a contactos que elige el
+usuario"*. Con el puente de la agenda ya resuelto (AD-42), esto es la pantalla y
+su respaldo.
+
+### Dónde viven
+
+**En el servidor, colgados de la cuenta**, y no en el teléfono. La alternativa
+—`localStorage`, o preferencias nativas— es más privada en un sentido estrecho:
+el número de un tercero no sale del aparato.
+
+Se eligió el servidor igual, por una razón que pesa más: **un contacto de
+emergencia que se pierde al reinstalar la app, o al cambiar de teléfono, es un
+contacto que no está el día que hace falta**, y nadie lo descubre hasta ese día.
+Es la misma clase de falla silenciosa que se evitó en el reparto cuando un par
+sin ruta no puede tirar abajo el pedido.
+
+Consecuencias asumidas, y las dos están cubiertas en el esquema:
+
+- Son **teléfonos de terceros que nunca dieron su consentimiento**. Por eso el
+  borrado de la cuenta se los lleva en cascada, y hay un test de integración
+  dedicado a que los contactos de un camionero no se mezclen con los de otro —
+  ése es el peor fallo posible de esta funcionalidad.
+- El filtro por dueño va **dentro de la consulta** del `DELETE`, no en una
+  comparación posterior: buscar por Id y comparar después deja la puerta abierta
+  el día que alguien olvida la comparación.
+
+### Tres, y es una decisión de producto
+
+`EmergencyContact.MaxPerDriver = 3`. No es una restricción técnica: esta pantalla
+se usa una vez cada mucho tiempo y **en el peor momento posible**. Una lista larga
+obliga a leer y a elegir justo cuando nadie está en condiciones de hacerlo.
+
+El cuarto contacto devuelve **409** con un mensaje que dice qué hacer —borrar uno—
+en vez de un error genérico.
+
+### El teléfono se guarda tal como se cargó, y se marca limpio
+
+Son dos cosas distintas, y confundirlas costó un defecto.
+
+**Se guarda sin normalizar**, igual que en el puente: con sus espacios y guiones,
+porque así lo reconoce la persona en su propia agenda. La validación es de
+**plausibilidad**, no de forma: caracteres que una persona escribe (`+ - ( ) . /`
+y dígitos) y entre 6 y 15 dígitos.
+
+**Pero al marcar se limpia**, porque `tel:` es un URI y **un espacio adentro de un
+URI no es válido**. `forDialing` en `platform.js` deja pasar dígitos, `*` y `#` de
+los códigos, y el `+` **sólo si abre el número** (en el medio no significa nada).
+Vive ahí y no en la cáscara porque `call()` es el único punto por el que pasan
+todas las llamadas —el 911 incluido— y así se testea con Node, sin depender del
+teléfono. Sin un solo dígito no marca nada: un `tel:` vacío abre el discador en
+blanco, que parece que la app hizo algo cuando no hizo nada.
+
+### El discador: dos problemas, y el diagnóstico del primero fue una inferencia
+
+Vale contarlo entero porque la equivocación es instructiva.
+
+Reportado: *"al tocar cualquiera de los 3 contactos no abre el discador"*. Se dio
+por hecho que **el 911 sí funcionaba** —no se lo había mencionado— y sobre esa
+inferencia se construyó la explicación completa del espacio en el URI: encajaba
+perfecto, porque el 911 es el único número de la pantalla sin espacios.
+
+**Era falso.** El 911 tampoco funcionaba: el discador no se abría **nunca**. El
+razonamiento era elegante y la evidencia, inventada.
+
+La causa real: **`PhoneDialer.Default.Open` de MAUI no abría nada en este teléfono,
+sin excepción y sin dejar rastro**. Es una caja negra que hace
+`Uri.Parse("tel:" + number)` sin validar nada —verificado en el ensamblado, que
+contiene `tel:` y ninguna otra cadena del asunto—. Se reemplazó por el Intent
+`ACTION_DIAL` explícito, donde se ve exactamente qué se manda, y ahí funcionó.
+
+Es la tercera vez que el proyecto cambia un helper de MAUI por el Intent o la API
+de Android directa: la vibración (AD-39), el selector de contactos (AD-42) y esto.
+**Cuando el helper de MAUI falla en silencio, el camino explícito es el único que
+se puede diagnosticar.**
+
+El arreglo del URI sigue siendo correcto y necesario —un espacio en un URI no es
+válido— pero **era un segundo problema tapado por el primero**, no la causa de lo
+reportado.
+
+Lo que destrabó el caso no fue razonar mejor: fue **poner un log a cada lado del
+puente**. Al tocar el botón no aparecía rastro en ningún punto del camino, así que
+no había forma de saber si se cortaba en el JavaScript, en el puente o en Android.
+Con `console.log` en `call()` y `Note` antes y después del Intent, el próximo
+fallo dice dónde está.
+
+El sesgo es deliberado y conviene entenderlo antes de endurecerlo: **rechazar un
+número válido es peor que aceptar uno raro**. Uno raro se llama y no atiende
+nadie; uno rechazado nunca se guardó. Por eso el mínimo es 6 y no 8 ni 10 — un
+interno de empresa o un número de otro país puede tener menos que un móvil
+argentino, y la app no está para discutirle a nadie cuál es su teléfono.
+
+Los 15 dígitos de máximo son el tope de E.164.
+
+### En la pantalla
+
+- **El 911 va primero, grande, y no depende de nada**: funciona sin sesión y sin
+  contactos cargados. Es lo único que no puede fallar.
+- **La fila entera llama.** El nombre y el número van adentro de un `<button>` y
+  no de un `<div>` con un botón chico al costado: se usa con el pulso alterado, y
+  un blanco de 44 px perdona lo que uno de 24 no. La cruz de borrar queda aparte
+  justamente para que no se toque sin querer.
+- **Llamar abre el discador con el número puesto, no llama solo.** Un toque de
+  manga no puede despertar a nadie a las cuatro de la mañana.
+- **Se borra con `askConfirm` y no con `confirm()`**, que en el WebView devuelve
+  `false` sin mostrar nada (AD-28).
+- El botón *Elegir de la agenda* **sólo aparece si hay agenda** (`canPickContact`):
+  en el navegador no existe, y queda el alta a mano, que además es el camino para
+  probar la pantalla sin el teléfono.
+
+Un detalle de redacción que se corrigió mirando la pantalla: el aviso decía
+*"X quedó guardado"* y el nombre lo escribe el usuario — *"Mi vieja quedó
+guardado"* se lee mal. Ahora dice **"Guardaste a X"**, que no concuerda con el
+nombre y por lo tanto no puede fallar.
+
+### Verificación
+
+20 tests de dominio sobre las reglas y 6 de integración contra el esquema real
+—orden de lectura, la fecha que vuelve intacta, el aislamiento entre cuentas y la
+cascada al borrar la cuenta—. Total: **199 tests .NET**, más 7 de `forDialing`
+que llevan los web a **62**.
+
+El ciclo completo se probó contra la API real y en la pantalla: alta, límite de
+tres con su 409, borrado con confirmación, y las validaciones devolviendo 400.
+
+**Y en el teléfono, que es donde apareció lo que faltaba.** La agenda, el guardado
+que sobrevive a cerrar y abrir la app —que es toda la razón por la que esto vive
+en el servidor— y el defecto del `tel:`. Ninguno de los 199 tests lo habría
+encontrado: la app guardaba bien, listaba bien, y el botón de llamar no hacía
+nada.
+
+---
+
+## AD-44 · La hoja se encoge, y su acción principal va pegada abajo
+
+**Fecha:** 01/09/2026
+**Estado:** aceptada
+
+### El defecto
+
+Reportado desde el uso: *"al sumar más de 4 direcciones se pierde debajo y no se
+puede terminar de iniciar el viaje"*, y lo mismo con el selector de alternativas.
+
+Parecía un problema de scroll, y no lo era. Medido con seis paradas en un
+viewport de 812 px:
+
+```
+viewport: 812        hoja: top 340 → bottom 924     ← 112 px POR DEBAJO
+botón:    861 → 909  visible: false
+puedeScrollear: false                               ← el contenido CABE
+```
+
+**La hoja no desbordaba su contenido: desbordaba la pantalla.** `max-height: 72vh`
+y `overflow-y: auto` estaban puestos y funcionaban — el contenido entraba en la
+hoja. Lo que no entraba en la pantalla era la hoja entera, así que no había nada
+que scrollear y el botón quedaba fuera, inalcanzable.
+
+La causa: `.sheet` era `flex: none` dentro de `.map-overlay`, que es un flex
+column. Un item con `flex: none` **no se encoge**, así que al crecer el contenido
+la hoja empujaba hacia abajo y se salía.
+
+### El arreglo
+
+`flex: 0 1 auto` y **`min-height: 0`**. El segundo no es opcional: el mínimo por
+defecto de un item flex es el tamaño de su contenido, y sin anularlo el
+`flex-shrink` no puede achicar nada y el cambio no surte efecto.
+
+Con eso la hoja nunca se pasa del espacio disponible y su `overflow-y` empieza a
+servir para lo que estaba puesto.
+
+### Y la acción principal se pega abajo
+
+Que la hoja scrollee no alcanza. **El botón que cierra la tarea —calcular la
+ruta, arrancar el viaje, calcular el reparto— no puede estar del otro lado de un
+scroll**: es lo que la persona vino a hacer, y quedaba fuera de vista sin nada que
+indicara que había que scrollear.
+
+`.sheet-action` lo deja `sticky` contra el borde inferior. Dos detalles que se
+descubrieron mirando:
+
+- **El fondo no es decorativo.** Sin él, la lista se ve pasando a través del botón
+  al scrollear.
+- **`bottom` va negativo**, no cero. `bottom: 0` pega la barra al borde del área de
+  contenido, que queda 14 px arriba del borde real de la hoja por su `padding`, y
+  en esa franja se veía la lista pasar. Va `calc(-14px - var(--safe-bottom))`.
+
+### Lo que NO se hizo, y por qué
+
+Se evaluó ampliar la hoja en modo reparto. **No sirve**: medido, la hoja se limita
+en 472 px y su `max-height` es 584, así que el tope no es el `max-height`.
+
+```
+812 (viewport) − 48 (map-top) − 272 (map-side) − 20 (padding) = 472
+```
+
+**El límite son los botones del mapa**, que tampoco se encogen. Ampliar la hoja
+exige sacarle controles al mapa durante el reparto, y eso es una decisión de
+producto —no un ajuste de CSS— así que queda planteada y sin tomar.
+
+### Los tres bloques se separan con `gap`, no con márgenes automáticos
+
+Segundo síntoma del mismo problema, reportado aparte: *"los íconos se amontonan
+(el de SOS y el +), lo mismo con la caja de búsqueda y el punto que lleva a la
+geolocalización"*. Medido con cuatro paradas cargadas:
+
+```
+SOS:        10 → 58
+laterales:  58 → 330    ← separación 0
+hoja:      330 → 802    ← separación 0
+```
+
+**Cero píxeles.** Los tres bloques se tocaban.
+
+La separación la daban los `margin-top: auto` de `.map-side` y de la hoja, que
+reparten el espacio **sobrante**. Con la hoja grande no sobra nada, los márgenes
+automáticos colapsan a cero y todo queda pegado. Con la hoja chica sobraba de más
+y la separación era de 56 y 70 px: nunca fue una separación, era un resto.
+
+Va un `gap: 16px` en `.map-overlay`. **Un `gap` no colapsa**: se respeta aunque no
+haya espacio libre, y lo que cede es la hoja, que para eso se encoge.
+
+### Verificación
+
+En viewport de teléfono (375×812), con el flujo real y no llamando funciones a
+mano: seis paradas cargadas por el buscador, y la vista de ruta con dos
+alternativas. En los dos casos la hoja termina dentro de la pantalla, el botón
+queda visible y el contenido scrollea.
+
+**Una trampa al medir:** la hoja aparecía 14 px más abajo de lo que le
+correspondía, y no era un defecto. `.sheet` tiene `animation: sheet-in`, que
+arranca en `translateY(14px)`, y **el navegador de la sesión no avanza las
+animaciones con el panel oculto**: quedan congeladas en su primer frame. Anulando
+la animación, la hoja cae exactamente en el borde del área útil. Antes de
+perseguir una diferencia de pocos píxeles, comprobar si el elemento tiene
+animación de entrada.
+
+---
+
+## AD-45 · El reparto se puede arrancar, y sus paradas viven en el viaje
+
+**Fecha:** 02/09/2026
+**Estado:** aceptada
+
+### El defecto reportado
+
+*"Al añadir las direcciones en modo reparto siempre sigue el botón de calcular y
+no de iniciar viaje, para que se inicie el modo GPS."*
+
+Tenía razón y era un hueco de la funcionalidad, no un detalle: **el modo reparto
+calculaba la ruta, la dibujaba, y nunca ofrecía arrancar**. Se cargaban las
+paradas, se veía el orden óptimo, y de ahí no se salía. AD-41 dejó el reparto a
+mitad de camino.
+
+Ahora, con el reparto calculado, la acción principal pasa a ser **"Arrancar
+reparto"** y *Recalcular* queda como secundaria.
+
+### El defecto de fondo, que apareció al verificar
+
+Poner el botón no alcanzaba. Medido con tres paradas:
+
+```
+ruta del reparto:                31 km
+ruta al recuperar el viaje:    10,2 km   ← una directa al último punto
+```
+
+`POST /api/trips` calculaba con origen y destino nada más, y **`GET /api/trips/active`
+recalcula la ruta cada vez que la app recupera el viaje** — que es lo que hace al
+abrirse, a propósito, porque el viaje abierto vive en el servidor y sobrevive a
+cerrar la app (AD-27).
+
+Así que un reparto de 31 km por tres paradas **volvía convertido en un tramo
+directo de 10 km**, y el guiado mandaba al camión por donde no correspondía.
+
+**Es una falla de las que no avisan.** La app muestra una ruta perfectamente
+válida; sólo que no es la que el camionero armó, y las paradas que faltan no
+aparecen en ningún lado.
+
+### El viaje guarda sus paradas
+
+`Trip.Stops`, como JSON en una columna — son de ese viaje y no se consultan por
+separado nunca, mismo criterio que los servicios de un punto de interés.
+
+**Se guardan las paradas, no la geometría de la ruta.** La ruta se recalcula al
+recuperar el viaje —el mapa y el tráfico cambian— pero *por dónde hay que pasar*
+no cambia.
+
+Y el orden **no se reordena en el servidor**: `CalculateThroughAsync` pasa por los
+puntos tal como llegan. El orden se calculó al armar el reparto y se le mostró al
+usuario en la pantalla; volver a optimizarlo podría devolver otro y mandarlo por
+donde no esperaba.
+
+`Stops` es **un campo opcional de `StartTripRequest`, no un contrato nuevo**: sin
+él el viaje es de un tramo, como siempre, así que la app ya instalada en el
+teléfono sigue funcionando.
+
+### Dos trampas del camino
+
+**El valor por defecto de la columna.** EF generó la migración con
+`defaultValue: ""`, y **deserializar una cadena vacía tira excepción**. Una sola
+fila así haría ilegible el historial entero, no ese viaje. La migración quedó con
+`"[]"` y el conversor tolera el vacío igual: son datos que ya están en discos
+ajenos y no se pueden volver a escribir.
+
+**Al terminar el viaje también se limpian las paradas.** Antes se limpiaba la ruta
+pero no `stops` ni sus marcadores, así que quedaban puntos numerados en el mapa
+sin pertenecer a ningún viaje ni figurar en ninguna lista.
+
+### Verificación
+
+4 tests de integración sobre el esquema real —el orden que vuelve intacto, la
+lista vacía que no es `null`, la columna vacía que no rompe el historial, y el
+`ValueComparer` sin el cual un cambio en las paradas no se guardaría—. Total:
+**203 tests .NET**.
+
+End to end contra la API: el reparto da 31 km y al recuperar el viaje **sigue
+dando 31 km**. Y el viaje simple sin paradas responde 201 con 10,2 km al crear y
+al recuperar, que es la regresión que había que cuidar: son la mayoría de los
+viajes.
+
+## AD-46 · La comunidad vota y aporta lugares; complementa lo verificado, no lo reemplaza
+
+**Fecha:** 15/09/2026
+**Estado:** aceptada
+
+### El pedido
+
+Después del relevamiento de POIs (180 puntos, 48 con aptitud declarada por
+evidencia), el usuario pidió que los usuarios puedan **aprobar o desaprobar** un
+lugar como apto para camiones, que se muestre **cuántos** lo aprobaron, que eso
+sirva de **indicador de confiabilidad**, y que aportar cuente en la progresión
+—EXP, logros y skins— **sin inventar mecánicas nuevas**. Con una condición de
+fondo: *"la información comunitaria pueda complementar, pero no reemplazar, los
+datos verificados"*.
+
+### Cuatro decisiones, tomadas de a una
+
+| Decisión | Elegido | Por qué no lo otro |
+|---|---|---|
+| Un lugar agregado por un usuario aparece **enseguida**, marcado *aportado por la comunidad*, sin confirmar | (a) | (b) esperar N confirmaciones y (c) visible sólo para el autor dejaban lugares invisibles para siempre: hoy no hay moderación ni volumen de usuarios |
+| El voto lleva **el tipo de camión** con el que se vota, y la ficha muestra **los votos de camiones como el tuyo** | (b) | un pulgar genérico no dice nada: para un semi, veinte livianos que lo recomiendan no sirven |
+| **Sin tope** a la EXP por votar | (b) | textual: *"hoy por hoy, al arrancar, sirve la interacción de los usuarios por más que sea sin filtro"*. Se revisa con datos; el tope, si llega, es una línea en el recorder |
+| El indicador es **un segundo sello**, el de la comunidad, aparte del nivel verificado | — | umbrales fijos y testeables: recomendado con ≥ 3 aptos y el doble de aptos que no aptos; en discusión con ≥ 3 votos y los no aptos igualando o superando |
+
+### Por qué el sello es aparte y no un ajuste al nivel
+
+Un lugar de la comunidad llega como mucho a *recomendado por la comunidad*,
+nunca a `Confirmed`; un lugar verificado con sello *en discusión* sigue
+verificado, y la ficha muestra las dos cosas. Si los votos tocaran
+`VerificationLevel`, en un mes nadie sabría qué parte de "confirmado" salió de
+una fuente citable y qué parte de tres pulgares. Es la regla que ya estaba en
+la skill de producto: **un dato aportado por usuarios nunca se muestra igual que
+uno oficial**. Es lo que hace defendible al producto frente a Waze y Google Maps.
+
+Y el filtro *"solo aptos para mi camión"* lo aplica igual: pasa lo verificado
+apto **o** lo recomendado por la comunidad para ese tipo **cuando la fuente no
+dice nada**. Un "no apto" verificado sigue afuera aunque lo recomienden: la
+comunidad completa, no contradice (`PoiFilter`, en el dominio).
+
+### Por qué el voto guarda el tipo y no el camión
+
+Borrar un camión no puede borrar votos, y el voto tiene que seguir diciendo con
+qué clase de vehículo se emitió. El tipo sale de `PoiSuitability.FieldFor`, el
+mismo que decide qué campo de aptitud consultar: la misma clasificación para lo
+verificado y para lo que opina la comunidad.
+
+### Nada nuevo en la progresión
+
+Todo lo pedido ya tenía lugar: una pista más en `TrackCatalog` (`lugares`, con
+la escalera de viajes), dos motivos más en el libro (`PlaceAdded` 10,
+`PlaceVoted` 2), y un método más en `ProgressionRecorder`, **la única puerta
+que otorga** — el cliente nunca informa lo que ganó, igual que con los viajes.
+Las skins son las recompensas `lugares-01…10` que el catálogo genera solo.
+
+El índice único del libro sobre `(camionero, motivo, lugar)` es lo que sostiene
+el diseño: cambiar el voto no paga, retirarlo no devuelve —el libro no resta—,
+volver a votar no cobra. **El aporte trae su primer voto** —quien carga un lugar
+vota apto con su camión en la misma operación— y ese voto no paga aparte.
+
+### Dos cosas que aparecieron construyéndolo
+
+- **La primera versión del sello miraba el total de votos** para recomendar, y
+  dos aptos contra uno daba recomendado. La regla aprobada pide tres *aptos*; el
+  total sólo cuenta para marcar en discusión. Lo atrapó el test de casos.
+- **`ArgumentException.Message` le pega "(Parameter 'latitude')" al final.** El
+  dominio escribe el motivo para la persona; el endpoint le saca el sufijo antes
+  de devolverlo en el 400.
+
+### Fuera de alcance, a propósito
+
+La ficha con el botón de votar y el formulario de agregar van con la interfaz de
+POIs, que hoy no existe. Moderación, denuncias, edición y borrado de lo aportado
+quedan para cuando aparezca el abuso. Los reportes de la Fase 5 (siniestros,
+radares, retenes) son otro sistema, pero entran por la misma puerta.
+
+## AD-47 · Lo que el motor excluyó no se ofrece ni se avisa: los avisos salen de la ruta
+
+**Fecha:** 16/09/2026
+**Estado:** aceptada
+
+### Contexto
+
+El usuario encontró en un tablero del prototipo algo que "nunca debe suceder":
+una ruta recomendada por el GPS con un gálibo en rojo que el camión no clara.
+Al revisar la cadena perfil → restricciones → cálculo → navegación aparecieron
+cuatro defectos reales, todos de la misma familia: **dos fuentes distintas para
+un mismo hecho**.
+
+1. El aviso de gálibo del viaje salía de la capa de gálibos (bajada de Overpass,
+   otra foto del mapa que el grafo) por corredor de 30 m. Yendo por arriba de un
+   puente, el punto del bajo vía queda a cero metros de la ruta y sonaba la
+   vibración de peligro con "no pasás" en una ruta legal.
+2. El evaluador de restricciones ignoraba `max_weight_except`, que el motor sí
+   respeta —ni siquiera se pedía en los `path_details`—, y una ruta legal
+   aparecía con "un tramo que no podés transitar".
+3. La interfaz ofrecía como opción rutas con tramos bloqueados.
+4. El script de capas parseaba `maxheight` con la cultura de la máquina.
+
+### Decisión
+
+- **El motor es la única fuente de "por dónde puede pasar el camión".** El
+  custom model bloquea alto, ancho, largo y peso bruto (`CabaTruckRoutingPolicy`);
+  GraphHopper no engancha a tramos bloqueados. No se rutea por ejes: no hay dato.
+- **Los avisos de gálibo salen de la ruta misma.** `RouteResponse.hazards` lista
+  los tramos con `max_height` declarado que la ruta recorre, del mismo dato con el
+  que se calculó (`RouteHazards.From`). El cliente no cruza la capa contra la
+  ruta. Sobre una ruta correcta el aviso es siempre informativo ("gálibo de 4,50
+  m, pasás"), con vibración suave; la capa queda para mirar el mapa.
+- **Una ruta con un tramo bloqueado no se ofrece.** `RouteOffer` descarta las
+  alternativas que lo tengan y, si la recomendada lo tiene, `/api/routes`
+  responde 422 con el hallazgo. La interfaz no tiene más "tramos que no podés
+  transitar": si aparece, es un error del servidor, no una opción.
+- **El evaluador imita al motor en peso**: `max_weight_except` entra a los
+  detalles y, con excepción declarada, el tramo es acceso condicionado.
+- **Radares por corredor y por calle**: el radar tiene que ser de la calle por la
+  que va la ruta en ese punto (`normalizarCalle` contra la instrucción); el paso
+  a nivel usa un corredor de 12 m.
+
+### Consecuencias
+
+- El rojo nunca aparece sobre una ruta; queda para la chapa del mapa de un gálibo
+  que el camión no pasa, que la ruta ya esquivó.
+- Si alguna vez el evaluador y el motor divergen por datos, el síntoma es un 422
+  explicado, no un viaje que termina bajo un puente.
+- El patrón de vibración de tres golpes largos del gálibo se retiró con el aviso
+  que lo justificaba.
+
+### Apéndice del 16/09/2026 · el viaje también pasa por el filtro
+
+Verificando la pantalla del viaje apareció un agujero en la misma regla:
+`POST /api/trips` pedía **una sola ruta** al motor (`CalculateAsync`, la más
+rápida por peso), o sea que el viaje arrancaba **por otra ruta que la
+recomendada** —medido: 2,7 km al 52 % por la Red contra los 2,2 km al 60 % que
+la pantalla acababa de mostrar— y **sin el filtro de ofrecibles**: un tramo
+prohibido podía colarse justo en la ruta que se iba a manejar, que es la única
+que importa. Lo mismo al retomar con `GET /api/trips/active`.
+
+Corrección en el origen: los dos endpoints calculan por el mismo camino que
+`/api/routes` (`TripRoutes.ForTripAsync`: alternativas ordenadas, `RouteOffer`),
+el pedido de arranque lleva `routeIndex` con la posición que se eligió en
+pantalla y `RouteOffer.Chosen` cae en la recomendada si esa posición ya no
+existe. Sin ruta apta, 422 al arrancar; al retomar, el viaje vuelve sin ruta y
+con el motivo, porque cerrarlo no necesita rutear.
+
+## AD-48 · La piel de Waze para el GPS: se copian patrones y medidas, nunca la marca
+
+**Fecha:** 16/09/2026 (prototipo aprobado) — 18/09/2026 (implementado)
+**Estado:** aceptada
+
+### Contexto
+
+El GPS es "lo más importante de la app; sin ella no tenemos clientes", y el
+usuario pidió que el viaje se sintiera **idéntico a Waze**: mismo concepto de
+pantalla, mismas fuentes y tamaños. Hasta entonces la pantalla del mapa era la
+hoja inferior genérica del sistema —tipografía Nunito, botones del resto de la
+app, un rótulo verde con la calle actual que el propio usuario después pidió
+sacar porque "no queda bien"— y cada pantalla se había diseñado por separado.
+
+Se midieron 16 capturas de Waze (Android, noche, 720 × 1600 = 360 dp) y una de
+Google Maps, píxel por píxel, y se armó un prototipo de 17 tableros
+(`docs/diseno/prototipo-gps/`, lienzo aprobado el 16/09/2026). La spec está en
+`docs/superpowers/specs/2026-09-16-gps-waze-design.md` y el plan, tarea por
+tarea, en `docs/superpowers/plans/2026-09-16-gps-waze.md`.
+
+### Decisión
+
+- **Se copian patrones y medidas; no la marca.** Ni el logo de Waze, ni los
+  Wazers, ni sus ilustraciones, ni su tipografía de marca. Las calcomanías son
+  dibujos propios (`js/mapa/piezas.js`), el mono es nuestro, la Red es nuestra.
+  De Google Maps se toma **sólo** la hoja de capas (la grilla de cuadros).
+- **Las medidas son las de Waze**, en dp = px CSS, y viven en un solo lugar:
+  los tokens `--gps-*` y `--map-*` de `app.css` y la sección "El GPS, medido
+  sobre Waze" de la skill de diseño. Banda de 95 + safe-top, hoja del viaje de
+  137, píldora de calle 18/700 a 155 del borde, círculos de 52 y 45, ruta de 8
+  con canto, globos de 30/48, chevrón 40 × 39, lista de rutas en filas de 145
+  con el tiempo en 27/700, hoja de reposo de 150, píldora de búsqueda de 52,
+  círculos de aportar de 75, pines de lugar de 32, cuadros de capas de 52.
+- **Roboto sólo dentro del GPS** (`--gps-ui`); Nunito en el zócalo y en el
+  resto de la app, que sigue con el registro Duolingo + camioneros + arcade.
+  **Nada del registro expresivo en movimiento**: el mono habla una vez, en los
+  detalles de la ruta, antes de arrancar.
+- **Tráfico → restricciones.** Donde Waze pinta el tráfico, acá se pinta la
+  Red: celeste por la Red, amarillo fuera de ella, **el rojo nunca sobre una
+  ruta** (AD-47). Donde Waze dice "Tráfico habitual", acá cuánto va por la
+  Red; donde dice "Evitar", el camión.
+- **Un módulo por superficie** en `wwwroot/js/mapa/`: `estilo-mapa.js`,
+  `piezas.js`, `viaje.js`, `rutas.js`, `reposo.js`, `buscar.js`,
+  `lugares.js`, `capas.js`, `aportar.js`. Lo que se calcula sale a funciones
+  puras con tests en `tests/web/`; `navigate.js` queda como anfitrión —estado,
+  mapa, GPS, viaje— y engancha cada hoja por `data-accion`.
+- **La pantalla del viaje es otra capa**, no la hoja: `.gps-viaje` sobre el
+  mapa, con `.map-overlay` escondida mientras dura. Lo mismo aportar
+  (`.gps-aporte`), que sirve en reposo y en viaje.
+- **Lo que decidió el usuario sobre la marcha**, y rige: sin velocímetro, sin
+  micrófono y sin hamburguesa en el mapa (el zócalo tiene "Más"); el nombre de
+  la calle actual en la píldora negra y no en verde sobre el mapa; en viaje,
+  "Volver a centrar" y "Vista general" con Mapa/Lista e "Ir"; el botón de
+  aportar del viaje sólo agrega un lugar; Casa, Depósito y los recientes en el
+  servidor; el día **derivado** hasta que haya una captura de Waze de día;
+  logos e identidad se aprueban aparte.
+
+### Consecuencias
+
+- Cada pantalla se verificó en el navegador a 360 × 800 contra el prototipo
+  antes de su commit; el criterio de "está bien" es la medida, no el gusto.
+- El sistema de diseño de la app tiene ahora **dos registros con frontera
+  nítida**: el GPS (sobrio, Waze, Roboto) y el resto (Duolingo, Nunito). Un
+  componente no cruza de un lado al otro: las píldoras `.gps-pildora` no se
+  usan en el perfil, ni los botones con reborde en el mapa.
+- Lo que el prototipo mostró que no existía en la API se construyó en el
+  origen y no con parches de pantalla: los gálibos en la ruta (`hazards`), el
+  filtro de ofrecibles y el viaje por la ruta elegida (AD-47), los lugares
+  guardados y los recientes en el servidor.
+- El día queda **derivado y aprobado así** por el usuario el 18/09/2026 ("el
+  tema claro está bien así, no hace falta la captura de Waze"); la Fase 5
+  (reportes de la comunidad) entra a la grilla de "¿Qué hay acá?" cuando se
+  decida.
+
+## AD-49 · Reportes de la comunidad: se reporta en la posición, se valida entre varios, y sólo lo validado toca la ruta
+
+**Fecha:** 19/09/2026
+**Estado:** aceptada. Enmienda a AD-46 (lo aportado sí se gradúa).
+
+### El pedido
+
+*"Un sistema de reportes colaborativos inspirado en el funcionamiento de Waze.
+No quiero copiar su diseño ni código propietario, sino aplicar la lógica
+funcional del sistema."* Con condiciones: crear un reporte desde el mapa en
+pocos toques; que guarde posición, calle, sentido, hora, usuario y tipo; que
+sea temporal y venza; que otros digan *sigue ahí* / *ya no está* y eso mueva
+una confiabilidad que considere confirmaciones, rechazos, antigüedad y
+reputación del creador; que lo informativo y lo que afecta la ruta estén
+separados y **un reporte solo nunca cambie el ruteo**; que las restricciones
+se comparen con el camión elegido; que la EXP y la reputación sean dos cosas y
+nadie pueda farmear; y protección básica contra el abuso.
+
+### Decisiones
+
+- **Sólo en la posición GPS.** Nunca en un punto elegido a mano. Es lo más
+  rápido, lo que hace creíble el dato, y lo que permite exigir cercanía para
+  votar. Descartado marcar cualquier punto del mapa: abre la puerta a reportar
+  desde el sillón.
+- **Diez tipos, en el dominio.** Accidente, tránsito, control, policía, cámara,
+  obra, bache, peligro, calle cerrada y gálibo bajo (con los metros). El
+  usuario sacó *vehículo detenido* y *límite de peso*. Cada tipo con su vida
+  útil (45 min el tránsito, 30 días el gálibo), su clase y si se vuelve fijo,
+  todo en `ReportCatalog`: agregar uno no es una migración.
+- **La confiabilidad se calcula al leer**, con una fórmula propia y
+  configurable: base por la reputación del creador, apoyo por hasta cuatro
+  confirmaciones, castigo por rechazo, frescura que cae hasta un 40 % al
+  vencer. Sin tareas de fondo: vencido es que `ExpiresAt` ya pasó.
+- **Validado = 2 confirmaciones ajenas y score 70.** Es un estado escrito al
+  votar, y **lo único que habilita a tocar la ruta**. Con esta fórmula a una
+  fuente desacreditada (reputación 10) le hacen falta tres: no bloquea una
+  calle con un cómplice.
+- **Los cierres y gálibos validados entran al custom model como áreas**, no
+  al grafo. GraphHopper 11 acepta `areas` en el custom model por pedido con
+  `in_<id>` de prioridad cero; se midió antes de decidirlo: un cuadrado de
+  once metros sobre la ruta cambia la cuadra. El polígono es un rectángulo de
+  40 × 16 m a lo largo del rumbo del reporte, menos que los ~100 m entre
+  calles paralelas. Sin bloqueos el custom model es idéntico al de siempre, y
+  `RouteOffer`/AD-47 no cambian. Descartado: reconstruir el grafo o filtrar
+  las rutas después de calcularlas (si todas pasan por el cierre, no queda
+  ninguna).
+- **El gálibo se compara con el camión** (`ReportRelevance`): 3,80 reportado
+  es incompatible para 4,10 y compatible para 3,60. Incompatible es pin rojo,
+  voz que dice "tu camión no pasa", vibración de peligro y, validado, ruta que
+  lo esquiva. Un reporte informativo no se compara con nada.
+- **Una cámara muy confirmada es fija, y un lugar muy votado se incorpora a la
+  base.** Textual: *"una cámara muy marcada es porque es fija, no tiene sentido
+  que sólo dure 6 hs (…) este mismo sistema se implementa en marcar lugares
+  nuevos de interés común (…) +5 es un principio"*. Con 5 confirmaciones la
+  cámara deja de vencer y es un dato de la app (dibujada como cámara de la
+  comunidad, distinta de la oficial). Con 5 votos de apto de un tipo de camión
+  el lugar aportado queda `Probable` con evidencia de la comunidad y apto
+  para ese tipo. **Esto enmienda AD-46 sólo para lo aportado**: los lugares
+  del dataset siguen sin tocarse por votos, y `Confirmed` sigue siendo
+  exclusivo de una fuente.
+- **La EXP se paga sólo con validación ajena.** 15 al creador cuando otros lo
+  validan, 2 por voto con tope de 10 votos pagos por día local, 0 por crear.
+  Pagar al crear invita a reportar cualquier cosa; pagar al votar sin exigir
+  cercanía invita a votar desde el sillón; sin tope diario dos cuentas se
+  turnan. Pista nueva `reportes` en el catálogo, con la escalera de viajes.
+- **La reputación es otra cosa**: 0–100, arranca en 50, +3 cuando un reporte
+  tuyo queda validado, −5 cuando queda rechazado, no se toca por votar y no se
+  muestra como número. Pondera la confiabilidad de lo que reportás.
+- **Contra el abuso, lo básico y en el dominio** (`ReportAbuseGuard`): 45 s
+  entre reportes (el doble con reputación baja), 20 por hora, el duplicado a
+  150 m en 15 min devuelve el existente para ofrecer *sigue ahí* (429 y 409
+  con lo que la app necesita), no se vota lo propio, votar exige estar a
+  menos de 500 m. La posición del voto se confía: la app es el único cliente,
+  y se anota como límite conocido.
+- **Manejando, un toque.** El botón amarillo abre "¿Qué ves?": los diez tipos
+  arriba, las categorías de lugar abajo; tocar un tipo crea el reporte y
+  cierra la hoja, con *Deshacer* cinco segundos. Al pasar a menos de 60 m de un
+  reporte ajeno y alejarse, dos botones grandes diez segundos, una vez por
+  reporte y viaje. La calle en viaje es la del paso actual; si el cliente no
+  la sabe, Photon con 1,5 s de tope y si no llega, "cerca de acá".
+
+### Consecuencias
+
+- Cuatro endpoints (`/api/reports`), tres tablas, un módulo por superficie
+  (`mapa/reportes.js`) y los reportes como un dataset más de
+  `alertsAlongRoute`, con el sentido de marcha como filtro propio. 157 tests
+  .NET (111 unitarios, 46 de integración) y 35 web nuevos; todos los números son constantes con nombre, fijadas
+  por test, en un lugar por tema (`docs/reportes.md`, "Cómo se configuran los
+  números").
+- Verificado de punta a punta el 19/09/2026 con tres cuentas: un gálibo de
+  3,80 m sobre Av. Dorrego, sin validar, no cambia la ruta (11.524 m, pasa a
+  0 m); con dos confirmaciones queda validado y la ruta del camión de 4,2 m
+  pasa a 1.771 m del puente; el de 3,8 m lo ve compatible y su ruta no cambia.
+- Lo que queda afuera a propósito: recalcular la ruta sola cuando un cierre se
+  valida en viaje (avisa, no recalcula); reputación de los votantes; reportar
+  desde un punto arbitrario; moderación, fotos, comentarios; que un gálibo o
+  una calle cerrada pasen al dataset verificado.
+
+## AD-50 · Límite de tasa: una canasta por tipo de pedido, la lectura medida y no adivinada
+
+**Fecha:** 29/09/2026
+**Estado:** aceptada.
+
+### El problema
+
+La API no tenía ningún límite de tasa, y estaba anotado como transversal
+"urgente cuando se distribuya". Ese día llegó: la app se va a hostear con una
+URL pública. Sin límite, cualquiera puede intentar contraseñas sin parar, dar
+de alta cuentas de a cientos —cada una manda un mail—, o hacer que el servidor
+calcule rutas de camión hasta que no quede CPU. El `ReportAbuseGuard` de la
+Fase 5 pone cooldowns **por camionero** dentro del dominio, que es otra capa:
+no sabe nada de un cliente sin cuenta ni del volumen crudo de pedidos.
+
+### Decisiones
+
+- **Una canasta por tipo de pedido, no un número global.** Seis: cuentas,
+  búsqueda, ruteo, reparto, escritura y lectura. Lo que cuesta cada pedido es
+  distinto —buscar una dirección sale de Photon, que es de terceros; ordenar un
+  reparto es una matriz de distancias reales— y, sobre todo, **quien abusa de
+  una cosa tiene que seguir usando las demás**: hay un test que dice que
+  quemar la canasta de ruteo no te deja sin mapa.
+- **La decisión es una función pura, no un atributo por endpoint**
+  (`RateLimitPlan.BucketFor`). Así se fija entera con tests, y un endpoint
+  nuevo no queda sin límite por olvidarse del atributo: lo que nadie clasificó
+  cae en leer o escribir según el método.
+- **El número de lectura se midió.** Arrastrando el mapa cada 1,1 s —el peor
+  caso de alguien buscando— la app manda **37 pedidos por minuto**; el techo
+  que impone el debounce de un segundo es 57. La canasta quedó en **300**, ocho
+  veces el pico real. Una canasta apretada no frena a un abusador: le rompe el
+  mapa a un camionero. Medido el 29/09/2026 en el navegador a 375 × 812, y el
+  número está fijado por un test que cita la medición.
+- **La lectura va como balde de fichas y no como ventana fija.** El mapa pide
+  de a ráfagas; un balde de 300 que se rellena de a 5 por segundo aguanta la
+  ráfaga y, cuando alguien lo vacía con un script, lo deja en cinco por segundo
+  en vez de dejarlo afuera del todo.
+- **Las cuentas tienen dos límites en cadena**: 10 por minuto y 30 por hora.
+  Sin el de la hora, diez por minuto son seiscientas en una tarde.
+- **Con sesión se cuenta contra el camionero; sin sesión, contra la IP.** Un
+  camión pasa del wifi del depósito a los datos del teléfono en medio de un
+  viaje: con la IP como clave, el límite se le reiniciaría solo. Por eso
+  `UseRateLimiter` va **después** de `UseAuthentication`.
+- **Detrás del proxy se le cree a la ÚLTIMA entrada de `X-Forwarded-For`.**
+  Caddy agrega la dirección que ve al final de lo que ya venía, así que un
+  cliente que manda su propia cabecera queda a la izquierda: creerle a la
+  primera entrada sería dejar que cualquiera elija su canasta. Y sin proxy
+  adelante la cabecera **se ignora entera**, porque ahí la escribe cualquiera:
+  eso lo decide `RateLimit:TrustForwardedFor`, que viene apagado y se prende
+  sólo en el servidor.
+- **Lo que no es `/api` no se mide.** Los tiles del mapa base son cientos de
+  pedidos de rango por pantalla; frenarlos sería romper el mapa para cuidar
+  algo que no cuesta nada. Es trabajo del proxy. `/api/health` tampoco se mide,
+  porque es lo que mira un monitor.
+- **El 429 tiene la misma forma que el del abuso de reportes**:
+  `application/problem+json`, `Retry-After`, `retryAfterSeconds` y un `detail`
+  que la app muestra tal cual — `api.js` no necesitó un solo cambio. La espera
+  se dice como **techo** ("esperá hasta N segundos"): medido, la ventana fija
+  de .NET informa el minuto entero y no lo que falta, y prometer 60 cuando
+  quedan cinco es mentirle al que espera.
+- **Un número en cero corta el arranque.** Cero no apaga el límite: lo pone en
+  "nadie pasa". Si eso entra por la configuración del servidor hay que
+  enterarse al arrancar, no cuando el primer camionero no puede entrar. Para
+  apagarlo está `RateLimit:Enabled`, que además queda apagado en Development.
+
+### Consecuencias
+
+- Tres archivos en `Api/RateLimiting/` y tres líneas en `Program.cs`. **70
+  tests nuevos** (678 en total), todos los números con nombre y fijados por
+  test.
+- Verificado con la API levantada el 29/09/2026: diez intentos de ingreso y el
+  once vuelve 429 con `Retry-After: 60`; a los 65 s la ventana da la vuelta y
+  vuelve el 401; una cabecera `X-Forwarded-For` falsa no cambia de canasta;
+  `/api/health` aguanta cincuenta seguidos; un script de lectura corta en el
+  pedido 324 (300 más lo que se rellenó mientras corría) y después queda en
+  cinco por segundo; y **la app, con el límite prendido, no recibió un solo 429
+  ni arrancando ni con 35 s de arrastre bruto del mapa**.
+- Lo que no resuelve: un ataque distribuido desde muchas direcciones —eso es
+  del proxy—, y el límite vive en la memoria del proceso, así que con más de
+  una instancia cada una cuenta la suya. Con una sola VM alcanza; el día que
+  haya dos, la cuenta va a un Redis.
+
+## AD-51 · La entrada, el invitado, y el estado de la app en una función pura
+
+**Fecha:** 30/09/2026
+**Estado:** aceptada. Es el primer subproyecto de las fases 6 y 7.
+
+### El pedido
+
+El brainstorm v3 pide una sucesión de entrada —**INTRO → IDIOMA → CONDICIONES
+→ ACCESO** (§6)—, un **modo invitado de un día** con acceso principalmente al
+GPS y eligiendo primero qué camión maneja (§7), el zócalo de cuatro accesos
+(§11) y el menú MÁS con Perfil, Resumen, Reportes, Chat y Configuración (§12).
+
+**Las fases 6 y 7 juntas no entran en una sola spec**: son cinco subsistemas
+independientes —la entrada, las pantallas del progreso, el avatar y la
+colección, la batería y la trivia, y el chat— y dos de ellos son proyectos
+propios. Se partieron, y este es el primero. Spec:
+`docs/superpowers/specs/2026-09-30-entrada-y-cascara-design.md`.
+
+### Decisiones
+
+- **El estado de la app es una función pura**, no una escalera de `if` en el
+  router. `estadoDeSesion(prefs, haySesion, ahora)` devuelve `nueva`,
+  `invitado` o `cuenta`, qué paso falta y si el día venció; `permisos(estado)`
+  dice qué puede hacer cada uno. Antes `app.js` decidía con dos condiciones
+  sueltas; con cuatro pasos y un invitado serían cinco cruzadas dentro de la
+  función que además monta pantallas. **Las vistas preguntan `puede()` y no
+  `isSignedIn()`**: el invitado es una sesión que en el servidor no existe, y
+  una pantalla que pregunta por la sesión no lo ve.
+- **El invitado navega de verdad, y su viaje no se guarda.** Guiado completo
+  —voz, gálibos, avisos, vibración— sin viaje en el servidor. Se partió
+  `startTrip` en dos: arrancar el guiado con la ruta que ya está calculada, y
+  guardar el viaje, que sólo corre con cuenta. Es lo que hace que el invitado
+  reciba el producto entero, incluido el aviso de gálibo, que es lo único que
+  ningún GPS de autos le da.
+- **Cero cambios en el servidor.** Se verificó endpoint por endpoint antes de
+  diseñar: `POST /api/routes` es anónimo y resuelve el camión contra las
+  plantillas, así que un invitado rutea sin cuenta. Lo único que pide sesión es
+  lo que define su alcance, y no se tocó.
+- **El día del invitado vive en el teléfono, y se acepta a ojos abiertos.**
+  Borrar los datos del navegador o reinstalar lo reinicia. No hay forma de
+  evitarlo sin darle sesión en el servidor, y eso contradice la decisión del
+  08/09 ("no se registra nada del invitado"). La puerta no está para frenar a
+  quien quiere eludirla, sino para que el que probó y le gustó tenga un motivo
+  para dar el paso. Se mide en **días locales** (UTC−3), el mismo criterio que
+  el tope de votos de reportes: quien empieza a las once de la noche no tiene
+  una prueba de una hora.
+- **El final del viaje es el momento de conversión**, no un cartel antes de
+  dejar probar. El invitado ve los kilómetros que acaba de andar y la frase que
+  dice la verdad: *no se guardaron*. **Sin EXP, sin insignias y sin confeti**:
+  no hay nada que festejar y fingirlo sería mentir.
+- **Cada acción bloqueada dice por qué la necesita, antes de fallar.** Una sola
+  hoja con el motivo como parámetro —reportar, votar, guardar un lugar, un
+  contacto, el perfil, los juegos, el día vencido—, cada uno con su texto.
+  Decirle "necesitás una cuenta" cinco veces seguidas le enseña a ignorar el
+  cartel, y la sexta —la que importaba— tampoco la lee. **Ninguna devuelve un
+  401**: un 401 es la app fallando; esto es la app explicando.
+- **El 911 funciona en los cuatro estados**, con un test que los recorre. Nada
+  de las cuentas ni de la gamificación puede estorbar un pedido de auxilio: es
+  la misma regla que ya rige para la batería.
+- **La pantalla de fuentes deja de ser una puerta.** Era la primera pantalla de
+  la app, cuatro tarjetas obligatorias; ahora Condiciones la enlaza y vive en
+  Configuración. El texto de los términos —que no existía— cubre sólo lo que la
+  app hace hoy: una cláusula que no se cumple es letra chica falsa, y este
+  producto se apoya en decir lo que no sabe.
+- **Lo que el prototipo decide, manda el prototipo.** Las cuatro pantallas
+  salen de los tableros aprobados el 14/09, y el vocabulario —vidrio, neón,
+  cromo en tres tonos, la chapa, la fila, el globo del mono— entró a `app.css`
+  antes que cualquier pantalla, con un candado por clase. Los 27 íconos
+  ilustrados se mudaron del prototipo a la app en un módulo propio: estaban en
+  `docs/` y las pantallas nuevas los necesitaban.
+
+### Consecuencias
+
+- **111 tests de JS nuevos** (335 en total, de 224) y ningún cambio en el
+  servidor: ni dominio, ni endpoints, ni migraciones.
+- Verificado de punta a punta en el navegador a 375 × 812: los cuatro pasos con
+  su chip, el alta hasta "revisá tu correo", el invitado eligiendo camión,
+  ruteando con su plantilla y **caminando los 4,3 km de la ruta con GPS
+  simulado en pasos de 25 m hasta llegar**, con la pantalla de fin sin EXP; el
+  día vencido que deja ver el mapa pero no arrancar; y el 911 abriendo en todos
+  los casos.
+- **Cuatro defectos que sólo aparecieron probando**, ninguno previsto en el
+  plan: el invitado elegía camión y la app se quedaba sin ninguno (`boot()`
+  cortaba sin sesión); la ficha mostraba el largo del tractor y no el del
+  conjunto —6 m para un semi de 18—; **llegar a destino no cerraba el viaje del
+  invitado**, porque hay dos salidas del viaje y se había cubierto una sola; y
+  la luz de las pantallas tapaba la cabecera, que estaba ahí y no se veía.
+- Lo que queda afuera a propósito: los otros tres idiomas (se guarda la
+  elección, no hay i18n), la intro animada (la Bienvenida cumple ese paso), el
+  editor de avatar, el Resumen, el chat, rediseñar el registro y el carnet, y
+  **migrar los kilómetros del invitado al registrarse** — hoy los acredita el
+  servidor y el cliente no puede declararlos, que es lo que evita que se
+  falsifiquen.

@@ -173,6 +173,8 @@ Por ahora se prueban desde `/swagger` o por HTTP.
 | `GET /api/profile` | Perfil del usuario autenticado. Lo crea en el primer acceso. |
 | `PUT /api/profile` | Guarda nombre, apellido, alias y avatar. |
 | `GET /api/profile/alias-available?alias=` | Avisa si el alias está libre mientras se escribe. |
+| `GET /api/profile/places` · `PUT /api/profile/places/{Home\|Depot}` · `DELETE` | Casa y Depósito, uno por tipo. Viven en el servidor para que sobrevivan a reinstalar la app. |
+| `GET /api/profile/recent-places` | Los últimos ocho destinos distintos, del más nuevo al más viejo. Salen de los viajes. |
 
 El alias es **único e irrepetible** y no distingue mayúsculas: `ElGaucho` y
 `elgaucho` son el mismo. Nombre, apellido y avatar son opcionales, porque el alta

@@ -22,8 +22,33 @@ ruta, no como advertencia posterior. Fuente regulatoria: Ley 2148, art. 9.10.1
 Objetivo declarado: *"El GPS de los camioneros de Buenos Aires"*. No sólo un
 navegador: perfil, historial, gamificación, comunidad.
 
-**Rama de trabajo:** `cuentas-de-usuario` (12 commits sobre `main`). **El último
-commit todavía no está empujado.**
+**Rama de trabajo:** `cuentas-de-usuario`. **`main` quedó en `a587041`**: la rama
+está muy adelante y todavía no se fusionó.
+
+**Punta al 30/09/2026: la entrada y el invitado** (AD-51) — la app tiene puerta
+por primera vez, y se puede probar el GPS sin cuenta. Es el primero de los
+cinco subproyectos en que se partieron las fases 6 y 7. Antes, **al
+29/09/2026: el límite de tasa de la API** (AD-50), lo último que
+faltaba de lo transversal antes de hostear. Antes, **al 19/09/2026: los
+reportes de la comunidad (Fase 5)**, construidos en 25 tareas con TDD,
+verificados de punta a punta en el navegador y por HTTP. **Todo eso sigue sin
+pushear** (ver §8, punto 0). Antes, **al 18/09/2026: el GPS con la piel de
+Waze**, completo, pusheado y probado en el teléfono. Antes, **al 15/09/2026: la comunidad vota y aporta lugares** (AD-46; doce
+commits desde la spec `5298239`, uno por tarea), **sin pushear**. Antes, ese
+mismo día, el relevamiento de POIs y los talleres de mecánica pesada
+(`d0b6ddd`, diecisiete commits desde `b5dc4d3`, de la spec `c16cef1` al cierre en docs). Los
+del 14/09: la mascota en la app (`5db5267`) y el prototipo de diseño
+(`b5dc4d3`). Antes, **`ec20c58`** del 12/09 (el zócalo), pusheada a `origin`, sin nada
+pendiente salvo `routing/config-truck.yml`. Antes, `91350da`. Los cinco commits del 12/09 —escalas y EXP,
+campos de identidad, perfil, carnet, skills— son las sesiones del 10 al 12/09.
+**Los de perfil (`8daf031`) y carnet (`81573e6`) llevan en el mensaje que el
+diseño visual NO está aprobado**; lo funcional sí. Antes, la punta era `fdf8341`
+del 10/09.
+
+**Hay dos remotos.** `origin` es `bermejotobias-byte/camiones-app` y es el que se
+usa; `hermano` es `bermejolautaro/camiones-app`, con su propia rama
+`cuentas-de-usuario` en otra punta. **No empujar a `hermano`** sin que el usuario
+lo pida.
 
 ---
 
@@ -34,39 +59,70 @@ commit todavía no está empujado.**
 | Documento | Qué tiene |
 |---|---|
 | `CLAUDE.md` | Convenciones, comandos, **trampas que ya costaron tiempo** |
-| `docs/decisions.md` | **34 decisiones arquitectónicas (AD-01…AD-34)** con su porqué |
-| `docs/data-sources.md` | Fuentes, licencias y limitaciones **L-1…L-8** (L-4 ya resuelta) |
+| `docs/decisions.md` | **49 decisiones arquitectónicas (AD-01…AD-49)** con su porqué |
+| `docs/reportes.md` | **Los reportes de la comunidad** (19/09/2026): catálogo, confiabilidad, lo fijo, ruteo, EXP y reputación, abuso, API, y **dónde vive cada número** |
+| `docs/data-sources.md` | Fuentes, licencias y limitaciones **L-1…L-11** (L-4 ya resuelta) |
 | `docs/architecture.md` | Estructura y proyectos |
 | `docs/routing.md`, `docs/restrictions.md`, `docs/pois.md`, `docs/deploy.md` | Por tema |
 | `PLAN.md` | Especificación original del MVP |
-| Escritorio del usuario | `PUNTOS A TRABAJAR EN LA APLICACIÓN GPS CAMIONES.docx` — los 33 requisitos |
+| **skill `producto-camiones-app`** | **El alcance completo**: los **tres** brainstorms unificados y asignados a fase. Incluye el v3 textual en `references/brainstorm-v3.md` |
+| **skill `diseno-camiones-app`** | **El lenguaje visual**, nueva del 09/09/2026: Duolingo + camioneros + arcade, extraído de 17 capturas reales. Invocarla antes de maquetar cualquier pantalla que no sea el mapa |
+| `docs/superpowers/specs/` | Dos specs con su porqué: el **despliegue gratuito** (02/09) y el **motor de progresión** (08/09) |
+| `docs/referencias/` | Las capturas de Duolingo y Preguntados, versionadas para poder revisar el análisis contra su fuente |
+| Escritorio del usuario | `PUNTOS A TRABAJAR…docx` (33 requisitos, 22/08) y `ideas camionero app v2.docx` (31/08). Están **abiertos en Word**: para leerlos hay que copiarlos antes, si no el archivo está bloqueado |
 
-**Las AD-17 a AD-34 son del trabajo reciente.** Las cinco últimas, del 25–26/08/2026:
+**Las AD-17 a AD-45 son del trabajo reciente.** Las cuatro últimas, del
+01–02/09/2026, son la sesión de la Fase 3 y salieron casi todas de defectos que
+encontró el usuario tocando la app:
 
 | AD | Qué resuelve | Por qué importa releerla |
 |---|---|---|
-| **AD-30** | Brújula del magnetómetro | Por qué NO se usa `Compass` de MAUI: se degenera con el teléfono en un soporte |
-| **AD-31** | Consola del WebView y diagnósticos a logcat | `Debug.WriteLine` se **borra en Release**: los diagnósticos no existían en el APK |
-| **AD-32** | 28 tests de JS con el runner de Node | Cero dependencias; no contradice AD-21 |
-| **AD-33** | Una dirección mal escrita dejaba la app **inutilizable** | Cuatro fallas encadenadas; la lección se generaliza a cualquier valor persistido |
-| **AD-34** | Cámara cenital fija fuera del viaje, zoom con botones | Incluye la capa de botones comiéndose los toques del mapa |
+| **AD-42** | Selector de contactos por `ACTION_PICK`, sin permiso de agenda | **Un Intent no es una dirección: es un pedido a un concurso de candidatos.** Y NO se pregunta con `ResolveActivity` |
+| **AD-43** | Tres contactos de emergencia en el servidor | Rechazar un número válido es peor que aceptar uno raro. Guardar y **marcar** son dos cosas distintas |
+| **AD-44** | La hoja se encoge; su acción va pegada abajo | `flex: none` la sacaba 112 px fuera de pantalla. Los bloques se separan con `gap`, **no** con `margin: auto` |
+| **AD-45** | Arrancar el reparto, con sus paradas en el viaje | `/api/trips/active` **recalcula**: sin las paradas, 31 km volvían convertidos en 10 |
+
+Las seis del 01/09/2026 por la mañana: **AD-36** (zonas del mapa comunitario —
+cuando la cobertura de una fuente coincide con una frontera, el mapa dibuja la
+frontera), **AD-37** (nombre de calle sobre el mapa base), **AD-38** (pasos a
+nivel sin escala de color), **AD-39** (vibración con un patrón por aviso),
+**AD-40** (alternativas por restricciones) y **AD-41** (orden del reparto con
+distancias reales).
+
+Y las cinco del 25–26/08/2026 siguen valiendo: **AD-30** (brújula del
+magnetómetro — por qué NO se usa `Compass` de MAUI), **AD-31** (`Debug.WriteLine`
+se borra en Release), **AD-32** (tests de JS sin dependencias), **AD-33** (una
+dirección mal escrita dejaba la app inutilizable) y **AD-34** (cámara cenital fija
+fuera del viaje).
 
 ---
 
 ## 3. Roadmap y estado
 
-Prioridad declarada por el usuario:
-**navegación → usabilidad → seguridad → información para camiones → experiencia → gamificación**
+**El alcance completo vive en la skill `producto-camiones-app`**, que unifica los
+dos brainstorms del usuario y asigna cada ítem a una fase. Acá va sólo el estado.
+
+Prioridad declarada:
+**navegación → usabilidad → seguridad → info para camiones → reportes de comunidad
+→ experiencia y gamificación**
 
 | Fase | Estado |
 |---|---|
 | **0 · Cimientos** | ✅ Completa — cuentas, camiones por usuario, viajes, mudanza del frontend |
-| **1 · Navegación** | ⚠️ Probada en el teléfono parado; **sin probar manejando** |
+| **1 · Navegación** | 🔨 **Todo lo construible está hecho** — guiado, voz, GPS en segundo plano, brújula, nombre verde de la calle, vibración por patrón, alternativas de ruta y reintento al conectar. Falta lo único que no se puede hacer acá: **manejar** |
 | **2 · Usabilidad** | ✅ Completa — salió adelantada dentro de la mudanza del frontend |
-| **3 · Seguridad** | ❌ Pendiente — pánico con 3 contactos, compartir viaje por WhatsApp |
-| **4 · Info para camiones** | ✅ Completa — capas de camión y mapa base propio |
-| **5 · Experiencia** | ❌ Pendiente — avatares, cofres, reportes, chat |
-| **Transversal** | ❌ i18n (español, portugués, guaraní, inglés) |
+| **3 · Seguridad** | 🔨 Están el 911, las zonas peligrosas y los **3 contactos de emergencia**. Queda **compartir viaje por WhatsApp** —necesita endpoint público, tokens que venzan y decisiones de privacidad— y el S.O.S. del reporte, que depende de la Fase 5 |
+| **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). **La base de POIs para camiones se relevó el 15/09/2026** (gomerías, estaciones, lugares para comer y talleres de mecánica pesada; 180 puntos, 48 con evidencia). **La interfaz de POIs está desde el 17–18/09/2026** (capa de lugares, ficha con el voto, hoja de capas con «solo aptos» y aportar, dentro del GPS de Waze) y **los POIs valorados por usuarios son los votos de AD-46**: la fase queda ✅ salvo lo que L-11 congela fuera de CABA |
+| **5 · Reportes de comunidad** | 🔨 **Construida el 19/09/2026** (AD-49): diez tipos en un toque desde la posición GPS, *sigue ahí / ya no está*, confiabilidad y vencimiento, la cámara y el lugar aportado que se vuelven fijos con 5, los cierres y gálibos validados que esquivan la ruta, EXP separada de reputación, cooldowns. **Falta probarla en el teléfono** y quedan la lista de reportes propios y pintar el tramo en rojo |
+| **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Lo que se apoya en él se partió en subproyectos (ver §0): falta **B** las pantallas del progreso, **C** el avatar (bloqueado por los dibujos) y **D** la batería y la trivia. **Dos huecos del motor que B necesita: los récords nunca se escriben y la racha no existe en el dominio** |
+| **7 · Cáscara, entrada e idiomas** | 🔨 **La entrada está construida** (30/09, AD-51): Bienvenida → Idioma → Condiciones → Acceso, el **modo invitado de un día** que navega de verdad sin guardar el viaje, el menú MÁS completo y Reportes en vivo, sobre el zócalo del 12/09. Quedan **i18n de verdad** (hoy se guarda la elección y nada más) y **el chat** (subproyecto E, proyecto aparte). Falta el teléfono |
+| **Transversal** | ⬜ i18n (la pantalla existe, **sólo español** por decisión) · clave de firma de distribución. **El límite de tasa se hizo el 29/09/2026** (AD-50) |
+| **Despliegue** | 🔨 Escrito y commiteado, **nunca ejecutado**: falta cupo de A1 en Oracle, el release del mapa base, SMTP y DuckDNS |
+
+**El 31/08/2026 el usuario sumó un segundo brainstorm** (*"IDEAS PARA TBF 2.0"*)
+que agranda el proyecto: abre la fase de reportes de comunidad, reabre la 4 y
+convierte la de experiencia en algo mucho más grande de lo que parecía. Antes de
+planificar, leer `producto-camiones-app`.
 
 ### Commits de la rama, en orden
 
@@ -81,15 +137,80 @@ Prioridad declarada por el usuario:
 53f8914  Arreglos del puente entre la cascara y la web, encontrados probando en el telefono
 1710102  Capas de camion en el mapa: la Red, los galibos y los sapitos
 257600e  Mapa base propio en PMTiles: minimalista, con dia y noche
-53c4a5e  Actualiza la skill: Fase 4 cerrada y comandos de datos
-029794e  Brujula del magnetometro, camara cenital fija, y una app que ya no queda varada
+a4eda3d  Actualiza la skill: Fase 4 cerrada y comandos de datos
+5fb0ef3  Brujula del magnetometro, camara cenital fija, y una app que ya no queda varada
+a587041  Actualiza la skill: el checkpoint y que config-truck.yml no se commitea   <- main
+1b5cd5a  Zonas de riesgo y radares en el mapa, simbolos que se entienden, y un APK que se puede actualizar
+145caec  Actualiza la skill: checkpoint 1b5cd5a, y dos cosas que decia y ya son falsas
+1b631dc  Las zonas de riesgo cuentan robos a mano armada, y vuelven a ser un mapa de calor
+5b7d0d6  Actualiza el roadmap: la Fase 4 estaba mas cerrada de lo que decia
+9363092  El arranque insiste tres veces antes de rendirse, no una
+82fc732  Las zonas peligrosas salen del mapa comunitario, con boton propio y sin numeros
+0dea657  El nombre de la calle por la que vas: en verde, y ya no lo tapa la ruta
+d19d650  El nombre verde se achica y deja de encimarse consigo mismo
+727912d  Los sapitos solo durante el viaje y sin escala de color; el galibo usa el puente del boton
+17c8417  Vibracion: un patron distinto por aviso, y avisos de lo que hay sobre la ruta
+954dd28  Alternativas de ruta, ordenadas por restricciones y no por tiempo
+907d5ed  Modo reparto: el backend ordena hasta 10 paradas por distancia real
+b5bacd4  Modo reparto: la interfaz, con paradas numeradas en la lista y en el mapa
+cd2499a  Actualiza las skills: la de estado decia seis cosas que ya eran falsas
+2ed7a39  Saca de la skill un numero que se desactualiza solo
+77f6e6f  L-11 pasa de pendiente a congelada por decision
+c5796d6  Elegir un contacto de la agenda, sin pedir permiso sobre la agenda
+a0dee91  Tres contactos de emergencia, y tres defectos que solo aparecieron en el telefono
+2e9a6c3  La hoja se encoge en vez de salirse de la pantalla, y el boton de accion queda fijo
+b496109  Los bloques de la capa del mapa se separan con gap, no con margenes automaticos
+30f742d  El reparto se puede arrancar, y sus paradas viajan con el viaje
+c9d3552  Actualiza las skills con la sesion de la Fase 3 y lo que dejo aprendido
+686f1e9  El backend se construye en GitHub Actions y la VM solo baja imagenes
+4be2241  Suma el brainstorm v3, la skill de diseno y las referencias visuales
+a69019f  Motor de progresion: nivel, metas, logros y recompensas en el servidor
+fdf8341  El nivel lo calcula el servidor: sale levelFor del cliente          <- punta
 ```
 
-**`029794e` es el checkpoint del 26/08/2026** y junta dos bloques: el trabajo que
-había quedado sin commitear (AD-27 a AD-29 — viaje abierto en el servidor,
-proveedor combinado de ubicación, cuenta de prueba sembrada) y el de esa sesión
-(AD-30 a AD-34). Comparten archivos, así que separarlos no habría dado un corte
-honesto.
+**Los cuatro últimos son del 10/09/2026** y cubren dos frentes: el **despliegue
+por GitHub Actions** y el **motor de progresión** completo, del dominio al
+cliente. `a69019f` es el más grande de la historia del proyecto: 31 archivos y
+4.788 líneas.
+
+**`30f742d` fue la punta del 02/09/2026.** Los seis commits desde `c5796d6` son la
+**sesión de la Fase 3**, y su rasgo distintivo es que **seis de sus defectos los
+encontró el usuario tocando la app, no los tests**:
+
+- **Puente de la agenda** (AD-42) y **tres contactos de emergencia** (AD-43),
+  guardados en el servidor.
+- **La hoja se encoge** y su acción queda fija abajo (AD-44), más la separación
+  de los controles del mapa con `gap`.
+- **Arrancar el reparto** (AD-45), que además destapó que el viaje perdía sus
+  paradas al recuperarse.
+- **L-11 congelada por decisión** hasta tener la base del AMBA.
+
+**Con AD-45 el modo reparto está completo por primera vez**: antes calculaba pero
+no navegaba, o sea la mitad de la función. Se había declarado cerrado igual.
+
+**`b5bacd4` fue la punta del 01/09/2026**, y con ella cerró todo lo construible de
+la Fase 1. Los nueve commits desde `9363092` cubren:
+
+- **Reintento al conectar** (apéndice de AD-33): 3 intentos, y sólo se reintenta
+  lo que puede resolverse solo.
+- **Zonas peligrosas rehechas desde el mapa comunitario** (AD-36). Ver abajo: el
+  intento con el dato oficial **se descartó**.
+- **Nombre de la calle en verde** sobre el mapa base, a 1,5× (AD-37).
+- **Pasos a nivel sólo en viaje, sin escala de color**; gálibo con el puente del
+  botón; radar como cámara de vigilancia (AD-38).
+- **Vibración con un patrón por aviso** y avisos precalculados sobre la ruta (AD-39).
+- **Alternativas de ruta** ordenadas por restricciones (AD-40).
+- **Modo reparto**, backend e interfaz (AD-41).
+
+**`1b5cd5a` fue el checkpoint anterior**: radares de velocidad (129 cinemómetros
+oficiales), rediseño de los símbolos del mapa, **firma estable del APK** (AD-35) y
+el encoding de Overpass. Trajo también una versión de las zonas de riesgo desde el
+**Mapa del Delito del GCBA** que **ya no existe**: se descartó en `82fc732` y la
+skill no debe volver a citarla como la fuente vigente.
+
+**`5fb0ef3` es el checkpoint del 26/08/2026** —la skill lo llamaba `029794e`, hash
+que ya no existe— y junta el trabajo que había quedado sin commitear (AD-27 a
+AD-29) con el de esa sesión (AD-30 a AD-34).
 
 **`routing/config-truck.yml` quedó deliberadamente fuera del commit**: el árbol de
 trabajo apunta a `argentina-latest.osm.pbf` porque el recorte del AMBA no está en
@@ -103,12 +224,378 @@ modificado en cada `git status`; **no commitearlo**.
 **Distinción crítica.** Mucho está probado a fondo; una franja específica no se
 pudo probar y hay que decirlo cada vez.
 
+### La comunidad vota y aporta lugares — 15/09/2026, más tarde
+
+**490 tests en total**: 288 unitarios de .NET, 130 de integración (11 se saltean
+sin GraphHopper) y 72 de JS. Todo verde al cierre. Spec y plan en
+`docs/superpowers/*/2026-09-15-pois-comunidad-y-gamificacion*`; el porqué en
+**AD-46**. Once tareas, un commit por tarea, cada test visto en rojo.
+
+**Lo que quedó:** `PoiVote` (un voto por camionero y lugar, con el **tipo de
+camión**), `CommunityStanding` (el sello: recomendado ≥ 3 aptos y 2 a 1; en
+discusión ≥ 3 votos y los no aptos igualan), `PoiContribution` (cómo nace un
+lugar aportado: `NotConfirmed`, sin aptitud verificada, fuera del dataset,
+dentro del rectángulo), `PoiFilter` (el filtro "solo aptos": verificado apto o
+recomendado por la comunidad para tu tipo cuando la fuente no dice nada), la
+pista `lugares` con sus skins `lugares-01…10`, `RecordContributionAsync` en el
+recorder, y tres endpoints: `GET /api/pois` con el bloque `community`,
+`PUT/DELETE /api/pois/{id}/vote`, `POST /api/pois`.
+
+**Verificado a mano con la cuenta demo, backend en Development:** el primer voto
+paga 2 + 100 del escalón y deja `lugares-01` pendiente de festejo; cambiar el
+voto no paga; retirar deja la EXP; agregar paga 10 y devuelve 201 con la ficha y
+el alias; un duplicado a 10 m da 409 con `existingId`; fuera del área 400 con el
+motivo limpio; el lugar aportado sobrevive a reiniciar el backend.
+
+**Dos cosas que atraparon los tests:** el sello miraba el total y no los aptos
+(2 a 1 daba recomendado); y `ArgumentException.Message` arrastra
+"(Parameter 'x')", que no es para una persona. Y una trampa del entorno: `curl`
+en Git Bash manda las tildes en Latin-1 y el JSON no es UTF-8 válido — el 500
+era de la prueba, no de la app; el cuerpo va en un archivo.
+
+**Lo que NO hay:** la ficha con el botón de votar y el formulario de agregar.
+Van con la interfaz de POIs. `api.js` y la insignia ya están.
+
+### El relevamiento de POIs — 15/09/2026
+
+**432 tests en total** en ese momento: 256 unitarios de .NET, 108 de integración
+(11 se saltean sin GraphHopper) y 68 de JS. Todo verde al cierre.
+
+Spec `docs/superpowers/specs/2026-09-15-pois-camiones-relevamiento-design.md`,
+plan `docs/superpowers/plans/2026-09-15-pois-camiones-relevamiento.md`, once
+tareas ejecutadas en orden con commit por tanda. **Lo que quedó y cómo se
+verificó:**
+
+| Qué | Cómo se verificó |
+|---|---|
+| Modelo: `TruckFriendlyEatery`, `SuitabilityEvidence` + `Kind`, `ManagedByDataset`; migración `AddPoiSuitabilityEvidence`; DTO | Tests de dominio, persistencia (ida y vuelta por SQLite) y contrato |
+| El seed reconoce lo suyo por `ManagedByDataset` y borra lo que sale del archivo | Tres tests del seed, incluido el que **adopta filas de una base vieja por id** |
+| `pois-caba-relevamiento-2026-09.json`: **111 puntos** — 16 gomerías (14 `Confirmed`, 2 `Probable`), 1 auxilio pesado, 71 estaciones (5 `Confirmed`, 66 `NotConfirmed` sobre la Red), 1 lugar para comer, **22 talleres de mecánica pesada** (21 `Confirmed`: 14 por la red oficial de la marca o el operador, 7 por reseñas; 1 `Probable`) | **11 candados en `PoiDatasetTests`** y la API levantada en Development: `GET /api/pois?categories=…` devuelve 41 gomerías (16 relevadas), 87 estaciones (71), 1 comedor, 47 talleres (22). 180 POIs en total, por la API y en los archivos |
+| Cada evidencia es un resumen propio con fecha; las coordenadas salen de OSM, del registro oficial o de Photon, y `source` lo dice | Test que exige fecha `DD/MM/AAAA` en toda evidencia; lectura a mano de las evidencias por la API |
+
+**Dos defectos que atraparon los tests, no el ojo:**
+
+- **Dos puntos con la misma fuente son el mismo id** (MD5 de `source`), y la
+  herramienta de armado pisaba uno con el otro sin avisar: Recapados Universal
+  desapareció detrás de Auxilios Mecánicos Pesados. Ahora la fuente de una ficha
+  pública lleva el nombre del comercio.
+- **El registro oficial lista la misma boca dos veces** (líquidos y GNC con
+  distinto `idempresa`): Zelarrayán 5530 salía encimada. El candado
+  `No_two_points_of_the_same_category_share_the_same_spot` (25 m) lo vio
+  primero; se fusionan.
+
+**Y otro en los talleres:** la ficha pública de Volvo en Larrazábal 2742
+quedó a 9 m del taller de Armando J. Ríos (Larrazábal 2750) que lista la red
+oficial de Mercedes-Benz; el candado de 25 m lo vio, y el localizador oficial
+de Volvo Trucks no tiene ningún punto en la Ciudad: **la ficha sobrevive al
+comercio**, y la lista oficial de la marca manda sobre la ficha.
+
+**Y uno que atrapó el cruce de fuentes:** el registro de la Secretaría de
+Energía **conserva estaciones cerradas** (Antártida Argentina y Calle 10, Juan
+B. Justo 8490 y 5940). Se cruzó cada una con el mapa oficial de su marca y la
+ficha pública; cinco quedaron afuera. **La fecha del último precio informado NO
+sirve como señal de cierre**: veinte estaciones abiertas dejaron de informar
+en 2025-06 a la vez.
+
+**Lo que NO se verificó:** nada en pantalla, porque **la app web no muestra los
+POIs** (ninguna vista llama a `api.pois()`, no hay capa en `layers.js`). La
+interfaz es lo siguiente, sobre el prototipo de diseño.
+
+### El motor de progresión, verificado el 10/09/2026
+
+**423 tests en total** en ese momento: 255 unitarios de .NET, 100 de
+integración (11 se saltean sin GraphHopper) y 68 de JS. Venían de 147 + 56 + 62.
+
+Todo el motor se construyó con **TDD estricto**: cada test se vio fallar antes de
+escribir el código. Eso atajó tres defectos **antes de que existiera una sola línea
+de interfaz**:
+
+| Defecto | Qué habría pasado |
+|---|---|
+| Desborde del último nivel | Con 500.000 km el perfil decía **"meta 35 de 10"** |
+| Kilometraje negativo | La escala devolvía **`-399`** como número de meta |
+| Viaje que cruza dos metas | Pagaba sólo la última y **perdía una recompensa sin avisar** |
+
+**Y verificado de punta a punta, no sólo con tests.** Contra la API real: arrancar
+y cerrar un viaje acredita 120 de EXP y desbloquea dos recompensas. Una es
+`nocturnos-01`, porque eran las 02:25 en Buenos Aires — **la regla de hora local
+disparó bien sobre datos reales**, que es lo que un test sintético no puede probar.
+
+En el navegador: entrar con la cuenta demo, ir al perfil, y ver *"Nivel 1 ·
+Novato"*, *"0 km"* y *"Te faltan 2.500 km para Repartidor"*, los tres calculados
+por el servidor. Sin errores nuevos en consola.
+
+### Escalas del motor — decididas por el usuario el 10/09/2026
+
+Estaban puestas por mí y marcadas como provisorias. Se le llevaron **opciones** y
+eligió, así que **ahora son decisiones y los tests las fijan** (`TrackCatalogTests`
+y `ExperienceScaleTests`): una decisión que se puede cambiar sin querer no está
+tomada.
+
+**Los escalones**, calibrados contra la cadencia real del oficio —2 viajes/día,
+5 repartos/día, 1 nocturno/semana, 250 días de trabajo al año—:
+
+| Pista | Escalones | Tope |
+|---|---|---|
+| `viajes` | 1 · 3 · 7 · 15 · 30 · 60 · 120 · 250 · 500 · 1.000 | ≈2 años |
+| `repartos` | 1 · 5 · 15 · 40 · 100 · 250 · 500 · 1.000 · 1.750 · 2.500 | ≈2 años |
+| `nocturnos` | 1 · 2 · 5 · 10 · 20 · 35 · 60 · 90 · 130 · 180 | ≈3,5 años |
+| `kilometraje` | Sale de `LevelScale.GoalThresholds()`, no tiene números propios | — |
+
+Los primeros tres escalones de cada una caen en la primera semana: ahí está el
+enganche. **Toda pista contable empieza en 1** — la primera vez que hacés algo,
+algo se prende.
+
+**La EXP mide esfuerzo, no cantidad** (`ExperienceScale`, en el dominio):
+
+    viaje  =  10 de base  +  1 cada 10 km      escalón = 100
+
+Un viaje de 20 km paga 12, uno de 300 km paga 40. El piso de 10 existe para que un
+reparto de cuatro cuadras no dé casi cero, y se **trunca**: 19 km pagan lo mismo
+que 10, porque redondear hacia arriba le cobraría a un viaje de 5 km un tramo que
+no hizo. El escalón tiene que ganarle al viaje más largo que lleva a él —hay un
+test que lo fija contra los 300 km—; si no, el camino valdría más que llegar.
+
+**No compite con el nivel aunque los dos miren la distancia**: el nivel se calcula
+del total acumulado y no se puede perder ni comprar; la EXP se paga por viaje. Uno
+dice hasta dónde llegaste, el otro cuánto hiciste.
+
+**Lo ya acreditado no se reescribe.** El libro es un registro de hechos: las
+entradas viejas conservan sus 20 y 50. La cuenta demo sigue mostrando 120 EXP.
+
+### El carnet — 11/09/2026
+
+Pantalla nueva, con **cuatro columnas nuevas en una migración** (`AddCarnetFields`):
+`DriverProfile.BirthDate` (`DateOnly?`) y `TruckProfile.Brand/Model/Plate`. Reglas
+en el dominio con sus tests: `LicensePlate` (formatos argentinos, canónica vs.
+estampada) y `BirthDate` (plausibilidad, sin mínimo de edad). Los endpoints
+devuelven **400 con el motivo** por `ValidationProblem`, y `api.js` ya lo muestra.
+
+**Trampas que aparecieron:**
+
+- **El transporte de la herramienta se come las barras invertidas** en los
+  scripts: `̀` llegó como el carácter real y `p` como `p`. Para escribir
+  una barra en un archivo desde un script, `String.fromCharCode(92)`. Para
+  sacar acentos, `/p{M}/gu` y no un rango de combinantes.
+- **Importar un módulo con cache-buster crea OTRA instancia**, sin la sesión.
+  Para usar la `api` de la app desde la consola, `import('/js/api.js')` sin
+  `?v=`: es la misma instancia, con su token.
+- **La captura de pantalla del panel toca la página para enfocarla**, y si el
+  toque cae sobre algo tocable —la tarjeta del carnet— lo activa. Verificar el
+  estado por el DOM, no por la captura.
+- **`DateOnly` cruza el JSON como `AAAA-MM-DD`** y SQLite lo guarda como texto sin
+  conversor. Hay test que lo fija: lo que cruza una frontera se prueba cruzándola.
+- **"Igual a la referencia" quiere decir copiar, no interpretar.** El primer carnet
+  salió con la foto al 17% del ancho, el chip como un rectángulo con rayitas y
+  dos tipografías, y el usuario lo devolvió. Antes de maquetar contra una
+  imagen: **medir** qué fracción ocupa cada pieza, **contar** las tipografías, y
+  reproducir la distribución. Ver `diseno-camiones-app` §7bis.
+
+### La lección del 10/09: un test puede pasar por el motivo equivocado
+
+Dos veces en la misma sesión, y las dos dan confianza falsa:
+
+**El endpoint de equipar devolvía 500 y no equipaba nada.** Los siete tests del
+lector pasaban porque le pasan el enum **ya construido y se saltean el JSON**. Por
+HTTP, `System.Text.Json` no convierte la cadena a enum sin que se lo pidan. Es la
+misma lección de las cinco fallas de la costura nativa-web, en una frontera nueva:
+**lo que cruza una frontera hay que probarlo cruzándola.**
+
+**Un test de clave duplicada probaba a EF, no al esquema.** EF detecta la clave
+repetida en su **rastreador en memoria** y tira `InvalidOperationException` antes
+de tocar la base. Para probar que el esquema lo impide hay que
+`ChangeTracker.Clear()` primero, y entonces sí llega el `DbUpdateException`.
+
+### La entrada y el invitado — 30/09/2026
+
+**335 tests de JS** (venían de 224) y **678 de .NET sin tocar**: este
+subproyecto no cambió una línea del servidor, y eso se verificó endpoint por
+endpoint antes de diseñarlo. Spec y plan en
+`docs/superpowers/*/2026-09-30-entrada-y-cascara*`; el porqué en **AD-51**.
+Veintiuna tareas, un commit por tarea, cada test visto en rojo antes.
+
+**Verificado en el navegador a 375 × 812:**
+
+| Qué | Cómo |
+|---|---|
+| La entrada | Bienvenida sin zócalo → Idioma *"Paso 2 de 4"* → Condiciones *"3 de 4"*, con el enlace que abre las fuentes y vuelve → Acceso |
+| El alta | *Crear una cuenta* → formulario → *"Revisá tu correo"* con la dirección → *"Ya lo confirmé"* vuelve al acceso |
+| La migración | Con sesión no se ve la entrada; quien ya usaba la app (con las fuentes aceptadas) arranca en Acceso; de cero, en la Bienvenida |
+| **El invitado, entero** | *Probar sin cuenta* → elige camión de las plantillas → `POST /api/routes` 200 con su plantilla → *Arrancar* **sin ningún `POST /api/trips`** → **4,3 km caminados con GPS simulado en pasos de 25 m** → al llegar, *"Hiciste 4,3 km / No se guardaron"*, sin fichas de EXP |
+| Lo que no puede | El botón amarillo abre *"Para reportar necesito saber quién sos"* y no la grilla; `#perfil` rebota al mapa con su hoja; `#juegos` tiene su propio motivo |
+| El día vencido | Con el sello en anteayer: el mapa, las capas y la búsqueda andan; recién *Arrancar* pide la cuenta |
+| El 911 | Abre sin ninguna hoja en los cuatro estados, incluido el invitado vencido |
+| El menú | Como invitado, dos filas; con cuenta, las siete con Resumen y Chat apagadas |
+| Reportes en vivo | Un bache creado por HTTP sale como *"Bache · Av. Corrientes 1500 · recién · Vos · Sin confirmar"*; tocarlo lleva el mapa a sus coordenadas con zoom 16 y abre su ficha |
+
+**Cuatro defectos que atrapó la verificación, no los tests:**
+
+- **El invitado elegía su camión y la app se quedaba sin ninguno.** `boot()`
+  cortaba sin sesión, así que no cargaba ni el catálogo: tocar un destino
+  volvía a la hoja de siempre **sin decir nada**.
+- **Llegar a destino no cerraba el viaje del invitado.** Hay **dos salidas**
+  del viaje —`closeTrip` y `arrive()`— y se había cubierto una sola: el estado
+  decía que había viaje y la interfaz decía que no.
+- **La ficha del camión mostraba el largo del tractor**, 6 m para un semi de
+  18. El dominio ya tenía `TotalLengthMeters` con el comentario de por qué
+  existe.
+- **La luz de las pantallas tapaba la cabecera**: el título y el chip estaban
+  ahí, con su color correcto, y no se veían.
+
+**Y dos errores míos midiendo**, que casi me hacen "arreglar" código sano:
+importar un módulo con `?v=` crea **otra instancia** —`state.trucks` daba 0
+aunque la app tuviera tres— y leer el zócalo mientras está **escondido detrás
+de la entrada** muestra el menú que no corresponde. Cuando una medición
+contradice lo que el código dice, sospechar primero de la medición.
+
+### El límite de tasa de la API — 29/09/2026
+
+**678 tests .NET (427 unitarios + 251 de integración) y 224 de JS**, todo verde;
+venían de 608. El porqué en **AD-50**, el cómo hostearlo en `docs/deploy.md`.
+Tres archivos en `Api/RateLimiting/` y tres líneas en `Program.cs`.
+
+**Lo que hay que recordar de esta sesión:**
+
+- **El número de lectura se midió.** Con el panel del navegador escondido el
+  mapa no arranca (`requestAnimationFrame` congelado → el estilo nunca carga →
+  `onReady` nunca corre → no hay oyente de `idle` y la app no pide nada). Con el
+  arreglo de rAF y `setStyle`, medido a 375 × 812: arrastrando cada 1,1 s la app
+  manda **37 pedidos por minuto**; arrastre continuo sin soltar, 14; bombeando el
+  zoom, 28; el arranque son 9 pedidos de una. El techo del debounce de 1 s es 57.
+  Por eso la canasta quedó en 300 y **con el límite prendido la app no recibió un
+  solo 429** ni arrancando ni con 35 s de arrastre bruto.
+- **Encontrado midiendo:** con el servidor caído, la app repite
+  `GET /api/reports` **una vez por segundo para siempre** — los tiles fallan, eso
+  mantiene al mapa disparando `idle`, y el único freno es el debounce. No es
+  abuso, es la app sin espera creciente. **Arreglado el 30/09/2026**: lo frena
+  `frenoDeRed` (`mapa/reportes.js`), con 2 s, 5 s, 15 s y 60 s de tope, que se
+  olvidan en cuanto un pedido vuelve bien. **Sólo frena el fallo de red**
+  —`status` 0 de `ApiError`—, no un 4xx: ahí el servidor contestó y el pedido
+  siguiente puede andar. Siete tests nuevos, 231 de JS.
+- **`Retry-After` de una ventana fija de .NET informa la ventana entera**, no lo
+  que falta: medido, dice 60 a los 20 s de haber cortado. Por eso el mensaje dice
+  "esperá **hasta** N segundos" y no promete un número exacto.
+- Verificado con la API levantada: 10 intentos de ingreso y el 11 vuelve 429; a
+  los 65 s la ventana da la vuelta; una cabecera `X-Forwarded-For` falsa **no**
+  cambia de canasta; `/api/health` aguanta 50 seguidos; y un script de lectura
+  corta en el pedido 324 y después queda en cinco por segundo.
+
+### Los reportes de la comunidad — 19/09/2026
+
+**608 tests .NET (427 unitarios + 181 de integración, 14 contra GraphHopper) y
+224 de JS**, todo verde al cierre; venían de 316 + 135 y 189. Spec y plan en
+`docs/superpowers/*/2026-09-19-reportes-comunidad*`; el porqué en **AD-49**;
+el modelo entero en `docs/reportes.md`. Veinticinco tareas, un commit por
+tarea, cada test visto en rojo antes del código.
+
+**Verificado de punta a punta** (navegador a 360 × 800 con la cuenta demo, y
+curl con tres cuentas contra la API en Development):
+
+| Qué | Cómo |
+|---|---|
+| Reportar en un toque | el botón amarillo (reposo y viaje) → "¿Qué ves?" → *Accidente*: 201 con la calle de Photon ("Castillo 33"), pin en el mapa, *Deshacer* cinco segundos |
+| La espera y el duplicado | reportar de nuevo → 429 "Espera 23 segundos…"; mismo tipo a 50 m → 409 con `existingId` |
+| La ficha | tocar el pin: tipo, calle, edad, conteos, quién; *Cerrar reporte* si es propio (204) |
+| En viaje | GPS simulado con `TN_setPosition` cada 25 m: tarjeta "Obra en 186 m", y al pasar los dos botones; *Sigue ahí* → +2 EXP y el pin a confirmado |
+| La ruta que esquiva | gálibo 3,80 m sobre Av. Dorrego: sin validar, El Rayo (4,2 m) lo ve `incompatible` y la ruta pasa a 0 m (11.524 m); con dos confirmaciones queda `Validated` y la ruta pasa a 1.771 m (6.875 m); el Camión pesado (3,8 m) lo ve `compatible` y su ruta no cambia. Pin rojo y ficha "Tu camión no pasa · Confirmado: la ruta lo esquiva" |
+| GraphHopper | `[GraphHopperFact]`: un bloqueo validado en medio de una cuadra de Palermo saca la ruta a más de 15 m; sin bloqueos la ruta es la misma |
+
+**Lo que atraparon los tests, no el ojo:** el recuadro de más de 0,25° se
+recorta al centro y un punto "lejano" del test caía adentro igual; la clave
+compuesta del voto la garantiza la base sólo si se limpia el rastreador de EF
+antes (la lección del 10/09, otra vez); y `pendingRouteAlert` avisa de uno por
+latido, así que simulando con saltos de 150 m dos umbrales en el mismo latido
+pierden uno — con pasos de 25 m, como un GPS real, salen los dos.
+
+**Lo que NO se probó:** nada en el teléfono. Es la franja donde este proyecto
+se equivocó once veces; el APK está por compilar (§8, punto 0).
+
+### Verificado en el teléfono el 18/09/2026 — el GPS de Waze, el usuario tocando y yo leyendo el log
+
+**Método:** el usuario navega la app en el teléfono; yo no puedo tocar la
+pantalla (ver la trampa de `input tap` en §6) y miro dos cosas a la vez:
+`adb logcat -v time -s Web:V Cascara:V Brujula:V` en un archivo y
+`adb exec-out screencap -p` cada tanto. Cada falla se reproduce **primero con
+un test en rojo**, después el arreglo, después el commit. Tres arreglos
+salieron de ahí y están en `origin` (`7b02bfd`, `0ea7228`, `5e78e25`):
+
+| Lo que se vio en el teléfono | Causa | Arreglo |
+|---|---|---|
+| Al cambiar de pantalla y volver al mapa, **ni la Red ni los lugares**; en el log `requires a style "glyphs" property` e `Invalid value used in weak set` | los oyentes `load`/`style.load` del **mapa destruido** seguían disparando y le instalaban capas al mapa nuevo (o a `null`) | guardia `sigueVivo()` en `createMap`; `instalarLugares(null)` no rompe; los pines se precalientan con `nombresDePines()` (antes MapLibre avisaba "could not be loaded" por el `styleimagemissing` asíncrono) |
+| Al alejar para ver la Ciudad entera **desaparecían todas las calles** y la Red quedaba flotando | todas las capas de calles nacían en zoom 11 | `minzoom` por clase en `estilo-mapa.js`: autopista 8, principales 9, avenidas 10, calles 12, senderos 14 |
+| Seis avisos `wire: no hay ningun nodo para "#c-…"` al abrir emergencia y perfil | botones que existen en **un solo modo** se enganchaban sin la marca de opcional | selectores `'#c-agenda?'` etc. en `app.js` y `views/profile.js` |
+
+Lo que se vio andar: el mapa de noche con la jerarquía nueva, la hoja "Más"
+del zócalo sobre el mapa, la pantalla de emergencia y el perfil, y volver al
+mapa sin perder capas después del arreglo. **No se probó en movimiento**: sin
+viaje real no hay banda, chevrón, avisos ni vibración medidos en este teléfono.
+
+**Y el "no veo los cambios en celular" del principio no era la app**: el APK
+nuevo nunca había llegado (ver `adb push` en §6, "Android"). Antes de buscar
+un bug en el código, confirmar con `adb shell pm dump` o con la fecha de
+instalación que lo que corre es lo que se compiló.
+
+### Verificado en el teléfono el 01–02/09/2026 — el usuario tocando la app
+
+**Esta tanda la probó una persona, no un script**, y por eso vale distinto:
+
+| Qué | Resultado |
+|---|---|
+| Selector de la agenda de Android | abre la agenda y devuelve el contacto |
+| Los 3 contactos guardados | **sobreviven a cerrar y abrir la app** — la razón por la que viven en el servidor |
+| Tocar un contacto | abre el discador con el número puesto, sin llamar |
+| Modo reparto de punta a punta | carga paradas, calcula, **arranca en modo GPS** |
+| La hoja con muchas paradas y con alternativas | no se sale de la pantalla; la acción queda alcanzable |
+| Separación de los controles del mapa | con aire, ya no amontonados |
+| El formulario de contactos | con la estética del resto de la app |
+
+**Y encontró seis defectos que ningún test habría atrapado**, todos ellos de "cómo
+se ve y cómo responde en un teléfono concreto". Están enumerados en la lección de
+más abajo.
+
+### Verificado en el teléfono el 01/09/2026
+
+APK de Release instalado con `adb install -r` (30,2 MB) sobre la versión anterior,
+sin desinstalar:
+
+| Qué | Evidencia |
+|---|---|
+| Arranque y conexión | `resultado: alcanzable=True motivo=ninguno` |
+| Errores de JavaScript y crashes | **ninguno** |
+| Zonas de riesgo, radares y símbolos rediseñados | vistos en el APK, no sólo en el navegador |
+
+**Lo que quedó sin ver en el teléfono de esa tanda**: el modo reparto, el selector
+de alternativas y los pasos a nivel entrando y saliendo del viaje. Se verificaron
+end-to-end **en el navegador** — reparto con cuatro paradas reordenadas a
+Caseros → Corrientes 5500 → Rivadavia 11000 → Cabildo 2000, con sus marcadores
+numerados — pero no se tocaron en el APK.
+
+### Verificado en el teléfono el 31/08/2026 — barrido completo
+
+Con la app instalada de cero y el log limpio, sin un solo error:
+
+| Qué | Evidencia |
+|---|---|
+| Conecta sin dirección escrita a mano | `fijada a mano: False`, 84 ms |
+| Interfaz | `interfaz cargada`, **cero errores de JavaScript** |
+| Crashes nativos | ninguno |
+| Brújula | `rot_vec registrado=True`, `declinacion=-10.3` (correcta para CABA) |
+| GPS | permiso OK, última conocida + alta precisión, un solo ciclo de registro |
+| Actualizar sin desinstalar | `adb install -r` → `Success` (AD-35) |
+| Viajes abiertos colgados | 0 de 28 |
+
+Confirmado además por el usuario tocando: botón *Salir*, arrastre del mapa, zoom
+con + y −, y las cruces de origen y destino.
+
+**`Token expired` en el log del backend NO es un bug**: el cliente pide un
+`refresh`, reintenta una vez y sólo cierra sesión si eso falla, con guarda contra
+bucles. Los otros dos avisos del backend —SMTP sin configurar y el *override* del
+bind a `0.0.0.0:5080`— también son esperados.
+
 ### Verificado en el teléfono el 26/08/2026
 
 - **La app entra y conecta.** Costó una noche: ver AD-33, cuatro fallas
   encadenadas que la dejaban inutilizable con una dirección mal escrita.
-- **La brújula anda** con el teléfono en la mano: dial, punto cardinal y cono
-  sobre la ubicación. Reportado por el usuario.
 - **El ruteo desde el teléfono funciona end-to-end**: GraphHopper sirvió cinco
   rutas de camión con el custom model completo, en 7–78 ms.
 
@@ -119,33 +606,158 @@ pudo probar y hay que decirlo cada vez.
   de GraphHopper (**4 m de error en 26 km**); robusto a ±30 m de ruido; detección
   de desvío 0→1→2→3 strikes con enfriamiento; avisos de 35 apelotonados a 26 con
   220 m de separación mínima.
-- **Backend completo**: 85 tests de dominio y utilidades + 46 de integración (11 contra
-  GraphHopper real). Flujos end-to-end por HTTP: alta, verificación, login,
-  perfil, alias único, camiones, propiedad, viajes, acreditación de km.
+- **Backend completo**: **316 tests unitarios + 135 de integración** (13 contra
+  GraphHopper real; medido el 18/09/2026). Flujos end-to-end por HTTP: alta,
+  verificación, login, perfil, alias único, camiones, propiedad, viajes,
+  acreditación de km, contactos de emergencia, paradas del reparto, lugares
+  guardados y recientes, y los votos y aportes de la comunidad. Los unitarios
+  incluyen 17 de la política de reintentos, 11 del orden de alternativas, 14 del
+  orden del reparto y 20 de los contactos; **tres de esos grupos enlazan archivos
+  de Mobile**, que a propósito no depende de MAUI.
+- **189 tests de JS** (`node --test`; eran 62 antes del GPS de Waze): motor de
+  guiado, avisos de ruta, el estilo del mapa, las pantallas del mapa (piezas,
+  viaje, rutas, búsqueda, lugares, capas, aportar, reanudar), el puente de la
+  agenda y el número listo para marcar. Fue un test —y no el teléfono— el que
+  encontró que `Number(null)` es 0 y no `NaN`, con lo que un gálibo sin altura
+  declarada se habría avisado como *"puente de 0,00 m, no pasás"*. Los cinco
+  últimos nacieron de fallas medidas en el teléfono el 18/09 (ver más abajo).
+
+**Lo que los tests SÍ atrapan y lo que no.** Los 640 cubren reglas de dominio y
+lógica pura, y ahí son buenos. **No cubren nada de lo que cruza hacia Android ni
+de cómo se ve una pantalla**, y esa frontera es más ancha de lo que parece: no es
+sólo "el puente", es también qué apps existen en *ese* teléfono, qué acepta *ese*
+discador y cómo cae el layout en *esa* pantalla. Ver la lección de más abajo.
 - **Datos del mapa**: medidos contra Overpass el 24/08/2026, dentro del límite
   administrativo de CABA.
 
 ### NO verificado
 
-- **Navegación manejando.** Nunca se probó en movimiento. Pendiente para cerrar
-  Fase 1: que la flecha siga al camión, que hable en los giros, que el servicio
-  sobreviva a apagar la pantalla.
+- **El despliegue, a medias.** El workflow **corrió por primera vez el 10/09/2026**
+  (`16febd3`) y el resultado fue el mejor posible dadas las circunstancias:
+
+  | Trabajo | Resultado |
+  |---|---|
+  | **Recortar el AMBA** | ✅ **todos los pasos**, 4 min 39 s |
+  | Construir y publicar (arm64) | ❌ cortó en `Bajar el mapa base`, 9 s |
+
+  **Probado de verdad**: la verificación del `config-truck.yml`, los 408 MB de
+  Geofabrik con su caché, **Osmosis corriendo en Linux** —que era el cambio
+  riesgoso, de `.bat` a script de shell—, el recorte, el control de tamaño, el
+  traspaso del artefacto entre trabajos, el runner ARM y el jar de GraphHopper.
+
+  **Sin probar todavía**: la importación del grafo adentro del `docker build` y el
+  push a GHCR. Las dos están detrás del mismo bloqueo: **falta publicar
+  `amba.pmtiles` como release con el tag `mapa-base-amba`**. Es un paso manual de
+  dos minutos y desbloquea el resto del workflow.
+
+  Y `deploy/` **nunca se levantó**: esta máquina no tiene Docker.
+- **El disparador incluye `cuentas-de-usuario` a propósito y es temporal.**
+  Disparando sólo en `main` el workflow no podía correr nunca, y el botón de *Run
+  workflow* tampoco aparece —GitHub sólo lo muestra para workflows que existen en
+  la rama por defecto—. **Al fusionar a `main`, sacar esa línea.**
+- **La instancia de Oracle no existe todavía**: A1 respondió *out of capacity*.
+  Sin ella no hay backend público.
+- **La progresión con kilómetros de verdad.** El viaje de prueba acreditó **0 km**
+  porque se cerró al instante y `TripCrediting` exige que pase la mitad de la
+  duración estimada. Que la barra de nivel se mueva de verdad hay que verlo
+  manejando, como todo lo demás.
+- **Nada de la progresión se probó en el teléfono.** Todo fue por API y por el
+  navegador de escritorio, que es exactamente la franja donde este proyecto ya se
+  equivocó once veces.
+- **Navegación manejando.** Nunca se probó en movimiento, y a esta altura es
+  **lo único que falta para cerrar la Fase 1**: que la flecha siga al camión, que
+  hable en los giros, que el servicio sobreviva a apagar la pantalla, que el
+  nombre verde se lea a velocidad, y que el **modo reparto** y el **selector de
+  alternativas** se usen con las manos ocupadas.
+- **La vibración nunca se sintió.** Compila, instala y no rompe nada, pero que el
+  teléfono efectivamente vibre y que los cuatro patrones se distingan sólo se
+  comprueba manejando (AD-39).
+- **El APK instalado apunta a una IP de la red de casa.** En la calle no va a
+  tener backend: hace falta `demo-up.ps1` y recompilar con esa URL de túnel, o
+  quedarse en la red de casa para la primera vuelta.
 - **La brújula en el soporte del camión.** El usuario la probó en el teléfono el
   26/08/2026 y reportó que **funciona** —dial, cardinal y cono—, pero con el
   aparato en la mano. Falta el caso que motivó no usar `Compass` de MAUI: el
   teléfono **parado en un soporte de parabrisas** (AD-30). Ahí es donde el eje
   cambia, y ahí es donde se sabrá si el trabajo extra valió la pena.
-- **El mapa renderizado.** El panel de navegador de las sesiones no compone
-  frames → el mapa nunca carga tiles → nada que dependa de él se puede ver.
-  Las capas de camión están servidas y empaquetadas pero **no vistas**.
-- **La app en el teléfono, salvo lo que reportó el usuario.**
+- **La app en el teléfono, salvo lo que reportó el usuario** — que al 02/09/2026
+  ya es bastante: ver la tabla de arriba.
+- **Las alternativas y los pasos a nivel dentro y fuera del viaje**, probados en
+  el navegador y no en el APK.
+- **Los tres contactos de emergencia, EN una emergencia.** Se probó que guardan,
+  sobreviven a reinstalar y abren el discador. No se probó lo único que importa:
+  que alguien pueda usarlos con las manos temblando y sin mirar. Eso tampoco se
+  prueba manejando — se prueba el día que hace falta, y ahí no hay segunda vuelta.
+  Es un argumento para no complicar esa pantalla nunca.
 
-### Lección que se pagó cinco veces
+**Cuando el pedido es visual, la referencia visual manda.** El usuario pidió dos
+veces inspirarse en un mapa que compartió, y las dos veces el trabajo se fue a la
+metodología del dato —qué contar, cómo normalizar— antes que al aspecto. Textual:
+*"tenías que orientarte más en lo visual del mapa de maps que en los datos de
+robo"*. Costó rehacer las zonas enteras. Es la lección más cara de la sesión del
+01/09/2026 y no es sobre zonas de riesgo: es sobre cómo leer un pedido.
 
-Las cinco fallas encontradas en el teléfono estuvieron **todas en la costura
-entre la cáscara nativa y la web** — justamente lo único que no se puede probar
-acá. Cuando se toque esa costura, asumir que va a fallar y **pedirle al usuario el
-mensaje de error textual**: cada uno descartó una capa.
+**Ya no es cierto que el mapa no se pueda ver.** Esta skill decía que el panel de
+navegador no componía frames y que las capas estaban "servidas pero no vistas".
+El 01/09/2026 el mapa renderizó, cargó tiles y se pudo iterar el diseño a fuerza
+de capturas. **Dos cuidados** al hacerlo:
+
+- El mapa tarda en componer: una captura tomada enseguida sale a medio dibujar y
+  se lee como "el cambio no funcionó". Esperar y volver a capturar.
+- El **módulo ES queda cacheado** aunque se edite el archivo y se haga
+  Ctrl+Shift+R. Se calibra a ciegas contra código que ya no existe. Para
+  verificar de verdad: `import('/js/layers.js?v=' + Date.now())`.
+
+Para inspeccionar el estado real del mapa desde la consola, el objeto no está
+expuesto; se captura parcheando el prototipo:
+
+```js
+const orig = maplibregl.Map.prototype.setPaintProperty;
+maplibregl.Map.prototype.setPaintProperty = function (...a) { window.__map = this; return orig.apply(this, a); };
+(await import('/js/map.js')).refreshColors();   // dispara la captura
+maplibregl.Map.prototype.setPaintProperty = orig;
+```
+
+Con `window.__map` se puede leer `getStyle().layers`, escuchar `map.on('error')`
+—que es por donde MapLibre reporta los estilos inválidos, **no por excepción**— y
+probar valores en vivo con `setPaintProperty` sin recompilar nada.
+
+### La lección más cara del proyecto, y ya se pagó once veces
+
+**Todo lo que es "cómo se ve y cómo responde en un teléfono concreto" hay que
+hacerlo tocar por una persona.** No es una recomendación de prolijidad: es
+estadística de este proyecto.
+
+Los seis del 01–02/09/2026, todos con los tests en verde:
+
+| Defecto | Qué pasaba |
+|---|---|
+| El selector abría **el explorador de archivos** | `ACTION_PICK` sobre el URI de contactos ni ofrecía la agenda en ese equipo |
+| `ResolveActivity` decía "no hay agenda" | Con la agenda instalada. **El chequeo defensivo introdujo el fallo que venía a evitar** |
+| El discador **no se abría nunca**, ni con el 911 | `PhoneDialer` de MAUI no hacía nada, sin excepción y sin rastro |
+| El formulario sin estilos | Faltaban las clases `.field`/`.input` que ya existían |
+| La hoja **112 px fuera de pantalla** | `flex: none` no la dejaba encogerse |
+| Los controles del mapa **pegados, 0 px** | La separación era un resto de `margin: auto`, no una separación |
+
+Y los cinco anteriores estuvieron **todos en la costura entre la cáscara nativa y
+la web**. Cuando se toque esa costura, asumir que va a fallar y **pedirle al
+usuario el mensaje de error textual**: cada uno descartó una capa.
+
+**Tres reglas que salieron de esta tanda:**
+
+1. **Loguear ANTES de la acción, no sólo el resultado.** El discador no dejaba
+   rastro hasta que alguien elegía, así que cuando abrió la app equivocada el log
+   estaba vacío y no había por dónde empezar. Hoy `call()` loguea el pedido y la
+   cáscara loguea antes y después del Intent: el próximo fallo dice si se cortó en
+   el JavaScript, en el puente o en Android.
+2. **No mezclar un arreglo verificado con una mejora no pedida.** El
+   `ResolveActivity` se agregó "ya que estoy" junto al arreglo del Intent, y rompió
+   el arreglo. Si el arreglo después falla, no se sabe cuál de los dos fue.
+3. **No inferir lo que el usuario no dijo.** Se dio por hecho que el 911 funcionaba
+   —sólo porque no lo había mencionado— y sobre esa inferencia se construyó una
+   explicación completa y elegante del espacio en el URI, que encajaba perfecto
+   porque el 911 es el único número sin espacios. **Era falso.** El razonamiento
+   era bueno y la evidencia, inventada. Ver AD-43.
 
 La cuarta (25/08/2026) fue `confirm()`: el WebView no lo dibuja y devuelve `false`
 en silencio, así que *Terminar viaje*, *Cerrar sesión* y *Borrar camión* parecían
@@ -238,6 +850,13 @@ fallas de la costura nativa-web costaran tanto**: MAUI no instala
 `WebChromeClient`, y sin uno Android descarta los mensajes de consola en
 silencio. Ver AD-31.
 
+**Verificado andando el 28/08/2026** en el Xiaomi de prueba. La sospecha de que
+MIUI filtraba los logs de terceros —que quedó anotada un día en la
+documentación— **era falsa**: el 26/08 la app no pasaba de la pantalla de
+conexión, así que no llegaba a ejecutarse ninguna línea que logueara. Ausencia de
+salida no era ausencia de puente. Lo que lo descartó fue reproducir con el log
+limpio (`logcat -c`, `am force-stop`, `am start`), no razonar mejor.
+
 **Y no diagnostiques con `Debug.WriteLine`**: lleva `[Conditional("DEBUG")]`, el
 compilador borra las llamadas en Release y los mensajes desaparecen justo en el
 APK que se instala en el teléfono. Va `Android.Util.Log`.
@@ -276,15 +895,125 @@ Tres secciones sirven, y conviene mirarlas en este orden:
   debe separar visiblemente ambos.
 - **Verificar, no especular.** Textual: *"no quiero que especules, prefiero que
   busques y confirmes"*. Medir contra la fuente y decir la fecha.
+- **Google Maps es referencia para los POIs, nunca base que se copia
+  (15/09/2026).** Cambió la regla que decía "nunca Google": textual, *"no es
+  copiarle la base de datos, es solo la referencia que tenemos para usarlo de
+  dato. Usa todas las líneas de acceso a la información que se te ocurra"*.
+  Sólo para los POIs; mapa base y ruteo siguen siendo OSM. Coordenadas de OSM o
+  de un registro oficial; lo que sale de una ficha o de reseñas, resumen propio
+  con fecha. **Las reseñas de conductores cuentan como confirmación** —*"si hay
+  reseña lo contamos como aprobado"*—, con la condición de decir *"según
+  reseñas de conductores, consultadas el <fecha>"* y marcar apto sólo el tipo
+  de camión que las reseñas mencionan. Alcance: **CABA más un anillo de ~2 km**
+  (colectoras de la General Paz, Mercado Central, Dock Sud); no es tocar el AMBA.
+  Ver `data-sources.md` "Puntos de interés" y la spec del 15/09.
 - **Regla de acreditación de km aprobada.** Media duración estimada. Textual:
   *"preferible ese abuso antes que romper la app"*. Revisar en Fase 1 con el
   trazado del GPS.
 - **Estética:** seria pero dopamínica. Resuelto como **dos intensidades**: el
   mapa es sobrio, la progresión trae el color. No es sólo estético — impide que
   lo gamificado se filtre a la pantalla que se mira manejando.
-- **Identidad de git del repo:** `bermejolautaro <tarolau97@hotmail.com>`.
+- **El AMBA entra cuando esté su base de datos, y hasta entonces no se toca
+  nada de ese sector.** Textual (01/09/2026): *"no quiero tocar ni romper nada en
+  ese sector hasta tener la base de datos"*. Al salir al público la app tiene que
+  cubrir el AMBA; la información está en recopilación. **L-11 está congelada por
+  esto, no por olvido.**
+- **Cuando algo se pospone por tamaño, vale preguntar si adentro hay una pieza
+  compartida y chica.** La Fase 3 se descartó por esfuerzo, pero el usuario pidió
+  igual el **puente de la agenda** —que lo necesitan sus dos ítems grandes—, y en
+  cuanto lo vio funcionar en el teléfono pidió la funcionalidad completa. La pieza
+  chica andando destrabó el trabajo grande.
+- **La prueba manejando es del usuario y no se puede sustituir.** Lo dice él y lo
+  confirma el registro: *"falta probarlo en viaje como todo lo demás que incluye
+  probar andando"*. No proponerla como tarea propia ni darla por hecha.
+- **Cuando el pedido es VISUAL, la referencia visual manda.** Pasó dos veces con
+  las zonas de riesgo: el usuario pidió inspirarse en un mapa que compartió y el
+  trabajo se fue a la metodología del dato. Textual: *"tenías que orientarte más
+  en lo visual del mapa de maps que en los datos de robo"*. Y una tercera con el
+  formulario de contactos, que salió sin las clases que ya existían: **antes de
+  inventar estilo, mirar cómo se ve el resto de la app**.
+- **Una función está lista cuando cierra el trabajo de la persona, no cuando la
+  pantalla responde.** El modo reparto se declaró completo en AD-41 y **calculaba
+  pero no navegaba** — o sea la mitad. Se había probado end-to-end en el navegador,
+  pero ese ciclo terminaba donde termina la pantalla, no donde termina el trabajo
+  del camionero. Ver AD-45.
+- **Identidad de git del repo:** `Tobias Bermejo <bermejotobias@gmail.com>`
+  (verificado el 01/09/2026 con `git config user.name`; esta skill decía
+  `bermejolautaro <tarolau97@hotmail.com>`, que es el dueño del remoto `hermano`).
 - **Convención de código:** nombres de tipo **en inglés**, comentarios y docs en
   español, **sin acentos dentro de los `.cs`**. Rutas de API en inglés.
+- **La clave de firma de desarrollo se queda como está, y no se respalda todavía.**
+  Decisión del usuario, 10/09/2026. Hoy la app está instalada en **un solo
+  dispositivo**, el del equipo que prueba, así que perder la keystore cuesta una
+  desinstalación y nada más.
+
+  Los datos, para no volver a averiguarlos: vive en
+  `%LOCALAPPDATA%\TruckNavigator\firma-desarrollo.keystore`, alias
+  `trucknavigator`, y su contraseña es `camiones-dev` — **el valor por defecto
+  escrito en `build-apk.ps1`, o sea que está en el repositorio, que es público**.
+  Por eso esta clave sirve para continuidad pero **no para distribuir**.
+
+  **Generar otra es trivial** (`build-apk.ps1` acepta `-Keystore` y
+  `-KeystorePassword`, o la variable `TRUCKNAVIGATOR_KEYSTORE_PASS`). Lo que
+  cuesta no es generarla: es que cambiar de clave obliga a **desinstalar** a todo
+  el que ya la tenga. Por eso el momento a cuidar **no es publicar en Play, es el
+  primer reparto**. Hasta entonces cambiar es gratis.
+
+  Y si algún día va a Google Play, **Play App Signing** reduce mucho el escenario
+  catastrófico: Google guarda la clave final y puede resetear la de subida.
+
+  **No volver a proponer respaldarla**: ya se planteó y se decidió con motivo.
+- **El v3 trajo doce decisiones de producto y NO se repiten acá.** Viven en
+  `producto-camiones-app` §2 bis: la escala de niveles, el zócalo que se esconde en
+  el GPS, la batería sólo en juegos, el idioma único, el invitado que no escribe en
+  el servidor, los logros por escalones, los récords personales, el vocabulario de
+  reportes, y que los cofres quedan guardados como concepto. Duplicarlas acá sería
+  pedir que diverjan.
+- **Preguntar en vez de intuir.** Textual del usuario (09/09/2026): *"preguntame
+  si necesitas detalles y no estes intuyendo"*. Vino después de presentar como
+  propuestas cosas que eran invenciones —las ranuras del avatar, el modelo de
+  metas, la retroactividad—. Lo que se decide solo hay que **marcarlo como tal**, y
+  lo que es de producto se pregunta.
+- **Los escalones y la EXP ya no son provisorios: los eligió el usuario el
+  10/09/2026**, sobre opciones. Ver "Escalas del motor" abajo.
+- **Una escala hay que calibrarla contra la realidad que mide, no contra las otras
+  escalas.** Las tres escaleras contables tenían la misma forma, y eso las dejaba
+  mal calibradas en direcciones opuestas: con una cadencia real de oficio,
+  `repartos` se agotaba en cuatro meses y `nocturnos` tardaba más de seis años.
+  **La misma escala para actividades de cadencia distinta no es coherencia, es no
+  haber mirado.** Lo mismo valía para la EXP: un viaje de 300 km y uno de 20 km
+  pagaban los dos 20.
+- **Los códigos de recompensa son sistemáticos** (`viajes-01`, `nocturnos-01`), no
+  objetos diseñados. Es a propósito: la extensión del v3 §7 prohíbe aproximar nada
+  visual antes de tener las referencias del usuario. Cuando existan los dibujos, el
+  catálogo mapea código a asset sin tocar arquitectura.
+
+**El GPS con la piel de Waze — decididas el 16/09/2026:**
+
+- **Waze es la referencia visual principal del GPS; Google Maps sólo inspira
+  la hoja de capas** (activar/desactivar lugares y datos). Textual: *"imites a
+  waze idénticamente en concepto de viaje, fuentes y tamaños, y todos los
+  criterios visuales de las calles, avisos, etc."* Se copian **patrones y
+  medidas**, medidos sobre sus 16 capturas de noche
+  (`docs/referencias/waze/`); nunca la marca, los Wazers, las ilustraciones ni
+  la tipografía de marca. Las calcomanías son dibujos propios.
+- **Lo más importante es el mapa en reposo y en viaje**, y **la ruta se corrige
+  en el origen, no con otra alerta**: un tramo por el que el camión no pasa
+  queda excluido del cálculo (AD-47). Prioridades que dio, en orden: ruteo
+  seguro → legibilidad de la Red → globos clavados en la calle → calle actual
+  clara → espacios verdes → logos (aparte, después).
+- **Sacar la letra verde de la calle actual**: *"es algo que te pedí yo pero no
+  queda bien"*. Va en la píldora negra, como en Waze (AD-37 reemplazada).
+- **Sin velocímetro** (Waze lo tiene; el usuario dijo que no). Sin micrófono.
+  **Sin hamburguesa en el mapa**: el zócalo tiene "Más".
+- **En viaje**: "Volver a centrar" + "Vista general", y **cambiar de ruta en
+  viaje** con Mapa/Lista e "Ir". El botón de aportar del viaje **sólo agrega un
+  lugar** (los reportes son de la Fase 5).
+- **Casa, Depósito y los recientes viven en el servidor**, como los contactos.
+- **Roboto (la del sistema) sólo dentro del GPS**; Nunito en el resto.
+- **Un módulo por superficie** en `js/mapa/*` con `navigate.js` de anfitrión.
+- **El tema de día se derivó, no se midió**: falta que mande una captura de
+  Waze de día. Y **los logos y la identidad** quedan para una aprobación aparte.
 
 ---
 
@@ -294,16 +1023,76 @@ Tres secciones sirven, y conviene mirarlas en este orden:
 
 - **Node 24.19 y npm 11.17 SÍ están instalados** (verificado el 26/08/2026; la
   nota anterior decía lo contrario y estaba vieja, y esa creencia costó no tener
-  tests sobre el motor de guiado). No hay Python. **Ya hay 28 tests de JS**:
+  tests sobre el motor de guiado). No hay Python. **Ya hay 62 tests de JS**:
   `node --test "tests/web/*.test.mjs"`, con el runner que trae Node, **sin una
   sola dependencia** — no hay `node_modules` ni `npm install`, y el `wwwroot` que
   se sirve y se empaqueta es idéntico con o sin ellos. Ver AD-32. Cubren
   `navigation.js`, que es puro; los módulos que tocan el DOM quedan afuera porque
   necesitarían un DOM simulado, o sea una dependencia.
-- **PowerShell 5.1**, sin `&&` ni operadores modernos.
+- **El SDK de Android puede perder la plataforma que el proyecto necesita.** El
+  28/08/2026 el build murió con `XA5207: no se encuentra android.jar para el nivel
+  API 36`: en `%LOCALAPPDATA%\Android\Sdk\platforms` sólo quedaba `android-37.0`,
+  porque una actualización del SDK Manager reemplazó la 36. **No retargetear el
+  proyecto para esquivarlo** —`targetSdk` cambia el comportamiento del servicio en
+  primer plano y sus permisos (AD-24), y el workload instalado es el de la 36—. Se
+  reinstala la que falta:
+
+  ```powershell
+  dotnet build src/TruckNavigator.Mobile -t:InstallAndroidDependencies -f net10.0-android `
+    -p:AndroidSdkDirectory="$env:LOCALAPPDATA\Android\Sdk" -p:AcceptAndroidSDKLicenses=True
+  ```
+
+  Tarda ~30 s. No hay `sdkmanager` en `cmdline-tools/latest/bin`, así que este es
+  el camino.
+
+- **PowerShell 7**, no 5.1 — la skill decía 5.1 y era falso. Verificado el
+  10/09/2026: `&&`, `||`, el operador ternario y `??` funcionan. Los avisos sobre
+  `$PSScriptRoot` y el desenrollado de arrays que siguen abajo **valen igual**,
+  porque no dependen de la versión.
+- **El backend corriendo BLOQUEA los DLL y el build falla.** Costó dos veces en la
+  misma sesión: `MSB3027 ... El archivo se ha bloqueado por: "TruckNavigator.Api"`.
+  Antes de compilar hay que pararlo. Se mata buscando el proceso por su línea de
+  comando:
+
+  ```powershell
+  Get-Process -Name dotnet | ForEach-Object {
+    $cmd = (Get-CimInstance Win32_Process -Filter "ProcessId = $($_.Id)").CommandLine
+    if ($cmd -like "*TruckNavigator.Api*") { Stop-Process -Id $_.Id -Force }
+  }
+  ```
+
+- **Los mensajes de commit largos van por archivo, con `git commit -F`.** El
+  guardián del entorno **lee rutas dentro del texto del mensaje** y aborta el
+  comando entero con un falso positivo (`Remove-Item on system path ... is
+  blocked`) si el mensaje menciona algo que parece una ruta. Se escribe el mensaje
+  a un archivo del scratchpad y se commitea con `-F`.
+- **No se puede leer la base SQLite desde PowerShell.** El proveedor necesita su
+  DLL nativa `e_sqlite3` y no resuelve por más que se carguen los ensamblados a
+  mano. Para inspeccionar datos reales, el camino que sí funciona es **levantar el
+  backend y pegarle a la API**.
+- **`dotnet-ef` está instalado** en `~/.dotnet/tools`, versión 10.0.11. Las
+  migraciones se crean con:
+
+  ```powershell
+  dotnet ef migrations add <Nombre> --project src/TruckNavigator.Infrastructure `
+    --startup-project src/TruckNavigator.Api --output-dir Persistence/Migrations
+  ```
 - **`$PSScriptRoot` viene vacío dentro del bloque `param()`** → una ruta relativa
   con `..` se ancla en la raíz del disco y el script escribe en `C:\src\...`
   informando éxito. Calcular la ruta en el cuerpo, con `$PSCommandPath`.
+- **`Select-Object -First N` corta el pipeline y MATA el proceso de arriba.** Se
+  usó para acortar la salida de `build-apk.ps1` y PowerShell abortó la compilación
+  a mitad de camino **saliendo con código 0**: parecía que había compilado, y se
+  instaló el APK viejo. Para recortar salida sin cortar el proceso va
+  `Out-String -Stream | Where-Object`, o `| Select-Object -First N` **después** de
+  que el comando terminó.
+- **PowerShell desenrolla los arrays anidados de un nivel.** `, $geometry.coordinates`
+  no preserva la anidación de un polígono, y el síntoma fue "ninguna zona toca
+  CABA" con el dato perfectamente bien. Escribir los casos aparte, y **poner un
+  control del instrumento**: `fetch-zonas-riesgo.ps1` prueba cuatro puntos de
+  coordenadas conocidas —Obelisco y Villa Soldati adentro, Avellaneda y Vicente
+  López afuera— y **tira excepción** si el límite no los clasifica bien. Sin ese
+  control, un filtro geográfico roto se ve igual que un dataset vacío.
 - **Archivos con CRLF.** Los regex de perl con `$` al final o `\n` multilínea
   **no matchean**. Usar `\r?$`, o reconstruir el archivo con `head`/`sed`.
 - **perl con acentos** rompe: `ó` son dos bytes y `(.)` matchea uno solo. Para
@@ -313,11 +1102,67 @@ Tres secciones sirven, y conviene mirarlas en este orden:
 
 ### El navegador de la sesión
 
-- **No compone frames** → `map.on('load')` nunca dispara, no hay screenshots, los
-  clicks son poco confiables. Manejar la app por `javascript_tool`.
+- **Sí compone frames y sí hay capturas** — la nota anterior decía lo contrario y
+  quedó vieja. Pero `map.on('load')` puede no disparar y los clicks son poco
+  confiables: para flujos largos conviene manejar la app por `javascript_tool`.
+  Y el mapa **tarda en componer**: una captura tomada enseguida sale a medio
+  dibujar y se lee como "el cambio no funcionó". Esperar y volver a capturar.
 - **Cachea módulos ES agresivamente**, incluso con `no-cache`. Para probar un
   módulo recién editado, importarlo con `?f=<timestamp>`.
 - **Límite de 30 s por ejecución.** Partir los flujos largos.
+- **No avanza las animaciones CSS con el panel oculto: quedan congeladas en su
+  primer frame.** Costó perseguir un desfase de 14 px que no existía: la hoja
+  tiene `animation: sheet-in`, que arranca en `translateY(14px)`, y al medir
+  aparecía siempre corrida hacia abajo. Anulando la animación caía exactamente
+  donde debía. **Antes de perseguir una diferencia de pocos píxeles, fijarse si el
+  elemento tiene animación de entrada.**
+- **Las coordenadas de un `screenshot` envejecen.** Un clic por coordenada tomada
+  de una captura anterior puede caer en el botón de al lado —pasó: cayó en
+  *Cancelar* en vez de *Guardar*, y pareció que el alta estaba rota—. Para
+  interactuar, `find` / `read_page` y clic **por `ref`**, que no se desplaza.
+
+**Lo aprendido el 16–17/09/2026 verificando el GPS a 360 × 800** (viewport
+emulado con `resize_window`; el panel se pasa la mayor parte del tiempo
+escondido):
+
+- **Con el panel escondido `requestAnimationFrame` no corre y MapLibre no
+  carga el estilo nunca** (`isStyleLoaded()` queda en `false`, el mapa negro,
+  sin error). Se destraba desde `javascript_tool`:
+  `window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), 16);`
+  y después `tnMap.setStyle((await import('/js/mapa/estilo-mapa.js')).buildBasemapStyle(''))`,
+  `await once('idle')`, `installTruckLayers(tnMap)` y `refreshLayerColors(tnMap)`
+  de `layers.js`. `window.tnMap` existe sólo en localhost.
+- **Los clics por coordenada NO llegan al panel emulado** (ni por `ref` en
+  algunos diálogos): "Calcular ruta" y "Abandonar el viaje" no reaccionaban y
+  parecía la app rota. Se dispara con `.click()` desde JS; para escribir en un
+  input, `form_input` por `ref` (sí dispara `input`).
+- **El GPS del viaje se simula con `window.TN_setPosition(lat, lng, 5, 9, 0)`**
+  (el puente nativo; empuja a todos los `watchers`). Las coordenadas de la ruta
+  salen de `tnMap.getSource('route')._data.geometry.coordinates`; dos o tres
+  posiciones seguidas alcanzan para ver la banda, la flecha y los globos.
+- **`import('/js/map.js')` sin cache-buster devuelve LA MISMA instancia que usa
+  la app** (misma URL): sirve para llamar `drawRoute`, `showBalloons`, etc.
+  con el mapa real. Con `?v=` es otra instancia, sin `map`.
+- **El `screenshot` a veces sale en mosaico de 2 × 2 o con el mapa a medio
+  pintar**: es un artefacto del panel escondido, no de la app; se repite y sale
+  bien. Y el `zoom` por región no está soportado (devuelve la captura entera).
+- **Con el preview `api` corriendo, `dotnet build`, `dotnet test` y
+  `dotnet ef` fallan con `MSB3027` (DLL bloqueada)**: `preview_stop` antes, y
+  `preview_start` de nuevo después. Los estáticos de `wwwroot` sí se sirven
+  en caliente; el CSS se refresca cambiando el `href` del `<link>` con `?v=`.
+- **La pestaña del panel puede resumir el viaje abierto** (`/api/trips/active`)
+  al recargar: para ver el reposo hay que abandonarlo primero (`#stop-nav` →
+  "Abandonar el viaje" con `.click()`).
+- **Medir las capturas de Waze**: son 720 × 1600 (÷2 = dp). Con PowerShell y
+  `System.Drawing` (`GetPixel`) se recorren filas/columnas listando tramos de
+  color y cajas de píxeles blancos/celestes; la altura de mayúsculas ÷ 0,711 da
+  el tamaño en sp de Roboto (la "l" mide 0,75). Los scripts vivieron en el
+  scratchpad de la sesión (`medir.ps1`, `extension.ps1`), no en el repo:
+  rehacerlos si hace falta, son 40 líneas.
+- **Bash rompe backticks, comillas y barras al pasar código por `-e` o
+  heredoc**: los parches a archivos grandes se hacen con un `.mjs` en el
+  scratchpad (leer → `replace` con marcas exactas → escribir respetando CRLF),
+  y los mensajes de commit con `git commit -F archivo`.
 
 ### Overpass
 
@@ -361,6 +1206,35 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 - **La página pide la configuración con `ready`**; el nativo no la empuja. El
   chequeo de conexión tarda menos que la carga del WebView y el mensaje se pierde.
 
+**El teléfono de prueba desde `adb` (Redmi Note 14, HyperOS, medido el
+18/09/2026).** `adb` está en `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`.
+
+- **`adb shell input tap` está BLOQUEADO**: `SecurityException … INJECT_EVENTS`.
+  HyperOS exige además *"Depuración USB (Ajustes de seguridad)"*, que el usuario
+  no activó. Consecuencia: **yo no puedo tocar la pantalla**; el usuario navega y
+  yo leo `logcat` y saco capturas con `adb exec-out screencap -p > foto.png`.
+- **`adb push` a `/sdcard/Download` dice "1 file pushed" y NO escribe** (scoped
+  storage): el APK viejo del 31/08 seguía ahí y el usuario instalaba ese — de ahí
+  el *"no veo los cambios en celular"*. **`adb install -r NavegadorCamiones.apk`
+  sí funciona** y actualiza en el lugar porque la clave de desarrollo es estable.
+  El plan B es servirlo por WiFi con un `node` de diez líneas en la IP de la
+  máquina, con `Content-Length` leído por pedido (con el `stat` al arrancar se
+  sirve el tamaño viejo cuando se recompila).
+- **`adb` se pone `unauthorized`/`offline` a ratos** al reconectar el cable; lo
+  destraba el usuario aceptando el cartel de autorización en el teléfono.
+- **El WebView de Release no expone devtools**; el log es la única ventana.
+  Los avisos *Mixed Content* son normales (origen `https` virtual → API `http`).
+  El círculo negro con flechas abajo a la izquierda en las capturas es el botón
+  de rotación de Android, no algo nuestro.
+- **El teléfono está logueado con otra cuenta, no con `demo@camiones.test`**:
+  tiene sus propios camiones ("Camion liviano" de 3,2 m y "Camion pesado" de
+  18 t). Lo que se haga desde el navegador de la sesión con la demo no aparece
+  ahí, y al revés.
+- **Los oyentes de un mapa destruido siguen disparando** (`load`, `style.load`)
+  y, sin guardia, le instalan capas al mapa nuevo o a `null`. En el navegador
+  de la sesión no pasaba porque el mapa no se recrea; en el teléfono, cambiar
+  de pantalla y volver lo recrea. `createMap` guarda `propio` y compara.
+
 ---
 
 ## 7. Cómo levantar todo
@@ -368,7 +1242,8 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 ```powershell
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
-dotnet test                              # 131 tests (.NET) + 28 de JS
+dotnet test                              # 678 tests (.NET)   ·   node --test "tests/web/*.test.mjs" → 342
+node --test "tests/web/*.test.mjs"       # 231 tests de JS — correr desde bash
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
 ```
@@ -382,13 +1257,31 @@ lo correcto.
 - **Cuenta de prueba en desarrollo**: `demo@camiones.test` / `camion2026`, sembrada
   por `DevUserSeed` sólo en `Development`. Mail confirmado y perfil completo
   (alias `demo`): entra directo al mapa sin buscar el enlace en el log.
-- IP del usuario al 26/08/2026: `192.168.100.106` (el 25/08 era `192.168.1.78` y
-  el 24/08 `192.168.100.106` otra vez — **cambia de red en red y volvió a cambiar
-  a mitad de una sesión de pruebas, verificarla siempre**, con
-  `Get-NetIPAddress -AddressFamily IPv4`). La app deja corregirla desde
-  *Configurar servidor* en el teléfono, y `network_security_config.xml` ya
-  permite HTTP en claro a cualquier dirección, así que cambiarla **no obliga a
-  recompilar**. Si el APK quedó con la IP vieja, se arregla desde el teléfono.
+- **La IP de la máquina cambia todo el tiempo. Verificarla SIEMPRE**, es lo
+  primero de cada sesión:
+
+  ```powershell
+  (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -eq 'Dhcp' }).IPAddress
+  ```
+
+  Historial medido: `192.168.100.106` (24/08) → `192.168.1.78` (25/08) →
+  `192.168.100.106` (26/08, a mitad de una sesión de pruebas) → `192.168.1.52`
+  (28/08). La app deja corregirla desde *Configurar servidor*, y
+  `network_security_config.xml` permite HTTP en claro a cualquier dirección, así
+  que **no obliga a recompilar** — pero recompilar con `-ApiUrl` es más cómodo y
+  se instala solo.
+
+- **La regla de firewall `TruckNavigator API 5080 (dev)` está limitada a una
+  subred**, y el 28/08 seguía apuntando a `192.168.100.0/24` estando la máquina en
+  `192.168.1.x`. **Aun así el teléfono llegaba**, así que no dar por hecho que
+  bloquea: medirlo con `toybox nc` antes de perseguir ese fantasma.
+  Cambiar la regla es configuración de seguridad del sistema: pedírselo al
+  usuario, no hacerlo.
+
+- **Con el teléfono por USB hay un camino que no depende de la red ni del
+  firewall**: `adb reverse tcp:5080 tcp:5080` y configurar la app con
+  `http://127.0.0.1:5080`. Sirve para probar de escritorio; para manejar hace
+  falta la IP de red.
 - **`adb` está en `%LOCALAPPDATA%\Android\Sdk\platform-tools`**, no en el SDK de
   Visual Studio. `build-apk.ps1 -Push` busca en ambos desde el 25/08/2026.
 - **El túnel de `demo-up.ps1`: si el hostname no resuelve, reabrirlo.** Confirmado
@@ -409,22 +1302,252 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-**Inmediato:** cerrar Fase 1 probando en movimiento. Orden que más rápido
-descarta problemas: ¿carga la interfaz? → ¿el GPS ubica? → **¿el dial de la
-brújula marca bien con el teléfono en el soporte?** → ¿aparece la notificación al
-arrancar el viaje? → **¿avanza la flecha tras apagar la pantalla un minuto?** →
-¿habla en los giros?
+### 0. EL FRENTE VIVO — la entrada y el invitado, y el hosteo (30/09/2026)
 
-**Fase 4 está cerrada.** El mapa base propio en PMTiles resolvió el minimalismo,
-el día/noche del fondo y **L-4** — ya no se depende de `tile.openstreetmap.org`
-(AD-26).
+**Las fases 6 y 7 se partieron en cinco subproyectos** porque juntas no entran
+en una sola spec:
 
-**Después:** Fase 3 (seguridad: pánico con 3 contactos, compartir viaje), modo
-reparto, Fase 5 (comunidad y gamificación), i18n.
+| | Subproyecto | Estado |
+|---|---|---|
+| **A** | La entrada y la cáscara | ✅ **hecho el 30/09/2026** (AD-51), salvo el teléfono |
+| **B** | Las pantallas del progreso: Resumen, Metas, Logros, *Subiste de nivel*, *Racha*, perfil y carnet con el vocabulario | el siguiente |
+| **C** | El avatar y la colección | **bloqueado por los dibujos**, que no existen |
+| **D** | La batería y la trivia | pendiente |
+| **E** | El chat | proyecto aparte |
 
-**Sin fuente y por lo tanto sin hacer:** las *zonas peligrosas* no tienen dato
-oficial publicable. La única vía honesta es construirlas con reportes de la
-comunidad, **siempre etiquetadas como tales**. No inventar.
+**Dos cosas que las fuentes suponen y el motor NO tiene**, para el subproyecto B:
+los récords personales **nunca se escriben** —la tabla existe, el endpoint los lee
+y `PersonalRecords.Improve` está probado, pero nada en `src/` lo llama— y **la
+racha no existe** en el dominio, aunque el prototipo tenga su tablero y la mascota
+su pose.
+
+**Mirar las pantallas encontró tres defectos más** (30/09, después de los docs),
+ninguno visto por los tests: dos filas del menú MÁS salían **sin ícono** porque
+`icono()` devuelve vacío para un nombre que no existe; la **lista de Reportes**
+reventaba entera sin GPS (`bbox.join is not a function`) porque el recuadro tenía
+dos formas, arreglo desde el fix y cadena desde el mapa; y el mapa pedía **42
+reportes por minuto estando quieto**, porque el freno de red sólo frena fallas y
+acá los que fallaban eran los tiles. Los tres, arreglados con test que los ve en
+rojo primero.
+
+**Lo que falta de A: el teléfono.** Compilar el APK y que el usuario recorra la
+entrada de cero, pruebe el invitado y cree la cuenta. Es la franja donde este
+proyecto se equivocó once veces.
+
+### El hosteo (29/09/2026)
+
+El usuario está poniendo la app a andar fuera de la red local "en estos días",
+así que **el test en calle y lo de Oracle quedaron explícitamente fuera de la
+conversación** (29/09/2026). El límite de tasa, que era lo transversal que
+faltaba, se hizo ese día (AD-50, ver §4).
+
+**Lo que el pipeline va a pedir, medido el 29/09/2026 y en este orden:**
+
+1. **Pushear.** El workflow dispara con `push` a `main` *o* a
+   `cuentas-de-usuario` (ese segundo trigger está ahí a propósito porque `main`
+   quedó atrás). Sin push no se construye ninguna imagen. Al 29/09 son **38
+   commits sin pushear** (39 con el de documentación); push sólo si lo pide.
+2. **El release `mapa-base-amba` no existe todavía** (`gh release list` no
+   devuelve nada) y el workflow **corta** si no encuentra `amba.pmtiles` como
+   asset de ese tag. El archivo está en disco: `routing/amba.pmtiles`, 55,8 MB.
+3. **SMTP**: en `Production` el backend no arranca sin la sección `Email`, y
+   `DevUserSeed` no corre fuera de Development, así que **`demo@camiones.test`
+   no va a existir** — la cuenta del usuario hay que registrarla de verdad. El
+   proveedor es una decisión suya.
+4. **La clave de firma es de desarrollo.** Para repartir el APK va una propia
+   con respaldo (AD-35).
+
+Lo que sí está bien: el `config-truck.yml` **commiteado** apunta a
+`amba-latest.osm.pbf` y el workflow lo verifica; el cambio local nunca se coló.
+
+**Y un efecto secundario que importa:** con un dominio fijo, probar en el
+teléfono deja de depender de en qué red está la máquina — que es lo que hizo
+que el APK del 19/09 nunca se instalara.
+
+### HECHOS, SIN PUSHEAR Y SIN TELÉFONO — los reportes de la comunidad (19/09/2026)
+
+**Fue el frente vivo hasta el hosteo.** El usuario pidió la Fase 5 el 19/09/2026 con un brief
+largo (Waze en lógica, no en diseño), eligió inline con revisión entre tareas,
+y decidió: **sólo en la posición GPS**, sin *vehículo detenido* ni *límite de
+peso*, **la cámara muy confirmada es fija (+5) y lo mismo gradúa un lugar
+aportado**. Spec `docs/superpowers/specs/2026-09-19-reportes-comunidad-design.md`,
+plan `docs/superpowers/plans/2026-09-19-reportes-comunidad.md` (25 tareas, las
+cinco etapas marcadas), AD-49, `docs/reportes.md`. Todo commiteado en
+`cuentas-de-usuario`, **sin pushear** (push sólo si lo pide).
+
+**Lo que falta de este frente:** compilar el APK (`.\build-apk.ps1 -ApiUrl
+http://<ip del día>:5080`, `adb install -r`) y que el usuario reporte y confirme
+desde el teléfono con su cuenta mientras se lee el log; con dos cuentas en la
+misma cuadra se ve validar. Después, lo anotado en `producto-camiones-app`
+Fase 5: la lista de reportes propios en "Más", pintar el tramo en rojo, y
+recalcular sola en viaje.
+
+### El GPS con la piel de Waze (16–18/09/2026) — hecho y en el teléfono
+
+**Es el frente vivo y va primero.** El usuario aprobó el prototipo medido
+sobre sus capturas de Waze (`docs/diseno/prototipo-gps/`, lienzo
+https://claude.ai/artifact/42KH4a8piCQSCb5xez2K4H) con *"ahora sí, aprobado,
+vamos a implementarlo. arrancá pantalla por pantalla"*. Spec:
+`docs/superpowers/specs/2026-09-16-gps-waze-design.md`. **Plan con casillas y
+la nota "Dónde quedamos":** `docs/superpowers/plans/2026-09-16-gps-waze.md`
+— leer esa nota antes que nada.
+
+**Al 18/09/2026: etapas 1 a 9 hechas y verificadas en el navegador a
+360 × 800**, una por commit: ruteo seguro (AD-47); tokens y mapa base con la
+jerarquía de Waze; la pantalla del viaje entera —banda, hoja, píldora de la
+calle, ruta de 8 con canto, chevrón, flecha de maniobra, globos de nueve
+partes, tarjeta de aviso—; volver a centrar; vista general Mapa/Lista con
+línea de tiempo y cambiar de ruta en viaje; Casa/Depósito y recientes en el
+servidor; reposo y búsqueda; **la lista de rutas** (`250fbb4`) y **los
+detalles con el mono** (`1de346f`); **la capa de lugares** con pines de 32
+(`e609a0b`, y el nivel es `Confirmed`, no `Verified`: `1ae030c`); **la ficha
+y el voto** (`bb681c3`); **la hoja de capas** con un solo botón flotante
+(`e2f53e6`); **aportar un lugar** desde el viaje y desde capas (`399cdfd`);
+**"¿Seguís yendo a…?"** al abrir con viaje abierto (`49ead2e`); y **el día**,
+derivado y verificado (`642d40f`). **La Task 28** (docs, AD-48, CLAUDE.md,
+README del prototipo, estas skills) y **la Task 29** (451 tests .NET, 189 web,
+recorrido noche y día, el APK) están hechas: **el plan está completo**. El
+18/09 el usuario pidió el push —*"pushea la rama a origin"*— y la rama está
+en `origin/cuentas-de-usuario` con todo, incluidos los tres arreglos que
+salieron de probar en el teléfono ese mismo día (§4, "Verificado en el
+teléfono el 18/09/2026"). `gh` quedó logueado como `bermejotobias-byte`.
+**Lo que falta es probarlo en movimiento**, con un viaje real: eso es del
+usuario y es lo único que este frente tiene pendiente.
+
+Lo que apareció verificando las etapas 6 a 9 y se corrigió en el origen: el
+nivel de verificación real de la API es `Confirmed`; `load` de MapLibre se
+dispara una sola vez por mapa (las capas se reinstalan en `style.load`); las
+hojas altas van clavadas abajo y no en el flujo de `.map-overlay`; el nombre
+`gps-aportar` ya era el botón amarillo del viaje (la capa es `gps-aporte`);
+dos radares en el mismo lugar se nombran una vez en los detalles; la chapa
+del gálibo del mapa pasó a dibujar el mismo arco que su cuadro de capas.
+
+Dos cosas que aparecieron verificando y se corrigieron **en el origen**, no
+con un parche: `POST /api/trips` pedía una sola ruta al motor y el viaje
+arrancaba por otra que la recomendada, sin el filtro de AD-47 → `TripRoutes` +
+`routeIndex` (`ac590ac`); y el rótulo verde de la calle actual se sacó a
+pedido del usuario (*"no queda bien"*) → píldora negra, AD-37 reemplazada.
+
+Decisiones tomadas en esta tanda (ver "Decisiones", más abajo, y CLAUDE.md):
+sin velocímetro, sin micrófono, sin hamburguesa en el mapa; Roboto sólo en el
+GPS; los lugares guardados en el servidor; el S.O.S. siempre visible en viaje;
+"Volver a centrar" en 18 sp porque a 20 no entra (medido); los logos y la
+identidad quedan para una aprobación aparte. El tema claro se derivó, no se
+midió, y **el usuario lo aprobó así el 18/09/2026**: no hace falta la captura.
+
+**Ya no hay nada de la Fase 1 que se pueda construir acá.** Lo único que queda es
+probarla en movimiento, y eso es del usuario. Orden que más rápido descarta
+problemas: ¿carga la interfaz? → ¿el GPS ubica? → **¿el dial de la brújula marca
+bien con el teléfono en el soporte?** → ¿aparece la notificación al arrancar el
+viaje? → **¿avanza la flecha tras apagar la pantalla un minuto?** → ¿habla en los
+giros? → **¿vibra, y se distingue el patrón del gálibo del de doblar?**
+
+Y el log, que es lo que va a decir dónde atacar sin tener que reproducir:
+`adb logcat -s Web Cascara Brujula`.
+
+**Lo acordado el 01/09/2026 ya se hizo**, y el resultado corrigió una prioridad:
+
+- **L-11 quedó CONGELADA por decisión del usuario**, no hecha. No tocar nada del
+  sector AMBA hasta tener su base de datos: el aviso de cobertura y la ampliación
+  son el mismo trabajo, y hacerlo ahora significa escribir el límite en el código
+  para reescribirlo entero después. **No volver a proponerlo**: ya se ofreció y se
+  rechazó con motivo. Ver `data-sources.md` L-11.
+- **Los 3 contactos de emergencia están hechos** (AD-42, AD-43) y verificados en
+  el teléfono.
+
+**Lo que queda, al 19/09/2026:**
+
+**Del despliegue** — nada de esto depende de programar, y todo está bloqueando:
+
+1. **Conseguir la instancia A1 en Oracle.** Respondió *out of capacity*. El stack
+   está guardado, así que reintentar son dos clicks. Si no aparece, el plan B son
+   los dos micros x86, que ya está pensado.
+2. **Publicar `routing/amba.pmtiles` como release con el tag exacto
+   `mapa-base-amba`.** El workflow lo busca por ese nombre y corta si no está.
+3. **SMTP y DuckDNS.**
+
+**De la gamificación** — el motor está, y de las pantallas:
+
+4. ~~Elegir la tipografía~~ — **Nunito**, vendorizada el 10/09. Más **Space Mono**
+   sólo para el carnet.
+5. ~~El perfil~~ — **hecho el 10/09**, con la estructura de Duolingo. Absorbió el
+   resumen. Lo que le falta: la recompensa dibujada junto a cada barra de meta
+   (no hay arte) y el chevron de logros (no hay pantalla).
+6. **La pantalla de Logros** (`diseno-camiones-app` §13): récords personales en
+   fila horizontal y la grilla de 3 de la colección. Cuando exista, la fila de
+   logros del perfil recupera su chevron, que hoy está sacado a propósito.
+7. **El carnet está construido pero NO aprobado** (12/09): *"no me gusta pero por
+   el momento vamos a dejarlo así"*. Cuando se retome, preguntar primero qué no
+   le gusta. Quedan además la **vista pública** (endpoint + proyección sin la
+   fecha de nacimiento) y **compartirlo como imagen**.
+8. **De la Fase 7, el zócalo está hecho** (12/09, `js/dock.js`): cuatro accesos,
+   se esconde durante el viaje, "Más" abre su hoja, y hay pantalla `juegos`
+   "pronto". Ver `diseno-camiones-app` §4. **Queda** el flujo de entrada (intro →
+   idioma → condiciones → acceso) y el **modo invitado**. El hamburguesa del mapa **ya se sacó** con el GPS de Waze (16/09): el
+   zócalo tiene "Más".
+9. ~~La pantalla de fin de viaje~~ — **hecha el 12/09** (`views/fin-viaje.js`),
+   con el sistema de momentos de la mascota (`js/mascota.js`) y las insignias
+   en pixel art con la escala de Duolingo (`js/logros.js`). El cierre del viaje
+   ahora devuelve `earned`. **La mascota se ve y está aprobada (14/09)**: el
+   usuario convirtió las hojas a PNG y `data/cortar-mascota.ps1` las cortó en
+   **13 poses** (964 KB). Falta `neutro` —sólo existe con gorra MACK, marca
+   ajena— y las hojas mezclan botas y descalzo. Ver `diseno-camiones-app` §12.
+   **Falta verla en el teléfono al cerrar un viaje real.**
+9b. **El prototipo de diseño está aprobado como dirección y NO se codifica
+   todavía** (14/09). Está en `docs/diseno/prototipo/` y en el lienzo que
+   enlaza su README. Ver `diseno-camiones-app` §16. Cuando el usuario diga,
+   el orden es: vocabulario en `app.css` (vidrio, neón, cromo en tres tonos,
+   chapa, globo, fichas, fila) → Bienvenida y Entrar → Perfil sin banda →
+   festejos → el resto. **Racha, Metas y Logros no existen en código**: el
+   prototipo es su primera definición.
+10. **La vista pública del perfil** — endpoint para ver el perfil de otro
+    usuario. El perfil se diseñó como público (*"visible para el resto de los
+    usuarios"*), pero **no existe forma de que otro lo vea**. Sin esto, la
+    comunidad no tiene con qué empezar.
+
+**De antes, sin cambios:**
+
+11. **Compartir viaje por WhatsApp** — lo último construible de la Fase 3. Necesita
+   endpoint público de seguimiento, tokens que venzan y decisiones de privacidad:
+   es un trabajo grande disfrazado de botón. **El puente de la agenda ya existe.**
+12. ~~Fase 5 (reportes) y POIs valorados~~ — **hechas el 19/09/2026** (AD-49):
+   las decisiones que faltaban las tomó el usuario en la spec, y la pista
+   `reportes` es, efectivamente, una pista más en el catálogo. Ver el punto 0.
+12b. ~~La interfaz de POIs en la app web~~ — **hecha el 17–18/09/2026 dentro
+   del GPS de Waze**: la capa de lugares con un pin por estado (`e609a0b`), la
+   ficha con la evidencia, el bloque de la comunidad y el voto (`bb681c3`), la
+   hoja de capas con "solo aptos para mi camión" y el contador de ocultos
+   (`e2f53e6`), y aportar desde el viaje y desde capas, con el 409 que ofrece
+   votar el existente y el `earned` en el toast (`399cdfd`). **Probado en el
+   teléfono el 18/09**: el usuario aportó "Kiosko 24HS" y votó desde su
+   cuenta; salió como "@anónimo" porque esa cuenta no tiene alias, que es lo
+   previsto. Lo que no hay es el festejo con la mascota por el aporte — hoy es
+   un toast.
+   **Cómo seguir relevando** está en `data/relevamiento/README.md`: la
+   herramienta de armado quedó en el scratchpad de la sesión, no en el repo;
+   si hace falta otra tanda, rehacerla desde la plantilla del plan (Task 8).
+13. **Los cinco juegos** — proyecto aparte. La trivia es la más definida y sería la
+   primera.
+
+**Dos cosas menores que quedaron anotadas y sin hacer, a propósito:**
+
+- **Ampliar la hoja en modo reparto.** Medido: se limita en 472 px y su
+  `max-height` permite 584, así que el tope **no es el `max-height` sino los
+  botones del mapa**. Ampliarla exige sacarle controles al mapa durante el
+  reparto, y eso es decisión de producto (AD-44).
+- **La hoja re-dispara su animación de entrada en cada redibujo**, así que salta
+  14 px cada vez que se agrega o quita una parada. En el navegador no se nota
+  porque las animaciones quedan congeladas; en el teléfono sí. Es un cambio de una
+  línea, pero **no se hizo porque no se pidió** — la lección de esta sesión fue
+  justamente lo que cuesta mezclar una mejora no pedida con un arreglo.
+
+**Las zonas peligrosas están hechas, y NO salen del dato oficial.** Esta skill
+afirmó primero que no había fuente, después que era el Mapa del Delito del GCBA, y
+las dos veces se equivocó. Lo vigente: el **mapa colaborativo del AMBA**, 19 zonas
+que tocan CABA, 8,8 km², el 4,3% de la Ciudad. El dato oficial se probó y **se
+descartó**: contar hechos mide dónde hay gente —Palermo encabezaba la Ciudad— y
+como el dataset cubre exactamente CABA, el mapa de calor dibujaba la silueta del
+límite administrativo. Ver AD-36 y `data-sources.md` §7.
 
 ---
 
@@ -434,7 +1557,7 @@ comunidad, **siempre etiquetadas como tales**. No inventar.
 
 Está en el código (`bool?` de tres estados para aptitud), en el generador de
 capas (`maxheight=default` no es una altura; barrera sin declarar no es barrera
-ausente), y en la documentación (L-1 a L-8). Es lo que hace auditable al sistema
+ausente), y en la documentación (L-1 a L-11). Es lo que hace auditable al sistema
 y defendible al producto frente a Waze y Google Maps.
 
 Si hace falta un dato que no existe: **decirlo, no rellenarlo.**
@@ -444,9 +1567,28 @@ Si hace falta un dato que no existe: **decirlo, no rellenarlo.**
 ## 10. Comandos de datos y mapa
 
 ```powershell
-.\data\build-basemap.ps1           # mapa base del AMBA (53 MB) -> routing/amba.pmtiles
-.\data\fetch-caba-map-layers.ps1   # Red, gálibos y sapitos -> wwwroot/data/*.geojson
+.\data\build-basemap.ps1             # mapa base del AMBA (53 MB) -> routing/amba.pmtiles
+.\data\fetch-caba-map-layers.ps1     # Red, gálibos y sapitos -> wwwroot/data/*.geojson
+.\data\fetch-radares-velocidad.ps1   # 129 cinemómetros, dato oficial del GCBA
+.\data\fetch-zonas-riesgo.ps1        # zonas peligrosas, del mapa comunitario del AMBA
 ```
+
+**Los radares salen de Buenos Aires Data** (oficial, CC-BY), no de OSM: otra
+licencia y otra cadencia, y por eso vive en un script propio. **Las zonas
+peligrosas salen del KML de un mapa colaborativo**, que no es oficial y no tiene
+grados: hay dos estados, marcada y no marcada, y **la app nunca dice "zona
+segura"** — que un lugar no aparezca significa que nadie lo marcó.
+
+**El heatmap se alimenta con PUNTOS, nunca con una grilla.** Normaliza por
+densidad de puntos: con una grilla regular la redibuja como lunares alineados, y
+agrandar el radio sólo da lunares más grandes. El script rellena cada zona con
+puntos cada 60 m y los publica en **un solo MultiPoint** — la envoltura de miles
+de features pesa más que las coordenadas.
+
+**El encoding cambia según el portal y hay que verificarlo, no suponerlo.** El CSV
+de cámaras viene en **Latin-1**; los datasets del portal de delitos, en **UTF-8**;
+Overpass no declara charset y PowerShell 5.1 lo asume ISO-8859-1. Cada uno costó
+su tanda de mojibake.
 
 El **mapa base no se versiona ni entra en el APK** y se sirve bajo `/tiles`; si
 falta, el mapa cae al raster de OSM con un aviso en consola. Las **capas de

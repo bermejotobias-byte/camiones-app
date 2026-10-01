@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TruckNavigator.Domain.Pois;
+using TruckNavigator.Domain.Progression;
+using TruckNavigator.Domain.Reports;
 using TruckNavigator.Domain.Trips;
 using TruckNavigator.Domain.Trucks;
 using TruckNavigator.Domain.Users;
@@ -28,9 +30,33 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<PointOfInterest> PointsOfInterest => Set<PointOfInterest>();
 
+    public DbSet<PoiVote> PoiVotes => Set<PoiVote>();
+
     public DbSet<DriverProfile> DriverProfiles => Set<DriverProfile>();
 
     public DbSet<Trip> Trips => Set<Trip>();
+
+    public DbSet<EmergencyContact> EmergencyContacts => Set<EmergencyContact>();
+
+    public DbSet<SavedPlace> SavedPlaces => Set<SavedPlace>();
+
+    public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
+
+    public DbSet<DriverTrackProgress> TrackProgress => Set<DriverTrackProgress>();
+
+    public DbSet<DriverReward> Rewards => Set<DriverReward>();
+
+    public DbSet<DriverLoadout> Loadout => Set<DriverLoadout>();
+
+    public DbSet<DriverRecord> Records => Set<DriverRecord>();
+
+    public DbSet<DriverProgressMark> ProgressMarks => Set<DriverProgressMark>();
+
+    public DbSet<Report> Reports => Set<Report>();
+
+    public DbSet<ReportVote> ReportVotes => Set<ReportVote>();
+
+    public DbSet<DriverReputation> DriverReputations => Set<DriverReputation>();
 
     /// <summary>
     /// Guarda un instante como ticks UTC en lugar de texto.
@@ -65,6 +91,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         truck.Property(t => t.Name).IsRequired().HasMaxLength(120);
         truck.Property(t => t.VehicleType).HasConversion<string>().HasMaxLength(32);
 
+        // Identidad del vehiculo, para el carnet. La patente va en forma canonica
+        // (7 caracteres como maximo, sin espacios) y la valida LicensePlate antes de
+        // llegar aca.
+        truck.Property(t => t.Brand).HasMaxLength(40);
+        truck.Property(t => t.Model).HasMaxLength(40);
+        truck.Property(t => t.Plate).HasMaxLength(7);
+
         // Propiedades calculadas: viven en el dominio, no en la tabla.
         truck.Ignore(t => t.GrossWeightTons);
         truck.Ignore(t => t.TotalLengthMeters);
@@ -96,6 +129,48 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         poi.Property(p => p.Website).HasMaxLength(300);
         poi.Property(p => p.OpeningHours).HasMaxLength(200);
         poi.Property(p => p.Description).HasMaxLength(1000);
+
+        // La evidencia es texto corto con fecha; el tipo va como texto para que la
+        // base se lea a simple vista, igual que la categoria y el nivel.
+        poi.Property(p => p.SuitabilityEvidence).HasMaxLength(600);
+        poi.Property(p => p.SuitabilityEvidenceKind).HasConversion<string>().HasMaxLength(32);
+
+        // Las filas que ya existen en una base creada antes de esta columna quedan en
+        // false; el seed las adopta por id en el primer arranque (ver PointOfInterestSeed).
+        poi.Property(p => p.ManagedByDataset).HasDefaultValue(false);
+
+        // Lo aportado por un usuario. Si la cuenta se borra, el lugar queda —ya es
+        // de todos— pero sin autor.
+        poi.Property(p => p.ContributedAt).HasConversion(NullableUtcTicks);
+        poi.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(p => p.ContributedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        var vote = modelBuilder.Entity<PoiVote>();
+
+        // Un voto por camionero y lugar: la clave compuesta lo hace imposible de
+        // duplicar por construccion. Cambiar de opinion es reescribir la fila.
+        vote.HasKey(v => new { v.PoiId, v.DriverId });
+        vote.Property(v => v.TruckClass).HasConversion<string>().HasMaxLength(16);
+        vote.Property(v => v.Verdict).HasConversion<string>().HasMaxLength(16);
+        vote.Property(v => v.CastAt).HasConversion(UtcTicks);
+        vote.Property(v => v.UpdatedAt).HasConversion(UtcTicks);
+
+        // La ficha cuenta los votos de un lugar: el indice es por lugar. El de la
+        // clave ya cubre la consulta "que vote yo aca".
+        vote.HasIndex(v => v.PoiId);
+
+        // El voto es del lugar y de la persona: se va con cualquiera de los dos.
+        vote.HasOne<PointOfInterest>()
+            .WithMany()
+            .HasForeignKey(v => v.PoiId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        vote.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(v => v.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // La fuente es obligatoria a nivel de esquema: un punto sin origen citable no
         // deberia poder guardarse, del mismo modo que una restriccion no se emite sin
@@ -131,6 +206,24 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         driver.Property(d => d.AvatarId).HasMaxLength(64);
         driver.Property(d => d.CreatedAt).HasConversion(UtcTicks);
 
+        // Codigo de pais de dos letras. Se guarda el codigo y no el nombre porque
+        // el nombre depende del idioma en que se muestre.
+        driver.Property(d => d.Nationality).HasMaxLength(2);
+
+        // DateOnly va como texto ISO en SQLite, que es lo que EF hace solo desde la
+        // 8. No pasa por el conversor de ticks porque no es un instante: es un dia.
+
+        // El camion que se exhibe en el perfil.
+        //
+        // SetNull y NO Cascade: borrar un camion deja la seleccion vacia, pero el
+        // perfil sigue existiendo. Con Cascade, perder un vehiculo le costaria a la
+        // persona su alias, su nombre y su avatar — es el mismo criterio por el que
+        // borrar un camion tampoco borra los viajes hechos con el.
+        driver.HasOne<TruckProfile>()
+            .WithMany()
+            .HasForeignKey(d => d.ActiveTruckId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         driver.Ignore(d => d.IsComplete);
 
         // "El nickname es unico e irrepetible". La regla de formato vive en el
@@ -148,6 +241,44 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .HasForeignKey<DriverProfile>(d => d.Id)
             .OnDelete(DeleteBehavior.Cascade);
 
+        var contact = modelBuilder.Entity<EmergencyContact>();
+
+        contact.HasKey(c => c.Id);
+        contact.Property(c => c.Name).IsRequired().HasMaxLength(EmergencyContactRules.MaxNameLength);
+        contact.Property(c => c.Phone).IsRequired().HasMaxLength(EmergencyContactRules.MaxPhoneLength);
+
+        // La fecha lleva el conversor a ticks como todas las del sistema: SQLite no
+        // sabe ordenar por DateTimeOffset y este orden se usa en cada lectura.
+        contact.Property(c => c.AddedAt).HasConversion(UtcTicks);
+
+        // Borrar la cuenta borra sus contactos. Son datos de esa persona sobre
+        // terceros: no hay ninguna razon para que sobrevivan a la cuenta, y si la
+        // hubiera seria una mala razon.
+        contact.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(c => c.OwnerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Se leen siempre los de un camionero, en orden de carga.
+        contact.HasIndex(c => new { c.OwnerId, c.AddedAt });
+
+        var place = modelBuilder.Entity<SavedPlace>();
+
+        place.HasKey(p => p.Id);
+        place.Property(p => p.Kind).HasConversion<string>().HasMaxLength(16);
+        place.Property(p => p.Label).IsRequired().HasMaxLength(SavedPlaceRules.MaxLabelLength);
+        place.Property(p => p.SavedAt).HasConversion(UtcTicks);
+
+        // Uno por tipo y por camionero: guardar Casa de nuevo la reemplaza. El
+        // indice unico es la garantia; el endpoint solo decide si crea o pisa.
+        place.HasIndex(p => new { p.OwnerId, p.Kind }).IsUnique();
+
+        // Borrar la cuenta borra sus lugares: son de esa persona.
+        place.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(p => p.OwnerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         var trip = modelBuilder.Entity<Trip>();
 
         trip.HasKey(t => t.Id);
@@ -160,6 +291,31 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
         trip.Ignore(t => t.Elapsed);
         trip.Ignore(t => t.IsOpen);
+
+        // Las paradas van como JSON en una columna, no en tabla propia: son de
+        // este viaje y no se consultan por separado nunca. Mismo criterio que los
+        // servicios de un punto de interes.
+        //
+        // El ValueComparer no es opcional: sin el, EF compara por referencia y un
+        // cambio en la lista pasa inadvertido porque la referencia sigue siendo la
+        // misma.
+        trip.Property(t => t.Stops)
+            .HasConversion(
+                stops => JsonSerializer.Serialize(stops, (JsonSerializerOptions?)null),
+
+                // El chequeo de vacio no sobra: EF puso "" como valor por defecto
+                // al crear la columna, y deserializar una cadena vacia TIRA
+                // excepcion. Una fila vieja asi haria ilegible el historial
+                // entero. La migracion ya quedo con "[]", esto es el cinturon.
+                json => string.IsNullOrWhiteSpace(json)
+                        ? new List<TripStop>()
+                        : JsonSerializer.Deserialize<List<TripStop>>(json, (JsonSerializerOptions?)null)
+                          ?? new List<TripStop>(),
+                new ValueComparer<IReadOnlyList<TripStop>>(
+                    (left, right) => left != null && right != null && left.SequenceEqual(right),
+                    list => list.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
+                    list => list.ToList()))
+            .HasColumnType("TEXT");
 
         // El viaje es historial de la persona: si se borra la cuenta, se va con ella.
         trip.HasOne<AppUser>()
@@ -176,5 +332,152 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
         // El historial se lee siempre por camionero y de lo mas nuevo a lo mas viejo.
         trip.HasIndex(t => new { t.DriverId, t.StartedAt });
+
+        var ledger = modelBuilder.Entity<LedgerEntry>();
+
+        ledger.HasKey(e => e.Id);
+        ledger.Property(e => e.Denomination).HasConversion<string>().HasMaxLength(24);
+        ledger.Property(e => e.Reason).HasConversion<string>().HasMaxLength(32);
+        ledger.Property(e => e.SourceKey).IsRequired().HasMaxLength(120);
+
+        // Como todas las fechas del sistema: SQLite no sabe ordenar por
+        // DateTimeOffset, y este orden se usa para saber que hay sin festejar.
+        ledger.Property(e => e.OccurredAt).HasConversion(UtcTicks);
+
+        // EL indice que sostiene todo el diseno. Un reintento, un doble toque o un
+        // cierre de viaje procesado dos veces son cosas que van a pasar; sin esto,
+        // cada una regala EXP.
+        //
+        // Incluye al dueno a proposito: dos camioneros llegan al escalon 4 de
+        // viajes por separado y los dos tienen que poder cobrarlo.
+        ledger.HasIndex(e => new { e.DriverId, e.Denomination, e.Reason, e.SourceKey })
+            .IsUnique();
+
+        // Es historial de la persona: si se borra la cuenta, se va con ella.
+        ledger.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(e => e.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Las cinco tablas que siguen comparten la misma forma: cuelgan de la
+        // cuenta, se borran con ella, y su clave compuesta hace que duplicar sea
+        // imposible por construccion en vez de por chequeo.
+
+        var track = modelBuilder.Entity<DriverTrackProgress>();
+
+        track.HasKey(t => new { t.DriverId, t.TrackCode });
+        track.Property(t => t.TrackCode).HasMaxLength(64);
+
+        track.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(t => t.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var reward = modelBuilder.Entity<DriverReward>();
+
+        reward.HasKey(r => new { r.DriverId, r.RewardCode });
+        reward.Property(r => r.RewardCode).HasMaxLength(64);
+        reward.Property(r => r.UnlockedAt).HasConversion(UtcTicks);
+
+        reward.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(r => r.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var loadout = modelBuilder.Entity<DriverLoadout>();
+
+        // Una pieza por ranura: la clave compuesta es lo que hace que equipar sea
+        // reemplazar y no acumular.
+        loadout.HasKey(l => new { l.DriverId, l.Slot });
+        loadout.Property(l => l.Slot).HasConversion<string>().HasMaxLength(24);
+        loadout.Property(l => l.RewardCode).IsRequired().HasMaxLength(64);
+
+        loadout.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(l => l.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var record = modelBuilder.Entity<DriverRecord>();
+
+        record.HasKey(r => new { r.DriverId, r.RecordCode });
+        record.Property(r => r.RecordCode).HasMaxLength(64);
+
+        // Sin el conversor la fecha del record se guardaria como texto y no se
+        // podria ordenar. Y la fecha es justamente lo que hace valioso a un record.
+        record.Property(r => r.AchievedAt).HasConversion(UtcTicks);
+
+        record.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(r => r.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var mark = modelBuilder.Entity<DriverProgressMark>();
+
+        mark.HasKey(m => m.DriverId);
+        mark.Property(m => m.CelebratedUpTo).HasConversion(UtcTicks);
+
+        mark.HasOne<AppUser>()
+            .WithOne()
+            .HasForeignKey<DriverProgressMark>(m => m.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ------------------------------------------------- reportes de la comunidad
+
+        var report = modelBuilder.Entity<Report>();
+
+        report.HasKey(r => r.Id);
+        report.Property(r => r.Type).HasConversion<string>().HasMaxLength(24);
+        report.Property(r => r.Status).HasConversion<string>().HasMaxLength(16);
+        report.Property(r => r.Street).HasMaxLength(160);
+        report.Property(r => r.CreatedAt).HasConversion(UtcTicks);
+
+        // El vencimiento es nulo en lo fijo: la camara muy confirmada no vence.
+        // En ticks igual, para que "vigentes" sea una comparacion numerica indexada.
+        report.Property(r => r.ExpiresAt).HasConversion(NullableUtcTicks);
+        report.Property(r => r.ValidatedAt).HasConversion(NullableUtcTicks);
+
+        // Lo que la app pregunta: los vigentes de un recuadro, y lo reciente de
+        // una cuenta (la guardia contra el abuso).
+        report.HasIndex(r => r.ExpiresAt);
+        report.HasIndex(r => new { r.Latitude, r.Longitude });
+        report.HasIndex(r => new { r.CreatedBy, r.CreatedAt });
+
+        // El reporte es de quien lo hizo: se va con la cuenta.
+        report.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(r => r.CreatedBy)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var reportVote = modelBuilder.Entity<ReportVote>();
+
+        // Un voto por camionero y reporte: la clave compuesta lo hace imposible de
+        // duplicar por construccion, igual que el voto de un lugar.
+        reportVote.HasKey(v => new { v.ReportId, v.DriverId });
+        reportVote.Property(v => v.Verdict).HasConversion<string>().HasMaxLength(16);
+        reportVote.Property(v => v.CastAt).HasConversion(UtcTicks);
+        reportVote.Property(v => v.UpdatedAt).HasConversion(UtcTicks);
+
+        reportVote.HasIndex(v => v.ReportId);
+
+        reportVote.HasOne<Report>()
+            .WithMany()
+            .HasForeignKey(v => v.ReportId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        reportVote.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(v => v.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var reputation = modelBuilder.Entity<DriverReputation>();
+
+        // Una fila por camionero, y solo cuando algo la movio: sin fila vale 50.
+        reputation.HasKey(r => r.DriverId);
+        reputation.Property(r => r.UpdatedAt).HasConversion(UtcTicks);
+
+        reputation.HasOne<AppUser>()
+            .WithOne()
+            .HasForeignKey<DriverReputation>(r => r.DriverId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

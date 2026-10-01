@@ -1,0 +1,539 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Nunito:wght@400;600;700;800&display=swap');/* ===========================================================================
+   Prototipo del GPS — hoja de tableros
+   ---------------------------------------------------------------------------
+   El lienzo es oscuro a proposito: los telefonos de noche se ven como en el
+   telefono y el de dia resalta. Adentro de cada telefono rige Roboto, la del
+   sistema, que es la que Waze usa en Android; afuera, Nunito, la de la app.
+
+   Un dp de Waze es un px aca: el telefono mide 360 x 800, como la captura.
+   Todas las medidas de los componentes salen de las capturas (ver gps.mjs).
+   ========================================================================== */
+
+:root { color-scheme: dark; }
+
+html, body { margin: 0; }
+
+body {
+  background: #0c1014;
+  color: #e6edf3;
+  font-family: 'Nunito', system-ui, sans-serif;
+  padding: 32px 20px 80px;
+  -webkit-font-smoothing: antialiased;
+}
+
+main { max-width: 1640px; margin: 0 auto; }
+
+/* --- portada --------------------------------------------------------------- */
+
+.portada { max-width: 1180px; margin: 0 auto 56px; }
+
+.ojo { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #8fa3b1; margin: 0 0 10px; }
+
+h1 { font-size: 40px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 12px; text-wrap: balance; }
+
+.bajada { font-size: 17px; line-height: 1.5; color: #b7c3cd; max-width: 70ch; margin: 0 0 28px; }
+.bajada b { color: #fff; }
+
+.sistema { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+
+.bloque-sistema { background: #141a20; border-radius: 16px; padding: 18px; }
+
+.seccion-portada { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #8fa3b1; margin: 0 0 14px; }
+
+.medidas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 14px; }
+.medida { display: flex; flex-direction: column; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid #1f2830; }
+.medida b { font-family: Roboto, sans-serif; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.medida span { font-size: 11.5px; color: #8fa3b1; line-height: 1.3; }
+
+.muestras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 8px; }
+.muestra { display: flex; flex-direction: column; gap: 3px; }
+.muestra i { display: block; height: 30px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, .08); }
+.muestra b { font-size: 12px; }
+.muestra span { font-size: 10.5px; color: #8fa3b1; font-family: 'Roboto Mono', ui-monospace, monospace; }
+
+.leyenda div { display: grid; grid-template-columns: 44px 1fr; gap: 2px 12px; align-items: center; margin-bottom: 12px; }
+.leyenda i { display: block; height: 10px; border-radius: 5px; grid-row: 1 / 3; }
+.leyenda i.rayas { background: repeating-linear-gradient(90deg, #e9463f 0 8px, #fff 8px 16px); }
+.leyenda b { font-size: 14px; }
+.leyenda span { font-size: 12.5px; color: #b7c3cd; line-height: 1.35; }
+.nota-sistema { font-size: 13px; color: #8fa3b1; line-height: 1.45; margin: 8px 0 0; }
+
+.escala div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid #1f2830; font-family: Roboto, system-ui, sans-serif; }
+.escala div:last-child { border-bottom: 0; }
+.escala b { line-height: 1.1; white-space: nowrap; }
+.escala span { font-family: 'Nunito', system-ui, sans-serif; font-size: 12px; color: #8fa3b1; text-align: right; }
+
+.formas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.formas div { text-align: center; }
+.formas b { display: block; font-size: 13px; margin-top: 4px; }
+.formas span { font-size: 11.5px; color: #8fa3b1; line-height: 1.35; display: block; }
+
+.calcos { display: flex; flex-wrap: wrap; gap: 12px 8px; }
+.calcos div { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 58px; }
+.calcos span { font-size: 10.5px; color: #8fa3b1; }
+
+.reglas ol { padding-left: 20px; margin: 0; }
+.reglas li { margin-bottom: 10px; font-size: 14px; line-height: 1.45; color: #b7c3cd; }
+.reglas li b { color: #fff; }
+
+/* --- tableros ------------------------------------------------------------- */
+
+.tableros { display: grid; grid-template-columns: repeat(auto-fill, minmax(392px, 1fr)); gap: 48px 28px; }
+
+.tablero header { display: flex; gap: 10px; align-items: baseline; margin-bottom: 14px; }
+.numero { font-size: 13px; color: #8fa3b1; font-variant-numeric: tabular-nums; }
+.tablero h2 { font-size: 22px; font-weight: 800; margin: 0; }
+.nota { font-size: 14px; color: #b7c3cd; line-height: 1.5; max-width: 380px; margin: 16px 0 0; }
+.nota b { color: #fff; }
+
+footer { max-width: 1180px; margin: 64px auto 0; font-size: 13.5px; color: #8fa3b1; line-height: 1.55; }
+footer b { color: #d6dee5; }
+footer code { font-family: 'Roboto Mono', ui-monospace, monospace; font-size: 12.5px; }
+
+/* ===========================================================================
+   El telefono: 360 x 800, como la captura
+   ========================================================================== */
+
+.telefono {
+  position: relative;
+  width: 360px;
+  height: 800px;
+  border-radius: 30px;
+  overflow: hidden;
+  background: #1b2632;
+  color: #fff;
+  font-family: Roboto, system-ui, sans-serif;
+  box-shadow: 0 0 0 8px #0a0d10, 0 0 0 9px #263039, 0 40px 80px -30px rgba(0, 0, 0, .9);
+}
+
+.telefono.dia { background: #eef1f4; color: #111; }
+
+.mapa { position: absolute; top: 0; left: 0; display: block; }
+
+/* La barra de estado de Android: 35 dp, texto en 14 sp media. */
+.estado {
+  position: absolute; top: 0; left: 0; right: 0; height: 35px; z-index: 7;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 18px; font-size: 14px; font-weight: 500;
+}
+.estado i { font-style: normal; font-size: 12px; opacity: .8; margin-left: 4px; }
+.estado-der { letter-spacing: .02em; font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.estado-der b { font-size: 11px; font-weight: 700; background: #fff; color: #000; border-radius: 4px; padding: 0 3px; }
+.estado-der em { font-style: normal; color: #43c98b; font-size: 9px; }
+
+/* rotulos del mapa, en los tamanos de Waze */
+.rot-calle { font: 500 13px Roboto, sans-serif; }
+.rot-barrio { font: 500 18px Roboto, sans-serif; letter-spacing: .01em; }
+.rot-parque { font: 500 13px Roboto, sans-serif; }
+.rot-poi { font: 500 13px Roboto, sans-serif; }
+.rot-red { font: 700 11.5px Roboto, sans-serif; letter-spacing: .1em; }
+.rot-actual { font: 800 13px Roboto, sans-serif; letter-spacing: .1em; }
+.rot-globo { font: 700 22px Roboto, sans-serif; }
+.rot-tooltip { font: 500 16px Roboto, sans-serif; }
+.rot-badge { font: 700 11px Roboto, sans-serif; }
+
+/* --- controles flotantes --------------------------------------------------- */
+
+.arriba { position: absolute; top: 45px; left: 15px; right: 15px; display: flex; justify-content: flex-end; z-index: 3; }
+
+.sos {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: #e9463f; color: #fff; font-size: 13px; font-weight: 700;
+  display: grid; place-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+}
+
+.costado { position: absolute; right: 15px; bottom: 226px; display: flex; flex-direction: column; gap: 8px; z-index: 3; }
+.costado-viaje { top: 145px; bottom: auto; }
+
+/* Los botones de Waze: circulos negros de 52 dp con el icono blanco. */
+.redondo {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: grid; place-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+}
+.redondo.oscuro { width: 48px; height: 48px; background: #2b3035; color: #fff; }
+.redondo.negro { background: #000; color: #fff; }
+.redondo.blanco { background: #fff; color: #111; }
+.redondo.chip { background: #3a4046; color: #fff; }
+.redondo.chico { width: 45px; height: 45px; box-shadow: none; }
+.redondo.blanco.chico { width: 36px; height: 36px; }
+.redondo.sos-viaje { background: #e9463f; color: #fff; font-size: 13px; font-weight: 700; }
+
+/* --- hojas ----------------------------------------------------------------- */
+
+.hoja {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 4;
+  background: #202428; color: #fff;
+  border-radius: 14px 14px 0 0;
+  padding: 0 15px 15px;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .45);
+}
+
+.manija { width: 45px; height: 4px; border-radius: 2px; background: #6b7480; margin: 10px auto 12px; }
+
+/* La hoja del reposo, medida: 150 dp, pildora de 50 y atajos de 45. */
+.hoja-reposo { bottom: 64px; height: 150px; box-sizing: border-box; padding-bottom: 0; }
+.hoja-reposo .manija { margin: 10px auto 14px; width: 50px; }
+
+.hoja-titulo { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 4px; }
+.hoja-titulo b { font-size: 30px; font-weight: 700; }
+
+.buscar {
+  height: 50px; border-radius: 25px; background: #2b3035;
+  display: flex; align-items: center; gap: 14px; padding: 0 20px;
+  color: #9aa3ad; font-size: 20px;
+}
+.buscar-activa { height: 52px; border-radius: 26px; }
+.escribiendo { position: relative; }
+.escribiendo::after { content: ''; display: inline-block; width: 2px; height: 22px; background: #3dd0ff; margin-left: 2px; vertical-align: -4px; }
+
+.atajos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+.atajo {
+  height: 45px; border-radius: 10px; background: #2b3035;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 20px; font-weight: 500;
+}
+.atajo-nuevo span { color: #3fc7f5; }
+
+.zocalo {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 64px; z-index: 5;
+  background: #0d1418; border-top: 1px solid #24333c;
+  display: flex; justify-content: space-around; align-items: center;
+  font-family: 'Nunito', sans-serif;
+}
+.zocalo-item { width: 52px; height: 52px; border-radius: 14px; border: 2.5px solid transparent; display: grid; place-items: center; }
+.zocalo-item svg { filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .25)); }
+.zocalo-item.is-active { border-color: rgba(53, 184, 232, .55); background: #0f2f3f; }
+
+.hoja-llena {
+  position: absolute; top: 35px; left: 0; right: 0; bottom: 0; z-index: 4;
+  background: #202428; color: #fff;
+  border-radius: 14px 14px 0 0;
+  padding: 14px 15px; overflow: hidden;
+}
+
+/* Chips de categoria, medidos: 82 x 65, radio 12, icono 22, rotulo 17 sp. */
+.chips-cat { display: flex; gap: 11px; overflow: hidden; margin: 14px 0 4px; }
+.chip-cat {
+  flex: none; width: 82px; height: 65px; border-radius: 12px; background: #2b3035;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  font-size: 17px; font-weight: 400;
+}
+.chip-cat.is-on { flex-direction: row; width: auto; height: 44px; padding: 0 14px; gap: 8px; border: 1.5px solid #3dd0ff; display: inline-flex; font-weight: 500; }
+
+/* Filas de 65 dp: icono 30, titulo 26 negrita, subtitulo 18. */
+.fila { display: flex; align-items: center; gap: 14px; height: 65px; border-bottom: 1px solid #3a4046; }
+.fila:last-child { border-bottom: 0; }
+.fila-ico { width: 40px; flex: none; display: grid; place-items: center; }
+.fila-texto { flex: 1; min-width: 0; }
+.fila-texto b { display: block; font-size: 26px; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila-texto span { display: block; font-size: 18px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.celeste { color: #3fc7f5; }
+.gris { color: #9aa3ad; }
+
+.seccion { font-size: 18px; color: #9aa3ad; margin: 16px 0 0; }
+
+/* --- cabecera de pantalla y tira de mapa (elegir ruta) --------------------- */
+
+.cabecera {
+  position: absolute; top: 35px; left: 0; right: 0; height: 55px; z-index: 5;
+  display: flex; align-items: center; gap: 12px; padding: 0 15px; background: #000;
+}
+.cabecera-titulo { flex: 1; text-align: center; font-size: 20px; font-weight: 400; padding-right: 36px; }
+.cabecera-titulo i { font-style: normal; color: #9aa3ad; margin: 0 6px; }
+
+.tira-mapa { position: absolute; top: 90px; left: 0; right: 0; height: 117px; overflow: hidden; }
+.tira-mapa .mapa { position: static; margin-top: -300px; }
+.pildora-flotante {
+  position: absolute; top: 20px; left: 20px; height: 42px; border-radius: 21px;
+  background: #1f2327; color: #3fc7f5; display: flex; align-items: center; gap: 8px;
+  padding: 0 14px 0 16px; font-size: 20px; font-weight: 500; box-shadow: 0 4px 12px rgba(0, 0, 0, .4);
+}
+
+.hoja-rutas {
+  position: absolute; top: 207px; left: 0; right: 0; bottom: 0; z-index: 4;
+  background: #202428; border-radius: 14px 14px 0 0; padding: 0;
+  display: flex; flex-direction: column;
+}
+.hoja-rutas .manija { width: 30px; margin: 8px auto 4px; }
+
+/* Filas de ruta, medidas: 145 dp, tiempo en 32 negrita, km en 18 gris. */
+.ruta { padding: 14px 19px 12px 15px; border-bottom: 1px solid #3a4046; border-left: 4px solid transparent; }
+.ruta.is-elegida { border-left-color: #3dd0ff; background: #000; }
+.ruta-cabeza { display: flex; justify-content: space-between; align-items: baseline; }
+.ruta-cabeza b { font-size: 32px; font-weight: 700; }
+.ruta.is-elegida .ruta-cabeza b { color: #3fc7f5; }
+.ruta-cabeza span { font-size: 18px; color: #b8c0c8; }
+.ruta-por { font-size: 20px; margin-top: 6px; }
+.ruta-estado { font-size: 18px; color: #b8c0c8; margin-top: 4px; }
+.ruta-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+.chip { display: inline-flex; align-items: center; gap: 8px; background: #2b3035; border-radius: 999px; padding: 4px 12px; font-size: 16px; font-weight: 500; line-height: 17px; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+
+/* Pildoras de accion, medidas: 48 dp, texto en 20 negrita. */
+.acciones { display: flex; gap: 15px; padding: 12px 15px 15px; margin-top: auto; }
+.acciones-fijas { position: absolute; left: 0; right: 0; bottom: 0; background: #202428; }
+.pildora {
+  flex: 1; height: 48px; border-radius: 24px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 20px; font-weight: 700;
+}
+.pildora.gris { background: #2b3035; color: #3fc7f5; }
+.pildora.chip { background: #3a4046; color: #3fc7f5; }
+.pildora.celeste { background: #3dd0ff; color: #0a1f2a; }
+.pildora.chica { flex: none; height: 40px; padding: 0 16px; font-size: 18px; }
+
+.hoja-detalles { top: 90px; padding-bottom: 90px; }
+.detalle-cifras { display: flex; gap: 28px; padding: 4px 0 12px; }
+.detalle-cifras b { display: block; font-size: 32px; font-weight: 700; }
+.detalle-cifras span { font-size: 16px; color: #9aa3ad; }
+.hoja-detalles .fila { height: 60px; }
+.hoja-detalles .fila-texto b { font-size: 20px; font-weight: 500; }
+.hoja-detalles .fila-texto span { font-size: 15px; }
+
+.mono { display: flex; gap: 12px; align-items: center; background: #2b3035; border-radius: 16px; padding: 12px; margin: 4px 0 6px; }
+.mono img { width: 64px; height: 64px; flex: none; }
+.mono b { display: block; font-size: 18px; font-weight: 500; }
+.mono span { display: block; font-size: 15px; color: #b8c0c8; line-height: 1.35; margin-top: 2px; }
+
+/* --- viaje ---------------------------------------------------------------- */
+
+/* La banda, medida: 127 dp con la barra de estado; flecha 44 x 47 a 19 del
+   borde, texto a 85; distancia 32 regular, calle 26 media celeste. */
+.banda {
+  position: absolute; top: 0; left: 0; right: 0; height: 127px; z-index: 5;
+  background: #000; color: #fff; box-sizing: border-box;
+  padding: 35px 0 0 19px; display: flex; align-items: center; gap: 22px;
+}
+.banda-flecha { width: 44px; height: 47px; flex: none; }
+.banda-texto b { display: block; font-size: 32px; font-weight: 400; line-height: 1; letter-spacing: -.01em; }
+.banda-texto span { display: block; font-size: 26px; font-weight: 500; color: #3fc7f5; margin-top: 6px; white-space: nowrap; line-height: 1.1; }
+.banda.compacta { height: 92px; gap: 14px; }
+.banda.compacta .banda-flecha { width: 30px; height: 32px; }
+.banda.compacta .banda-texto { display: flex; align-items: baseline; gap: 10px; }
+.banda.compacta .banda-texto b { font-size: 22px; }
+.banda.compacta .banda-texto span { font-size: 22px; margin: 0; }
+
+/* La pildora de la calle actual, medida: negra, 24 sp negrita, a 155 del
+   borde de abajo. Nuestra: el nombre en verde y una segunda linea. */
+.calle-actual {
+  position: absolute; left: 15px; right: 95px; bottom: 155px; margin: 0 auto; width: fit-content; z-index: 3;
+  background: #000; padding: 8px 22px 9px; border-radius: 26px; white-space: nowrap;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
+}
+.calle-actual b { color: #43c98b; font-size: 24px; font-weight: 700; line-height: 1.1; }
+.calle-actual small { color: #b7bec6; font-size: 13px; font-weight: 500; letter-spacing: .01em; }
+
+/* El boton de reportar de Waze, medido: 65 dp, radio 16, ambar oscuro. */
+.aportar {
+  position: absolute; right: 15px; bottom: 155px; z-index: 3;
+  width: 65px; height: 65px; border-radius: 16px; background: #5f4e14;
+  display: grid; place-items: center; box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+}
+
+/* El dial de la brujula, chico: la aguja celeste apunta al norte y la letra lo dice. */
+.brujula { position: relative; }
+.brujula span { position: absolute; right: -2px; bottom: -3px; font-size: 10px; font-weight: 700; background: #3dd0ff; color: #0a1f2a; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; }
+
+/* La hoja del viaje, medida: 135 dp, hora en 30 negrita, circulos de 45. */
+.hoja-viaje { height: 135px; box-sizing: border-box; padding-bottom: 0; }
+.hoja-viaje .manija { margin: 10px auto 6px; }
+.hoja-viaje-fila { display: flex; align-items: center; justify-content: space-between; padding: 6px 5px 0; }
+.eta { text-align: center; }
+.eta b { display: block; font-size: 30px; font-weight: 700; line-height: 1.1; }
+.eta span { font-size: 20px; color: #c0c6cc; }
+.eta i, .tarjeta-ruta-sub i, .tarjeta-centrar-texto i { font-style: normal; color: #7c8790; margin: 0 4px; font-size: .8em; }
+
+/* La tarjeta de aviso, en el estilo de las alertas de Waze. */
+.aviso {
+  position: absolute; left: 15px; right: 15px; bottom: 150px; z-index: 3;
+  background: #2b3035; border-radius: 16px; padding: 12px 14px;
+  display: flex; gap: 12px; align-items: center; box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+}
+.aviso > div:not(.aviso-pin) { flex: 1; min-width: 0; }
+.aviso-pin { width: 44px; height: 44px; border-radius: 50%; background: #3a4046; display: grid; place-items: center; flex: none; }
+.aviso b { display: block; font-size: 20px; font-weight: 700; line-height: 1.15; }
+.aviso span { display: block; font-size: 16px; color: #b8c0c8; margin-top: 3px; line-height: 1.3; }
+
+/* "Volver a centrar", medida: 62 dp, radio 20, circulo blanco de 36, texto
+   en 22 y 17, pildora de 132 x 37 con texto celeste. */
+.tarjeta-centrar {
+  position: absolute; left: 15px; right: 15px; bottom: 16px; z-index: 4;
+  background: #2b3035; border-radius: 20px; padding: 13px 14px;
+  display: flex; align-items: center; gap: 14px;
+}
+.tarjeta-centrar-texto { flex: 1; min-width: 0; }
+.tarjeta-centrar-texto b { display: block; font-size: 22px; font-weight: 400; line-height: 1.15; }
+.tarjeta-centrar-texto span { font-size: 17px; color: #b8c0c8; }
+.tarjeta-centrar .pildora { flex: none; width: 132px; height: 37px; font-size: 18px; font-weight: 500; }
+
+/* El conmutador Mapa/Lista, medido: 155 x 40, a 112 del borde de arriba. */
+.conmutador {
+  position: absolute; top: 112px; left: 50%; transform: translateX(-50%); z-index: 4;
+  display: flex; background: #1f2327; border-radius: 20px; padding: 4px; height: 40px; box-sizing: border-box;
+}
+.conmutador span { padding: 0 20px; border-radius: 16px; font-size: 18px; font-weight: 500; color: #b7bec6; display: flex; align-items: center; }
+.conmutador span.is-on { background: #164a7a; color: #3fc7f5; }
+
+.tarjetas-general { position: absolute; left: 15px; right: 15px; bottom: 16px; z-index: 4; display: flex; flex-direction: column; gap: 12px; }
+.tarjetas-lista { top: 168px; bottom: auto; }
+
+/* Tarjeta de ruta, medida: radio 16, tiempo 32 negrita, pildora 132 x 40. */
+.tarjeta-ruta { background: #2b3035; border-radius: 16px; padding: 16px; }
+.tarjeta-ruta-cabeza { display: flex; justify-content: space-between; align-items: center; }
+.tarjeta-ruta-cabeza b { font-size: 32px; font-weight: 700; }
+.tarjeta-ruta-cabeza .pildora { width: 134px; height: 44px; padding: 0; font-size: 18px; }
+.tarjeta-ruta-sub { font-size: 20px; margin-top: 4px; }
+.tarjeta-ruta-por { font-size: 20px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.linea-tiempo { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+.lt-play { width: 0; height: 0; border-left: 12px solid #8b949e; border-top: 8px solid transparent; border-bottom: 8px solid transparent; }
+.lt-barra { flex: 1; position: relative; height: 3px; background: #6b7480; border-radius: 2px; }
+.lt-barra i { position: absolute; top: 0; height: 100%; border-radius: 2px; }
+.lt-barra em { position: absolute; top: -11px; transform: translateX(-50%); line-height: 0; }
+.lt-pin { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: #2b3035; border: 2px solid #fff; box-sizing: border-box; }
+
+/* --- capas ----------------------------------------------------------------- */
+
+.hoja-capas { padding-bottom: 14px; }
+.hoja-capas .hoja-titulo b { font-size: 24px; font-weight: 400; }
+.hoja-capas .seccion { font-size: 20px; color: #d7dee5; margin-top: 12px; }
+.cuadros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 10px; }
+.cuadro { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cuadro-ico { width: 100%; aspect-ratio: 1; border-radius: 12px; background: #2b3035; display: grid; place-items: center; border: 3px solid transparent; box-sizing: border-box; }
+.cuadro.is-on .cuadro-ico { border-color: #3dd0ff; }
+.cuadro span { font-size: 12.5px; text-align: center; line-height: 1.2; color: #b7bec6; }
+.cuadro.is-on span { color: #3fc7f5; }
+.cuadro small { font-size: 10.5px; color: #6b7480; }
+
+.interruptor { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 12px 0 2px; border-top: 1px solid #3a4046; }
+.interruptor b { display: block; font-size: 18px; font-weight: 500; }
+.interruptor span { font-size: 15px; color: #9aa3ad; }
+.interruptor i { width: 46px; height: 26px; border-radius: 13px; background: #3a4046; position: relative; flex: none; }
+.interruptor i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; }
+.interruptor i.is-on { background: #3dd0ff; }
+.interruptor i.is-on::after { left: 23px; }
+
+/* --- ficha de lugar --------------------------------------------------------- */
+
+.ficha-cabeza { display: flex; gap: 12px; align-items: center; padding: 0 0 12px; }
+.ficha-ico { width: 48px; height: 48px; border-radius: 14px; background: #2b3035; display: grid; place-items: center; flex: none; }
+.ficha-titulo { flex: 1; min-width: 0; }
+.ficha-titulo b { display: block; font-size: 24px; font-weight: 700; line-height: 1.15; }
+.ficha-titulo span { display: block; font-size: 16px; color: #9aa3ad; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bloque { border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+.bloque-titulo { display: flex; gap: 8px; align-items: center; }
+.bloque-titulo b { font-size: 16px; font-weight: 500; line-height: 1.3; }
+.bloque > span { display: block; font-size: 14px; margin-top: 5px; }
+.bloque-ok { background: #0f2a1f; border: 1px solid #1c7d51; }
+.bloque-ok i { width: 20px; height: 20px; border-radius: 50%; background: #43c98b; display: grid; place-items: center; flex: none; }
+.bloque-ok > span { color: #9fd8b8; }
+.bloque-comunidad { background: #0f2f3f; border: 1px solid #1a6f9a; }
+.bloque-comunidad > span { color: #8fdcf7; }
+
+.voto { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0 12px; }
+.voto > span { font-size: 16px; color: #b7bec6; }
+.voto-botones { display: flex; gap: 8px; }
+.voto-botones .pildora.chica { height: 40px; font-size: 17px; }
+
+.etiqueta-comunidad { display: inline-flex; gap: 8px; align-items: center; background: #0f2f3f; color: #8fdcf7; border-radius: 999px; padding: 6px 12px; font-size: 14px; font-weight: 500; margin-bottom: 10px; }
+
+.toast { position: absolute; top: 112px; left: 50%; transform: translateX(-50%); z-index: 5; background: #2b3035; color: #fff; font-size: 16px; font-weight: 500; padding: 10px 18px; border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, .5); white-space: nowrap; }
+.toast i { font-style: normal; color: #7c8790; margin: 0 4px; }
+
+/* --- aportar: circulos de 75, calcomania de 40, rotulo 20 ------------------ */
+
+.redondos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 8px; padding: 10px 0 4px; }
+.redondo-grande { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.redondo-grande div { width: 75px; height: 75px; border-radius: 50%; background: #3a4046; display: grid; place-items: center; }
+.redondo-grande span { font-size: 20px; }
+.pie { font-size: 15px; color: #9aa3ad; text-align: center; margin: 14px 0 2px; line-height: 1.4; }
+.pie b { color: #fff; font-weight: 500; }
+
+.campo { background: #2b3035; border-radius: 14px; padding: 10px 14px; margin-top: 12px; }
+.campo span { display: block; font-size: 12px; color: #9aa3ad; text-transform: uppercase; letter-spacing: .06em; }
+.campo b { display: block; font-size: 20px; font-weight: 400; margin-top: 2px; }
+.hoja-marcar .manija { margin-bottom: 14px; }
+.hoja-marcar .acciones { padding: 8px 0 0; }
+
+/* --- reanudar: la tarjeta de "Aun vas a…", medida ---------------------------- */
+
+.tarjeta-pregunta { position: absolute; left: 15px; right: 15px; bottom: 226px; z-index: 4; background: #2b3035; border-radius: 16px; padding: 14px 14px 4px; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
+.tarjeta-pregunta-cabeza { display: flex; gap: 12px; align-items: center; }
+.tarjeta-pregunta-cabeza b { flex: 1; font-size: 24px; font-weight: 700; line-height: 1.2; }
+.tarjeta-pregunta .acciones { padding: 12px 0 8px; gap: 14px; }
+.tarjeta-pregunta .pildora { height: 42px; font-size: 18px; }
+
+/* --- dia -------------------------------------------------------------------- */
+
+.dia .banda { background: #fff; color: #111; box-shadow: 0 2px 10px rgba(0, 0, 0, .12); }
+.dia .banda-flecha path { stroke: #111; }
+.dia .banda-texto span { color: #0e87b8; }
+.dia .hoja { background: #fff; color: #111; box-shadow: 0 -8px 30px rgba(20, 30, 40, .18); }
+.dia .manija { background: #c9d0d8; }
+.dia .eta span { color: #5b6672; }
+.dia .eta i { color: #a5aeb8; }
+.dia .redondo.chip { background: #e6e9ed; color: #111; }
+.dia .redondo.blanco { box-shadow: 0 4px 12px rgba(0, 0, 0, .18); }
+.dia .calle-actual { background: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, .18); }
+.dia .calle-actual b { color: #1c7d51; }
+.dia .calle-actual small { color: #5b6672; }
+.dia .aportar { background: #fff3c4; }
+.dia .estado { color: #111; }
+.dia .estado-der b { background: #111; color: #fff; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  body { padding: 0; background: transparent; }
+  .telefono { border-radius: 0; box-shadow: none; }
+  </style>
+</helmet>
+<div class="telefono noche">
+  <div class="cabecera"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></span><span class="cabecera-titulo">Mi ubicación <i>→</i> Puerto</span></div>
+  <div class="tira-mapa">
+    <svg class="mapa" viewBox="0 0 360 800" width="360" height="800" aria-hidden="true"><rect width="360" height="800" fill="#272d39"/><polygon points="190 400 294 400 294 508 190 508" fill="#2e3d50"/><polygon points="-40 300 60 300 60 430 -40 430" fill="#233041"/><polygon points="320 -40 400 -40 400 260 340 140" fill="#22467a"/><polyline points="34 -40 34 840" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="60 -40 60 840" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="112 -40 112 840" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="138 -40 138 840" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="190 -40 190 840" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="268 -40 268 840" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="294 -40 294 840" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="372 -40 372 840" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 36 400 36" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 62 400 62" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 140 400 140" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 192 400 192" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 218 400 218" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 270 400 270" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 348 400 348" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 374 400 374" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 426 400 426" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 452 400 452" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 504 400 504" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 530 400 530" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 582 400 582" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 608 400 608" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 686 400 686" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 738 400 738" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 764 400 764" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 816 400 816" fill="none" stroke="#40546c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><polygon points="164 300 242 300 242 378 164 378" fill="#216a4f" stroke="#216a4f" stroke-width="8" stroke-linejoin="round"/><polygon points="164 300 242 300 242 378 164 378" fill="none" stroke="#1d5e46" stroke-width="1.2" stroke-linejoin="round"/><polygon points="112 118 138 118 138 170 112 170" fill="#216a4f" stroke="#216a4f" stroke-width="8" stroke-linejoin="round"/><polygon points="112 118 138 118 138 170 112 170" fill="none" stroke="#1d5e46" stroke-width="1.2" stroke-linejoin="round"/><polygon points="268 560 320 560 320 612 268 612" fill="#216a4f" stroke="#216a4f" stroke-width="8" stroke-linejoin="round"/><polygon points="268 560 320 560 320 612 268 612" fill="none" stroke="#1d5e46" stroke-width="1.2" stroke-linejoin="round"/><polyline points="8 -40 8 840" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="164 -40 164 840" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="242 -40 242 840" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="320 -40 320 840" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="398 -40 398 840" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 10 400 10" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 88 400 88" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 166 400 166" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 244 400 244" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 322 400 322" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 400 400 400" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 556 400 556" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 634 400 634" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 712 400 712" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 790 400 790" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 90 400 330" fill="none" stroke="#4d6179" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 740 400 480" fill="none" stroke="#3a4553" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 740 400 480" fill="none" stroke="#aab4bf" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 7"/><polyline points="-40 640 120 560 240 430 400 300" fill="none" stroke="#7494b4" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" /><g transform="translate(0 -3.9200000000000004)"><polyline points="-40 640 120 560 240 430 400 300" fill="none" stroke="#4a5c74" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/></g><g transform="translate(0 3.9200000000000004)"><polyline points="-40 640 120 560 240 430 400 300" fill="none" stroke="#4a5c74" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/></g><polyline points="-40 640 120 560 240 430 400 300" fill="none" stroke="#c8d3df" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 6" opacity=".9"/><polyline points="60 -40 60 840" fill="none" stroke="#6d89a8" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="-40 244 400 244" fill="none" stroke="#6d89a8" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" /><polyline points="112 560 112 508 60 508 60 244 268 244 268 140 320 140" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" /><polyline points="112 560 112 508 60 508 60 244 268 244 268 140 320 140" fill="none" stroke="#2ddcff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    <div class="pildora-flotante"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#32c8fb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>El Rayo · 40 t</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#32c8fb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+  </div>
+  <div class="hoja-rutas">
+    <div class="manija"></div>
+    
+<div class="ruta is-elegida">
+  <div class="ruta-cabeza"><b>39 min</b><span>32 km</span></div>
+  <div class="ruta-por">Por Au. Ricchieri; Au. 25 de Mayo</div>
+  <div class="ruta-estado">Mejor ruta, 85% por la Red</div>
+  <div class="ruta-chips"><span class="chip"><i style="background:#4f6d8e"></i>2 radares</span><span class="chip"><i style="background:#8b949e"></i>Gálibo 4,50 · pasás</span></div>
+</div>
+<div class="ruta">
+  <div class="ruta-cabeza"><b>36 min</b><span>29 km</span></div>
+  <div class="ruta-por">Por Av. Gral. Paz; Av. Lugones</div>
+  <div class="ruta-estado">Sale de la Red 9,3 km</div>
+  <div class="ruta-chips"><span class="chip"><i style="background:#f9c531"></i>Fuera de la Red</span><span class="chip"><i style="background:#4f6d8e"></i>3 radares</span></div>
+</div>
+<div class="ruta">
+  <div class="ruta-cabeza"><b>44 min</b><span>34 km</span></div>
+  <div class="ruta-por">Por Au. Perito Moreno; Av. 9 de Julio</div>
+  <div class="ruta-estado">Toda por la Red</div>
+  <div class="ruta-chips"><span class="chip"><i style="background:#4f6d8e"></i>1 radar</span><span class="chip"><i style="background:#e9463f"></i>Zona marcada</span></div>
+</div>
+    <div class="acciones">
+      <div class="pildora chip">Detalles</div>
+      <div class="pildora celeste">Arrancar</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

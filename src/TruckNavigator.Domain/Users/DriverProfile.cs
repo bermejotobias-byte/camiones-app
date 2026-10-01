@@ -44,6 +44,50 @@ public sealed class DriverProfile
     /// </summary>
     public string? AvatarId { get; set; }
 
+    /// <summary>
+    /// Nacionalidad del camionero, como codigo de pais de dos letras.
+    /// </summary>
+    /// <remarks>
+    /// Se guarda el codigo y no el nombre: el nombre depende del idioma en que se
+    /// muestre, y la app va a tener varios. La bandera y el texto los resuelve el
+    /// cliente, igual que con el avatar.
+    /// </remarks>
+    public string? Nationality { get; set; }
+
+    /// <summary>
+    /// El camion que el camionero exhibe en su perfil.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Vive en el servidor y no en el telefono <b>porque el perfil lo ven otros
+    /// usuarios</b>: una seleccion guardada en el aparato no se le puede mostrar a
+    /// nadie mas.
+    /// </para>
+    /// <para>
+    /// Borrar el camion deja esto en null y <b>no toca el perfil</b>. Es el mismo
+    /// criterio que ya rige los viajes: perder un vehiculo no puede costarle a la
+    /// persona su identidad ni su historial.
+    /// </para>
+    /// </remarks>
+    public Guid? ActiveTruckId { get; set; }
+
+    /// <summary>
+    /// Fecha de nacimiento. Dato del carnet.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Es sensible y solo la ve el dueño.</b> Decision del usuario del
+    /// 11/09/2026: el perfil es publico, la fecha no. La restriccion vive en el
+    /// contrato de la API —el DTO que reciben terceros la omite—, no aca.
+    /// </para>
+    /// <para>
+    /// <see cref="Domain.Users.BirthDate"/> decide que fechas son plausibles. Es
+    /// <c>DateOnly</c> y no <c>DateTimeOffset</c>: un cumpleaños no tiene hora ni
+    /// huso, y guardarlo con hora es la forma clasica de que se corra un dia.
+    /// </para>
+    /// </remarks>
+    public DateOnly? BirthDate { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>

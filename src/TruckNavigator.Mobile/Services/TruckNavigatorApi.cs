@@ -103,27 +103,22 @@ public sealed class TruckNavigatorApi(HttpClient httpClient)
     /// </remarks>
     public static bool IsPinned => Preferences.Default.Get(PinnedPreferenceKey, false);
 
-    /// <summary>
-    /// Cuanto se espera al chequeo de conexion.
-    /// </summary>
-    /// <remarks>
-    /// Corto a proposito, y muy por debajo del timeout del <see cref="HttpClient"/>,
-    /// que esta pensado para calcular rutas y por eso es largo.
-    ///
-    /// Heredar aquel timeout hacia que la app se quedara casi dos minutos en
-    /// "Conectando…" antes de admitir que no llegaba al servidor. Para el
-    /// usuario eso no se distingue de una app colgada, y encima durante toda esa
-    /// espera no podia corregir la direccion.
-    /// </remarks>
-    private static readonly TimeSpan HealthCheckTimeout = TimeSpan.FromSeconds(6);
-
     /// <summary>Resultado del chequeo de conexion, con el motivo si fallo.</summary>
     /// <param name="Reachable">Si el backend contesto lo que se esperaba.</param>
     /// <param name="Problem">
     /// Que paso, en una linea y en criollo. Se le muestra al usuario: un
     /// "no se pudo conectar" a secas no le dice a nadie donde mirar.
     /// </param>
-    public sealed record HealthCheck(bool Reachable, string? Problem);
+    /// <param name="Retriable">
+    /// Si tiene sentido volver a intentar lo mismo dentro de un rato.
+    ///
+    /// No todas las fallas son iguales: una direccion mal escrita va a fallar
+    /// igual las tres veces, y reintentarla es hacer esperar al usuario veinte
+    /// segundos para darle el error que ya se sabia. En cambio un timeout o una
+    /// conexion rechazada suelen ser la red del telefono que todavia no termino
+    /// de levantar, y ahi el reintento es exactamente lo que hace falta.
+    /// </param>
+    public sealed record HealthCheck(bool Reachable, string? Problem, bool Retriable = false);
 
     /// <summary>
     /// Pregunta si un backend responde.
@@ -133,10 +128,14 @@ public sealed class TruckNavigatorApi(HttpClient httpClient)
     /// explicita para poder probar la de fabrica sin pisar todavia la que el
     /// usuario guardo: si la de fabrica tampoco anda, la suya no se toca.
     /// </param>
-    public async Task<HealthCheck> CheckAsync(string? candidate = null, CancellationToken ct = default)
+    /// <param name="attempt">
+    /// Numero de intento, desde 1. Define cuanto se espera la respuesta: ver
+    /// <see cref="ConnectionRetry.TimeoutFor"/>.
+    /// </param>
+    public async Task<HealthCheck> CheckAsync(string? candidate = null, CancellationToken ct = default, int attempt = 1)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(HealthCheckTimeout);
+        timeout.CancelAfter(ConnectionRetry.TimeoutFor(attempt));
 
         // La direccion se valida ANTES de armar el pedido. Con una invalida,
         // HttpClient tira una excepcion cuyo mensaje en Release es una clave de
@@ -159,15 +158,24 @@ public sealed class TruckNavigatorApi(HttpClient httpClient)
 
             // Contesto algo, pero no lo nuestro. Suele ser un router o un portal
             // cautivo respondiendo en esa direccion.
+            //
+            // 502, 503 y 504 son la excepcion y SI se reintentan: los devuelve un
+            // intermediario que todavia no llego al backend —un tunel Cloudflare
+            // recien levantado es el caso tipico— y no significan que la
+            // direccion este mal.
+            var transitorio = (int)response.StatusCode is 502 or 503 or 504;
+
             return new HealthCheck(false,
                 $"El servidor respondio {(int)response.StatusCode}. " +
-                "Fijate que la dirección apunte al backend y no a otra cosa.");
+                "Fijate que la dirección apunte al backend y no a otra cosa.",
+                Retriable: transitorio);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             return new HealthCheck(false,
                 "El servidor no contestó a tiempo. Puede estar apagado, o el " +
-                "teléfono en otra red.");
+                "teléfono en otra red.",
+                Retriable: true);
         }
         catch (HttpRequestException)
         {
@@ -175,18 +183,71 @@ public sealed class TruckNavigatorApi(HttpClient httpClient)
             // .NET reemplaza los textos del framework por sus claves de recurso,
             // asi que lo que le llegaba al usuario era algo como
             // "net_http_client_invalid_requesturi" — ruido puro. Ver AD-33.
+            //
+            // Se reintenta: es la falla que da la red del telefono cuando todavia
+            // no termino de levantar, que es exactamente el caso que motivo los
+            // reintentos.
             return new HealthCheck(false,
                 "No se pudo conectar. Fijate que el backend esté corriendo y que " +
-                "el teléfono esté en la misma red que la computadora.");
+                "el teléfono esté en la misma red que la computadora.",
+                Retriable: true);
         }
         catch (Exception ex)
         {
             // Del tipo de excepcion sí se puede dar el nombre: los nombres de
             // tipo sobreviven al recorte, los mensajes no.
+            //
+            // Se reintenta por las dudas: no sabemos que paso, y equivocarse
+            // reintentando cuesta segundos, mientras que equivocarse rindiendose
+            // manda al usuario a tocar una direccion que podia estar bien.
             return new HealthCheck(false,
                 $"Falló el intento de conexión ({ex.GetType().Name}). " +
-                "Revisá la dirección.");
+                "Revisá la dirección.",
+                Retriable: true);
         }
+    }
+
+    /// <summary>
+    /// Insiste con el backend hasta que conteste o se agoten los intentos.
+    /// </summary>
+    /// <param name="progress">
+    /// Recibe el numero de intento antes de cada uno, para que la pantalla pueda
+    /// decir que esta pasando. Sin eso la espera se ve igual que una app colgada.
+    /// </param>
+    /// <remarks>
+    /// La politica —cuantos intentos, cuanto se espera entre ellos y cuanto dura
+    /// cada uno— vive en <see cref="ConnectionRetry"/>, que no depende de MAUI y
+    /// por eso se puede testear.
+    ///
+    /// Corta apenas una falla no es reintentable: una direccion mal escrita va a
+    /// fallar igual las tres veces.
+    /// </remarks>
+    public async Task<HealthCheck> ConnectAsync(
+        string? candidate = null,
+        IProgress<int>? progress = null,
+        CancellationToken ct = default)
+    {
+        HealthCheck resultado = new(false, "No se intentó conectar.");
+
+        for (var attempt = 1; attempt <= ConnectionRetry.MaxAttempts; attempt++)
+        {
+            var espera = ConnectionRetry.DelayBefore(attempt);
+            if (espera > TimeSpan.Zero)
+            {
+                await Task.Delay(espera, ct);
+            }
+
+            progress?.Report(attempt);
+
+            resultado = await CheckAsync(candidate, ct, attempt);
+
+            if (!ConnectionRetry.ShouldRetry(attempt, resultado.Reachable, resultado.Retriable))
+            {
+                return resultado;
+            }
+        }
+
+        return resultado;
     }
 
     public async Task<bool> IsReachableAsync(CancellationToken ct = default) =>

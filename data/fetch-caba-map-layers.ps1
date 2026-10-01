@@ -78,10 +78,20 @@ function Invoke-Overpass {
             # El query va como campo "data" de un formulario. Mandarlo como cuerpo
             # crudo hace que Overpass conteste 406: no es que el query este mal,
             # es que no reconoce el envoltorio.
-            return Invoke-RestMethod -Uri $Endpoint -Method Post `
+            #
+            # NO se usa Invoke-RestMethod: cuando la respuesta no declara charset
+            # —y Overpass no lo declara— PowerShell 5.1 la decodifica como
+            # ISO-8859-1. Los nombres en UTF-8 quedan doblemente codificados y en
+            # el mapa se lee "Avenida San MartÃ­n" y "RAÃšL R. ALFONSÃN". Se leen
+            # los bytes crudos y se decodifican como UTF-8 a mano.
+            $respuesta = Invoke-WebRequest -Uri $Endpoint -Method Post `
                 -Body @{ data = $Query } `
                 -UserAgent 'TruckNavigator-CABA/0.1 (generador de capas)' `
-                -TimeoutSec 300
+                -TimeoutSec 300 -UseBasicParsing
+
+            $bytes = $respuesta.RawContentStream.ToArray()
+
+            return [System.Text.Encoding]::UTF8.GetString($bytes) | ConvertFrom-Json
         }
         catch {
             # Overpass devuelve 429 cuando no hay slot libre. Es lo normal si se
@@ -179,13 +189,26 @@ foreach ($way in $alturas.elements) {
     $raw = "$($way.tags.maxheight)".Trim()
 
     # "default" significa "rige el limite legal", no un galibo medido. Tambien
-    # aparecen valores con unidad ("3.5 m"). Lo que no se pueda leer como numero
-    # se descarta: un numero inventado sobre un puente es peor que nada.
+    # aparecen valores con unidad ("3.5 m") y con coma decimal ("1,53"). Lo que
+    # no se pueda leer como numero se descarta: un numero inventado sobre un
+    # puente es peor que nada.
+    #
+    # Se parsea con cultura INVARIANTE y a proposito: esta maquina esta en es-AR,
+    # donde el punto es separador de miles, y "1,53" pasaba a 153 m y "6,0" a
+    # 60 m —un bajo via de un metro y medio pintado como si cupiera cualquier
+    # cosa—. Y una altura fuera de 1,5–8 m no es un galibo de calle: se descarta
+    # con aviso, en vez de dibujarla.
     $metres = $null
-    $cleaned = $raw -replace '\s*m$', ''
+    $cleaned = ($raw -replace '\s*m$', '').Replace(',', '.')
+    $parsed = 0.0
 
-    if ([double]::TryParse($cleaned, [ref] ([double] $parsed = 0))) {
-        $metres = [math]::Round([double] $cleaned, 2)
+    if ([double]::TryParse($cleaned, [System.Globalization.NumberStyles]::Float,
+            [System.Globalization.CultureInfo]::InvariantCulture, [ref] $parsed)) {
+        if ($parsed -ge 1.5 -and $parsed -le 8) {
+            $metres = [math]::Round($parsed, 2)
+        } else {
+            Write-Host "  way/$($way.id): maxheight=$raw no es un galibo de calle, queda afuera" -ForegroundColor DarkYellow
+        }
     }
 
     if ($null -eq $metres) { $sinNumero++; continue }
