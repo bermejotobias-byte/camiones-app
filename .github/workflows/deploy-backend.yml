@@ -11,15 +11,10 @@ on:
   workflow_dispatch:
 
   push:
-    # cuentas-de-usuario esta aca a proposito y es temporal.
-    #
-    # El trabajo vive en esa rama y main quedo muy atras, asi que disparando solo
-    # en main este workflow no podria correr nunca. Y el boton de "Run workflow"
-    # tampoco aparece: GitHub solo lo muestra para workflows que existen en la rama
-    # por defecto.
-    #
-    # Cuando la rama se fusione, sacar esta linea.
-    branches: [main, cuentas-de-usuario]
+    # Solo main. Cada feature va en su rama y llega aca por PR: desplegar desde
+    # una rama a medio hacer publicaria algo que nadie reviso. Hasta el 01/10/2026
+    # tambien disparaba cuentas-de-usuario, porque main habia quedado muy atras.
+    branches: [main]
     paths:
       - 'routing/**'
       - 'deploy/**'
