@@ -224,12 +224,36 @@ export const esFalloDeRed = (error) => error?.status === 0;
  * `fallo` devuelve lo que se va a esperar —0 si ese error no frena— para poder
  * decirlo en el log. El reloj se recibe de afuera: así se prueba sin esperar.
  */
+/**
+ * Cuanto hay que esperar para volver a pedir EL MISMO recuadro.
+ *
+ * El freno de fallas no cubre este caso: si los tiles se caen y la API no, cada
+ * reintento de tile dispara 'idle', la app pide reportes y el servidor contesta
+ * 200, asi que no hay falla que frenar. Medido el 30/09/2026 con el mapa QUIETO:
+ * 42 pedidos por minuto, todos con el mismo recuadro.
+ *
+ * Mas corto que el refresco de 60 s del viaje, para no dejarlo sin reportes
+ * nuevos; mover el mapa a otro lado pide de una, porque lo que se frena es
+ * repetir, no mirar.
+ */
+export const MINIMO_MISMO_RECUADRO_MS = 30_000;
+
 export function frenoDeRed() {
   let fallas = 0;
   let proximo = 0;
+  let ultimaCaja = null;
+  let ultimaCajaEn = 0;
 
   return {
-    permite: (ahora) => ahora >= proximo,
+    permite(ahora, caja = null) {
+      if (ahora < proximo) return false;
+
+      if (caja && caja === ultimaCaja && ahora - ultimaCajaEn < MINIMO_MISMO_RECUADRO_MS) {
+        return false;
+      }
+
+      return true;
+    },
 
     fallo(error, ahora) {
       if (!esFalloDeRed(error)) return 0;
@@ -240,9 +264,11 @@ export function frenoDeRed() {
       return espera;
     },
 
-    exito() {
+    exito(caja = null, ahora = Date.now()) {
       fallas = 0;
       proximo = 0;
+      ultimaCaja = caja;
+      ultimaCajaEn = ahora;
     }
   };
 }

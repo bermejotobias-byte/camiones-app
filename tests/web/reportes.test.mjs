@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import {
   TIPOS, tipoDeReporte, etiquetaEdad, mismoSentido, estadoDelPin, featuresDeReportes, featuresParaAvisos,
   textoDelToast, deberiaPreguntar, bboxDeRuta, bboxVisible, esperaTrasFallas, esFalloDeRed, frenoDeRed,
+  MINIMO_MISMO_RECUADRO_MS,
   seccionReportar, hojaGalibo, fichaReporte, promptSigueAhi,
   pinReporteSvg, nombresDePinesDeReporte, instalarReportes, mostrarReportes, CAPA_REPORTES
 } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/reportes.js';
@@ -206,6 +207,42 @@ test('después de un fallo de red no se vuelve a pedir hasta que pasa la espera'
   assert.equal(freno.permite(1_999), false);
   assert.equal(freno.permite(2_999), false);
   assert.equal(freno.permite(3_000), true);
+});
+
+test('el mismo recuadro no se vuelve a pedir enseguida, aunque todo ande bien', () => {
+  // El freno de fallas no alcanza: con los TILES caidos y la API sana,
+  // MapLibre reintenta los tiles sin parar, cada reintento dispara 'idle' y la
+  // app pide reportes que contestan 200. Medido con el mapa QUIETO: 42 pedidos
+  // por minuto, todos con el mismo recuadro. No frena nada porque nada falla.
+  const freno = frenoDeRed();
+  const caja = '-58.44,-34.64,-58.37,-34.53';
+
+  assert.equal(freno.permite(1_000, caja), true);
+  freno.exito(caja, 1_000);
+
+  assert.equal(freno.permite(2_000, caja), false);
+  assert.equal(freno.permite(1_000 + MINIMO_MISMO_RECUADRO_MS - 1, caja), false);
+  assert.equal(freno.permite(1_000 + MINIMO_MISMO_RECUADRO_MS, caja), true);
+});
+
+test('mover el mapa a otro lado pide de una: lo que se frena es repetir, no mirar', () => {
+  const freno = frenoDeRed();
+
+  freno.exito('-58.44,-34.64,-58.37,-34.53', 1_000);
+
+  assert.equal(freno.permite(1_200, '-58.50,-34.70,-58.43,-34.59'), true);
+});
+
+test('el refresco de 60 s del viaje sigue pasando: el mínimo es más corto a propósito', () => {
+  assert.ok(MINIMO_MISMO_RECUADRO_MS < 60_000,
+    `${MINIMO_MISMO_RECUADRO_MS} ms dejaria al viaje sin refrescar reportes`);
+});
+
+test('sin recuadro el freno se comporta como siempre: sólo mira las fallas', () => {
+  const freno = frenoDeRed();
+
+  freno.exito();
+  assert.equal(freno.permite(1_000), true);
 });
 
 test('cada fallo encadenado espera más que el anterior', () => {

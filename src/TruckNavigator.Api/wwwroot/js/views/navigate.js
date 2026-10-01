@@ -663,11 +663,11 @@ export function navigateView(host, { openDrawer, go, puede }) {
     // que muere por timeout tarda varios segundos, y contar la espera desde ahi
     // correria el refresco de 60 s del viaje un ciclo entero.
     const ahora = Date.now();
-    if (!freno.permite(ahora)) return;
+    if (!freno.permite(ahora, caja)) return;
 
     try {
       reportesEnMapa = await api.reports(caja, selectedTruck()?.id);
-      freno.exito();
+      freno.exito(caja, ahora);
     } catch (error) {
       // Sin red el mapa sigue sin reportes; se reintenta mas tarde, cada vez
       // con mas espera. Que el error frene o no lo decide el freno: un 4xx no.
