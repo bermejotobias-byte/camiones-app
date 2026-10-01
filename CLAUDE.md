@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 678 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 335 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), el vocabulario y los iconos
+node --test "tests/web/*.test.mjs"             # 342 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), el vocabulario y los iconos
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -126,6 +126,28 @@ node --test "tests/web/*.test.mjs"             # 335 tests: guiado, avisos de ru
   es lo que `api.js` pone cuando no se pudo contactar al servidor; un 4xx no, porque ahí
   el servidor contestó. Cualquier otro pedido que cuelgue de un evento del mapa hereda
   este problema: si se agrega, va con freno.
+- **El freno de red frena FALLAS; repetir el mismo recuadro es otra puerta.** Si
+  los que se caen son los **tiles** y la API contesta bien, MapLibre reintenta los
+  tiles sin parar, cada reintento dispara `idle`, la app pide reportes y el
+  servidor devuelve 200: no hay falla que frenar. Medido el 30/09/2026 en el
+  navegador con el mapa **quieto**: **42 pedidos por minuto**, todos con el mismo
+  recuadro. Hoy `frenoDeRed` recuerda cuál fue el último recuadro que vino bien y
+  cuándo, y repetirlo antes de `MINIMO_MISMO_RECUADRO_MS` (30 s) no pide. Mover el
+  mapa a otro lado pide **de una** —lo que se frena es repetir, no mirar— y el
+  refresco de 60 s del viaje pasa porque el mínimo es más corto a propósito.
+  Medido después: 0 pedidos en 68 s quieto, y exactamente 1 al arrastrar.
+- **`icono()` devuelve cadena vacía para un nombre que no existe, y el hueco no
+  avisa.** Es a propósito: una pantalla no puede caerse por un dibujo. El precio es
+  que el menú MÁS —que busca el dibujo por el **nombre de la ruta**— mostró
+  *Resumen* y *Reportes* sin ícono y con el texto corrido contra el borde, dos filas
+  de siete, y eso no se nota hasta mirar la pantalla. Hay un test que cruza **cada**
+  fila con su dibujo.
+- **Un valor que cruza dos módulos tiene UNA forma, y el test la toma de quien la
+  escribe.** El recuadro de los reportes salía como arreglo desde el GPS y como
+  cadena desde el mapa (`bboxVisible`), así que la lista de Reportes andaba con GPS
+  y reventaba sin él —`bbox.join is not a function`, la pantalla entera—. El test
+  pasaba en verde porque **inventaba** el arreglo como entrada en vez de armarlo con
+  la función que lo guarda de verdad.
 - **Los avisos de la ruta avisan de UNO por latido** (`pendingRouteAlert` elige el más
   cercano). Con un GPS real a 10 m por segundo dos umbrales se cruzan en latidos
   distintos; simulando con saltos de 150 m se cruzan en el mismo y uno se pierde. Al

@@ -1242,7 +1242,7 @@ una grilla con `grid-area: 1 / 1`, no `position: absolute`.
 ```powershell
 cd routing; .\run-graphhopper.ps1        # motor de ruteo en :8989
 dotnet run --project src/TruckNavigator.Api   # backend + web en :5080
-dotnet test                              # 678 tests (.NET)   ·   node --test "tests/web/*.test.mjs" → 335
+dotnet test                              # 678 tests (.NET)   ·   node --test "tests/web/*.test.mjs" → 342
 node --test "tests/web/*.test.mjs"       # 231 tests de JS — correr desde bash
 .\build-apk.ps1 -Push                    # APK de Release al teléfono
 .\data\fetch-caba-map-layers.ps1         # regenera las capas del mapa
@@ -1320,6 +1320,15 @@ los récords personales **nunca se escriben** —la tabla existe, el endpoint lo
 y `PersonalRecords.Improve` está probado, pero nada en `src/` lo llama— y **la
 racha no existe** en el dominio, aunque el prototipo tenga su tablero y la mascota
 su pose.
+
+**Mirar las pantallas encontró tres defectos más** (30/09, después de los docs),
+ninguno visto por los tests: dos filas del menú MÁS salían **sin ícono** porque
+`icono()` devuelve vacío para un nombre que no existe; la **lista de Reportes**
+reventaba entera sin GPS (`bbox.join is not a function`) porque el recuadro tenía
+dos formas, arreglo desde el fix y cadena desde el mapa; y el mapa pedía **42
+reportes por minuto estando quieto**, porque el freno de red sólo frena fallas y
+acá los que fallaban eran los tiles. Los tres, arreglados con test que los ve en
+rojo primero.
 
 **Lo que falta de A: el teléfono.** Compilar el APK y que el usuario recorra la
 entrada de cero, pruebe el invitado y cree la cuenta. Es la franja donde este
