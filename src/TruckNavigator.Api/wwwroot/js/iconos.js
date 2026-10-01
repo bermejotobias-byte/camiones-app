@@ -55,7 +55,9 @@ const F = {
   circulo:   `<circle fill="currentColor" cx="16" cy="16" r="12"/>`,
   engranaje: `<circle fill="currentColor" cx="16" cy="16" r="10"/><path stroke="currentColor" stroke-width="3.5" stroke-linecap="round" d="M16 4v4M16 24v4M4 16h4M24 16h4"/>`,
   chat:      `<path fill="currentColor" d="M28 15a10 10 0 0 1-10 10H6l3-4a10 10 0 1 1 19-6z"/>`,
-  carnet:    `<rect fill="currentColor" x="3" y="8" width="26" height="18" rx="4"/>`
+  carnet:    `<rect fill="currentColor" x="3" y="8" width="26" height="18" rx="4"/>`,
+  barras:    `<path fill="currentColor" d="M5 19h5v10H5zM13.5 12h5v17h-5zM22 5h5v24h-5z"/>`,
+  triangulo: `<path fill="currentColor" d="M16 3.5 30 27H2z"/>`
 };
 
 /** El texto blanco de un icono, en la tipografia de la app. */
@@ -142,6 +144,11 @@ const DIBUJOS = {
   ranking:   ilu(F.bandera, '#5b9cf2', '#2a5fb0'),
   agregar:   ilu(F.circulo, '#35b8e8', '#1a6f9a', `<path d="M16 10v12M10 16h12" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`),
   config:    ilu(F.engranaje, '#8aa3b3', '#4a6070', `<circle cx="16" cy="16" r="3.5" fill="#fff"/>`),
+
+  // Las dos filas del menu MAS que salieron sin dibujo: el progreso en el
+  // violeta de nivel y EXP, y el reporte en el ambar de su chapa.
+  resumen:   ilu(F.barras, '#a97bf0', '#6d46c4'),
+  reportes:  ilu(F.triangulo, '#f5a524', '#9a6508', `<path d="M16 13v5.5" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/><circle cx="16" cy="22.8" r="1.7" fill="#fff"/>`),
 
   // Los del zocalo, tal como estaban.
   ...Object.fromEntries(Object.entries(DEL_ZOCALO).map(([nombre, trazos]) => [nombre, (t) => caja(trazos, t)]))

@@ -8,6 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { ACCESOS, MENU_MAS, menuParaInvitado } from '../../src/TruckNavigator.Api/wwwroot/js/dock.js';
+import { icono } from '../../src/TruckNavigator.Api/wwwroot/js/iconos.js';
 
 test('el zócalo son los cuatro accesos del brainstorm v3', () => {
   assert.deepEqual(ACCESOS.map((a) => a.id), ['mapa', 'juegos', 'emergencia', 'mas']);
@@ -48,4 +49,21 @@ test('Configuración no es un lujo para el invitado: ahí está la dirección de
   const fila = menuParaInvitado(MENU_MAS).find((m) => m.ruta === 'configuracion');
 
   assert.ok(fila);
+});
+
+test('cada fila del menú MÁS tiene su ícono, que se busca por el nombre de la ruta', () => {
+  // `icono()` devuelve vacio para un nombre que no existe, a proposito: una
+  // pantalla no se rompe por un dibujo que falta. El precio es que el hueco no
+  // avisa — Resumen y Reportes salieron sin icono y con el texto corrido contra
+  // el borde, y nadie lo noto hasta mirar la pantalla.
+  for (const entrada of MENU_MAS) {
+    assert.match(icono(entrada.ruta, 28), /^<svg/, `${entrada.ruta} se dibuja sin ícono`);
+  }
+});
+
+test('la fila de crear cuenta del invitado también tiene el suyo', () => {
+  for (const entrada of menuParaInvitado(MENU_MAS)) {
+    const nombre = entrada.ruta === 'cuenta-nueva' ? 'persona' : entrada.ruta;
+    assert.match(icono(nombre, 28), /^<svg/, `${entrada.ruta} se dibuja sin ícono`);
+  }
 });
