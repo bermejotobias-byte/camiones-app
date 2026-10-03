@@ -962,3 +962,12 @@ public sealed record ReportVoteRequest(string Verdict, double Latitude, double L
 
 /// <summary>Lo que vuelve despues de votar: el reporte como queda y lo que pago el voto (null si no pago).</summary>
 public sealed record ReportVoteResultDto(ReportDto Report, ContributionEarnedDto? Earned);
+
+/// <summary>Una partida de la Viborita TBF: el telefono informa cajas y duracion, no puntos.</summary>
+public sealed record PartidaDeViboritaRequest(int Cajas, long DuracionMs);
+
+/// <summary>El record de la Viborita: el valor y cuando se consiguio.</summary>
+public sealed record RecordDeViboritaDto(long Valor, DateTimeOffset Fecha);
+
+/// <summary>Lo que devuelve una partida. Los puntos los calcula el servidor.</summary>
+public sealed record PartidaDeViboritaDto(long Puntos, RecordDeViboritaDto? Record, bool NuevoRecord);

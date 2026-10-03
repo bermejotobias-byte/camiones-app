@@ -24,6 +24,7 @@ using TruckNavigator.Domain.Users;
 using TruckNavigator.Infrastructure;
 using TruckNavigator.Infrastructure.Email;
 using TruckNavigator.Infrastructure.Identity;
+using TruckNavigator.Infrastructure.Juegos;
 using TruckNavigator.Infrastructure.Persistence;
 using TruckNavigator.Infrastructure.Pois;
 using TruckNavigator.Infrastructure.Progression;
@@ -110,6 +111,7 @@ builder.Services.AddScoped<PoiVoting>();
 builder.Services.AddScoped<PoiContributing>();
 builder.Services.AddScoped<ReportWriter>();
 builder.Services.AddScoped<ReportReader>();
+builder.Services.AddScoped<ViboritaPartidas>();
 
 // Los cierres y galibos validados por la comunidad entran a cada calculo de
 // ruta como areas del custom model; sin esta linea el calculador no los ve.
@@ -1679,6 +1681,40 @@ progress.MapPost("/equip", async (
             statusCode: StatusCodes.Status409Conflict);
 })
 .WithSummary("Pone una recompensa del inventario en su ranura.");
+
+// ------------------------------------------------------------------ juegos
+//
+// La Viborita TBF guarda el record propio (spec 2026-10-03-viborita-tbf). El
+// telefono informa cajas y duracion; los puntos los calcula el servidor, y lo
+// imposible se rechaza. Cae en la canasta de escritura del limite de tasa.
+var juegos = app.MapGroup("/api/juegos").WithTags("Juegos").RequireAuthorization();
+
+juegos.MapPost("/viborita/partidas", async (
+    PartidaDeViboritaRequest request,
+    ClaimsPrincipal principal,
+    ViboritaPartidas partidas,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var resultado = await partidas.RegistrarAsync(userId.Value, request.Cajas, request.DuracionMs, DateTimeOffset.UtcNow, ct);
+
+    if (resultado is null)
+    {
+        return Results.Problem(
+            title: "Esa partida no pudo existir",
+            detail: "Mas cajas de las que entran en el campo, o de las que se levantan en ese tiempo.",
+            statusCode: StatusCodes.Status422UnprocessableEntity);
+    }
+
+    var record = resultado.Record is { } r ? new RecordDeViboritaDto(r.Value, r.AchievedAt) : null;
+    return Results.Ok(new PartidaDeViboritaDto(resultado.Puntos, record, resultado.NuevoRecord));
+})
+.WithSummary("Registra una partida de la Viborita TBF y devuelve los puntos y el record.");
 
 trips.MapGet("/", async (
     int? limit,
