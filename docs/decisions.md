@@ -3239,3 +3239,59 @@ propios. Se partieron, y este es el primero. Spec:
   **migrar los kilómetros del invitado al registrarse** — hoy los acredita el
   servidor y el cliente no puede declararlos, que es lo que evita que se
   falsifiquen.
+
+## AD-52 · El viaje se puede dejar siempre, el mapa gira, y Detalles es la revisión obligatoria
+
+**Fecha:** 03/10/2026
+**Estado:** aceptada. Enmienda AD-34 en un solo punto: la rotación por gesto.
+Es la parte A de lo que dejó la prueba en la calle del 02/10.
+
+### Lo que encontró la calle
+
+- **No había forma clara de salir del viaje.** La cruz existía, pero vivía
+  adentro de la hoja de abajo, y el CSS esconde esa hoja **apenas se toca el
+  mapa** (estado `movido`) y en la **vista general**. Un toque al mapa y no
+  había salida: el log de la prueba muestra la app cerrada desde las apps
+  recientes (`SwipeUpClean`). En la vista general se iba también el S.O.S.
+- **El mapa no se podía girar**, ni siquiera durante el viaje: AD-34 apagó la
+  rotación por gesto pensando en el mapa en reposo, y quedó apagada en todos
+  lados.
+- **Arrancar salteaba Detalles**: tocar una ruta sólo la marcaba, y el botón
+  Arrancar de la lista entraba al viaje sin mostrar la revisión.
+
+### Decisiones
+
+- **La cruz tiene su propia capa y está en los tres estados del viaje**:
+  siguiendo al camión ocupa su hueco de la hoja; con el mapa movido flota
+  arriba de "Volver a centrar"; en la vista general sube a la fila del
+  conmutador, porque abajo están las tarjetas. La confirmación —Llegué /
+  Abandonar / Seguir— no cambia; la limpieza al salir ya estaba bien. **El
+  S.O.S. no se esconde nunca.** Al invitado la pregunta no le promete
+  kilómetros: su viaje no se guarda.
+- **Durante el viaje el mapa gira con dos dedos** (o el botón derecho del
+  mouse), y **girar suelta la cámara como arrastrar** —decisión del usuario,
+  "como Google Maps"—: "Volver a centrar" devuelve posición y rumbo juntos.
+  Fuera del viaje AD-34 sigue entera: nada gira ni se inclina. La regla de qué
+  gesto suelta la cámara es pura (`mapa/camara.js`): sólo cuenta lo que trae
+  evento del dedo, porque el `easeTo` con que la app sigue el rumbo dispara
+  `rotatestart` igual.
+- **Detalles es la revisión obligatoria antes de salir** —decisión del usuario,
+  que unió el "resumen previo" con "Detalles siempre"—. Tocar cualquier opción
+  abre sus Detalles, la lista pierde Arrancar y queda Continuar, y Detalles suma
+  el origen y destino, el camión con su altura y su peso, y la nota del
+  invitado, con Volver y Comenzar viaje. El reparto pasa por el mismo lugar.
+  Detalles vuelve a dibujar la opción revisada: si no, el mapa seguía mostrando
+  la anterior con los datos de esta.
+
+### Consecuencias
+
+- 8 tests de JS nuevos (350). Verificado en el navegador a 375 × 812: dos
+  alternativas con sus propios datos, Volver, Comenzar por la elegida, la cruz
+  en los tres estados, salir desde la vista general en modo Lista, el invitado
+  y el reparto. **El giro con dos dedos no se puede simular en el navegador**:
+  queda para el teléfono.
+- **Un defecto que ya existía y apareció verificando**: el servidor arranca el
+  viaje por la opción elegida (`RouteIndex`), pero **el viaje no la guarda**, y
+  `GET /api/trips/active` —al reabrir la app a mitad de camino— recalcula y
+  devuelve la recomendada. Es la misma clase de error que AD-45 corrigió para
+  las paradas. No se tocó acá: es del servidor y queda propuesto aparte.

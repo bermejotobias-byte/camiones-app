@@ -1090,6 +1090,39 @@ button { font-family: inherit; font-size: inherit; }
   padding: 0 5px;
 }
 
+/* El lugar de la cruz de salir dentro de la hoja: la cruz vive en su propia
+   capa (abajo), y este hueco mantiene la hora centrada como antes. */
+.gps-hoja-hueco { flex: none; width: 45px; height: 45px; }
+
+/* ----------------------------------------------------------------------------
+   Salir del viaje (AD-52): la cruz de 45, siempre visible.
+
+   Siguiendo al camion ocupa el hueco de la hoja: 15 + 5 de borde, y su pie a
+   137 - 12 - 4 - 17 - 45 = 59 del borde de abajo. Con el mapa movido flota
+   12 arriba del panel de "Volver a centrar" (66), con sombra porque ya esta
+   sobre el mapa. En la vista general sube a la fila del conmutador, a la
+   izquierda, con el centro a la misma altura: abajo estan las tarjetas.
+   -------------------------------------------------------------------------- */
+.gps-circulo.gps-salir {
+  position: absolute;
+  left: 20px;
+  bottom: calc(59px + var(--safe-bottom));
+  z-index: 5;
+}
+
+.gps-viaje.movido .gps-circulo.gps-salir {
+  bottom: calc(66px + 12px + var(--safe-bottom));
+  left: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+}
+
+.gps-viaje.general .gps-circulo.gps-salir {
+  top: calc(57px + var(--safe-top) + 17.5px);
+  bottom: auto;
+  left: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+}
+
 /* ----------------------------------------------------------------------------
    "Volver a centrar" (waze-08, medido): cuando el usuario mueve el mapa, la
    hoja deja lugar a esta, de borde a borde y con radio 20 arriba: 66 dp con
@@ -1166,7 +1199,12 @@ button { font-family: inherit; font-size: inherit; }
 .gps-viaje.general .gps-aportar,
 .gps-viaje.general .gps-aviso,
 .gps-viaje.general .gps-recentrar,
-.gps-viaje.general .gps-costado { display: none; }
+.gps-viaje.general #gps-voz { display: none; }
+
+/* El S.O.S. no se esconde nunca (AD-52): antes se iba con todo el costado.
+   En la vista general sube a la fila del conmutador, a la derecha, con el
+   centro a la misma altura: mas abajo lo taparian las tarjetas de la lista. */
+.gps-viaje.general .gps-costado { top: calc(57px + var(--safe-top) + 14px); }
 
 .gps-viaje.lista::before {
   content: '';
@@ -1709,6 +1747,14 @@ button { font-family: inherit; font-size: inherit; }
 .gps-cifras { display: flex; gap: 28px; padding: 4px 0 12px; }
 .gps-cifras b { display: block; font-size: 27px; font-weight: 700; line-height: 32px; font-variant-numeric: tabular-nums; }
 .gps-cifras span { display: block; font-size: 16px; color: var(--gps-ink-3); margin-top: 2px; }
+
+/* El camion con el que se va a salir, arriba de las cifras: nombre, altura y
+   peso. La altura es la que decide los galibos, por eso esta aca (AD-52). */
+.gps-detalles-camion { display: flex; align-items: center; gap: 8px; padding: 2px 0 10px; font-size: 16px; font-weight: 500; color: var(--gps-ink-2); }
+.gps-detalles-camion svg { flex: none; color: var(--gps-celeste); }
+
+/* Lo que el invitado tiene que saber antes de arrancar: el viaje no se guarda. */
+.gps-detalles-nota { margin: 14px 0 4px; font-size: 15px; line-height: 1.35; color: var(--gps-ink-2); }
 
 /* La tarjeta del mono: la unica vez que habla en el GPS, antes de arrancar. */
 .gps-mono {
