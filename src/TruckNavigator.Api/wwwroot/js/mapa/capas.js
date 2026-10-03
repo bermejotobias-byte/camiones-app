@@ -16,7 +16,6 @@ import { escapeHtml } from '../ui.js';
 
 /** Las capas de datos para el camion, en el orden de la grilla. */
 export const CAPAS_DEL_CAMION = [
-  { id: 'red', calcomania: 'red', nombre: 'Red de Tránsito Pesado' },
   { id: 'galibo', calcomania: 'galiboOk', nombre: 'Gálibos' },
   { id: 'paso', calcomania: 'paso', nombre: 'Pasos a nivel', nota: 'sólo en viaje' },
   { id: 'radar', calcomania: 'radar', nombre: 'Radares' },
@@ -31,15 +30,20 @@ export const CAPAS_DEL_CAMION = [
  * comunidad, cubren area y no hacen falta para manejar. Lo que se guardo con
  * los dos botones viejos (`truckLayers`, `riskZones`) se respeta hasta que
  * se toque una capa por separado.
+ *
+ * La Red no esta: no se apaga (AD-53). Una `red` guardada antes se descarta.
  */
 export function capasActivas(prefs = {}) {
   // Los reportes arrancan prendidos: son lo que hay ahora en la calle.
-  const defecto = { red: true, galibo: true, paso: true, radar: true, zona: false, reporte: true };
+  const defecto = { galibo: true, paso: true, radar: true, zona: false, reporte: true };
 
-  if (prefs.capas) return { ...defecto, ...prefs.capas };
+  if (prefs.capas) {
+    const { red: _red, ...guardadas } = prefs.capas;
+    return { ...defecto, ...guardadas };
+  }
 
   const camion = prefs.truckLayers ?? true;
-  return { ...defecto, red: camion, galibo: camion, paso: camion, zona: prefs.riskZones ?? false };
+  return { ...defecto, galibo: camion, paso: camion, zona: prefs.riskZones ?? false };
 }
 
 /** Lo que dice el interruptor de "solo aptos". */

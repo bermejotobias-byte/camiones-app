@@ -9,6 +9,9 @@
  * Todo lo que sabe de MapLibre vive en map.js; esto es lo que sabe de camiones.
  */
 
+import { lineasDeLaRed, nombreDeLaRed, anclaDeLaRed, nombresDeLaRed, colorDelBrillo, destello } from './mapa/red.js';
+import { filtroCallesNombre } from './mapa/estilo-mapa.js';
+
 const SOURCES = {
   red: 'data/red-transito-pesado.geojson',
   alturas: 'data/alturas.geojson',
@@ -22,13 +25,16 @@ const SOURCES = {
  * cuadro de la hoja es uno de estos. Antes habia dos botones —"capas de
  * camion" y "zonas"— y los radares no se apagaban; ahora cada dato va solo.
  *
+ * La Red NO esta: es la referencia permanente del mapa y no se apaga (AD-53).
+ * Lo que llegue para ella —un cuadro viejo, una preferencia guardada antes— se
+ * ignora porque solo se recorren estas claves.
+ *
  * Los pasos a nivel dependen de DOS cosas a la vez: de su cuadro y ademas de
  * que haya un viaje en curso. Se guardan los dos estados por separado porque
  * cada uno llega por su lado y ninguno sabe del otro; si el bucle generico
  * los tocara, prender la capa los haria aparecer fuera del viaje.
  */
 const GRUPOS = {
-  red: ['red-linea', 'red-nombre'],
   galibo: ['altura-senal'],
   paso: ['paso-senal'],
   radar: ['radar-punto'],
@@ -37,7 +43,7 @@ const GRUPOS = {
 };
 
 /** Lo ultimo que se pidio para cada grupo: se vuelve a aplicar al reinstalar. */
-const visibles = { red: true, galibo: true, paso: true, radar: true, zona: false, reporte: true };
+const visibles = { galibo: true, paso: true, radar: true, zona: false, reporte: true };
 let navigating = false;
 
 function aplicarGrupo(map, grupo) {
@@ -146,6 +152,16 @@ export async function installTruckLayers(map) {
       instalar(map);
     } catch (error) {
       console.error(`No se pudieron instalar las capas de ${nombre}: ${error.message}`);
+    }
+  }
+
+  // Una calle de la Red lleva un solo nombre: el de la Red. Se aplica en cada
+  // instalacion porque un estilo nuevo trae calles-nombre sin filtrar.
+  if (descargados.red && map.getLayer('calles-nombre')) {
+    try {
+      map.setFilter('calles-nombre', filtroCallesNombre(nombresDeLaRed(descargados.red)));
+    } catch (error) {
+      console.error(`No se pudo filtrar los nombres de la Red: ${error.message}`);
     }
   }
 
@@ -324,7 +340,7 @@ export function setLayerGroupVisible(map, grupo, visible) {
   aplicarGrupo(map, grupo);
 }
 
-/** Aplica de una vez lo que dice la hoja de capas: { red, galibo, paso, radar, zona }. */
+/** Aplica de una vez lo que dice la hoja de capas: { galibo, paso, radar, zona, reporte }. */
 export function applyLayerGroups(map, capas) {
   for (const grupo of Object.keys(GRUPOS)) {
     if (grupo in capas) visibles[grupo] = !!capas[grupo];
@@ -660,67 +676,97 @@ function addSpeedCameraLayers(map) {
 /* ---------------------------------------------------------------------------
    Red de Transito Pesado
 
-   El pedido es explicito: que las avenidas aptas se vean aunque no sean parte
-   de la ruta, "que no se marque con color pero que sea bien visible el nombre
-   de forma destacada de las demas".
-
-   Asi que el protagonista es EL NOMBRE, no la linea. La linea va en un gris
-   apenas perceptible —lo justo para que el nombre no flote sobre la nada— y el
-   nombre en mayusculas, espaciado y con halo, que lo despega de la cartografia
-   de fondo sin competir con la ruta.
+   La via que manda en el mapa (AD-53): siempre visible, la mas ancha y la mas
+   clara, pintada como un tubo de cromo. El dibujo vive en mapa/red.js; aca
+   solo se instala. Antes (AD-48) era una linea gris apenas perceptible con el
+   nombre como protagonista, y en la calle se perdia entre las avenidas.
 --------------------------------------------------------------------------- */
+
+const coloresDeLaRed = () => ({
+  canto: token('--map-red-canto'),
+  cuerpo: token('--map-red'),
+  reflejo: token('--map-red-reflejo'),
+  brillo: token('--map-red-brillo'),
+  rotulo: token('--map-rotulo-red'),
+  halo: token('--map-halo')
+});
 
 function addRedLayers(map) {
   if (!map.getSource('red') || map.getLayer('red-linea')) return;
 
-  // La Red va DEBAJO de los nombres de calle del mapa base: es una via, y una
-  // via no tapa rotulos. Si el mapa cayo al raster no existe esa capa y se
-  // agrega arriba de todo, que es lo unico posible.
-  const debajoDe = map.getLayer('calles-nombre') ? 'calles-nombre' : undefined;
+  const colores = coloresDeLaRed();
+  const ancla = anclaDeLaRed((id) => Boolean(map.getLayer(id)));
 
-  map.addLayer({
-    id: 'red-linea',
-    type: 'line',
-    source: 'red',
-    layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: {
-      // La via mas clara y mas ancha del mapa: el lugar que en Waze ocupa la
-      // autopista. Se lee sola —que calles la forman, como se conectan y
-      // cuales quedan afuera— sin leyenda (AD-48). De cerca mide 14 dp, un
-      // poco mas que la avenida de 12 y la calle de 10; de lejos, 5,5.
-      'line-color': token('--map-red'),
-      'line-width': ['interpolate', ['exponential', 1.4], ['zoom'], 13, 3.5, 15, 7, 17, 14, 19, 36]
-    }
-  }, debajoDe);
+  // Cada una se agrega antes del ancla, asi que quedan en el orden del arreglo.
+  for (const capa of lineasDeLaRed(colores)) map.addLayer(capa, ancla);
+  map.addLayer(nombreDeLaRed(colores));
 
-  map.addLayer({
-    id: 'red-nombre',
-    type: 'symbol',
-    source: 'red',
-    // Sin nombre no hay nada que mostrar, y la linea ya la dibuja la capa de arriba.
-    filter: ['all', ['has', 'name'], ['!=', ['get', 'name'], null]],
-    minzoom: 13,
-    layout: {
-      'symbol-placement': 'line',
-      'text-field': ['get', 'name'],
-      // En mayusculas espaciadas, chicas: es la marca de la Red, no un rotulo
-      // mas. 10,5 sp de cerca, medido en el prototipo.
-      'text-transform': 'uppercase',
-      'text-letter-spacing': 0.1,
-      'text-size': ['interpolate', ['linear'], ['zoom'], 13, 9, 16, 10.5, 18, 12],
-      'text-font': ['NotoSans-Bold'],
-      // Se repite a lo largo de la avenida: sirve de referencia en cualquier
-      // punto, no solo donde arranca el tramo.
-      'symbol-spacing': 320,
-      'text-max-angle': 35,
-      'text-allow-overlap': false,
-      'text-padding': 6
-    },
-    paint: {
-      'text-color': token('--map-rotulo-red'),
-      'text-halo-color': token('--map-halo'),
-      'text-halo-width': 1.6
+  coloresActuales = colores;
+  encenderDestello(map);
+}
+
+/** Los colores con los que se instalo la Red: el destello los mezcla en cada latido. */
+let coloresActuales = null;
+
+/** Un destello por mapa: se apaga cuando el mapa se destruye. */
+const destellos = new WeakMap();
+
+/**
+ * Enciende el destello del brillo de la Red, una vez por mapa.
+ *
+ * El brillo es opaco (ver mezclar en mapa/red.js), asi que el destello cambia
+ * su COLOR, no su opacidad: un solo setPaintProperty por latido.
+ *
+ * Deja ademas UNA linea en la consola —en el telefono, `adb logcat -s Web`— al
+ * minuto de arrancar: cuanto tarda cada latido y cuanto se separan los cuadros
+ * del mapa. Es la medicion que pide la spec (§3.3) antes de dar el destello por
+ * bueno, y sirve igual despues si el mapa se traba.
+ */
+function encenderDestello(map) {
+  if (destellos.has(map)) return;
+
+  const medicion = { latidos: 0, total: 0, maximo: 0, cuadros: 0, hueco: 0, ultimo: null };
+  const desde = performance.now();
+
+  const contarCuadro = () => {
+    const ahora = performance.now();
+    if (medicion.ultimo !== null) medicion.hueco = Math.max(medicion.hueco, ahora - medicion.ultimo);
+    medicion.ultimo = ahora;
+    medicion.cuadros++;
+  };
+  map.on('render', contarCuadro);
+
+  const quieto = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+  const apagar = destello({
+    quieto,
+    aplicar: (intensidad) => {
+      if (!coloresActuales || !map.getLayer('red-brillo')) return;
+
+      const t0 = performance.now();
+      map.setPaintProperty('red-brillo', 'line-color', colorDelBrillo(coloresActuales, intensidad));
+      const costo = performance.now() - t0;
+
+      medicion.latidos++;
+      medicion.total += costo;
+      medicion.maximo = Math.max(medicion.maximo, costo);
+
+      if (medicion.latidos === 600) {
+        map.off('render', contarCuadro);
+        const segundos = (performance.now() - desde) / 1000;
+        console.info(
+          `Destello: ${medicion.latidos} latidos en ${segundos.toFixed(0)} s, ` +
+          `cada uno ${(medicion.total / medicion.latidos).toFixed(2)} ms (max ${medicion.maximo.toFixed(2)}); ` +
+          `el mapa dibujo ${medicion.cuadros} cuadros, el hueco mas largo ${medicion.hueco.toFixed(0)} ms`);
+      }
     }
+  });
+
+  destellos.set(map, apagar);
+  map.once('remove', () => {
+    apagar();
+    map.off('render', contarCuadro);
+    destellos.delete(map);
   });
 }
 
@@ -898,8 +944,9 @@ export function setTruckHeight(map, metres) {
 export function refreshLayerColors(map) {
   if (!map) return;
 
-  if (map.getLayer('red-linea')) {
-    map.setPaintProperty('red-linea', 'line-color', token('--map-red'));
+  const colores = coloresDeLaRed();
+  for (const capa of lineasDeLaRed(colores)) {
+    if (map.getLayer(capa.id)) map.setPaintProperty(capa.id, 'line-color', capa.paint['line-color']);
   }
 
   if (map.getLayer('red-nombre')) {

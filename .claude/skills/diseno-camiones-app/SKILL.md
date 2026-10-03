@@ -914,16 +914,20 @@ lugares y datos). Todo lo demás de la app sigue en §1–§16.
 
 **Los tokens** (en `app.css`, `--gps-*` y `--map-*`, noche medida y día
 derivado — falta la captura de día): banda `#000`; hoja y tarjetas `#202125`;
-píldoras y círculos `#3c4043`; ruta `#2ddcff` de 8 dp con canto blanco al
-35 %; acción `#32ccfe` con texto `#0a1f2a`; celeste de texto `#32c8fb`;
+píldoras y círculos `#3c4043`; ruta `#2ddcff` de 4 / 7 / 14 / 30 dp en zoom
+13 / 15 / 17 / 19, con canto blanco 3 dp más ancho al 35 % (AD-53); acción `#32ccfe` con texto `#0a1f2a`; celeste de texto `#32c8fb`;
 chevrón `#00b5d0`; globo `#1d7699`; aportar `#4e411e` con calcomanía
 `#f9c531` (**el amarillo significa "fuera de la Red"** y es el único color de
 advertencia sobre una ruta; **el rojo nunca va sobre una ruta**, AD-47).
 Mapa: tierra `#272d39`, manzanas `#252e3d`/`#233041`, predios `#2e3d50`, agua
-`#22467a`, parque `#216a4f`, calle `#40546c` (10 dp de cerca, 2,5 de lejos),
-avenida `#4d6179`, **la Red `#6d89a8` es la vía más clara y ancha, con el
-nombre en mayúsculas espaciadas**, autopista `#7494b4` con carriles y centro
-punteado, ferrocarril a rayas; rótulos de calle 12 sp, barrios 17 sp gris.
+`#22467a`, parque `#216a4f`, calle `#354558` (10 dp de cerca, 2,5 de lejos),
+avenida `#3d4d61`, **la Red es un tubo de cromo y la vía que manda** (AD-53):
+cuerpo `#8fb6de` de 6 / 10 / 22 / 48 dp, canto `#3d5f85`, reflejo y un brillo
+blanco centrado que destella; el nombre en mayúsculas negrita, siempre un
+escalón arriba de una calle. Autopista `#4a5f7a` con dos carriles y **sin** línea
+punteada; ferrocarril a rayas; rótulos de calle de 10 a 15 sp según el zoom,
+barrios 17 sp gris. De día las calles son blancas y la Red `#5b8cc4` es la única
+vía saturada.
 
 **Las medidas** (spec `docs/superpowers/specs/2026-09-16-gps-waze-design.md`
 §2, y las correcciones medidas al construir): banda 95 + barra de estado

@@ -14,8 +14,9 @@
  *   ancho y por claridad: calle, avenida, y encima de todo la Red de Transito
  *   Pesado —que la pinta layers.js— en el lugar que en Waze ocupa la autopista.
  *   De dia, en cambio, las calles son blancas y llevan un filete gris;
- * · **la autopista** es una banda clara con dos lineas de carril y la linea
- *   central punteada (waze-08);
+ * · **la autopista** es una banda clara con dos lineas de carril (waze-08). La
+ *   linea central punteada se saco el 03/10/2026 (AD-53): de lejos se leia como
+ *   un tramo cortado;
  * · **las manzanas no son todas iguales**: lo residencial va apenas distinto de
  *   la tierra, los predios (industria, comercio, escuelas, hospitales, vias)
  *   mas claros, los parques en verde y el agua en azul;
@@ -91,23 +92,69 @@ const NOMBRE = ['coalesce', ['get', 'name:es'], ['get', 'name']];
  * envolverlo en una suma o un producto hace que MapLibre rechace la capa
  * entera — por el evento `error`, sin excepcion (ver CLAUDE.md, AD-36).
  */
-const ancho = ([z13, z15, z17, z19], { por = 1, mas = 0 } = {}) =>
+export const ancho = ([z13, z15, z17, z19], { por = 1, mas = 0 } = {}) =>
   ['interpolate', ['exponential', 1.4], ['zoom'],
     13, z13 * por + mas, 15, z15 * por + mas, 17, z17 * por + mas, 19, z19 * por + mas];
 
-const PARADAS = {
+export const PARADAS = {
   calle: [1, 2.6, 10, 26],
   avenida: [2.2, 4.5, 12, 30],
   principal: [3, 6, 14, 34],
   autopista: [5, 8, 16, 38],
   sendero: [0.4, 0.8, 2, 4],
-  ferrocarril: [1.2, 2, 4, 8]
+  ferrocarril: [1.2, 2, 4, 8],
+  // La Red de Transito Pesado (la pinta red.js): la via mas ancha en todo zoom.
+  red: [6, 10, 22, 48],
+  // La ruta (la dibuja map.js): la misma curva que las calles, para que pinte
+  // la calzada en vez de flotar como un hilo de 8 px fijos (AD-53).
+  ruta: [4, 7, 14, 30]
 };
 
 const ANCHO = Object.fromEntries(Object.entries(PARADAS).map(([k, p]) => [k, ancho(p)]));
 
 /** La misma escala, sumandole un filete de 2 px (de dia). */
 const conBorde = (clase) => ancho(PARADAS[clase], { mas: 2 });
+
+/**
+ * Los anchos de la ruta y de la flecha de la maniobra, que dibuja map.js.
+ *
+ * El canto blanco es 3 px mas ancho. La flecha mide tres cuartos de la ruta,
+ * con su propio canto, y la punta se dibujo para una linea de 6 px: escala en
+ * la misma proporcion para no quedar mas angosta que la linea que marca.
+ */
+export const ANCHO_DE_RUTA = {
+  linea: ancho(PARADAS.ruta),
+  canto: ancho(PARADAS.ruta, { mas: 3 }),
+  flecha: ancho(PARADAS.ruta, { por: 0.75 }),
+  flechaCanto: ancho(PARADAS.ruta, { por: 0.75, mas: 3 })
+};
+
+export const TAMANO_DE_PUNTA = ancho(PARADAS.ruta, { por: 0.75 / 6 });
+
+const esAutopista = ['==', ['get', 'kind'], 'highway'];
+const esPrincipal = ['all', ['==', ['get', 'kind'], 'major_road'], esDetalle(['primary', 'primary_link', 'trunk', 'trunk_link'])];
+const esAvenida = ['all', ['==', ['get', 'kind'], 'major_road'], esDetalle(['secondary', 'secondary_link', 'tertiary', 'tertiary_link'])];
+const esCalle = ['==', ['get', 'kind'], 'minor_road'];
+const esSendero = ['==', ['get', 'kind'], 'path'];
+const esFerrocarril = ['all', ['==', ['get', 'kind'], 'rail'], esDetalle(['rail'])];
+
+/**
+ * Que nombres de calle dibuja el mapa base.
+ *
+ * Una avenida de la Red salia dos veces: en mayusculas desde la capa de la Red
+ * y en minusculas desde aca. Con la lista de nombres de la Red, este filtro deja
+ * afuera los suyos (por igualdad exacta del `name` de OSM, que es el mismo en
+ * los dos lados). La lista llega cuando se descarga la Red; hasta entonces van
+ * todos.
+ *
+ * @param {string[]} nombresDeLaRed
+ */
+export function filtroCallesNombre(nombresDeLaRed = []) {
+  const deUnaVia = ['any', esCalle, esAvenida, esPrincipal, esAutopista];
+  if (!nombresDeLaRed.length) return deUnaVia;
+
+  return ['all', deUnaVia, ['!', ['in', ['get', 'name'], ['literal', nombresDeLaRed]]]];
+}
 
 /**
  * Arma el estilo completo, leyendo los colores del tema activo.
@@ -132,7 +179,6 @@ export function buildBasemapStyle(apiBase = '') {
     avenida: token('--map-avenida'),
     autopista: token('--map-autopista'),
     carril: token('--map-carril'),
-    centro: token('--map-centro'),
     ferrocarril: token('--map-ferrocarril'),
     ferrocarril2: token('--map-ferrocarril-2'),
     edificio: token('--map-edificio'),
@@ -160,13 +206,6 @@ export function buildBasemapStyle(apiBase = '') {
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: { 'line-color': color, 'line-width': width, ...extra }
   });
-
-  const esAutopista = ['==', ['get', 'kind'], 'highway'];
-  const esPrincipal = ['all', ['==', ['get', 'kind'], 'major_road'], esDetalle(['primary', 'primary_link', 'trunk', 'trunk_link'])];
-  const esAvenida = ['all', ['==', ['get', 'kind'], 'major_road'], esDetalle(['secondary', 'secondary_link', 'tertiary', 'tertiary_link'])];
-  const esCalle = ['==', ['get', 'kind'], 'minor_road'];
-  const esSendero = ['==', ['get', 'kind'], 'path'];
-  const esFerrocarril = ['all', ['==', ['get', 'kind'], 'rail'], esDetalle(['rail'])];
 
   return {
     version: 8,
@@ -231,11 +270,10 @@ export function buildBasemapStyle(apiBase = '') {
       linea('ferrocarril-rayas', esFerrocarril, t.ferrocarril2, ancho(PARADAS.ferrocarril, { por: 0.45 }),
         { 'line-dasharray': [1.5, 3] }),
 
-      /* -- la autopista: banda clara, dos carriles y el centro punteado ----- */
+      /* -- la autopista: banda clara y dos carriles ------------------------- */
       linea('autopista', esAutopista, t.autopista, ANCHO.autopista, {}, DESDE.autopista),
       linea('autopista-carril-a', esAutopista, t.carril, 1, { 'line-offset': ancho(PARADAS.autopista, { por: 0.28 }), 'line-opacity': 0.8 }),
       linea('autopista-carril-b', esAutopista, t.carril, 1, { 'line-offset': ancho(PARADAS.autopista, { por: -0.28 }), 'line-opacity': 0.8 }),
-      linea('autopista-centro', esAutopista, t.centro, 1.2, { 'line-dasharray': [4, 5], 'line-opacity': 0.9 }),
 
       // Los edificios aparecen recien muy cerca y sin contorno: sirven para
       // reconocer una esquina, no para mirarlos.
@@ -258,13 +296,14 @@ export function buildBasemapStyle(apiBase = '') {
         source: 'base',
         'source-layer': 'roads',
         minzoom: 14,
-        filter: ['any', esCalle, esAvenida, esPrincipal, esAutopista],
+        filter: filtroCallesNombre(),
         layout: {
           'symbol-placement': 'line',
           'text-field': NOMBRE,
           'text-font': ['NotoSans-Regular'],
-          // 12 sp de cerca (waze-03); un poco menos de lejos, que hay mas.
-          'text-size': ['interpolate', ['linear'], ['zoom'], 14, 10, 16, 12],
+          // 12 sp en 16 (waze-03), y siguen creciendo al acercarse: congelados en
+          // 12 desde el zoom 16 no se leian con el mapa a 19 (AD-53).
+          'text-size': ['interpolate', ['linear'], ['zoom'], 14, 10, 16, 12, 18, 14, 19, 15],
           'symbol-spacing': 300,
           'text-max-angle': 30,
           'text-padding': 6
