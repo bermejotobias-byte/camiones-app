@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 678 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 342 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), el vocabulario y los iconos
+node --test "tests/web/*.test.mjs"             # 350 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), el vocabulario y los iconos
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -484,7 +484,17 @@ node --test "tests/web/*.test.mjs"             # 342 tests: guiado, avisos de ru
   salvo `minZoom`, que sólo acerca y usa únicamente *Mi ubicación*. La perspectiva se aplica
   con `easeTo` desde `enterNavigationMode`, que no pasa por esos manejadores, así que
   apagarlos no la rompe. Los botones + / − se esconden durante el viaje porque la cámara
-  sigue al vehículo y deshace cualquier zoom manual. Ver AD-34.
+  sigue al vehículo y deshace cualquier zoom manual. Ver AD-34. **Durante el viaje sí se
+  gira** con dos dedos (AD-52): `enterNavigationMode` prende la rotación y
+  `exitNavigationMode` la apaga. Girar suelta la cámara como arrastrar, y la regla vive en
+  `mapa/camara.js`: sólo cuenta lo que trae `originalEvent`, porque el `easeTo` con que
+  la app sigue el rumbo dispara `rotatestart` en cada latido.
+- **Un control crítico del viaje no vive dentro de un panel que se esconde.** La cruz de
+  salir estaba en la hoja de abajo, y `.movido` y `.general` esconden esa hoja: un toque
+  al mapa y no había salida —en la prueba en la calle la app terminó cerrándose desde
+  las apps recientes—. Hoy la cruz y el S.O.S. están en los tres estados del viaje
+  (AD-52). Al agregar un estado o un panel a `.gps-viaje`, verificar que los dos sigan
+  a la vista.
 - **La ruta se dibuja DEBAJO de `calles-nombre`.** Sin el `beforeId`, la línea de 8 dp con
   su canto tapa justo el nombre de la calle por la que se va, que es el dato que más se
   necesita manejando. **La flecha blanca de la maniobra va ENCIMA de todo**, nombres

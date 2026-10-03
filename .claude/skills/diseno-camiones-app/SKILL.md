@@ -991,6 +991,22 @@ que en la lista de rutas usaba 32 donde la captura dice 27):
 - **Día**: sigue derivado (sin captura); verificado que funciona en reposo,
   rutas y viaje. El usuario lo aprobó así el 18/09/2026: "el tema claro está bien así, no hace falta la captura de Waze".
 
+**Corregido el 03/10/2026 después de la prueba en la calle (AD-52):**
+
+- **La lista de rutas ya no arranca.** Tocar una opción abre sus Detalles;
+  la única píldora de la lista es **Continuar** (celeste), que abre los
+  Detalles de la marcada. **Detalles es la revisión obligatoria**: arriba
+  "Mi ubicación → destino", después el camión con altura y peso (16 / 500
+  gris, el camión en celeste), las cifras, el mono, el camino, las fuentes,
+  la nota del invitado si corresponde, y abajo **Volver** (gris) y
+  **Comenzar viaje** (celeste). El reparto pasa por el mismo lugar.
+- **La cruz de salir tiene su propia capa** (45, `.gps-salir`): siguiendo
+  al camión ocupa su hueco de la hoja (15 + 5 del borde, el pie a 59);
+  con el mapa movido flota 12 arriba de "Volver a centrar", con sombra; en
+  la vista general sube a la fila del conmutador, a la izquierda, con el
+  S.O.S. a la derecha y los tres centros a la misma altura. La voz se
+  esconde en la vista general; el S.O.S. no se esconde nunca.
+
 Tres reglas de construcción que salieron de verificar: **las hojas más altas
 que la de reposo van clavadas abajo** (`position: absolute`, con scroll), no
 en el flujo de la capa del mapa; **los nombres de clase `gps-*` se buscan

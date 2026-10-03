@@ -1313,7 +1313,29 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-### 0. EL FRENTE VIVO — la entrada y el invitado, y el hosteo (30/09/2026)
+### 0. EL FRENTE VIVO — lo que dejó la prueba en la calle (02–03/10/2026)
+
+El 02/10 el usuario probó la app en la calle por el túnel de Cloudflare y volvió
+con **doce puntos**, partidos en tres partes, cada una con su rama y su PR:
+
+| | Parte | Puntos | Estado |
+|---|---|---|---|
+| **A** | Controles y flujo del viaje | salir siempre a mano, rotación con dos dedos, Detalles obligatorio | ✅ **hecha el 03/10** (AD-52), rama `viaje-salir-rotar-detalles`. Falta el teléfono: el giro con dos dedos no se simula en el navegador |
+| **B** | La Red primero: cartografía | la Red visible siempre como capa de referencia (**el más importante**), Red vs. resto con jerarquía, nombres según el zoom, halo de cromo sobre la Red, autopistas sin punteado, la ruta encima de la calle con mucho zoom | pendiente — va con spec y mediciones |
+| **C** | El mapa que no se rompe | el cuadrado que no carga, las manchas azules que desaparecen al acercarse | pendiente — primero encontrar la causa |
+
+**Defecto del servidor que apareció verificando A** (ya existía): el viaje
+arranca por la opción elegida (`RouteIndex`), pero no la guarda, y
+`GET /api/trips/active` al reabrir la app devuelve la recomendada. Visto el 03/10
+en Liniers → La Boca: la app navegaba 21 km y el servidor devolvía 18,4. Es la
+misma clase de error que AD-45 arregló para las paradas.
+
+**Para probar en la calle**: `demo-up.ps1` + `build-apk.ps1 -ApiUrl <túnel> -Push`,
+la notebook **enchufada y con la tapa abierta** (el 01/10 la prueba murió a las
+17:47 por "Button or Lid"), y el anti-suspensión **como proceso aparte**: las
+tareas de fondo de la sesión se cortan a los 30 minutos.
+
+### Antes: la entrada y el invitado, y el hosteo (30/09/2026)
 
 **Las fases 6 y 7 se partieron en cinco subproyectos** porque juntas no entran
 en una sola spec:
