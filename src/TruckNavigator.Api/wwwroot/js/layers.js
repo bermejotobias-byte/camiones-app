@@ -24,13 +24,16 @@ const SOURCES = {
  * cuadro de la hoja es uno de estos. Antes habia dos botones —"capas de
  * camion" y "zonas"— y los radares no se apagaban; ahora cada dato va solo.
  *
+ * La Red NO esta: es la referencia permanente del mapa y no se apaga (AD-53).
+ * Lo que llegue para ella —un cuadro viejo, una preferencia guardada antes— se
+ * ignora porque solo se recorren estas claves.
+ *
  * Los pasos a nivel dependen de DOS cosas a la vez: de su cuadro y ademas de
  * que haya un viaje en curso. Se guardan los dos estados por separado porque
  * cada uno llega por su lado y ninguno sabe del otro; si el bucle generico
  * los tocara, prender la capa los haria aparecer fuera del viaje.
  */
 const GRUPOS = {
-  red: ['red-canto', 'red-linea', 'red-reflejo', 'red-brillo', 'red-nombre'],
   galibo: ['altura-senal'],
   paso: ['paso-senal'],
   radar: ['radar-punto'],
@@ -39,7 +42,7 @@ const GRUPOS = {
 };
 
 /** Lo ultimo que se pidio para cada grupo: se vuelve a aplicar al reinstalar. */
-const visibles = { red: true, galibo: true, paso: true, radar: true, zona: false, reporte: true };
+const visibles = { galibo: true, paso: true, radar: true, zona: false, reporte: true };
 let navigating = false;
 
 function aplicarGrupo(map, grupo) {
@@ -326,7 +329,7 @@ export function setLayerGroupVisible(map, grupo, visible) {
   aplicarGrupo(map, grupo);
 }
 
-/** Aplica de una vez lo que dice la hoja de capas: { red, galibo, paso, radar, zona }. */
+/** Aplica de una vez lo que dice la hoja de capas: { galibo, paso, radar, zona, reporte }. */
 export function applyLayerGroups(map, capas) {
   for (const grupo of Object.keys(GRUPOS)) {
     if (grupo in capas) visibles[grupo] = !!capas[grupo];
