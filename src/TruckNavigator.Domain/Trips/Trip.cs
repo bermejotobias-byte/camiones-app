@@ -68,6 +68,23 @@ public sealed class Trip
     /// </remarks>
     public IReadOnlyList<TripStop> Stops { get; set; } = [];
 
+    /// <summary>
+    /// Que opcion de ruta se eligio al arrancar: 0 la recomendada, 1 en
+    /// adelante las alternativas, en el orden en que se ofrecieron.
+    /// <c>null</c> es la recomendada, y es lo que tienen los viajes de antes
+    /// de esta columna y los repartos, que tienen una sola ruta.
+    /// </summary>
+    /// <remarks>
+    /// <b>Sin esto, retomar el viaje lo cambiaba de ruta.</b> El viaje arrancaba
+    /// por la opcion elegida, pero al reabrir la app el servidor recalculaba y
+    /// devolvia la recomendada: medido el 03/10/2026, la app navegaba 21 km y
+    /// el servidor devolvia 18,4. El guiado tomaba al camion como salido de
+    /// ruta y lo empujaba a la que no eligio. Es la misma falla que AD-45
+    /// corrigio para las paradas. Se guarda la posicion y no la geometria,
+    /// por lo mismo que las paradas: la ruta se recalcula, la eleccion no.
+    /// </remarks>
+    public int? RouteIndex { get; set; }
+
     /// <summary>Distancia de la ruta calculada por el servidor, en metros.</summary>
     public double PlannedDistanceMeters { get; set; }
 
