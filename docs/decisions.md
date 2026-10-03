@@ -3295,3 +3295,58 @@ Es la parte A de lo que dejó la prueba en la calle del 02/10.
   `GET /api/trips/active` —al reabrir la app a mitad de camino— recalcula y
   devuelve la recomendada. Es la misma clase de error que AD-45 corrigió para
   las paradas. No se tocó acá: es del servidor y queda propuesto aparte.
+
+## AD-54 · El mapa que no se rompe: el agua sólo en polígonos, y un tile que falla se reintenta
+
+**Fecha:** 03/10/2026
+**Estado:** aceptada. Enmienda AD-26 en la regla del respaldo raster. Es la parte C
+de lo que dejó la prueba en la calle del 02/10.
+
+### Lo que encontró la calle, y lo que se midió
+
+- **Manchas azules que desaparecen al acercarse.** La capa `agua` es de relleno, y
+  la fuente `water` del mapa base trae, además de lagos y ríos, las **líneas** de
+  arroyos y conductos: el Arroyo Maldonado entubado bajo la Juan B. Justo, el
+  Antiguo cauce del Riachuelo, el Conducto Villa Lugano. MapLibre cierra cada
+  línea como un polígono y pinta el interior: cuñas azules siguiendo el cauce. Como
+  cada tile corta la línea en otro lugar, la forma cambia con el zoom. Verificado
+  con `queryRenderedFeatures`, que devolvía `LineString` en la capa de relleno.
+- **Un cuadrado sin cargar.** El log de la calle no lo registró (cubre 4 minutos),
+  así que se reprodujo simulando el corte en el navegador. Tres defectos juntos:
+  1. **La caché de PMTiles envenena.** La de fábrica (`SharedPromiseCache`) guarda
+     el pedido de cada directorio antes de saber si salió bien y no lo borra si
+     falla. Dos 502 dejaron siete tiles fallando **para siempre**: cada reintento
+     recibía el mismo error sin salir a la red.
+  2. **MapLibre no reintenta un tile fallido.** Queda `errored`; en su lugar se ve
+     el fondo o un tile de menos zoom estirado. Ni esperar ni mover el mapa lo
+     recupera, y `reload()` de la fuente saltea los fallidos a propósito.
+  3. **Un tile suelto tiraba el mapa entero al raster.** La regla del respaldo
+     miraba sólo el texto del error, y un corte en un tile dice `Failed to fetch`:
+     el mapa pasaba al OpenStreetMap estándar, sin la Red ni nada nuestro, hasta
+     reabrir la app.
+
+### Decisiones
+
+- **El agua rellena sólo polígonos** (`geometry-type`). Los arroyos y conductos no
+  se dibujan; el río, los lagos y el canal del Riachuelo quedan.
+- **El archivo del mapa base se abre con `ResolvedValueCache`**, la caché de la
+  misma librería que guarda sólo lo que salió bien. El precio: dos tiles que piden
+  el mismo directorio a la vez lo bajan dos veces, unos pocos KB.
+- **Los tiles fallidos se reintentan** con `map.refreshTiles`, que sí los vuelve a
+  pedir: los que fallan juntos van juntos, con la escalera del freno de red
+  (2, 5, 15 y 60 s) para no martillar un servidor caído, y en el acto cuando el
+  teléfono avisa que volvió la conexión (`online`). Lo puro vive en
+  `mapa/tiles.js`.
+- **Al raster sólo si falla la fuente entera** —el archivo no está—, que es cuando
+  el error llega sin tile. Un tile suelto se reintenta.
+
+### Consecuencias
+
+- 14 tests de JS nuevos (364). Verificado en el navegador con el corte simulado:
+  con `Failed to fetch` el mapa sigue vectorial y se recupera solo a los 2 s de
+  volver la red; con un corte de 8 s de 502 reintenta a los 2 y a los 7 s, y con
+  el aviso `online` vuelve en el acto. Con el archivo inexistente (404 sin tile)
+  sigue cayendo al raster.
+- La trampa del 30/09 en `CLAUDE.md` dice que MapLibre reintenta los tiles sin
+  parar. Lo medido hoy con el mapa base vectorial es lo contrario: un tile fallido
+  no se vuelve a pedir. No se re-midió qué tiles eran los de aquella medición.

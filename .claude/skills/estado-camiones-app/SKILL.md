@@ -1322,7 +1322,7 @@ con **doce puntos**, partidos en tres partes, cada una con su rama y su PR:
 |---|---|---|---|
 | **A** | Controles y flujo del viaje | salir siempre a mano, rotación con dos dedos, Detalles obligatorio | ✅ **hecha el 03/10** (AD-52), rama `viaje-salir-rotar-detalles`. Falta el teléfono: el giro con dos dedos no se simula en el navegador |
 | **B** | La Red primero: cartografía | la Red visible siempre como capa de referencia (**el más importante**), Red vs. resto con jerarquía, nombres según el zoom, halo de cromo sobre la Red, autopistas sin punteado, la ruta encima de la calle con mucho zoom | pendiente — va con spec y mediciones |
-| **C** | El mapa que no se rompe | el cuadrado que no carga, las manchas azules que desaparecen al acercarse | pendiente — primero encontrar la causa |
+| **C** | El mapa que no se rompe | el cuadrado que no carga, las manchas azules que desaparecen al acercarse | ✅ **hecha el 03/10** (AD-54), rama `el-mapa-que-no-se-rompe`: el agua sólo en polígonos (eran arroyos entubados cerrados como lagos); la caché de PMTiles que no guarda fallas, el reintento de tiles y el respaldo raster sólo si falta el archivo. Falta probarla en la calle |
 
 **Defecto del servidor que apareció verificando A** (ya existía): el viaje
 arranca por la opción elegida (`RouteIndex`), pero no la guarda, y
