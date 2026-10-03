@@ -12,6 +12,7 @@ import { calcomania } from './mapa/piezas.js';
 import { instalarLugares, mostrarLugares, CAPA_LUGARES } from './mapa/lugares.js';
 import { instalarReportes, mostrarReportes, CAPA_REPORTES } from './mapa/reportes.js';
 import { currentApiBase } from './api.js';
+import { GESTOS_QUE_SUELTAN, sueltaLaCamara } from './mapa/camara.js';
 
 const CABA_CENTER = [-58.4370, -34.6083];
 
@@ -81,7 +82,10 @@ export function createMap(container, handlers = {}) {
     zoom: 12,
     attributionControl: { compact: true },
 
-    // --- la camara no se inclina ni gira por gesto, nunca ------------------
+    // --- fuera del viaje la camara no se inclina ni gira por gesto ---------
+    //
+    // Durante el viaje si se gira con dos dedos (AD-52): enterNavigationMode
+    // prende la rotacion y exitNavigationMode la vuelve a apagar.
     //
     // Fuera del viaje el mapa es una vista cenital fija, mirando al norte, como
     // en cualquier navegador conocido. Girarlo e inclinarlo son gestos que en un
@@ -131,13 +135,15 @@ export function createMap(container, handlers = {}) {
   // no existe.
   map.on('click', (event) => handlers.onTap?.(featureAt(event.point)));
 
-  // Durante el viaje, si el usuario arrastra o pellizca el mapa, la camara deja
-  // de seguir al camion hasta que toque "Volver a centrar" (waze-08). Solo los
+  // Durante el viaje, si el usuario arrastra, pellizca o gira el mapa, la
+  // camara deja de seguir al camion hasta que toque "Volver a centrar"
+  // (waze-08), que devuelve la posicion y el rumbo automatico juntos. Solo los
   // gestos del usuario cuentan: easeTo tambien dispara estos eventos, pero sin
-  // originalEvent, y ese es el que mueve la camara para seguir al vehiculo.
-  for (const gesto of ['dragstart', 'zoomstart']) {
+  // originalEvent, y ese es el que mueve —y gira— la camara para seguir al
+  // vehiculo. La regla esta en mapa/camara.js, con sus tests.
+  for (const gesto of GESTOS_QUE_SUELTAN) {
     map.on(gesto, (event) => {
-      if (!navigating || !following || !event.originalEvent) return;
+      if (!sueltaLaCamara({ navegando: navigating, siguiendo: following, evento: event })) return;
       following = false;
       handlers.onPan?.();
     });
@@ -963,6 +969,12 @@ export function enterNavigationMode(from) {
   navigating = true;
   following = true;
 
+  // Durante el viaje el mapa se gira con dos dedos —o con el boton derecho del
+  // mouse—, para mirar hacia cualquier lado (AD-52). Girar suelta la camara
+  // como arrastrar; la inclinacion sigue siendo solo de la app.
+  map.touchZoomRotate.enableRotation();
+  map.dragRotate.enable();
+
   // Los pasos a nivel aparecen recien ahora. Son 312 en la Ciudad y fuera del
   // viaje no cambian ninguna decision: solo llenan de chapas la pantalla en la
   // que uno esta armando la ruta.
@@ -995,9 +1007,11 @@ export function exitNavigationMode() {
   vehicleMarker?.remove();
   vehicleMarker = null;
 
-  // Se vuelve a la vista cenital mirando al norte. No se reactiva ningun gesto
-  // de rotacion: fuera del viaje el mapa no se inclina ni gira por ningun
-  // camino, y esta es la unica funcion que deshace la perspectiva.
+  // Se vuelve a la vista cenital mirando al norte, y la rotacion que se prendio
+  // al entrar se apaga: fuera del viaje el mapa no se inclina ni gira por ningun
+  // camino (AD-34), y esta es la unica funcion que deshace la perspectiva.
+  map.touchZoomRotate.disableRotation();
+  map.dragRotate.disable();
   map.easeTo({ pitch: 0, bearing: 0, duration: 500 });
 }
 
