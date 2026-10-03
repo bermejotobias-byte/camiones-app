@@ -77,3 +77,10 @@ test('la flecha de la maniobra acompaña a la ruta: tres cuartos de su ancho, ca
     assert.ok(Math.abs(punta[z] - flecha[z] / 6) < 1e-9, `punta en ${z}`);
   }
 });
+
+test('el agua rellena sólo polígonos: un arroyo es una línea y cerrado se ve como un lago', () => {
+  // La fuente `water` trae también las líneas de arroyos y conductos (el Arroyo
+  // Maldonado bajo la Juan B. Justo, el Antiguo cauce del Riachuelo). Una capa
+  // de relleno las cierra como un polígono: cuñas azules que cambian con el zoom.
+  assert.deepEqual(capa('agua').filter, ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]]);
+});

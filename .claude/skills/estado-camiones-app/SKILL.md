@@ -1322,7 +1322,7 @@ con **doce puntos**, partidos en tres partes, cada una con su rama y su PR:
 |---|---|---|---|
 | **A** | Controles y flujo del viaje | salir siempre a mano, rotación con dos dedos, Detalles obligatorio | ✅ **hecha y fusionada el 03/10** (AD-52, PR #2). Falta el teléfono: el giro con dos dedos no se simula en el navegador |
 | **B** | La Red primero: cartografía | la Red visible siempre como capa de referencia (**el más importante**), Red vs. resto con jerarquía, nombres según el zoom, halo de cromo sobre la Red, autopistas sin punteado, la ruta encima de la calle con mucho zoom | ✅ **hecha el 03/10** (AD-53), rama `la-red-primero`: la Red como tubo de cromo que destella, siempre visible y debajo de la ruta; nombres que crecen; la ruta por zoom. Probada en el teléfono el 03/10 y **aprobada por el usuario**; el destello queda en 10 Hz (0,14 ms por latido) |
-| **C** | El mapa que no se rompe | el cuadrado que no carga, las manchas azules que desaparecen al acercarse | pendiente — primero encontrar la causa. **Pista del 03/10**: la mancha azul a lo largo de la Juan B. Justo es el **Arroyo Maldonado** (`water`, `kind: stream`, `min_zoom: 14`), entubado bajo la avenida y dibujado como polígono ancho en los tiles |
+| **C** | El mapa que no se rompe | el cuadrado que no carga, las manchas azules que desaparecen al acercarse | ✅ **hecha el 03/10** (AD-54), rama `el-mapa-que-no-se-rompe`: el agua sólo en polígonos (eran arroyos entubados cerrados como lagos); la caché de PMTiles que no guarda fallas, el reintento de tiles y el respaldo raster sólo si falta el archivo. Falta probarla en la calle |
 
 **Defecto del servidor que apareció verificando A**: el viaje no guardaba la
 opción de ruta elegida y al retomarlo volvía por la recomendada. **Arreglado y

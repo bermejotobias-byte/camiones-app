@@ -13,6 +13,7 @@ import { instalarLugares, mostrarLugares, CAPA_LUGARES } from './mapa/lugares.js
 import { instalarReportes, mostrarReportes, CAPA_REPORTES } from './mapa/reportes.js';
 import { currentApiBase } from './api.js';
 import { GESTOS_QUE_SUELTAN, sueltaLaCamara } from './mapa/camara.js';
+import { debeCaerAlRaster, colaDeReintentos } from './mapa/tiles.js';
 
 const CABA_CENTER = [-58.4370, -34.6083];
 
@@ -31,6 +32,13 @@ let onLongPress = null;
 
 /** Ya se cayo al raster de respaldo una vez; no hace falta repetirlo. */
 let fellBack = false;
+
+/** Los tiles del mapa base que fallaron, esperando su reintento (AD-54). */
+let reintentosDeTiles = null;
+
+/** Cuando el telefono recupera la conexion, los tiles caidos se piden en el acto. */
+const alVolverLaRed = () => reintentosDeTiles?.volvioLaRed();
+globalThis.addEventListener?.('online', alVolverLaRed);
 
 /** Lee un color del sistema de diseno para que el mapa siga al tema. */
 const token = (name) =>
@@ -73,7 +81,7 @@ export function createMap(container, handlers = {}) {
 
   // El protocolo pmtiles:// tiene que estar registrado ANTES de crear el mapa:
   // si no, MapLibre no sabe leer la URL y el estilo entero falla.
-  const vector = registerPmtilesProtocol();
+  const vector = registerPmtilesProtocol(currentApiBase());
 
   map = new maplibregl.Map({
     container,
@@ -106,12 +114,32 @@ export function createMap(container, handlers = {}) {
   map.touchZoomRotate.disableRotation();
   map.keyboard.disableRotation();
 
+  // Un tile del mapa base que falla —un 502 del tunel, un corte de datos— queda
+  // marcado y MapLibre no lo vuelve a pedir nunca: era el cuadrado sin cargar de
+  // la prueba en la calle (AD-54). Se reintenta con espera creciente, y en el
+  // acto cuando el telefono avisa que volvio la conexion.
+  const propioDeLaCola = map;
+  reintentosDeTiles?.olvidar();
+  reintentosDeTiles = colaDeReintentos({
+    reintentar: (tiles) => {
+      if (map === propioDeLaCola && map.getSource('base')) map.refreshTiles('base', tiles);
+    }
+  });
+
   // Si el archivo de tiles no está, MapLibre avisa por este evento y no con una
   // excepción. Se cae al raster para que el mapa no quede negro y sin explicación.
+  // Pero SOLO si falla la fuente entera: un tile suelto se reintenta. Antes la
+  // regla miraba solo el texto, y un corte en un tile dice "Failed to fetch":
+  // el mapa entero pasaba al OpenStreetMap estandar hasta reabrir la app.
   map.on('error', (event) => {
     const message = event?.error?.message ?? '';
 
-    if (vector && !fellBack && /pmtiles|404|not found|failed to fetch/i.test(message)) {
+    if (event?.sourceId === 'base' && event.tile) {
+      const { z, x, y } = event.tile.tileID.canonical;
+      reintentosDeTiles.fallo({ z, x, y });
+    }
+
+    if (vector && !fellBack && debeCaerAlRaster(event)) {
       fellBack = true;
 
       console.warn(
@@ -202,6 +230,7 @@ export function createMap(container, handlers = {}) {
 }
 
 export function destroyMap() {
+  reintentosDeTiles?.olvidar();
   map?.remove();
   map = null;
   markers = { origin: null, destination: null, gps: null, flag: null };

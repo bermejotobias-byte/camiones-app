@@ -48,18 +48,38 @@ const token = (name) =>
  * Hay que hacerlo una sola vez y antes de crear cualquier mapa: si no, MapLibre
  * no sabe leer la URL y el estilo falla entero.
  */
-let registered = false;
+let protocol = null;
+const archivos = new Set();
 
-export function registerPmtilesProtocol() {
-  if (registered) return true;
+/** La direccion del archivo de tiles, con el backend delante si lo hay. */
+const urlDelMapaBase = (apiBase) => (apiBase ? `${apiBase}/${BASEMAP_URL}` : BASEMAP_URL);
 
+/**
+ * Registra el protocolo y el archivo del mapa base.
+ *
+ * El archivo se abre con `ResolvedValueCache`, la cache de la misma libreria
+ * que guarda SOLO lo que salio bien. La de fabrica (`SharedPromiseCache`)
+ * guarda el pedido de cada directorio antes de saber si salio bien y no lo
+ * borra si falla: un 502 del tunel o un corte de datos dejaba todos los tiles
+ * de ese directorio fallando para siempre, sin salir a la red (AD-54). El
+ * precio es que dos tiles que piden el mismo directorio a la vez lo bajan dos
+ * veces: unos pocos KB.
+ */
+export function registerPmtilesProtocol(apiBase = '') {
   if (typeof pmtiles === 'undefined' || typeof maplibregl === 'undefined') {
     return false;
   }
 
-  const protocol = new pmtiles.Protocol();
-  maplibregl.addProtocol('pmtiles', protocol.tile);
-  registered = true;
+  if (!protocol) {
+    protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', protocol.tile);
+  }
+
+  const url = urlDelMapaBase(apiBase);
+  if (!archivos.has(url)) {
+    protocol.add(new pmtiles.PMTiles(url, new pmtiles.ResolvedValueCache()));
+    archivos.add(url);
+  }
 
   return true;
 }
@@ -164,7 +184,7 @@ export function filtroCallesNombre(nombresDeLaRed = []) {
  * en lugar de mantener dos estilos que hay que actualizar a la par.
  */
 export function buildBasemapStyle(apiBase = '') {
-  const url = apiBase ? `${apiBase}/${BASEMAP_URL}` : BASEMAP_URL;
+  const url = urlDelMapaBase(apiBase);
 
   const t = {
     tierra: token('--map-tierra'),
@@ -252,7 +272,20 @@ export function buildBasemapStyle(apiBase = '') {
 
       // El agua si se distingue: el rio y el Riachuelo son referencias de
       // orientacion de primer orden.
-      { id: 'agua', type: 'fill', source: 'base', 'source-layer': 'water', paint: { 'fill-color': t.agua } },
+      //
+      // Solo POLIGONOS. La capa `water` trae tambien las lineas de arroyos y
+      // conductos —el Arroyo Maldonado entubado bajo la Juan B. Justo, el
+      // Antiguo cauce del Riachuelo—, y una capa de relleno cierra cada linea
+      // como si fuera un poligono: salian cunas azules que cambiaban de forma
+      // con el zoom, porque cada tile corta la linea en otro lugar (AD-54).
+      {
+        id: 'agua',
+        type: 'fill',
+        source: 'base',
+        'source-layer': 'water',
+        filter: ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]],
+        paint: { 'fill-color': t.agua }
+      },
 
       /* -- calles: sin borde de noche, con filete de dia -------------------- */
       linea('calles-borde', esCalle, t.calleBorde, conBorde('calle'), {}, DESDE.calle),

@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 681 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 377 tests: guiado, avisos de ruta, el estilo del mapa, **la Red** (el cromo, el destello, los nombres, el contraste medido desde app.css), piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), el vocabulario y los iconos
+node --test "tests/web/*.test.mjs"             # 391 tests: guiado, **el mapa que no se rompe** (el agua, el reintento de tiles, el respaldo), avisos de ruta, el estilo del mapa, **la Red** (el cromo, el destello, los nombres, el contraste medido desde app.css), piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), el vocabulario y los iconos
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -198,6 +198,21 @@ node --test "tests/web/*.test.mjs"             # 377 tests: guiado, avisos de ru
   `data/build-basemap.ps1` y servido bajo `/tiles`. **No se versiona ni entra en el APK**
   (53 MB). Si falta, el mapa cae al raster de OSM con un aviso en consola. Los valores de
   `kind` del esquema hay que verificarlos, no suponerlos: no existe `medium_road`. Ver AD-26.
+- **Un tile del mapa base que falla NO se vuelve a pedir solo, y la caché de PMTiles de
+  fábrica guarda la falla** (AD-54, medido el 03/10/2026). `SharedPromiseCache` guarda el
+  pedido de cada directorio antes de saber si salió bien: un 502 del túnel o un corte de
+  datos dejaba sus tiles fallando para siempre sin salir a la red, y MapLibre marca el tile
+  `errored` y no lo reintenta — el cuadrado sin cargar. `reload()` de la fuente saltea los
+  fallidos; `map.refreshTiles` sí los pide. Hoy el archivo se abre con
+  `ResolvedValueCache` y `mapa/tiles.js` reintenta con la escalera del freno de red y en
+  el acto con `online`. **Y al raster sólo si falla la fuente entera** (el error llega sin
+  `tile`): con la regla vieja, un corte en un tile decía "Failed to fetch" y pasaba el
+  mapa entero al OpenStreetMap estándar, sin la Red, hasta reabrir la app.
+- **Una capa `fill` sobre una fuente con líneas las cierra como polígonos, sin error.** La
+  fuente `water` trae arroyos y conductos como `LineString` (el Maldonado entubado bajo la
+  Juan B. Justo): salían cuñas azules que cambiaban de forma con el zoom, porque cada tile
+  corta la línea en otro lugar. La capa `agua` filtra por `geometry-type` (AD-54). Antes
+  de rellenar una capa del mapa base, mirar con `queryRenderedFeatures` qué geometrías trae.
 - **Las capas de camión son dataset propio**: `data/fetch-caba-map-layers.ps1` las genera desde
   OSM a `wwwroot/data/*.geojson`. Ningún proveedor de tiles trae `hgv`, `maxheight` ni pasos a
   nivel. `maxheight=default` NO es una altura y queda afuera; barrera sin declarar NO es "sin
