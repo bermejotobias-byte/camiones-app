@@ -28,6 +28,7 @@ import { trucksView } from './views/trucks.js';
 import { profileView } from './views/profile.js';
 import { carnetView } from './views/carnet.js';
 import { juegosView } from './views/juegos.js';
+import { viboritaView } from './views/viborita.js';
 import { finViajeView } from './views/fin-viaje.js';
 import { createDock } from './dock.js';
 
@@ -89,6 +90,7 @@ const ROUTES = {
   perfil: profileView,
   carnet: carnetView,
   juegos: juegosView,
+  viborita: viboritaView,
   fin: finViajeView,
 
   // Los reportes vigentes cerca: la cara visible de la Fase 5 (v3 §12).
@@ -124,7 +126,8 @@ const NECESITAN_CUENTA = {
   perfil: 'perfil',
   carnet: 'perfil',
   camiones: 'perfil',
-  juegos: 'juegos'
+  juegos: 'juegos',
+  viborita: 'juegos'
 };
 
 applyTheme();

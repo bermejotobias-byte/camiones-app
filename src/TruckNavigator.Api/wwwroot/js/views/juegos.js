@@ -26,6 +26,12 @@ export function juegosView(host, { go, openDrawer }) {
     <div class="scroll">
       ${raw(mascota('juegos', { escala: 2.5 }))}
 
+      <button class="card stack juego-fila" id="to-viborita" type="button">
+        <h2>Viborita TBF</h2>
+        <p class="muted">El Snake del 1100, con tu camión: cada caja es un acoplado más. No te enganches la cola.</p>
+        <span class="btn btn-primary btn-duo">JUGAR</span>
+      </button>
+
       <div class="card stack">
         <span class="pill pill-reward" style="align-self:flex-start">Pronto</span>
         <h2>Trivia del camionero</h2>
@@ -48,6 +54,7 @@ export function juegosView(host, { go, openDrawer }) {
 
   wire(host, {
     '#menu': openDrawer,
+    '#to-viborita': () => go('viborita'),
     '#to-perfil': () => go('perfil')
   });
 }
