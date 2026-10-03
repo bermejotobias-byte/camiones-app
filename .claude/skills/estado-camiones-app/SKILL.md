@@ -36,13 +36,21 @@ mostrar los 386 archivos— y **no se borra**: es el único lugar con los 181
 commits uno por uno, cuyos mensajes cargan buena parte del porqué
 (`git log cuentas-de-usuario`).
 
-**Punta al 03/10/2026: las correcciones de la prueba en la calle, todas en `main`**
+**Punta al 03/10/2026, más tarde: VIBORITA TBF, el primer juego de la Fase 6**
+(AD-55). Rama **`viborita-tbf`**, desde `main` en `614ad9e`, en `b6852a0` al
+terminar el código y los tests; **sin PR todavía** y **falta probarla en el
+teléfono** (Tarea 10 del plan). Es el Snake del Nokia 1100 con un camión que suma
+acoplados, dentro de Juegos, con el **récord propio en el servidor**: el primero que
+escribe la tabla de récords. Sin EXP ni batería: primero que enganche. 435 tests de
+dominio, 260 de integración y 427 de web. Ver §8.0.
+
+**Antes, al 03/10/2026: las correcciones de la prueba en la calle, todas en `main`**
 (AD-52 a AD-54). El 02/10 el usuario probó el GPS en la calle y volvió con doce
 puntos; se resolvieron en cuatro PR fusionados con squash el 03/10 — **#2**
 (salir, girar, Detalles), **#3** (el viaje guarda la opción de ruta), **#5** (la
 Red primero) y **#4** (el mapa que no se rompe)—, probados en el teléfono y
 **aprobados por el usuario**. `main` en `f5fe85d`, 391 tests web y 681 de .NET.
-Ver §8.0.
+Ver §8, 0 bis.
 
 **Antes, al 30/09/2026: la entrada y el invitado** (AD-51) — la app tiene puerta
 por primera vez, y se puede probar el GPS sin cuenta. Es el primero de los
@@ -133,7 +141,7 @@ Prioridad declarada:
 | **3 · Seguridad** | 🔨 Están el 911, las zonas peligrosas y los **3 contactos de emergencia**. Queda **compartir viaje por WhatsApp** —necesita endpoint público, tokens que venzan y decisiones de privacidad— y el S.O.S. del reporte, que depende de la Fase 5 |
 | **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). **La base de POIs para camiones se relevó el 15/09/2026** (gomerías, estaciones, lugares para comer y talleres de mecánica pesada; 180 puntos, 48 con evidencia). **La interfaz de POIs está desde el 17–18/09/2026** (capa de lugares, ficha con el voto, hoja de capas con «solo aptos» y aportar, dentro del GPS de Waze) y **los POIs valorados por usuarios son los votos de AD-46**: la fase queda ✅ salvo lo que L-11 congela fuera de CABA |
 | **5 · Reportes de comunidad** | 🔨 **Construida el 19/09/2026** (AD-49): diez tipos en un toque desde la posición GPS, *sigue ahí / ya no está*, confiabilidad y vencimiento, la cámara y el lugar aportado que se vuelven fijos con 5, los cierres y gálibos validados que esquivan la ruta, EXP separada de reputación, cooldowns. **Falta probarla en el teléfono** y quedan la lista de reportes propios y pintar el tramo en rojo |
-| **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Lo que se apoya en él se partió en subproyectos (ver §0): falta **B** las pantallas del progreso, **C** el avatar (bloqueado por los dibujos) y **D** la batería y la trivia. **Dos huecos del motor que B necesita: los récords nunca se escriben y la racha no existe en el dominio** |
+| **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Lo que se apoya en él se partió en subproyectos (ver §0): falta **B** las pantallas del progreso, **C** el avatar (bloqueado por los dibujos) y **D** la batería y la trivia. **Dos huecos del motor que B necesita: la racha no existe en el dominio y los récords sólo los escribe la Viborita** — el primer juego, **hecho el 03/10/2026** (AD-55), con récord propio en el servidor; falta el teléfono y decidir cuánto vale una partida en EXP |
 | **7 · Cáscara, entrada e idiomas** | 🔨 **La entrada está construida** (30/09, AD-51): Bienvenida → Idioma → Condiciones → Acceso, el **modo invitado de un día** que navega de verdad sin guardar el viaje, el menú MÁS completo y Reportes en vivo, sobre el zócalo del 12/09. Quedan **i18n de verdad** (hoy se guarda la elección y nada más) y **el chat** (subproyecto E, proyecto aparte). Falta el teléfono |
 | **Transversal** | ⬜ i18n (la pantalla existe, **sólo español** por decisión) · clave de firma de distribución. **El límite de tasa se hizo el 29/09/2026** (AD-50) |
 | **Despliegue** | 🔨 Escrito y commiteado, **nunca ejecutado**: falta cupo de A1 en Oracle, el release del mapa base, SMTP y DuckDNS |
@@ -1321,7 +1329,26 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-### 0. La prueba en la calle (02–03/10/2026) — CERRADA
+### 0. La Viborita TBF (03/10/2026) — construida, falta el teléfono
+
+El primer juego de la Fase 6, en la rama `viborita-tbf` (desde `614ad9e`, de la spec
+`9d096b8` a `b6852a0`), con la decisión en AD-55. **Lo que está**: el dominio
+(`Domain/Juegos`: los puntos y lo posible), `POST /api/juegos/viborita/partidas` con el
+récord (`viborita` en `DriverRecord`), el motor, los dibujos y la LCD en canvas
+(`wwwroot/js/juegos/viborita/`), la pantalla `views/viborita.js` abierta desde Juegos, las dos
+vibraciones y el zócalo que se esconde. **Verificado en el navegador** a 360 × 740, 375 × 812
+y 412 × 915: LCD a escala 3 sin scroll, cruceta y teclado, pausa, choque contra el borde, el
+POST 200, el récord en el inicio tras recargar, el aviso al invitado y SALIR a Juegos. Esa
+verificación encontró dos defectos que los tests no veían: el récord del inicio se buscaba por
+`recordCode` y el servidor manda `code`, y a 360 de ancho la escala se calculaba con un margen
+fijo de 60 px contra los 52 reales de la carcasa.
+
+**Lo que falta**: (1) **el teléfono** —APK con `build-apk.ps1`, el pulgar sobre la cruceta, la
+nitidez de la LCD con la densidad real y las vibraciones—; (2) **el PR** a `main`, con la
+convención de una rama por feature; (3) **la EXP de una partida**, que se decide cuando el
+juego enganche y se otorga sólo por `ProgressionRecorder`; (4) **los otros tres juegos**.
+
+### 0 bis. La prueba en la calle (02–03/10/2026) — CERRADA
 
 El 02/10 el usuario probó la app en la calle por el túnel de Cloudflare y volvió
 con **doce puntos**, partidos en tres partes, cada una con su rama y su PR. **Los
@@ -1383,7 +1410,7 @@ en una sola spec:
 | **E** | El chat | proyecto aparte |
 
 **Dos cosas que las fuentes suponen y el motor NO tiene**, para el subproyecto B:
-los récords personales **nunca se escriben** —la tabla existe, el endpoint los lee
+los récords personales **no se escribían** (desde el 03/10 los escribe la Viborita, AD-55) —la tabla existe, el endpoint los lee
 y `PersonalRecords.Improve` está probado, pero nada en `src/` lo llama— y **la
 racha no existe** en el dominio, aunque el prototipo tenga su tablero y la mascota
 su pose.
