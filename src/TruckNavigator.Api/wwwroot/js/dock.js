@@ -35,7 +35,7 @@ import { icono } from './iconos.js';
  */
 export const ACCESOS = [
   { id: 'mapa',       label: 'GPS',    ruta: 'mapa',       cubre: ['mapa'] },
-  { id: 'juegos',     label: 'Juegos', ruta: 'juegos',     cubre: ['juegos'] },
+  { id: 'juegos',     label: 'Juegos', ruta: 'juegos',     cubre: ['juegos', 'viborita'] },
   { id: 'emergencia', label: 'S.O.S.', ruta: 'emergencia', cubre: ['emergencia'] },
   { id: 'mas',        label: 'Más',    ruta: null,         cubre: ['perfil', 'resumen', 'reportes', 'carnet', 'camiones', 'configuracion', 'fuentes'] }
 ];
@@ -102,6 +102,7 @@ export function createDock({ go }) {
   let hojaAbierta = false;
   let activo = 'mapa';
   let enViaje = false;
+  let pantallaCompleta = false;
   let permitido = false;         // antes de entrar (la entrada) no hay zocalo
   let invitado = false;          // sin cuenta, el menu es otro
 
@@ -170,7 +171,7 @@ export function createDock({ go }) {
   function aplicarVisibilidad() {
     // Oculto = fuera del layout, no invisible: la pantalla de abajo tiene que
     // recuperar el alto. En el mapa eso es lo que devuelve el espacio al viaje.
-    nodo.hidden = !permitido || enViaje;
+    nodo.hidden = !permitido || enViaje || pantallaCompleta;
   }
 
   /** La pantalla que esta montada. Marca el acceso que la cubre. */
@@ -192,6 +193,14 @@ export function createDock({ go }) {
   document.addEventListener('viaje', (e) => {
     enViaje = Boolean(e.detail?.enCurso);
     if (enViaje) hojaAbierta = false;
+    draw();
+  });
+
+  // Una pantalla que ocupa todo —la Viborita TBF— tambien lo esconde, por el
+  // mismo camino: un evento, para que el juego no tenga que conocer al zocalo.
+  document.addEventListener('pantalla-completa', (e) => {
+    pantallaCompleta = Boolean(e.detail?.activa);
+    if (pantallaCompleta) hojaAbierta = false;
     draw();
   });
 

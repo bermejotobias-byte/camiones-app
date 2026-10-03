@@ -310,5 +310,9 @@ export const api = {
 
   // No otorgan nada: una marca lo ya visto, la otra elige entre lo desbloqueado.
   markProgressSeen: () => post('/api/progress/seen'),
-  equip: (slot, rewardCode) => post('/api/progress/equip', { slot, rewardCode })
+  equip: (slot, rewardCode) => post('/api/progress/equip', { slot, rewardCode }),
+
+  // La Viborita TBF: el telefono informa cajas y duracion; los puntos y el record
+  // los calcula el servidor.
+  viboritaPartida: (cajas, duracionMs) => post('/api/juegos/viborita/partidas', { cajas, duracionMs })
 };

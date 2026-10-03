@@ -473,7 +473,13 @@ export const VIBRACION = {
    * bajo que el, una calle cerrada—: dos golpes largos. Es el unico patron
    * que anticipa un choque, y por eso es el mas pesado de todos.
    */
-  peligro: [180, 100, 180]
+  peligro: [180, 100, 180],
+
+  /** La Viborita TBF: levantar una caja. Un toque cortisimo: pasa seguido. */
+  caja: [25],
+
+  /** La Viborita TBF: el choque. Un golpe y un rebote, distinto de todo lo del viaje. */
+  choque: [140, 60, 60]
 };
 
 /**
