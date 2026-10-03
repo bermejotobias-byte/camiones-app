@@ -63,6 +63,8 @@ export function viboritaView(host, { go }) {
   let reloj = null;
   let jugadoMs = 0;                // sin contar las pausas
   let desde = 0;
+  let generacion = 0;              // una por partida: descarta la respuesta de una anterior
+  let finDesde = 0;                // cuando termino la ultima, para el margen del centro
 
   // La escala del pixel: entera (un pixel de LCD nunca borroso), la mas grande que
   // entra a lo ancho y a lo alto. Lo alto se mide: todo lo que no es la LCD
@@ -78,12 +80,12 @@ export function viboritaView(host, { go }) {
   }
 
   function dibujar() {
-    const p = modo === 'inicio' ? inicio({ record })
+    const pant = modo === 'inicio' ? inicio({ record })
       : modo === 'jugando' ? jugando(partida, { record })
       : modo === 'pausa' ? pausa(partida, { record })
       : fin(partida, { record: resultado?.record?.valor ?? record, nuevoRecord: Boolean(resultado?.nuevoRecord), guardado: resultado ? resultado.guardado !== false : undefined });
-    pintar(canvas, p.ordenes, escala());
-    epigrafe.innerHTML = p.epigrafe.map((t) => rotulo(t, modo === 'jugando' || modo === 'pausa' ? '#9aa6b8' : '#e6ead8')).join('');
+    pintar(canvas, pant.ordenes, escala());
+    epigrafe.innerHTML = pant.epigrafe.map((t) => rotulo(t, modo === 'jugando' || modo === 'pausa' ? '#9aa6b8' : '#e6ead8')).join('');
   }
 
   function programar() {
@@ -105,6 +107,7 @@ export function viboritaView(host, { go }) {
   }
 
   function empezar() {
+    generacion++;
     partida = crearPartida();
     resultado = null;
     jugadoMs = 0;
@@ -132,19 +135,28 @@ export function viboritaView(host, { go }) {
   async function terminar() {
     clearTimeout(reloj);
     jugadoMs += performance.now() - desde;
+    finDesde = performance.now();
     modo = 'fin';
     dibujar();
+    const esta = generacion;
     try {
       const r = await api.viboritaPartida(partida.cajas, Math.round(jugadoMs));
+      if (esta !== generacion) return;
       resultado = { ...r, guardado: true };
       if (r.record) record = r.record.valor;
     } catch {
+      if (esta !== generacion) return;
       resultado = { guardado: false };
     }
     if (modo === 'fin') dibujar();
   }
 
-  const centro = () => ({ inicio: empezar, jugando: pausar, pausa: seguir, fin: empezar }[modo])();
+  // Un toque pensado como pausa, justo en el choque, no tiene que reiniciar la partida.
+  const MARGEN_FIN_MS = 600;
+  const centro = () => {
+    if (modo === 'fin' && performance.now() - finDesde < MARGEN_FIN_MS) return;
+    ({ inicio: empezar, jugando: pausar, pausa: seguir, fin: empezar }[modo])();
+  };
   const doblar = (dir) => { if (modo === 'jugando') partida = girar(partida, dir); };
 
   host.querySelectorAll('[data-dir]').forEach((b) => b.addEventListener('pointerdown', (e) => { e.preventDefault(); doblar(b.dataset.dir); }));

@@ -4414,6 +4414,8 @@ button { font-family: inherit; font-size: inherit; }
 .estado-confirmado { background: var(--ok-soft); color: var(--ok); }
 .estado-nuevo { background: var(--surface-2); color: var(--ink-3); }
 
+.juego-fila{color:inherit;text-align:left;cursor:pointer;font:inherit;width:100%;transition:transform .12s ease}
+.juego-fila:active{transform:scale(.985)}
 /* ===========================================================================
    VIBORITA TBF (spec 2026-10-03-viborita-tbf). La pantalla entera es un 1100:
    nada de la estetica de la app. Medidas y colores del prototipo aprobado.
