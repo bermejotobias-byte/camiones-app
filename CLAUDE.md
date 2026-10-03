@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 681 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 364 tests: guiado, **el mapa que no se rompe** (el agua, el reintento de tiles, el respaldo), avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), el vocabulario y los iconos
+node --test "tests/web/*.test.mjs"             # 391 tests: guiado, **el mapa que no se rompe** (el agua, el reintento de tiles, el respaldo), avisos de ruta, el estilo del mapa, **la Red** (el cromo, el destello, los nombres, el contraste medido desde app.css), piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), el vocabulario y los iconos
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -223,10 +223,12 @@ node --test "tests/web/*.test.mjs"             # 364 tests: guiado, **el mapa qu
   color con dos significados, en la pantalla que se mira de reojo. Hoy hay una sola chapa
   en pizarra y el tipo de barrera se lee al tocarla. Ver AD-38.
 - **Las capas del mapa se prenden una por una desde la hoja de capas** (`js/mapa/capas.js`,
-  desde el 17/09/2026): `GRUPOS` en `layers.js` —red, galibo, paso, radar, zona— y
+  desde el 17/09/2026): `GRUPOS` en `layers.js` —galibo, paso, radar, zona, reporte— y
   `prefs.capas`; los dos botones viejos (`truckLayers`, `riskZones`) se siguen leyendo
   con `capasActivas(prefs)` para que lo apagado siga apagado. Las capas nacen visibles y
   `installTruckLayers` les aplica lo elegido al final, así sobreviven a un cambio de estilo.
+  **La Red no está**: no se apaga desde el 03/10/2026 (AD-53), y una `red` guardada
+  antes se descarta en `capasActivas`.
 - **Los pasos a nivel se muestran SÓLO durante el viaje**: `paso-senal` depende de su
   cuadro *y* de que haya viaje, y son dos estados que llegan por caminos distintos; el
   bucle genérico los prendía fuera del viaje. Son 312 y afuera del viaje sólo tapan el
@@ -471,7 +473,8 @@ node --test "tests/web/*.test.mjs"             # 364 tests: guiado, **el mapa qu
   Está en `docs/superpowers/specs/2026-09-16-gps-waze-design.md`.
 - **Un módulo por superficie en `js/mapa/`, y `navigate.js` sólo engancha** (AD-48):
   `viaje.js`, `rutas.js` (la lista y los detalles), `reposo.js`, `buscar.js`,
-  `lugares.js` (la capa, la ficha y el voto), `capas.js`, `aportar.js`, y lo compartido en
+  `lugares.js` (la capa, la ficha y el voto), `capas.js`, `aportar.js`, `red.js` (la Red
+  como dibujo: el cromo, su nombre, dónde se apila y el destello), y lo compartido en
   `piezas.js`. Cada hoja es marcado con `data-accion`, lo que se calcula es puro y tiene
   test en `tests/web/`; el estado y el mapa quedan en `navigate.js` (`stage`: search,
   buscar, route, detalles, ficha, capas, delivery, navigation). Las medidas son las de
@@ -514,14 +517,22 @@ node --test "tests/web/*.test.mjs"             # 364 tests: guiado, **el mapa qu
   las apps recientes—. Hoy la cruz y el S.O.S. están en los tres estados del viaje
   (AD-52). Al agregar un estado o un panel a `.gps-viaje`, verificar que los dos sigan
   a la vista.
-- **La ruta se dibuja DEBAJO de `calles-nombre`.** Sin el `beforeId`, la línea de 8 dp con
-  su canto tapa justo el nombre de la calle por la que se va, que es el dato que más se
-  necesita manejando. **La flecha blanca de la maniobra va ENCIMA de todo**, nombres
+- **La ruta se dibuja DEBAJO de `calles-nombre`.** Sin el `beforeId`, la línea con su
+  canto tapa justo el nombre de la calle por la que se va, que es el dato que más se
+  necesita manejando. **Y ENCIMA de la Red**: `createMap` reinstala las capas en cada
+  `style.load`, así que la Red se apila antes de `route-casing` si hay ruta
+  (`anclaDeLaRed`, `mapa/red.js`) — por orden de instalación quedaba bien de casualidad.
+  El ancho de la ruta y de la flecha sigue al zoom (`ANCHO_DE_RUTA`, AD-53). **La flecha blanca de la maniobra va ENCIMA de todo**, nombres
   incluidos: en el momento del giro es lo único que importa. Es un pedazo de la ruta
   misma (`maneuverArrowPath`, 25 m antes y 45 después del vértice) con degradado por
   `line-progress` —que exige `lineMetrics: true` en la fuente— y la punta como imagen
   rotada por el rumbo del último tramo. Se redibuja sólo cuando cambia la maniobra
   (`showManeuver(flecha, clave)`), no en cada latido.
+- **Una línea semitransparente sobre una fuente de muchos tramos se ve con puntos.** Las
+  puntas redondas de dos tramos vecinos se superponen y la opacidad se suma: sobre los
+  2.426 tramos de la Red, cada unión salía como un punto más claro. El reflejo y el brillo
+  del cromo van **opacos, con el color ya mezclado** (`mezclar`, `mapa/red.js`), y por
+  eso el destello cambia el color y no la opacidad. Lo encontró una foto, no un test.
 - **Los globos de las calles que vienen son UNA imagen de nueve partes, no un marcador
   HTML.** `globosDeRuta` (viaje.js, con tests) elige hasta dos calles con nombre, distintas
   de la actual, y `showBalloons` (map.js) las dibuja con `icon-text-fit: both` sobre una

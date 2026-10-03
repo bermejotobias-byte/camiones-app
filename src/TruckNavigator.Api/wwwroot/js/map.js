@@ -7,7 +7,7 @@
  */
 
 import { installTruckLayers, setLayerGroupVisible, applyLayerGroups, setCrossingsVisible, setTruckHeight, refreshLayerColors, truckDataset } from './layers.js';
-import { registerPmtilesProtocol, buildBasemapStyle } from './mapa/estilo-mapa.js';
+import { registerPmtilesProtocol, buildBasemapStyle, ANCHO_DE_RUTA, TAMANO_DE_PUNTA } from './mapa/estilo-mapa.js';
 import { calcomania } from './mapa/piezas.js';
 import { instalarLugares, mostrarLugares, CAPA_LUGARES } from './mapa/lugares.js';
 import { instalarReportes, mostrarReportes, CAPA_REPORTES } from './mapa/reportes.js';
@@ -510,10 +510,6 @@ function gpsElement() {
 const ROUTE_LAYERS = ['route-casing', 'route-line', 'route-access', 'maniobra-canto', 'maniobra-linea', 'maniobra-punta', 'globo', 'globo-punto'];
 const ROUTE_SOURCES = ['route', 'route-access', 'maniobra', 'maniobra-fin', 'globos'];
 
-/** Ancho de la ruta en px de pantalla y de su canto (1 dp por lado). */
-const ROUTE_WIDTH = 8;
-const ROUTE_CASING = ROUTE_WIDTH + 2;
-
 /** Que maniobra tiene la flecha puesta, para no rehacerla en cada latido. */
 let maniobraDibujada = null;
 
@@ -566,12 +562,16 @@ export function drawRoute(route, accessLegs = [], encuadre = undefined) {
   // lleva halo.
   const antesDeNombres = map.getLayer('calles-nombre') ? 'calles-nombre' : undefined;
 
+  // El ancho sigue al zoom (ANCHO_DE_RUTA, AD-53): con 8 px fijos tapaba a las
+  // calles vecinas de lejos y era un hilo en el medio de la calzada de cerca.
+  // La Red se instala SIEMPRE debajo de route-casing (anclaDeLaRed).
+
   map.addLayer({
     id: 'route-casing',
     type: 'line',
     source: 'route',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: { 'line-color': '#ffffff', 'line-width': ROUTE_CASING, 'line-opacity': .35 }
+    paint: { 'line-color': '#ffffff', 'line-width': ANCHO_DE_RUTA.canto, 'line-opacity': .35 }
   }, antesDeNombres);
 
   map.addLayer({
@@ -579,7 +579,7 @@ export function drawRoute(route, accessLegs = [], encuadre = undefined) {
     type: 'line',
     source: 'route',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: { 'line-color': token('--gps-ruta'), 'line-width': ROUTE_WIDTH }
+    paint: { 'line-color': token('--gps-ruta'), 'line-width': ANCHO_DE_RUTA.linea }
   }, antesDeNombres);
 
   // Los tramos de acceso vienen como rangos de indices sobre la geometria.
@@ -601,7 +601,7 @@ export function drawRoute(route, accessLegs = [], encuadre = undefined) {
       type: 'line',
       source: 'route-access',
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': token('--gps-amarillo'), 'line-width': ROUTE_WIDTH }
+      paint: { 'line-color': token('--gps-amarillo'), 'line-width': ANCHO_DE_RUTA.linea }
     }, antesDeNombres);
   }
 
@@ -665,7 +665,7 @@ export function showManeuver(flecha, clave = null) {
     source: 'maniobra',
     layout: { 'line-join': 'round', 'line-cap': 'butt' },
     paint: {
-      'line-width': 9,
+      'line-width': ANCHO_DE_RUTA.flechaCanto,
       'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(20,26,34,.25)', .2, 'rgba(20,26,34,.9)', 1, 'rgba(20,26,34,.9)']
     }
   }, antesDeGlobos);
@@ -676,7 +676,7 @@ export function showManeuver(flecha, clave = null) {
     source: 'maniobra',
     layout: { 'line-join': 'round', 'line-cap': 'butt' },
     paint: {
-      'line-width': 6,
+      'line-width': ANCHO_DE_RUTA.flecha,
       'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(255,255,255,.3)', .2, 'rgba(255,255,255,1)', 1, 'rgba(255,255,255,1)']
     }
   }, antesDeGlobos);
@@ -689,7 +689,7 @@ export function showManeuver(flecha, clave = null) {
     source: 'maniobra-fin',
     layout: {
       'icon-image': 'maniobra-punta',
-      'icon-size': 1,
+      'icon-size': TAMANO_DE_PUNTA,
       'icon-rotate': ['get', 'rumbo'],
       'icon-rotation-alignment': 'map',
       'icon-pitch-alignment': 'map',
@@ -710,7 +710,9 @@ export function showManeuver(flecha, clave = null) {
 function ensureArrowHead() {
   if (map.hasImage('maniobra-punta')) return;
 
-  const escala = window.devicePixelRatio || 1;
+  // A cuatro veces la densidad de la pantalla: TAMANO_DE_PUNTA la estira hasta
+  // 3,75 veces a zoom 19 y una imagen de 22 px quedaria borrosa.
+  const escala = (window.devicePixelRatio || 1) * 4;
   const ancho = 22;
   const alto = 18;
   const canvas = document.createElement('canvas');

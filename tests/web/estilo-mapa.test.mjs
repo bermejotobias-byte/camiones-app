@@ -18,7 +18,7 @@ import assert from 'node:assert/strict';
 globalThis.document = { documentElement: {} };
 globalThis.getComputedStyle = () => ({ getPropertyValue: () => '#123456' });
 
-const { buildBasemapStyle } = await import('../../src/TruckNavigator.Api/wwwroot/js/mapa/estilo-mapa.js');
+const { buildBasemapStyle, PARADAS, ANCHO_DE_RUTA, TAMANO_DE_PUNTA } = await import('../../src/TruckNavigator.Api/wwwroot/js/mapa/estilo-mapa.js');
 
 const capa = (id) => buildBasemapStyle('').layers.find((l) => l.id === id);
 
@@ -37,6 +37,45 @@ test('el borde de día acompaña a su calle desde el mismo zoom', () => {
   assert.equal(capa('calles-borde').minzoom, capa('calles').minzoom);
   assert.equal(capa('avenidas-borde').minzoom, capa('avenidas').minzoom);
   assert.equal(capa('principales-borde').minzoom, capa('principales').minzoom);
+});
+
+test('la autopista no lleva línea punteada: la banda y los dos carriles alcanzan', () => {
+  const punteadas = buildBasemapStyle('').layers
+    .filter((l) => l.paint?.['line-dasharray'] && JSON.stringify(l.filter).includes('highway'))
+    .map((l) => l.id);
+
+  assert.deepEqual(punteadas, []);
+  assert.ok(capa('autopista-carril-a') && capa('autopista-carril-b'));
+});
+
+const paradas = (expr) => {
+  assert.deepEqual(expr.slice(0, 3), ['interpolate', ['exponential', 1.4], ['zoom']], 'el zoom va en el nivel superior');
+  const pares = {};
+  for (let i = 3; i < expr.length; i += 2) pares[expr[i]] = expr[i + 1];
+  return pares;
+};
+
+test('la ruta crece con el zoom como las calles: no tapa a las vecinas de lejos ni flota de cerca', () => {
+  assert.deepEqual(paradas(ANCHO_DE_RUTA.linea), { 13: 4, 15: 7, 17: 14, 19: 30 });
+  assert.deepEqual(paradas(ANCHO_DE_RUTA.canto), { 13: 7, 15: 10, 17: 17, 19: 33 });
+});
+
+test('la ruta es más angosta que la Red: se ve el tubo a los costados', () => {
+  PARADAS.ruta.forEach((px, i) => assert.ok(px < PARADAS.red[i], `zoom ${[13, 15, 17, 19][i]}`));
+});
+
+test('la flecha de la maniobra acompaña a la ruta: tres cuartos de su ancho, canto +3, y la punta escala igual', () => {
+  const ruta = paradas(ANCHO_DE_RUTA.linea);
+  const flecha = paradas(ANCHO_DE_RUTA.flecha);
+  const canto = paradas(ANCHO_DE_RUTA.flechaCanto);
+  const punta = paradas(TAMANO_DE_PUNTA);
+
+  for (const z of [13, 15, 17, 19]) {
+    assert.ok(Math.abs(flecha[z] - ruta[z] * 0.75) < 1e-9, `flecha en ${z}`);
+    assert.ok(Math.abs(canto[z] - (flecha[z] + 3)) < 1e-9, `canto en ${z}`);
+    // La punta se dibujó para una línea de 6 px.
+    assert.ok(Math.abs(punta[z] - flecha[z] / 6) < 1e-9, `punta en ${z}`);
+  }
 });
 
 test('el agua rellena sólo polígonos: un arroyo es una línea y cerrado se ve como un lago', () => {

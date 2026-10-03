@@ -3296,6 +3296,83 @@ Es la parte A de lo que dejó la prueba en la calle del 02/10.
   devuelve la recomendada. Es la misma clase de error que AD-45 corrigió para
   las paradas. No se tocó acá: es del servidor y queda propuesto aparte.
 
+## AD-53 · La Red primero: siempre visible, la vía que manda, con cromo
+
+**Fecha:** 03/10/2026
+**Estado:** aceptada. Enmienda AD-48 en el color y el peso de la Red, y la hoja de
+capas del 17/09/2026 en que la Red ya no se apaga. Es la parte B de lo que dejó la
+prueba en la calle del 02/10. Spec y plan en
+`docs/superpowers/{specs,plans}/2026-10-03-la-red-primero*`.
+
+### Lo que encontró la calle, y lo que se midió
+
+- **La Red no se distinguía fuera de la ruta.** El usuario la pidió "visible
+  siempre, como capa permanente de referencia", y la marcó como uno de los puntos
+  más importantes. Medido contra el fondo de noche: la autopista (contraste 4,36)
+  le ganaba a la Red (3,81), y entre la Red y una avenida había 1,75. Lo único que
+  se leía como Red era el trayecto.
+- **Los nombres de la Red eran más chicos que los de cualquier calle** (10,5 contra
+  12 en zoom 16) y los dos se congelaban en 12: acercar no los agrandaba. Una
+  avenida de la Red salía **dos veces**, en mayúsculas y en minúsculas.
+- **La ruta medía 8 px fijos**: tapaba a las calles vecinas de lejos y flotaba como
+  un hilo de cerca. La hipótesis del mapa base generado hasta zoom 15 **se midió y
+  era falsa**: en 116 vértices, 0,3 m de desvío máximo contra la calle.
+- La línea punteada del centro de la autopista se leía como un tramo cortado.
+
+### Decisiones
+
+- **La Red es la vía más clara y la más ancha en todo zoom**: 6 / 10 / 22 / 48 px en
+  13 / 15 / 17 / 19. Las demás vías bajan a una variante apagada del mismo azul. De
+  noche queda una escalera —Red 6,52, autopista 2,11, avenida 1,60, calle 1,41—; de
+  día las calles siguen blancas y la Red es la única vía saturada. Los números los
+  fija un test que lee `app.css`.
+- **Se pinta como un tubo de cromo**: cuatro capas de la misma fuente —canto,
+  cuerpo, reflejo, brillo centrado— en `mapa/red.js`, que es puro y tiene tests. El
+  usuario eligió cromo sobre un halo difuminado al verlos: *"ese brillo buscamos"*.
+  **El reflejo y el brillo son opacos**, con el color ya mezclado: con opacidad, las
+  puntas redondas de dos tramos vecinos se sumaban y cada unión salía como un punto
+  más claro, un collar sobre los 2.426 tramos. Lo encontró la foto, no un test.
+- **El brillo destella**: va y viene entre 0,55 y 0,95 cada 2,5 s, cambiando el
+  color a 10 Hz con un solo `setPaintProperty` por latido. Se frena con la página
+  en segundo plano y no late con movimiento reducido.
+- **Siempre visible**: `red` sale de `GRUPOS` y de la hoja de capas, y una `red`
+  guardada antes se descarta en `capasActivas`. **Siempre debajo de la ruta**:
+  `createMap` reinstala las capas en cada `style.load`, y la Red reinstalada con la
+  ruta dibujada quedaba encima; ahora se apila antes de `route-casing` si existe
+  (`anclaDeLaRed`). Verificado sacándola y reinstalándola con la ruta puesta.
+- **Los nombres crecen hasta zoom 19** y los de la Red van siempre un escalón
+  arriba: calles 10 → 15, Red 10 → 18, con halo de 2. **Una calle de la Red lleva
+  un solo nombre**: `calles-nombre` se filtra con los nombres de la Red al
+  descargarla, por igualdad exacta del `name` de OSM.
+- **La ruta y la flecha de la maniobra siguen al zoom**: 4 / 7 / 14 / 30 px, la
+  flecha a tres cuartos, la punta escalada y dibujada a cuatro veces la densidad
+  para no pixelarse.
+- **Sale la línea punteada de la autopista**; quedan la banda y los dos carriles.
+
+### Descartado
+
+- **Hornear la pertenencia a la Red en el mapa base**: rehace el armado de 55 MB y
+  el workflow sin dar nada que se vea.
+- **Un reflejo que avance por la Red**: son 2.426 tramos de 94 m de mediana y
+  avanzaría a saltos; habría que unirlos por calle y pagar un degradado por cuadro.
+
+### Consecuencias
+
+- 27 tests de JS nuevos (377). Fotos de antes y después a 375 × 812, de noche y de
+  día, en zoom 13, 15, 17 y 19, en la Juan B. Justo de Palermo y en Barragán y la
+  Juan B. Justo de Liniers. Las fotos salen del lienzo del mapa: las capturas del
+  panel del navegador se recortaban cuando el panel cambiaba de tamaño.
+- **Medición en el teléfono (03/10/2026): queda en 10 Hz.** Tres mediciones del
+  APK, una por mapa abierto, con viajes arrancados: cada latido cuesta **0,13 a
+  0,19 ms** (máximo 7,7), y el mapa dibujó **63 a 75 cuadros por segundo**. El
+  usuario no vio tirones y aprobó. El criterio que se había fijado para el hueco
+  más largo entre cuadros (< 100 ms) **no se cumplió**: dio 674 a 983 ms, una vez
+  por minuto. No se le atribuye al destello —el latido le cuesta 0,14 ms al hilo
+  principal—, pero esa métrica mide cualquier pausa del hilo (armar una ruta,
+  arrancar el viaje) y **no se sabe cuál fue**. Si aparecen tirones en la calle,
+  ese es el primer número a mirar. Log sin un solo error: ni `Mapa:` ni tiles
+  caídos.
+
 ## AD-54 · El mapa que no se rompe: el agua sólo en polígonos, y un tile que falla se reintenta
 
 **Fecha:** 03/10/2026

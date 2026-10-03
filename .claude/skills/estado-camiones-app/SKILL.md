@@ -1320,15 +1320,21 @@ con **doce puntos**, partidos en tres partes, cada una con su rama y su PR:
 
 | | Parte | Puntos | Estado |
 |---|---|---|---|
-| **A** | Controles y flujo del viaje | salir siempre a mano, rotación con dos dedos, Detalles obligatorio | ✅ **hecha el 03/10** (AD-52), rama `viaje-salir-rotar-detalles`. Falta el teléfono: el giro con dos dedos no se simula en el navegador |
-| **B** | La Red primero: cartografía | la Red visible siempre como capa de referencia (**el más importante**), Red vs. resto con jerarquía, nombres según el zoom, halo de cromo sobre la Red, autopistas sin punteado, la ruta encima de la calle con mucho zoom | pendiente — va con spec y mediciones |
+| **A** | Controles y flujo del viaje | salir siempre a mano, rotación con dos dedos, Detalles obligatorio | ✅ **hecha y fusionada el 03/10** (AD-52, PR #2). Falta el teléfono: el giro con dos dedos no se simula en el navegador |
+| **B** | La Red primero: cartografía | la Red visible siempre como capa de referencia (**el más importante**), Red vs. resto con jerarquía, nombres según el zoom, halo de cromo sobre la Red, autopistas sin punteado, la ruta encima de la calle con mucho zoom | ✅ **hecha el 03/10** (AD-53), rama `la-red-primero`: la Red como tubo de cromo que destella, siempre visible y debajo de la ruta; nombres que crecen; la ruta por zoom. Probada en el teléfono el 03/10 y **aprobada por el usuario**; el destello queda en 10 Hz (0,14 ms por latido) |
 | **C** | El mapa que no se rompe | el cuadrado que no carga, las manchas azules que desaparecen al acercarse | ✅ **hecha el 03/10** (AD-54), rama `el-mapa-que-no-se-rompe`: el agua sólo en polígonos (eran arroyos entubados cerrados como lagos); la caché de PMTiles que no guarda fallas, el reintento de tiles y el respaldo raster sólo si falta el archivo. Falta probarla en la calle |
 
-**Defecto del servidor que apareció verificando A** (ya existía): el viaje
-arranca por la opción elegida (`RouteIndex`), pero no la guarda, y
-`GET /api/trips/active` al reabrir la app devuelve la recomendada. Visto el 03/10
-en Liniers → La Boca: la app navegaba 21 km y el servidor devolvía 18,4. Es la
-misma clase de error que AD-45 arregló para las paradas.
+**Defecto del servidor que apareció verificando A**: el viaje no guardaba la
+opción de ruta elegida y al retomarlo volvía por la recomendada. **Arreglado y
+fusionado el 03/10** (`Trip.RouteIndex`, PR #3, apéndice de AD-45).
+
+**Fotos del mapa en el navegador**: las capturas del panel se recortan o vencen
+cuando el panel está oculto o cambia de tamaño. Lo que anduvo: sacar la imagen
+del **lienzo** del mapa (`tnMap.getCanvas().toDataURL()` dentro de un
+`once('render')`) y mandarla por `fetch` a un servidor mínimo en
+`127.0.0.1:5099` que la guarda en el scratchpad. Con el panel oculto, además,
+hay que reemplazar `requestAnimationFrame` por un `setTimeout` y a veces
+volver a aplicar el estilo para que el mapa termine de cargar.
 
 **Para probar en la calle**: `demo-up.ps1` + `build-apk.ps1 -ApiUrl <túnel> -Push`,
 la notebook **enchufada y con la tapa abierta** (el 01/10 la prueba murió a las
