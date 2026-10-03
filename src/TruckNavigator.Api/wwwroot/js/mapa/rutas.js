@@ -247,12 +247,29 @@ export function nombreCorto(label) {
   return abreviarCalle(String(label ?? '').split(',')[0].trim());
 }
 
+const toneladasDe = (camion) => (camion.grossWeightKg / 1000).toFixed(1).replace('.0', '').replace('.', ',');
+
 /** "El Rayo · 40 t": la pildora que flota sobre la tira de mapa. */
 export function textoDelCamion(camion) {
   if (!camion) return 'Elegí un camión';
+  return `${camion.name} · ${toneladasDe(camion)} t`;
+}
 
-  const toneladas = (camion.grossWeightKg / 1000).toFixed(1).replace('.0', '').replace('.', ',');
-  return `${camion.name} · ${toneladas} t`;
+/**
+ * "Semirremolque · 4,20 m · 40 t": el camion en Detalles, con la altura.
+ *
+ * La altura va porque es la medida que mas decide por donde se puede ir —en
+ * CABA, 251 de los 576 galibos estan declarados en 4,10 m—, y en Detalles es
+ * donde se revisa la ruta antes de salir. Sin altura declarada no se inventa:
+ * queda el peso solo.
+ */
+export function medidasDelCamion(camion) {
+  if (!camion) return 'Elegí un camión';
+
+  const alto = Number.parseFloat(camion.heightMeters);
+  return Number.isFinite(alto) && alto > 0
+    ? `${camion.name} · ${alto.toFixed(2).replace('.', ',')} m · ${toneladasDe(camion)} t`
+    : textoDelCamion(camion);
 }
 
 /**
@@ -300,8 +317,7 @@ export function hojaRutas({ rutas = [], elegida = 0 } = {}) {
   <div class="gps-manija angosta"></div>
   <div class="gps-rutas">${rutas.map((r, i) => filaDeRuta(r, i, i === elegida)).join('')}</div>
   <div class="gps-acciones">
-    ${pildora('Detalles', { datos: 'data-accion="detalles"' })}
-    ${pildora('Arrancar', { clase: 'celeste', id: 'gps-arrancar', datos: 'data-accion="arrancar"' })}
+    ${pildora('Continuar', { clase: 'celeste', id: 'gps-continuar', datos: 'data-accion="detalles"' })}
   </div>`;
 }
 
@@ -507,17 +523,21 @@ const filaDeDetalle = ({ icono = '', titulo, sub }) => `
   </div>`;
 
 /**
- * La hoja de detalles: lo que se lee —las cifras, el mono con lo que
- * importa, "En el camino" y "Fuentes"— en un cuerpo que scrollea, y
- * "Arrancar" pegado abajo.
+ * La hoja de detalles: lo que se lee —el camion, las cifras, el mono con lo
+ * que importa, "En el camino" y "Fuentes"— en un cuerpo que scrollea, y
+ * "Volver" y "Comenzar viaje" pegados abajo.
  *
- * @param {{tiempo, hora, km, red, mono: {momento, titulo, texto}, camino: Array, fuentes: Array}} d
+ * Es la revision obligatoria antes de salir (AD-52): toda opcion de ruta
+ * abre Detalles y solo de aca se entra al viaje.
+ *
+ * @param {{camion?, nota?, tiempo, hora, km, red, mono: {momento, titulo, texto}, camino: Array, fuentes: Array}} d
  */
-export function hojaDetalles({ tiempo, hora, km, red, mono, camino = [], fuentes = [] }) {
+export function hojaDetalles({ camion = '', nota = '', tiempo, hora, km, red, mono, camino = [], fuentes = [] }) {
   const nada = { titulo: 'Nada que avisar', sub: 'Ni radares, ni gálibos, ni pasos a nivel en el camino' };
 
   return `
   <div class="gps-detalles">
+    ${camion ? `<div class="gps-detalles-camion">${dibujo('camion', 20, 2.4)}<span>${escapeHtml(camion)}</span></div>` : ''}
     <div class="gps-cifras">
       <div><b>${escapeHtml(tiempo)}</b><span>${escapeHtml(hora)}</span></div>
       <div><b>${escapeHtml(km)}</b><span>${escapeHtml(red)}</span></div>
@@ -529,8 +549,10 @@ export function hojaDetalles({ tiempo, hora, km, red, mono, camino = [], fuentes
     <p class="gps-seccion">En el camino</p>
     ${(camino.length ? camino : [nada]).map(filaDeDetalle).join('')}
     ${fuentes.length ? `<p class="gps-seccion">Fuentes</p>${fuentes.map(filaDeDetalle).join('')}` : ''}
+    ${nota ? `<p class="gps-detalles-nota">${escapeHtml(nota)}</p>` : ''}
   </div>
   <div class="gps-acciones">
-    ${pildora('Arrancar', { clase: 'celeste', id: 'gps-arrancar', datos: 'data-accion="arrancar"' })}
+    ${pildora('Volver', { datos: 'data-accion="volver"' })}
+    ${pildora('Comenzar viaje', { clase: 'celeste', id: 'gps-arrancar', datos: 'data-accion="arrancar"' })}
   </div>`;
 }

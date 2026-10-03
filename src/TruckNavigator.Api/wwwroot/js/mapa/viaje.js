@@ -10,8 +10,11 @@
  *   · el COSTADO derecho: sonido y S.O.S., circulos de 52;
  *   · la pildora negra con la CALLE ACTUAL, 18 sp negrita, a 155 del borde;
  *   · el boton amarillo de APORTAR, de 63, donde Waze pone reportar;
- *   · la HOJA de abajo, de 137: salir, la hora de llegada en 25 sp con el
- *     resto en 20, y la vista general.
+ *   · la HOJA de abajo, de 137: la hora de llegada en 25 sp con el
+ *     resto en 20, y la vista general;
+ *   · SALIR, la cruz, en su propia capa (AD-52): estaba adentro de la hoja,
+ *     y la hoja se esconde apenas se toca el mapa o se abre la vista
+ *     general. Un toque al mapa y no habia como salir del viaje.
  *
  * Este modulo dibuja y actualiza; no sabe de GPS ni de rutas. Quien lo monta
  * le dice que mostrar y que hacer cuando se toca algo. Las piezas se
@@ -279,6 +282,29 @@ export function tarjetaReanudar(trip) {
 }
 
 /* ---------------------------------------------------------------------------
+   Salir del viaje
+
+   Las tres salidas de siempre —llegue, abandono, sigo—, porque cerrar un
+   viaje decide si suma o no. Al invitado no se le habla de acreditar: su
+   viaje no se guarda, y prometerle kilometros seria mentirle justo en el
+   momento en que esta decidiendo si la app le sirve.
+--------------------------------------------------------------------------- */
+
+export function preguntaDeSalida({ invitado = false } = {}) {
+  return {
+    title: '¿Salís del viaje?',
+    message: invitado
+      ? 'Como invitado, tu viaje no se guarda. Si llegaste, te muestro lo que anduviste.'
+      : 'Si llegaste, se acreditan los kilómetros. Si lo abandonás, no suma nada.',
+    options: [
+      { id: 'arrived', label: 'Llegué a destino', kind: 'primary' },
+      { id: 'abandon', label: 'Abandonar el viaje', kind: 'danger' },
+      { id: 'stay', label: 'Seguir viaje', kind: 'ghost' }
+    ]
+  };
+}
+
+/* ---------------------------------------------------------------------------
    El marcado
 --------------------------------------------------------------------------- */
 
@@ -322,11 +348,25 @@ const generalMarkup = () => `
   </div>
   <div class="gps-tarjetas" id="gps-tarjetas" hidden></div>`;
 
+/**
+ * Salir del viaje: la cruz de 45, en su propia capa y siempre a mano.
+ *
+ * Antes vivia adentro de la hoja, y la hoja se esconde en dos de los tres
+ * estados del viaje —con el mapa movido y en la vista general—: un toque al
+ * mapa y no habia como salir. En la prueba en la calle la app termino
+ * cerrandose desde las apps recientes. Ahora la cruz no depende de ningun
+ * panel: siguiendo al camion queda donde estaba, en el hueco de la hoja; con
+ * el mapa movido flota arriba de "Volver a centrar"; y en la vista general
+ * sube a la fila del conmutador, porque abajo estan las tarjetas.
+ */
+const salirMarkup = () => `
+  ${circulo(dibujo('cerrar', 24), { clase: 'chico gps-salir', id: 'stop-nav', etiqueta: 'Salir del viaje' })}`;
+
 const hojaMarkup = () => `
   <div class="gps-hoja-viaje" id="gps-hoja">
     <div class="gps-manija"></div>
     <div class="gps-hoja-viaje-fila">
-      ${circulo(dibujo('cerrar', 24), { clase: 'chico', id: 'stop-nav', etiqueta: 'Salir del viaje' })}
+      <span class="gps-hoja-hueco" aria-hidden="true"></span>
       <div class="gps-eta"><b id="gps-hora"></b><span id="gps-restante"></span></div>
       ${circulo(dibujo('rutas', 24), { clase: 'chico', id: 'gps-general', etiqueta: 'Vista general' })}
     </div>
@@ -354,7 +394,8 @@ export function montarViaje(host, { alSalir, alVistaGeneral, alAportar, alSos, a
     <button type="button" class="gps-aportar" id="gps-aportar" aria-label="Aportar un lugar">${calcomania('lugarMas', 36)}</button>
     ${recentrarMarkup()}
     ${generalMarkup()}
-    ${hojaMarkup()}`;
+    ${hojaMarkup()}
+    ${salirMarkup()}`;
 
   host.appendChild(capa);
 

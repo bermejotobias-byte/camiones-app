@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { estadoDeBanda, resumenRestante, textoDeAviso, preguntaDeReanudar, tarjetaReanudar } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/viaje.js';
+import { estadoDeBanda, resumenRestante, textoDeAviso, preguntaDeReanudar, tarjetaReanudar, preguntaDeSalida } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/viaje.js';
 import { ICONOS, dibujo } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/piezas.js';
 import { arrivalTime } from '../../src/TruckNavigator.Api/wwwroot/js/ui.js';
 
@@ -231,4 +231,26 @@ test('un viaje que no acreditó lo dice, y tampoco festeja', () => {
   assert.equal(t.titulo, 'Llegaste');
   assert.match(t.bajada, /No sumó kilómetros/);
   assert.equal(t.festeja, false);
+});
+
+/* ---------------------------------------------------------------------------
+   Salir del viaje
+--------------------------------------------------------------------------- */
+
+test('salir del viaje pregunta lo mismo de siempre: llegué, abandonar o seguir', () => {
+  const p = preguntaDeSalida({ invitado: false });
+
+  assert.equal(p.title, '¿Salís del viaje?');
+  assert.deepEqual(p.options.map((o) => o.id), ['arrived', 'abandon', 'stay']);
+  assert.match(p.message, /acreditan los kilómetros/);
+});
+
+test('al invitado no se le prometen kilómetros: su viaje no se guarda', () => {
+  const p = preguntaDeSalida({ invitado: true });
+
+  // Las mismas tres salidas: "Llegué" lleva a su pantalla de cierre, que es
+  // donde ve lo que anduvo y la invitación a crear la cuenta.
+  assert.deepEqual(p.options.map((o) => o.id), ['arrived', 'abandon', 'stay']);
+  assert.doesNotMatch(p.message, /acredit/);
+  assert.match(p.message, /no se guarda/);
 });

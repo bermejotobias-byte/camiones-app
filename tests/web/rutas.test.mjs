@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 
 import {
   porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta, textoDeEstado, chipsDeRuta,
-  nombreCorto, textoDelCamion, cabeceraDeRutas, hojaRutas,
+  nombreCorto, textoDelCamion, medidasDelCamion, cabeceraDeRutas, hojaRutas,
   loQueImporta, filasDelCamino, fuentesDeLaRuta, hojaDetalles, cabeceraSimple
 } from '../../src/TruckNavigator.Api/wwwroot/js/mapa/rutas.js';
 
@@ -202,7 +202,16 @@ test('la píldora del camión dice el nombre y las toneladas', () => {
   assert.equal(textoDelCamion(null), 'Elegí un camión');
 });
 
-test('la hoja de rutas: una fila por ruta, la elegida marcada, sus chips, y las píldoras Detalles y Arrancar', () => {
+test('en Detalles el camión lleva la altura además del peso: es lo que decide los gálibos', () => {
+  assert.equal(medidasDelCamion({ name: 'Semirremolque', heightMeters: 4.2, grossWeightKg: 40_000 }), 'Semirremolque · 4,20 m · 40 t');
+  assert.equal(medidasDelCamion({ name: 'El Chico', heightMeters: 3.8, grossWeightKg: 26_500 }), 'El Chico · 3,80 m · 26,5 t');
+
+  // Sin altura declarada no se inventa una: queda el peso solo.
+  assert.equal(medidasDelCamion({ name: 'Sin medir', grossWeightKg: 12_000 }), 'Sin medir · 12 t');
+  assert.equal(medidasDelCamion(null), 'Elegí un camión');
+});
+
+test('la hoja de rutas: una fila por ruta, la elegida marcada, sus chips, y Continuar que lleva a Detalles', () => {
   const html = hojaRutas({
     rutas: [
       { tiempo: '39 min', km: '32 km', por: 'Por Au. Ricchieri; Au. 25 de Mayo', estado: 'Mejor ruta, 85% por la Red', chips: [{ color: '#4f6d8e', texto: '2 radares' }] },
@@ -220,8 +229,12 @@ test('la hoja de rutas: una fila por ruta, la elegida marcada, sus chips, y las 
   assert.ok(html.includes('data-accion="elegir" data-indice="1"'));
   assert.ok(html.includes('class="gps-chip"'));
   assert.ok(html.includes('2 radares'));
-  assert.ok(html.includes('data-accion="detalles"'));
-  assert.ok(html.includes('data-accion="arrancar"'));
+  assert.ok(html.includes('Continuar') && html.includes('data-accion="detalles"'));
+
+  // Desde la lista no se entra al viaje: todo arranque pasa por Detalles,
+  // que es donde se revisa la ruta antes de salir.
+  assert.ok(!html.includes('data-accion="arrancar"'));
+  assert.ok(!html.includes('Arrancar'));
 });
 
 test('lo que se escribe en una fila se escapa', () => {
@@ -352,8 +365,9 @@ test('toda por la Red y sin avisos, la fuente es la Red misma', () => {
   assert.ok(fuentes[0].sub.includes('OpenStreetMap'));
 });
 
-test('la hoja de detalles: las cifras, el mono con lo que importa, el camino, las fuentes y Arrancar', () => {
+test('la hoja de detalles: el camión, las cifras, el mono, el camino, las fuentes, Volver y Comenzar viaje', () => {
   const html = hojaDetalles({
+    camion: 'Semirremolque · 4,20 m · 40 t',
     tiempo: '39 min', hora: 'llegás 20:06', km: '32 km', red: '85% por la Red',
     mono: { momento: 'alerta', titulo: 'Ojo: 3 tramos fuera de la Red', texto: 'Son 9,3 km.' },
     camino: [{ icono: 'radar', titulo: '2 radares de velocidad', sub: 'Av. X km 3' }],
@@ -365,7 +379,22 @@ test('la hoja de detalles: las cifras, el mono con lo que importa, el camino, la
   assert.ok(html.includes('Ojo: 3 tramos fuera de la Red'));
   assert.ok(html.includes('En el camino') && html.includes('2 radares de velocidad'));
   assert.ok(html.includes('Fuentes') && html.includes('Ley 2148'));
-  assert.ok(html.includes('data-accion="arrancar"'));
+  assert.ok(html.includes('Semirremolque · 4,20 m · 40 t'));
+  assert.ok(html.includes('Comenzar viaje') && html.includes('data-accion="arrancar"'));
+  assert.ok(html.match(/data-accion="volver"/g)?.length >= 1);
+
+  // Sin nota no hay renglón vacío.
+  assert.ok(!html.includes('gps-detalles-nota'));
+});
+
+test('al invitado Detalles le dice, antes de arrancar, que el viaje no se guarda', () => {
+  const html = hojaDetalles({
+    tiempo: '4 min', hora: 'llegás 21:36', km: '2,4 km', red: 'Fuera de la Red',
+    mono: { momento: 'ruta', titulo: 'Todo en orden', texto: '' },
+    nota: 'Como invitado, este viaje no se guarda.'
+  });
+
+  assert.ok(html.includes('gps-detalles-nota') && html.includes('este viaje no se guarda'));
 });
 
 test('sin nada en el camino la hoja lo dice en vez de dejar la sección vacía', () => {

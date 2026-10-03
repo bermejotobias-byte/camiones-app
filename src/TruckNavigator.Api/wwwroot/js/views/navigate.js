@@ -24,12 +24,12 @@ import {
   alertsAlongRoute, pendingRouteAlert, speakableAlert, maneuverArrowPath
 } from '../navigation.js';
 import * as gl from '../map.js';
-import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso, tarjetaReanudar } from '../mapa/viaje.js';
+import { montarViaje, estadoDeBanda, globosDeRuta, textoDeAviso, tarjetaReanudar, preguntaDeSalida } from '../mapa/viaje.js';
 import { dibujo, calcomania, pildora } from '../mapa/piezas.js';
 import {
   porDonde, lineaDeTiempo, opcionesDeRuta, elegirAlternativa, mismaRuta,
   textoDeEstado, chipsDeRuta, cabeceraDeRutas, pildoraDelCamion, hojaRutas,
-  cabeceraSimple, hojaDetalles, loQueImporta, filasDelCamino, fuentesDeLaRuta
+  cabeceraSimple, hojaDetalles, loQueImporta, filasDelCamino, fuentesDeLaRuta, medidasDelCamion
 } from '../mapa/rutas.js';
 import { hojaReposo } from '../mapa/reposo.js';
 import { hojaBuscar, cuerpoDeBusqueda, CATEGORIAS } from '../mapa/buscar.js';
@@ -1364,7 +1364,7 @@ export function navigateView(host, { openDrawer, go, puede }) {
       <div class="sheet-action">
         ${deliveryOrder ? raw(`
           <button class="btn btn-primary btn-block" id="start-delivery">
-            Arrancar reparto
+            Continuar
           </button>
           <button class="btn btn-ghost btn-block" id="calc-delivery"
                   style="margin-top:8px">
@@ -1382,7 +1382,7 @@ export function navigateView(host, { openDrawer, go, puede }) {
     wire(sheet(), {
       '#close-delivery': () => salirDelReparto(),
       '#calc-delivery': (event) => calcularReparto(event.currentTarget),
-      '#start-delivery': (event) => startTrip(event.currentTarget),
+      '#start-delivery': () => abrirDetalles('delivery'),
       '#origin@input': onInput('origin'),
       '#origin@focus': () => { editing = 'origin'; },
       '#new-stop@input': onInput('stop'),
@@ -1507,21 +1507,22 @@ export function navigateView(host, { openDrawer, go, puede }) {
       if (accion === 'volver') descartarRuta();
       if (accion === 'camion') go('camiones');
       if (accion === 'elegir') elegirRuta(Number(indice));
-      if (accion === 'detalles') abrirDetalles();
-      if (accion === 'arrancar') startTrip(boton);
+      if (accion === 'detalles') abrirDetalles('route');
+      // Desde la lista no se arranca: todo viaje pasa por Detalles (AD-52).
     };
 
-    gl.drawRoute(route, route.accessLegs ?? [], encuadreDeLaTira());
+    gl.drawRoute(route, route.accessLegs ?? [], encuadreEntre('.gps-hoja-rutas'));
   }
 
   /**
    * El aire alrededor de la ruta para que entre en la tira de mapa: lo que
-   * tapan la cabecera y la hoja, medido en el DOM, mas un margen.
+   * tapan la cabecera y lo de abajo —la lista de rutas o los Detalles—,
+   * medido en el DOM, mas un margen.
    */
-  function encuadreDeLaTira() {
+  function encuadreEntre(abajo) {
     const pantalla = host0.getBoundingClientRect();
     const cabecera = q(host0, '.gps-cabecera')?.getBoundingClientRect();
-    const hoja = q(host0, '.gps-hoja-rutas')?.getBoundingClientRect();
+    const hoja = q(host0, abajo)?.getBoundingClientRect();
     if (!cabecera || !hoja) return undefined;
 
     return {
@@ -1544,12 +1545,18 @@ export function navigateView(host, { openDrawer, go, puede }) {
   }
 
   /** Cambia la ruta que se está mirando, y la dibuja. */
+  /**
+   * Tocar una opcion abre sus Detalles —tambien la que ya estaba marcada—:
+   * es la revision obligatoria antes de salir (AD-52). La ruta y sus avisos
+   * salen del MISMO indice, y Detalles la vuelve a dibujar en el mapa: si no,
+   * el mapa seguiria mostrando la opcion anterior con los datos de esta.
+   */
   function elegirRuta(index) {
-    if (!Number.isInteger(index) || !routeOptions[index] || index === chosenRoute) return;
+    if (!Number.isInteger(index) || !routeOptions[index]) return;
 
     chosenRoute = index;
     route = routeOptions[index];
-    drawSheet();
+    abrirDetalles('route');
   }
 
   /* ------------------------------------------------------------------------
@@ -1560,26 +1567,39 @@ export function navigateView(host, { openDrawer, go, puede }) {
      y el km de cada cosa, y las fuentes. "Arrancar" arranca por esta ruta.
   ------------------------------------------------------------------------ */
 
-  function abrirDetalles() {
+  let volverDeDetalles = 'route';   // a que hoja vuelve: la lista de rutas o el reparto
+
+  function abrirDetalles(desde = 'route') {
+    volverDeDetalles = desde;
     stage = 'detalles';
     drawSheet();
   }
 
   function drawDetalles() {
     const camion = selectedTruck();
-    const avisos = avisosPorOpcion[chosenRoute] ?? [];
+    const esReparto = volverDeDetalles === 'delivery';
+
+    // El reparto no tiene alternativas ni avisos precalculados: se cruzan aca,
+    // con el mismo motor que las opciones de la lista.
+    const avisos = esReparto
+      ? alertsAlongRoute(prepareRoute(route), datasetsConReportes())
+      : (avisosPorOpcion[chosenRoute] ?? []);
+
+    const red = textoDeEstado(route, esReparto || chosenRoute === 0).replace(/^Mejor ruta, /, '');
 
     const hoja = sheetAs('gps-detallando');
     hoja.innerHTML = `
-      ${cabeceraSimple('Detalles de la ruta')}
+      ${cabeceraDeRutas({ origen: origin, destino: esReparto ? paradasEnOrden().at(-1) : destination })}
       ${hojaDetalles({
+        camion: medidasDelCamion(camion),
         tiempo: formatDuration(route.durationSeconds),
         hora: `llegás ${arrivalTime(route.durationSeconds)}`,
         km: formatDistance(route.distanceMeters),
-        red: textoDeEstado(route, chosenRoute === 0).replace(/^Mejor ruta, /, ''),
+        red: esReparto ? `Reparto · ${stops.length} paradas · ${red}` : red,
         mono: loQueImporta(route, avisos, camion),
         camino: filasDelCamino(route, avisos, camion),
-        fuentes: fuentesDeLaRuta(route, avisos)
+        fuentes: fuentesDeLaRuta(route, avisos),
+        nota: puede().guardarViaje ? '' : 'Como invitado, este viaje no se guarda.'
       })}`;
 
     hoja.onclick = (event) => {
@@ -1587,9 +1607,14 @@ export function navigateView(host, { openDrawer, go, puede }) {
       if (!boton) return;
 
       const { accion } = boton.dataset;
-      if (accion === 'volver') { stage = 'route'; drawSheet(); }
+      if (accion === 'volver') { stage = volverDeDetalles; drawSheet(); }
       if (accion === 'arrancar') startTrip(boton);
     };
+
+    // El mapa de atras muestra la ruta que se esta revisando: Detalles lo tapa
+    // entero, pero al volver o al arrancar el mapa no puede quedar mostrando otra
+    // opcion que la de estos datos.
+    gl.drawRoute(route, route.accessLegs ?? []);
   }
 
   // --- viaje en curso: navegacion -------------------------------------------
@@ -1676,15 +1701,7 @@ export function navigateView(host, { openDrawer, go, puede }) {
    * no— y encadenarlas hacia que "no" a la primera pareciera cancelar todo.
    */
   async function askToStop() {
-    const choice = await askChoice({
-      title: '¿Salís del viaje?',
-      message: 'Si llegaste, se acreditan los kilómetros. Si lo abandonás, no suma nada.',
-      options: [
-        { id: 'arrived', label: 'Llegué a destino', kind: 'primary' },
-        { id: 'abandon', label: 'Abandonar el viaje', kind: 'danger' },
-        { id: 'stay', label: 'Seguir viaje', kind: 'ghost' }
-      ]
-    });
+    const choice = await askChoice(preguntaDeSalida({ invitado: Boolean(state.activeTrip?.invitado) }));
 
     if (choice === 'stay' || choice === null) return;
 
