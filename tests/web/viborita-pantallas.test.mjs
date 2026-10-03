@@ -9,7 +9,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { inicio, jugando, pausa, fin, AN, AL } from '../../src/TruckNavigator.Api/wwwroot/js/juegos/viborita/pantallas.js';
-import { pixeles } from '../../src/TruckNavigator.Api/wwwroot/js/juegos/viborita/lcd.js';
+import { pixeles, tamanoDelLcd } from '../../src/TruckNavigator.Api/wwwroot/js/juegos/viborita/lcd.js';
 import { faltantes } from '../../src/TruckNavigator.Api/wwwroot/js/juegos/viborita/dibujos.js';
 import { crearPartida } from '../../src/TruckNavigator.Api/wwwroot/js/juegos/viborita/motor.js';
 
@@ -84,4 +84,32 @@ test('los píxeles: una línea prende sus puntos y borrar los apaga', () => {
 
 test('nada se dibuja afuera de la LCD', () => {
   for (const p of TODAS) for (const i of pixeles(p.ordenes)) assert.ok(i >= 0 && i < AN * AL, `${i}`);
+});
+
+test('el tamaño de la LCD con DPR entero: dpr=1 escala=3 → P=3, CSS 306×384', () => {
+  const t = tamanoDelLcd(3, 1);
+  assert.equal(t.P, 3);
+  assert.equal(t.ancho, 306);
+  assert.equal(t.alto, 384);
+  assert.equal(t.anchoCss, 306);
+  assert.equal(t.altoCss, 384);
+});
+
+test('el tamaño de la LCD con DPR=2: dpr=2 escala=3 → P=6, buffer 612×768, CSS 306×384', () => {
+  const t = tamanoDelLcd(3, 2);
+  assert.equal(t.P, 6);
+  assert.equal(t.ancho, 612);
+  assert.equal(t.alto, 768);
+  assert.equal(t.anchoCss, 306);
+  assert.equal(t.altoCss, 384);
+});
+
+test('el tamaño de la LCD con DPR fraccionario: dpr=2.625 escala=3 → P=7, buffer 714×896, CSS ~272×341', () => {
+  const t = tamanoDelLcd(3, 2.625);
+  assert.equal(t.P, 7);
+  assert.equal(t.ancho, 714);
+  assert.equal(t.alto, 896);
+  assert.ok(Math.abs(t.anchoCss - 272) < 0.2);
+  assert.ok(Math.abs(t.altoCss - 341.33) < 0.1);
+  assert.ok(Number.isInteger(t.P));
 });

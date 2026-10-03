@@ -51,31 +51,48 @@ export function pixeles(ordenes) {
 }
 
 /**
- * Pinta la LCD en el canvas, a `escala` px de pantalla por pixel de LCD. La escala
- * es siempre entera y se multiplica por la densidad del telefono: un pixel de LCD
- * nunca se dibuja borroso.
+ * Calcula el tamaño de la LCD en pixels fisicos, para que la LCD se vea nitida
+ * incluso con densidades fraccionarias de pantalla (comun en Android: 2.625, 2.75, 3.5).
+ * Devuelve { P, ancho, alto, anchoCss, altoCss } donde P es siempre un entero.
+ */
+export function tamanoDelLcd(escala, dpr = globalThis.devicePixelRatio || 1) {
+  const P = Math.max(1, Math.floor(escala * dpr));
+  return {
+    P,
+    ancho: AN * P,
+    alto: AL * P,
+    anchoCss: (AN * P) / dpr,
+    altoCss: (AL * P) / dpr
+  };
+}
+
+/**
+ * Pinta la LCD en el canvas, a `escala` px de pantalla por pixel de LCD. El pixel
+ * de LCD se computa en pixels fisicos para que se mantenga nitido incluso con
+ * densidades fraccionarias; con una densidad fraccionaria, la LCD puede ser
+ * ligeramente mas pequeña que AN*escala CSS px.
  */
 export function pintar(canvas, ordenes, escala) {
-  const dpr = Math.max(1, Math.round(globalThis.devicePixelRatio || 1));
-  const P = escala * dpr;
-  const W = AN * P, H = AL * P;
-  if (canvas.width !== W || canvas.height !== H) {
-    canvas.width = W;
-    canvas.height = H;
-    canvas.style.width = `${AN * escala}px`;
-    canvas.style.height = `${AL * escala}px`;
+  const dpr = globalThis.devicePixelRatio || 1;
+  const { P, ancho, alto, anchoCss, altoCss } = tamanoDelLcd(escala, dpr);
+
+  if (canvas.width !== ancho || canvas.height !== alto) {
+    canvas.width = ancho;
+    canvas.height = alto;
+    canvas.style.width = `${anchoCss}px`;
+    canvas.style.height = `${altoCss}px`;
   }
   const g = canvas.getContext('2d');
 
-  const fondo = g.createLinearGradient(0, 0, 0, H);
+  const fondo = g.createLinearGradient(0, 0, 0, alto);
   fondo.addColorStop(0, LCD.fondo[0]);
   fondo.addColorStop(1, LCD.fondo[1]);
   g.fillStyle = fondo;
-  g.fillRect(0, 0, W, H);
+  g.fillRect(0, 0, ancho, alto);
 
   g.fillStyle = LCD.fantasma;
-  for (let x = P; x < W; x += P) g.fillRect(x - Math.max(1, dpr / 2), 0, Math.max(1, dpr / 2), H);
-  for (let y = P; y < H; y += P) g.fillRect(0, y - Math.max(1, dpr / 2), W, Math.max(1, dpr / 2));
+  for (let x = P; x < ancho; x += P) g.fillRect(x - 1, 0, 1, alto);
+  for (let y = P; y < alto; y += P) g.fillRect(0, y - 1, ancho, 1);
 
   const on = pixeles(ordenes);
   g.fillStyle = LCD.sombra;
@@ -83,9 +100,9 @@ export function pintar(canvas, ordenes, escala) {
   g.fillStyle = LCD.tinta;
   for (const i of on) g.fillRect((i % AN) * P, Math.floor(i / AN) * P, P, P);
 
-  const vineta = g.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.45, W / 2, H * 0.45, Math.max(W, H) * 0.75);
+  const vineta = g.createRadialGradient(ancho / 2, alto * 0.45, Math.min(ancho, alto) * 0.45, ancho / 2, alto * 0.45, Math.max(ancho, alto) * 0.75);
   vineta.addColorStop(0, 'rgba(0,0,0,0)');
   vineta.addColorStop(1, 'rgba(0,0,0,.22)');
   g.fillStyle = vineta;
-  g.fillRect(0, 0, W, H);
+  g.fillRect(0, 0, ancho, alto);
 }
