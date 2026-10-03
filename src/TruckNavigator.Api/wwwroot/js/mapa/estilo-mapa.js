@@ -104,13 +104,32 @@ export const PARADAS = {
   sendero: [0.4, 0.8, 2, 4],
   ferrocarril: [1.2, 2, 4, 8],
   // La Red de Transito Pesado (la pinta red.js): la via mas ancha en todo zoom.
-  red: [6, 10, 22, 48]
+  red: [6, 10, 22, 48],
+  // La ruta (la dibuja map.js): la misma curva que las calles, para que pinte
+  // la calzada en vez de flotar como un hilo de 8 px fijos (AD-53).
+  ruta: [4, 7, 14, 30]
 };
 
 const ANCHO = Object.fromEntries(Object.entries(PARADAS).map(([k, p]) => [k, ancho(p)]));
 
 /** La misma escala, sumandole un filete de 2 px (de dia). */
 const conBorde = (clase) => ancho(PARADAS[clase], { mas: 2 });
+
+/**
+ * Los anchos de la ruta y de la flecha de la maniobra, que dibuja map.js.
+ *
+ * El canto blanco es 3 px mas ancho. La flecha mide tres cuartos de la ruta,
+ * con su propio canto, y la punta se dibujo para una linea de 6 px: escala en
+ * la misma proporcion para no quedar mas angosta que la linea que marca.
+ */
+export const ANCHO_DE_RUTA = {
+  linea: ancho(PARADAS.ruta),
+  canto: ancho(PARADAS.ruta, { mas: 3 }),
+  flecha: ancho(PARADAS.ruta, { por: 0.75 }),
+  flechaCanto: ancho(PARADAS.ruta, { por: 0.75, mas: 3 })
+};
+
+export const TAMANO_DE_PUNTA = ancho(PARADAS.ruta, { por: 0.75 / 6 });
 
 const esAutopista = ['==', ['get', 'kind'], 'highway'];
 const esPrincipal = ['all', ['==', ['get', 'kind'], 'major_road'], esDetalle(['primary', 'primary_link', 'trunk', 'trunk_link'])];
