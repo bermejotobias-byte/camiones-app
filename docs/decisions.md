@@ -3362,6 +3362,13 @@ prueba en la calle del 02/10. Spec y plan en
   día, en zoom 13, 15, 17 y 19, en la Juan B. Justo de Palermo y en Barragán y la
   Juan B. Justo de Liniers. Las fotos salen del lienzo del mapa: las capturas del
   panel del navegador se recortaban cuando el panel cambiaba de tamaño.
-- **Medición en el teléfono**: pendiente. El destello deja una línea `Destello:`
-  en el log al minuto de arrancar; con el viaje en curso se decide si queda en
-  10 Hz, baja a 5 o queda quieto.
+- **Medición en el teléfono (03/10/2026): queda en 10 Hz.** Tres mediciones del
+  APK, una por mapa abierto, con viajes arrancados: cada latido cuesta **0,13 a
+  0,19 ms** (máximo 7,7), y el mapa dibujó **63 a 75 cuadros por segundo**. El
+  usuario no vio tirones y aprobó. El criterio que se había fijado para el hueco
+  más largo entre cuadros (< 100 ms) **no se cumplió**: dio 674 a 983 ms, una vez
+  por minuto. No se le atribuye al destello —el latido le cuesta 0,14 ms al hilo
+  principal—, pero esa métrica mide cualquier pausa del hilo (armar una ruta,
+  arrancar el viaje) y **no se sabe cuál fue**. Si aparecen tirones en la calle,
+  ese es el primer número a mirar. Log sin un solo error: ni `Mapa:` ni tiles
+  caídos.
