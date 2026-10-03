@@ -1452,6 +1452,11 @@ trips.MapPost("/", async (
             // en un tramo directo. Ver AD-45.
             Stops = [.. stops.Select(s => new TripStop(s.Latitude, s.Longitude, null))],
 
+            // La opcion que se eligio, para retomar por la misma. Un reparto
+            // tiene una sola ruta, la que pasa por todas las paradas, y no
+            // guarda ninguna.
+            RouteIndex = stops.Count > 0 ? null : request.RouteIndex,
+
             PlannedDistanceMeters = route.DistanceMeters,
             PlannedDurationSeconds = route.DurationSeconds,
             HeavyNetworkSharePercent = route.HeavyNetworkSharePercent,
@@ -1529,12 +1534,15 @@ trips.MapGet("/active", async (
         // directa —31 km por tres paradas se volvian 10 km de un tramo— y el
         // guiado mandaba al camion por donde no correspondia. Ver AD-45.
         //
-        // Se retoma por la recomendada: la eleccion original no se guarda y de
-        // todos modos el guiado recalcula desde donde este el camion.
+        // Y por la MISMA opcion que se eligio al arrancar. Antes se retomaba
+        // por la recomendada: el camion iba por la alternativa, el guiado lo
+        // daba por salido de ruta y lo empujaba a la que no eligio. Si la
+        // posicion ya no existe —el mapa o un bloqueo cambiaron las opciones—
+        // cae en la recomendada, la misma regla que al arrancar.
         var (route, reason) = await TripRoutes.ForTripAsync(
             calculator, truck, origen, destino,
             trip.Stops.Select(s => new GeoPoint(s.Latitude, s.Longitude)).ToList(),
-            routeIndex: null, DateTimeOffset.Now, ct);
+            trip.RouteIndex, DateTimeOffset.Now, ct);
 
         // Sin ruta apta el viaje se devuelve igual: cerrarlo no necesita rutear.
         return Results.Ok(new ActiveTripDto(

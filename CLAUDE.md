@@ -26,7 +26,7 @@ Ver `docs/data-sources.md`, "Puntos de interés".
 | `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois` (leer, votar, agregar), `/api/reports` (leer, reportar, sigue ahí / ya no está, cerrar), `/api/progress`, `/api/routes`. Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
 | `tests/TruckNavigator.UnitTests` | 427 tests: dominio (restricciones, la oferta de rutas, la elegida y sus gálibos, los lugares guardados y los recientes, ruteo, progresión, aptitud de POIs, sello y filtro de la comunidad, patente, fecha de nacimiento, **los reportes de la comunidad**: catálogo, confiabilidad, vencimiento y promoción, reputación y relevancia, abuso, el bloqueo en el custom model, la graduación del lugar), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
-| `tests/TruckNavigator.IntegrationTests` | 251 tests: 14 contra GraphHopper (se saltean solos si no está levantado; dos cubren que el viaje arranca por la ruta elegida y uno que un cierre validado esquiva la cuadra) + 237 sobre datasets, perfiles, camiones, viajes, lugares guardados, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, los candados del dataset de POIs con el seed por `ManagedByDataset`, los votos y aportes de la comunidad, los reportes (persistencia, crear, votar, leer, los bloqueos, el recorder) y **el límite de tasa** (qué canasta le toca a cada ruta, los números, contra quién se cuenta, y el limitador atacado de verdad hasta que corta) |
+| `tests/TruckNavigator.IntegrationTests` | 254 tests: 15 contra GraphHopper (se saltean solos si no está levantado; dos cubren que el viaje arranca por la ruta elegida y uno que un cierre validado esquiva la cuadra) + 237 sobre datasets, perfiles, camiones, viajes, lugares guardados, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, los candados del dataset de POIs con el seed por `ManagedByDataset`, los votos y aportes de la comunidad, los reportes (persistencia, crear, votar, leer, los bloqueos, el recorder) y **el límite de tasa** (qué canasta le toca a cada ruta, los números, contra quién se cuenta, y el limitador atacado de verdad hasta que corta) |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -47,7 +47,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 678 tests (.NET)
+dotnet test                                    # 681 tests (.NET)
 node --test "tests/web/*.test.mjs"             # 342 tests: guiado, avisos de ruta, el estilo del mapa, piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), el vocabulario y los iconos
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
@@ -352,7 +352,11 @@ node --test "tests/web/*.test.mjs"             # 342 tests: guiado, avisos de ru
   campo **opcional** de `StartTripRequest`, así que la app ya instalada sigue
   andando. Ojo con el `defaultValue` de la migración: EF pone `""` y **deserializar
   una cadena vacía tira excepción** — una fila así haría ilegible el historial
-  entero. Ver AD-45.
+  entero. Ver AD-45. **Y guarda la OPCIÓN de ruta elegida** (`Trip.RouteIndex`,
+  03/10/2026): sin ella, retomar un viaje que iba por una alternativa lo devolvía
+  por la recomendada —21 km en la app, 18,4 en el servidor— y el guiado lo daba
+  por salido de ruta. Todo lo que el servidor recalcula al recuperar el viaje
+  tiene que salir de lo que el viaje guardó, no de lo que conviene por defecto.
 - **El viaje en curso vive en el servidor, no en la pantalla**: sobrevive a cerrar la app.
   La app lo recupera con `GET /api/trips/active` al entrar; sin eso arranca creyendo que no
   hay viaje y el usuario se choca con un 409 al arrancar el siguiente, sin ningún viaje a la
