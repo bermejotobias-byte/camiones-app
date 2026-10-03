@@ -2726,6 +2726,28 @@ dando 31 km**. Y el viaje simple sin paradas responde 201 con 10,2 km al crear y
 al recuperar, que es la regresión que había que cuidar: son la mayoría de los
 viajes.
 
+### Apéndice (03/10/2026): el viaje guarda también la opción de ruta elegida
+
+La misma falla, por otro lado. Desde AD-40 el viaje arranca por la opción que
+se eligió en pantalla (`RouteIndex`), pero **no la guardaba**: al reabrir la
+app, `GET /api/trips/active` recalculaba y devolvía **la recomendada**. Lo
+encontró la verificación de AD-52: la app navegaba la alternativa de 21 km y
+el servidor devolvía 18,4. El guiado tomaba al camión como salido de ruta y lo
+empujaba a la que no eligió — sin avisar, como las paradas.
+
+- **`Trip.RouteIndex`**, entero que admite nulo: `null` es la recomendada, que
+  es lo que tienen los viajes de antes de la columna y los repartos (una sola
+  ruta, la que pasa por todas las paradas). La migración no lleva valor por
+  defecto, así que no se repite la trampa del `""`.
+- **Se guarda la posición, no la geometría**, por lo mismo que las paradas: la
+  ruta se recalcula, la elección no. Si la posición ya no existe —el mapa o un
+  bloqueo de la comunidad cambiaron las opciones— cae en la recomendada, la
+  misma regla que al arrancar (`RouteOffer.Chosen`).
+- **Verificado por HTTP**: Liniers → La Boca con dos opciones (25,5 y 32,6 km),
+  arrancado por la de 32,6, **retoma por la de 32,6**. Tres tests nuevos: la
+  columna sobrevive a SQLite, un viaje sin elección queda en la recomendada, y
+  contra GraphHopper, arrancar por la alternativa y retomarla da la misma ruta.
+
 ## AD-46 · La comunidad vota y aporta lugares; complementa lo verificado, no lo reemplaza
 
 **Fecha:** 15/09/2026
