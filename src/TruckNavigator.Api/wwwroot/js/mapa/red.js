@@ -16,8 +16,78 @@ import { ancho, PARADAS } from './estilo-mapa.js';
 /** Cuanto del brillo se ve cuando no destella (y el punto medio del destello). */
 export const BRILLO_REPOSO = 0.75;
 
+/** El destello del brillo: va y viene entre estas intensidades. */
+export const BRILLO_MIN = 0.55;
+export const BRILLO_MAX = 0.95;
+
+/** Cuanto tarda en ir y volver. */
+export const CICLO_DESTELLO_MS = 2500;
+
+/**
+ * Cada cuanto se actualiza: 10 veces por segundo, no en cada cuadro. Es un solo
+ * valor por capa —lo mas barato que permite MapLibre— y si en el telefono
+ * cuesta, se baja a 200 (spec §3.3).
+ */
+export const LATIDO_DESTELLO_MS = 100;
+
 /** Cuanto del color del reflejo se ve sobre el cuerpo. */
 const REFLEJO = 0.55;
+
+/** La intensidad del brillo en el instante `ms`: una curva coseno, de 0,55 a 0,95 y de vuelta. */
+export function opacidadDelBrillo(ms) {
+  const fase = (ms % CICLO_DESTELLO_MS) / CICLO_DESTELLO_MS;
+  return BRILLO_REPOSO - ((BRILLO_MAX - BRILLO_MIN) / 2) * Math.cos(2 * Math.PI * fase);
+}
+
+/**
+ * Hace destellar el brillo de la Red. Devuelve la funcion que lo apaga.
+ *
+ * Late solo con la pagina a la vista: en segundo plano no hay nadie mirando y
+ * cada latido es un redibujo del mapa. Con movimiento reducido no late; el
+ * brillo queda en su punto medio.
+ *
+ * El reloj y el documento se inyectan para poder probarlo sin navegador.
+ *
+ * @param {{aplicar: (intensidad: number) => void, quieto?: boolean}} opciones
+ */
+export function destello({
+  aplicar,
+  quieto = false,
+  ahora = () => performance.now(),
+  cada = (fn, ms) => setInterval(fn, ms),
+  parar = (id) => clearInterval(id),
+  documento = globalThis.document
+}) {
+  if (quieto) {
+    aplicar(BRILLO_REPOSO);
+    return () => {};
+  }
+
+  let latido = null;
+  const latir = () => aplicar(opacidadDelBrillo(ahora()));
+
+  const arrancar = () => {
+    if (latido !== null) return;
+    latir();
+    latido = cada(latir, LATIDO_DESTELLO_MS);
+  };
+
+  const frenar = () => {
+    if (latido === null) return;
+    parar(latido);
+    latido = null;
+  };
+
+  const alCambiar = () => (documento?.hidden ? frenar() : arrancar());
+
+  documento?.addEventListener?.('visibilitychange', alCambiar);
+  if (!documento?.hidden) arrancar();
+
+  return () => {
+    frenar();
+    documento?.removeEventListener?.('visibilitychange', alCambiar);
+  };
+}
 
 /**
  * Mezcla dos colores `#rrggbb`: con `t` en 0 da `a`, en 1 da `b`.

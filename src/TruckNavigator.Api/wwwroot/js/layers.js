@@ -9,7 +9,7 @@
  * Todo lo que sabe de MapLibre vive en map.js; esto es lo que sabe de camiones.
  */
 
-import { lineasDeLaRed, nombreDeLaRed, anclaDeLaRed, nombresDeLaRed } from './mapa/red.js';
+import { lineasDeLaRed, nombreDeLaRed, anclaDeLaRed, nombresDeLaRed, colorDelBrillo, destello } from './mapa/red.js';
 import { filtroCallesNombre } from './mapa/estilo-mapa.js';
 
 const SOURCES = {
@@ -700,6 +700,74 @@ function addRedLayers(map) {
   // Cada una se agrega antes del ancla, asi que quedan en el orden del arreglo.
   for (const capa of lineasDeLaRed(colores)) map.addLayer(capa, ancla);
   map.addLayer(nombreDeLaRed(colores));
+
+  coloresActuales = colores;
+  encenderDestello(map);
+}
+
+/** Los colores con los que se instalo la Red: el destello los mezcla en cada latido. */
+let coloresActuales = null;
+
+/** Un destello por mapa: se apaga cuando el mapa se destruye. */
+const destellos = new WeakMap();
+
+/**
+ * Enciende el destello del brillo de la Red, una vez por mapa.
+ *
+ * El brillo es opaco (ver mezclar en mapa/red.js), asi que el destello cambia
+ * su COLOR, no su opacidad: un solo setPaintProperty por latido.
+ *
+ * Deja ademas UNA linea en la consola —en el telefono, `adb logcat -s Web`— al
+ * minuto de arrancar: cuanto tarda cada latido y cuanto se separan los cuadros
+ * del mapa. Es la medicion que pide la spec (§3.3) antes de dar el destello por
+ * bueno, y sirve igual despues si el mapa se traba.
+ */
+function encenderDestello(map) {
+  if (destellos.has(map)) return;
+
+  const medicion = { latidos: 0, total: 0, maximo: 0, cuadros: 0, hueco: 0, ultimo: null };
+  const desde = performance.now();
+
+  const contarCuadro = () => {
+    const ahora = performance.now();
+    if (medicion.ultimo !== null) medicion.hueco = Math.max(medicion.hueco, ahora - medicion.ultimo);
+    medicion.ultimo = ahora;
+    medicion.cuadros++;
+  };
+  map.on('render', contarCuadro);
+
+  const quieto = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+  const apagar = destello({
+    quieto,
+    aplicar: (intensidad) => {
+      if (!coloresActuales || !map.getLayer('red-brillo')) return;
+
+      const t0 = performance.now();
+      map.setPaintProperty('red-brillo', 'line-color', colorDelBrillo(coloresActuales, intensidad));
+      const costo = performance.now() - t0;
+
+      medicion.latidos++;
+      medicion.total += costo;
+      medicion.maximo = Math.max(medicion.maximo, costo);
+
+      if (medicion.latidos === 600) {
+        map.off('render', contarCuadro);
+        const segundos = (performance.now() - desde) / 1000;
+        console.info(
+          `Destello: ${medicion.latidos} latidos en ${segundos.toFixed(0)} s, ` +
+          `cada uno ${(medicion.total / medicion.latidos).toFixed(2)} ms (max ${medicion.maximo.toFixed(2)}); ` +
+          `el mapa dibujo ${medicion.cuadros} cuadros, el hueco mas largo ${medicion.hueco.toFixed(0)} ms`);
+      }
+    }
+  });
+
+  destellos.set(map, apagar);
+  map.once('remove', () => {
+    apagar();
+    map.off('render', contarCuadro);
+    destellos.delete(map);
+  });
 }
 
 /* ---------------------------------------------------------------------------

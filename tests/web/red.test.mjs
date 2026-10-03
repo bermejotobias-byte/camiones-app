@@ -14,7 +14,10 @@ globalThis.document = { documentElement: {} };
 globalThis.getComputedStyle = () => ({ getPropertyValue: () => '#123456' });
 
 const { PARADAS, buildBasemapStyle, filtroCallesNombre } = await import('../../src/TruckNavigator.Api/wwwroot/js/mapa/estilo-mapa.js');
-const { lineasDeLaRed, nombreDeLaRed, anclaDeLaRed, nombresDeLaRed, mezclar } = await import('../../src/TruckNavigator.Api/wwwroot/js/mapa/red.js');
+const {
+  lineasDeLaRed, nombreDeLaRed, anclaDeLaRed, nombresDeLaRed, mezclar,
+  opacidadDelBrillo, destello, CICLO_DESTELLO_MS, LATIDO_DESTELLO_MS, BRILLO_REPOSO
+} = await import('../../src/TruckNavigator.Api/wwwroot/js/mapa/red.js');
 
 const COLORES = { canto: '#111111', cuerpo: '#222222', reflejo: '#333333', brillo: '#444444', rotulo: '#555555', halo: '#666666' };
 
@@ -156,4 +159,102 @@ test('una calle de la Red tiene un solo nombre: el del mapa base se filtra', () 
   assert.deepEqual(callesNombre().filter, sinRed);
   // Con nombres, el mismo filtro y además "el name no está en la lista".
   assert.deepEqual(conRed, ['all', sinRed, ['!', ['in', ['get', 'name'], ['literal', ['Avenida General Paz']]]]]);
+});
+
+test('el brillo va de 0,55 a 0,95 y vuelve en 2,5 s', () => {
+  const cerca = (a, b) => Math.abs(a - b) < 1e-9;
+
+  assert.equal(CICLO_DESTELLO_MS, 2500);
+  assert.ok(cerca(opacidadDelBrillo(0), 0.55));
+  assert.ok(cerca(opacidadDelBrillo(1250), 0.95));
+  assert.ok(cerca(opacidadDelBrillo(2500), 0.55));
+  assert.ok(cerca(opacidadDelBrillo(625), BRILLO_REPOSO));
+
+  for (let ms = 0; ms < 10_000; ms += 37) {
+    const o = opacidadDelBrillo(ms);
+    assert.ok(o >= 0.55 - 1e-9 && o <= 0.95 + 1e-9, `${ms} ms: ${o}`);
+  }
+});
+
+/** Un documento y un reloj de mentira para el destello. */
+function escenario({ oculto = false } = {}) {
+  const oyentes = new Set();
+  const intervalos = new Map();
+  let siguiente = 1;
+  const aplicados = [];
+
+  const documento = {
+    hidden: oculto,
+    addEventListener: (tipo, fn) => tipo === 'visibilitychange' && oyentes.add(fn),
+    removeEventListener: (tipo, fn) => oyentes.delete(fn)
+  };
+
+  return {
+    aplicados,
+    intervalos,
+    oyentes,
+    documento,
+    cambiar(hidden) {
+      documento.hidden = hidden;
+      for (const fn of oyentes) fn();
+    },
+    opciones: {
+      aplicar: (o) => aplicados.push(o),
+      ahora: () => 1250,
+      cada: (fn, ms) => { const id = siguiente++; intervalos.set(id, { fn, ms }); return id; },
+      parar: (id) => intervalos.delete(id),
+      documento
+    }
+  };
+}
+
+test('el destello late a 10 Hz con la página a la vista', () => {
+  const e = escenario();
+
+  destello(e.opciones);
+
+  assert.equal(LATIDO_DESTELLO_MS, 100);
+  assert.deepEqual([...e.intervalos.values()].map((i) => i.ms), [100]);
+  // Late una vez al arrancar, sin esperar el primer intervalo.
+  assert.equal(e.aplicados.length, 1);
+  assert.ok(Math.abs(e.aplicados[0] - 0.95) < 1e-9, `${e.aplicados[0]}`);
+});
+
+test('en segundo plano se frena, y vuelve al volver', () => {
+  const e = escenario();
+  destello(e.opciones);
+
+  e.cambiar(true);
+  assert.equal(e.intervalos.size, 0);
+
+  e.cambiar(false);
+  assert.equal(e.intervalos.size, 1);
+});
+
+test('si arranca con la página oculta, no late hasta que se vea', () => {
+  const e = escenario({ oculto: true });
+
+  destello(e.opciones);
+
+  assert.equal(e.intervalos.size, 0);
+  assert.deepEqual(e.aplicados, []);
+});
+
+test('apagarlo frena el latido y suelta al documento', () => {
+  const e = escenario();
+  const apagar = destello(e.opciones);
+
+  apagar();
+
+  assert.equal(e.intervalos.size, 0);
+  assert.equal(e.oyentes.size, 0);
+});
+
+test('con movimiento reducido el brillo queda quieto en su punto medio', () => {
+  const e = escenario();
+
+  destello({ ...e.opciones, quieto: true });
+
+  assert.equal(e.intervalos.size, 0);
+  assert.deepEqual(e.aplicados, [BRILLO_REPOSO]);
 });
