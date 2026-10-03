@@ -203,8 +203,11 @@ líneas de carril, que son las que la hacen leer como autopista. Nada más se to
 - el estilo no tiene ninguna capa con `line-dasharray` sobre `highway`;
 - el nombre de la Red es mayor o igual al de una calle en cada zoom de 13 a 19;
 - el ancho de la ruta y el de la Red crecen con el zoom, y la Red es la vía más ancha;
-- con los tokens de noche y de día, la Red tiene más contraste que la autopista, y la
-  autopista más que la avenida;
+- de noche, la Red tiene más contraste que la autopista, la autopista más que la avenida
+  y la avenida más que la calle; de día, la Red tiene más contraste que cualquier otra
+  vía (las calles son blancas y la jerarquía la da la Red sola, §3.1: la autopista de
+  día mide 1,06 y la avenida 1,13, así que pedir "autopista sobre avenida" de día
+  contradiría la tabla);
 - `red` no es un grupo apagable y la hoja de capas no tiene su cuadro; una preferencia
   vieja con la Red apagada no la apaga;
 - el destello: la curva de opacidad va de 0,55 a 0,95 y vuelve en 2,5 s (función pura).
