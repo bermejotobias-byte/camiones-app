@@ -43,7 +43,7 @@ dependencias (AD-32), CSS con tokens en `app.css`.
   | `--map-red-reflejo` | `#cfe4f8` | `#9fc3e8` |
   | `--map-red-brillo` | `#ffffff` | `#e8f3ff` |
 
-- Anchos por zoom (13 / 15 / 17 / 19, curva exponencial 1,4): Red `5 / 10 / 22 / 48`;
+- Anchos por zoom (13 / 15 / 17 / 19, curva exponencial 1,4): Red `6 / 10 / 22 / 48`;
   ruta `4 / 7 / 14 / 30`, canto de la ruta +3 px al 35 %.
 - Nombres (`text-size`, lineal): calles `14:10, 16:12, 18:14, 19:15`; Red
   `13:10, 15:11.5, 16:13, 18:16, 19:18`; halo de la Red 2.
@@ -454,7 +454,7 @@ git commit -m "La Red encabeza la jerarquia del mapa; las demas vias bajan un es
 
 **Interfaces:**
 - Produces (`estilo-mapa.js`): `export const ancho = ([z13, z15, z17, z19], { por = 1, mas = 0 } = {}) => expresión`;
-  `export const PARADAS` con `red: [5, 10, 22, 48]`.
+  `export const PARADAS` con `red: [6, 10, 22, 48]`.
 - Produces (`red.js`):
   - `lineasDeLaRed(colores)` → arreglo de 4 especificaciones de capa `line`, ids `red-canto`,
     `red-linea`, `red-reflejo`, `red-brillo`, fuente `red`;
@@ -495,7 +495,7 @@ const paradas = (expr) => {
 const capa = (id) => lineasDeLaRed(COLORES).find((c) => c.id === id);
 
 test('la Red es la vía más ancha del mapa en cada zoom', () => {
-  assert.deepEqual(PARADAS.red, [5, 10, 22, 48]);
+  assert.deepEqual(PARADAS.red, [6, 10, 22, 48]);
 
   for (const [clase, otra] of Object.entries(PARADAS)) {
     if (clase === 'red') continue;
@@ -520,7 +520,7 @@ test('el canto rodea al cuerpo por 3 px; el reflejo y el brillo son una fracció
   const reflejo = paradas(capa('red-reflejo').paint['line-width']);
   const brillo = paradas(capa('red-brillo').paint['line-width']);
 
-  assert.deepEqual(cuerpo, { 13: 5, 15: 10, 17: 22, 19: 48 });
+  assert.deepEqual(cuerpo, { 13: 6, 15: 10, 17: 22, 19: 48 });
   for (const z of [13, 15, 17, 19]) {
     assert.equal(canto[z], cuerpo[z] + 3);
     assert.ok(Math.abs(reflejo[z] - cuerpo[z] * 0.55) < 1e-9);
@@ -568,7 +568,7 @@ export const PARADAS = {
   sendero: [0.4, 0.8, 2, 4],
   ferrocarril: [1.2, 2, 4, 8],
   // La Red de Transito Pesado (la pinta red.js): la via mas ancha en todo zoom.
-  red: [5, 10, 22, 48]
+  red: [6, 10, 22, 48]
 };
 
 const ANCHO = Object.fromEntries(Object.entries(PARADAS).map(([k, p]) => [k, ancho(p)]));
@@ -1752,7 +1752,7 @@ de desvío máximo).
 **Decisión.** Enmienda AD-48 en el color de la Red y la decisión de la hoja de capas del
 17/09/2026 en que la Red ya no se apaga.
 
-- La Red es la vía más clara y la más ancha en todo zoom (5 / 10 / 22 / 48 px); las demás
+- La Red es la vía más clara y la más ancha en todo zoom (6 / 10 / 22 / 48 px); las demás
   bajan a una variante apagada del mismo azul. De día las calles siguen blancas y la Red
   es la única vía saturada.
 - Se pinta como un tubo de cromo: cuatro capas de la misma fuente (canto, cuerpo, reflejo,

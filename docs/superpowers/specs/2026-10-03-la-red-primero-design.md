@@ -101,7 +101,7 @@ De noche el brillo blanco del centro duplica el contraste del cuerpo (2,12 entre
 cuerpo).
 
 **El ancho de la Red** (el cuerpo), por zoom, con la curva exponencial de 1,4 de las demás
-vías: **5 px en 13, 10 en 15, 22 en 17, 48 en 19**. Es la vía más ancha del mapa en todo
+vías: **6 px en 13, 10 en 15, 22 en 17, 48 en 19** (en 13 eran 5, igual que la autopista: se subió a 6 al construir, para que sea de verdad la más ancha). Es la vía más ancha del mapa en todo
 zoom (la autopista llega a 38 en 19).
 
 ### 3.2 La Red siempre visible

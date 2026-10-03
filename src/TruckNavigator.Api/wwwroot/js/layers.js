@@ -9,6 +9,8 @@
  * Todo lo que sabe de MapLibre vive en map.js; esto es lo que sabe de camiones.
  */
 
+import { lineasDeLaRed, nombreDeLaRed, anclaDeLaRed } from './mapa/red.js';
+
 const SOURCES = {
   red: 'data/red-transito-pesado.geojson',
   alturas: 'data/alturas.geojson',
@@ -28,7 +30,7 @@ const SOURCES = {
  * los tocara, prender la capa los haria aparecer fuera del viaje.
  */
 const GRUPOS = {
-  red: ['red-linea', 'red-nombre'],
+  red: ['red-canto', 'red-linea', 'red-reflejo', 'red-brillo', 'red-nombre'],
   galibo: ['altura-senal'],
   paso: ['paso-senal'],
   radar: ['radar-punto'],
@@ -660,68 +662,30 @@ function addSpeedCameraLayers(map) {
 /* ---------------------------------------------------------------------------
    Red de Transito Pesado
 
-   El pedido es explicito: que las avenidas aptas se vean aunque no sean parte
-   de la ruta, "que no se marque con color pero que sea bien visible el nombre
-   de forma destacada de las demas".
-
-   Asi que el protagonista es EL NOMBRE, no la linea. La linea va en un gris
-   apenas perceptible —lo justo para que el nombre no flote sobre la nada— y el
-   nombre en mayusculas, espaciado y con halo, que lo despega de la cartografia
-   de fondo sin competir con la ruta.
+   La via que manda en el mapa (AD-53): siempre visible, la mas ancha y la mas
+   clara, pintada como un tubo de cromo. El dibujo vive en mapa/red.js; aca
+   solo se instala. Antes (AD-48) era una linea gris apenas perceptible con el
+   nombre como protagonista, y en la calle se perdia entre las avenidas.
 --------------------------------------------------------------------------- */
+
+const coloresDeLaRed = () => ({
+  canto: token('--map-red-canto'),
+  cuerpo: token('--map-red'),
+  reflejo: token('--map-red-reflejo'),
+  brillo: token('--map-red-brillo'),
+  rotulo: token('--map-rotulo-red'),
+  halo: token('--map-halo')
+});
 
 function addRedLayers(map) {
   if (!map.getSource('red') || map.getLayer('red-linea')) return;
 
-  // La Red va DEBAJO de los nombres de calle del mapa base: es una via, y una
-  // via no tapa rotulos. Si el mapa cayo al raster no existe esa capa y se
-  // agrega arriba de todo, que es lo unico posible.
-  const debajoDe = map.getLayer('calles-nombre') ? 'calles-nombre' : undefined;
+  const colores = coloresDeLaRed();
+  const ancla = anclaDeLaRed((id) => Boolean(map.getLayer(id)));
 
-  map.addLayer({
-    id: 'red-linea',
-    type: 'line',
-    source: 'red',
-    layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: {
-      // La via mas clara y mas ancha del mapa: el lugar que en Waze ocupa la
-      // autopista. Se lee sola —que calles la forman, como se conectan y
-      // cuales quedan afuera— sin leyenda (AD-48). De cerca mide 14 dp, un
-      // poco mas que la avenida de 12 y la calle de 10; de lejos, 5,5.
-      'line-color': token('--map-red'),
-      'line-width': ['interpolate', ['exponential', 1.4], ['zoom'], 13, 3.5, 15, 7, 17, 14, 19, 36]
-    }
-  }, debajoDe);
-
-  map.addLayer({
-    id: 'red-nombre',
-    type: 'symbol',
-    source: 'red',
-    // Sin nombre no hay nada que mostrar, y la linea ya la dibuja la capa de arriba.
-    filter: ['all', ['has', 'name'], ['!=', ['get', 'name'], null]],
-    minzoom: 13,
-    layout: {
-      'symbol-placement': 'line',
-      'text-field': ['get', 'name'],
-      // En mayusculas espaciadas, chicas: es la marca de la Red, no un rotulo
-      // mas. 10,5 sp de cerca, medido en el prototipo.
-      'text-transform': 'uppercase',
-      'text-letter-spacing': 0.1,
-      'text-size': ['interpolate', ['linear'], ['zoom'], 13, 9, 16, 10.5, 18, 12],
-      'text-font': ['NotoSans-Bold'],
-      // Se repite a lo largo de la avenida: sirve de referencia en cualquier
-      // punto, no solo donde arranca el tramo.
-      'symbol-spacing': 320,
-      'text-max-angle': 35,
-      'text-allow-overlap': false,
-      'text-padding': 6
-    },
-    paint: {
-      'text-color': token('--map-rotulo-red'),
-      'text-halo-color': token('--map-halo'),
-      'text-halo-width': 1.6
-    }
-  });
+  // Cada una se agrega antes del ancla, asi que quedan en el orden del arreglo.
+  for (const capa of lineasDeLaRed(colores)) map.addLayer(capa, ancla);
+  map.addLayer(nombreDeLaRed(colores));
 }
 
 /* ---------------------------------------------------------------------------
@@ -898,8 +862,9 @@ export function setTruckHeight(map, metres) {
 export function refreshLayerColors(map) {
   if (!map) return;
 
-  if (map.getLayer('red-linea')) {
-    map.setPaintProperty('red-linea', 'line-color', token('--map-red'));
+  const colores = coloresDeLaRed();
+  for (const capa of lineasDeLaRed(colores)) {
+    if (map.getLayer(capa.id)) map.setPaintProperty(capa.id, 'line-color', capa.paint['line-color']);
   }
 
   if (map.getLayer('red-nombre')) {

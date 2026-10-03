@@ -92,17 +92,19 @@ const NOMBRE = ['coalesce', ['get', 'name:es'], ['get', 'name']];
  * envolverlo en una suma o un producto hace que MapLibre rechace la capa
  * entera — por el evento `error`, sin excepcion (ver CLAUDE.md, AD-36).
  */
-const ancho = ([z13, z15, z17, z19], { por = 1, mas = 0 } = {}) =>
+export const ancho = ([z13, z15, z17, z19], { por = 1, mas = 0 } = {}) =>
   ['interpolate', ['exponential', 1.4], ['zoom'],
     13, z13 * por + mas, 15, z15 * por + mas, 17, z17 * por + mas, 19, z19 * por + mas];
 
-const PARADAS = {
+export const PARADAS = {
   calle: [1, 2.6, 10, 26],
   avenida: [2.2, 4.5, 12, 30],
   principal: [3, 6, 14, 34],
   autopista: [5, 8, 16, 38],
   sendero: [0.4, 0.8, 2, 4],
-  ferrocarril: [1.2, 2, 4, 8]
+  ferrocarril: [1.2, 2, 4, 8],
+  // La Red de Transito Pesado (la pinta red.js): la via mas ancha en todo zoom.
+  red: [6, 10, 22, 48]
 };
 
 const ANCHO = Object.fromEntries(Object.entries(PARADAS).map(([k, p]) => [k, ancho(p)]));
