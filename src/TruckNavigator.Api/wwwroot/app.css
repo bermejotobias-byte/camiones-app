@@ -191,11 +191,14 @@
   --map-agua:          #22467a;
   --map-parque:        #216a4f;
   --map-cementerio:    #1f4d3a;
-  --map-calle:         #40546c;
+  --map-calle:         #354558;
   --map-calle-borde:   rgba(0, 0, 0, 0);   /* de noche no hay borde; de dia si */
-  --map-avenida:       #4d6179;
-  --map-red:           #6d89a8;   /* la Red de Transito Pesado: la via mas clara y ancha */
-  --map-autopista:     #7494b4;
+  --map-avenida:       #3d4d61;
+  --map-red:           #8fb6de;   /* la Red de Transito Pesado: el cuerpo del tubo, la via mas clara y ancha */
+  --map-red-canto:     #3d5f85;   /* el borde de acero del cromo */
+  --map-red-reflejo:   #cfe4f8;   /* la banda clara del cromo */
+  --map-red-brillo:    #ffffff;   /* el especular, que destella */
+  --map-autopista:     #4a5f7a;
   --map-carril:        #4a5c74;
   --map-ferrocarril:   #3a4553;
   --map-ferrocarril-2: #aab4bf;
@@ -279,8 +282,9 @@
   /* El GPS de dia es DERIVADO, no medido: no hay captura de Waze de dia
      (16/09/2026). Banda y hojas blancas con tinta oscura; el celeste se
      oscurece para tener contraste sobre blanco; el mapa claro con calles
-     blancas y un filete gris, la Red en azul acero claro y la autopista en
-     amarillo palido, como la pinta Waze de dia. */
+     blancas y un filete gris, la Red en azul acero —la unica via saturada,
+     con su cromo— y la autopista en un crema apenas distinto del blanco
+     (AD-53). */
   --gps-banda:         #ffffff;
   --gps-hoja:          #ffffff;
   --gps-elegida:       #eef1f4;
@@ -311,8 +315,11 @@
   --map-calle:         #ffffff;
   --map-calle-borde:   #d3d9e0;
   --map-avenida:       #ffffff;
-  --map-red:           #9db4cc;
-  --map-autopista:     #ffe6a3;
+  --map-red:           #5b8cc4;
+  --map-red-canto:     #2f5a88;
+  --map-red-reflejo:   #9fc3e8;
+  --map-red-brillo:    #e8f3ff;
+  --map-autopista:     #f1ead6;
   --map-carril:        #e8cf85;
   --map-ferrocarril:   #c5ccd4;
   --map-ferrocarril-2: #ffffff;
