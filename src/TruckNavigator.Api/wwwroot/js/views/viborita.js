@@ -72,7 +72,11 @@ export function viboritaView(host, { go }) {
   let p = 3;
   const escala = () => p;
   function medir() {
-    const cromo = host.scrollHeight - canvas.clientHeight;
+    // El cromo es lo que ocupa el contenido menos la LCD. No se mide con scrollHeight:
+    // con espacio libre vale lo mismo que clientHeight y la escala nunca volveria a crecer.
+    const contenido = epigrafe.getBoundingClientRect().bottom - host.getBoundingClientRect().top
+      + parseFloat(getComputedStyle(host).paddingBottom);
+    const cromo = contenido - canvas.clientHeight;
     const porAlto = Math.floor((window.innerHeight - cromo) / AL);
     const porAncho = Math.floor((Math.min(window.innerWidth, 520) - 60) / AN);
     const nueva = Math.max(2, Math.min(5, porAlto, porAncho));
@@ -189,7 +193,7 @@ export function viboritaView(host, { go }) {
 
   api.progressRecords()
     .then((lista) => {
-      const r = lista.find((x) => x.recordCode === 'viborita');
+      const r = lista.find((x) => x.code === 'viborita');
       record = r ? r.value : null;
       if (modo === 'inicio') dibujar();
     })

@@ -4457,3 +4457,5 @@ button { font-family: inherit; font-size: inherit; }
 @media (max-width:399px){.vb-carcasa{padding:12px}.vb-frente{padding:10px 8px 12px}.vb-marco{padding:6px}.vb-carcasa::after{inset:6px}}
 /* En uno bajo, menos aire entre las piezas. */
 @media (max-height:820px){.viborita{gap:10px}}
+/* Muy bajo (360 x 740): sin esto la LCD cae a escala 2. Menos aire y cruceta de 48. */
+@media (max-height:779px){.viborita{gap:6px;padding-top:calc(8px + var(--safe-top,0px))}.vb-cruceta{--k:48px;gap:6px}}
