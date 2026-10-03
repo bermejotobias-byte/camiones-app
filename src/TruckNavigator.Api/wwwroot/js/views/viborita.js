@@ -55,6 +55,7 @@ export function viboritaView(host, { go }) {
 
   const canvas = host.querySelector('.vb-lcd');
   const epigrafe = host.querySelector('.vb-epigrafe');
+  const carcasa = host.querySelector('.vb-carcasa');
 
   let modo = 'inicio';             // inicio | jugando | pausa | fin
   let partida = crearPartida();
@@ -78,7 +79,10 @@ export function viboritaView(host, { go }) {
       + parseFloat(getComputedStyle(host).paddingBottom);
     const cromo = contenido - canvas.clientHeight;
     const porAlto = Math.floor((window.innerHeight - cromo) / AL);
-    const porAncho = Math.floor((Math.min(window.innerWidth, 520) - 60) / AN);
+    // Lo mismo a lo ancho: lo que la carcasa ocupa de mas que la LCD (los bordes cambian
+    // con el media query de los telefonos angostos), no un numero fijo.
+    const cromoAncho = carcasa.getBoundingClientRect().width - canvas.clientWidth;
+    const porAncho = Math.floor((Math.min(window.innerWidth, 520) - cromoAncho) / AN);
     const nueva = Math.max(2, Math.min(5, porAlto, porAncho));
     if (nueva !== p) { p = nueva; dibujar(); }
   }
