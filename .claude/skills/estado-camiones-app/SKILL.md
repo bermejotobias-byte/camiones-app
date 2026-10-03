@@ -36,7 +36,15 @@ mostrar los 386 archivos— y **no se borra**: es el único lugar con los 181
 commits uno por uno, cuyos mensajes cargan buena parte del porqué
 (`git log cuentas-de-usuario`).
 
-**Punta al 30/09/2026: la entrada y el invitado** (AD-51) — la app tiene puerta
+**Punta al 03/10/2026: las correcciones de la prueba en la calle, todas en `main`**
+(AD-52 a AD-54). El 02/10 el usuario probó el GPS en la calle y volvió con doce
+puntos; se resolvieron en cuatro PR fusionados con squash el 03/10 — **#2**
+(salir, girar, Detalles), **#3** (el viaje guarda la opción de ruta), **#5** (la
+Red primero) y **#4** (el mapa que no se rompe)—, probados en el teléfono y
+**aprobados por el usuario**. `main` en `f5fe85d`, 391 tests web y 681 de .NET.
+Ver §8.0.
+
+**Antes, al 30/09/2026: la entrada y el invitado** (AD-51) — la app tiene puerta
 por primera vez, y se puede probar el GPS sin cuenta. Es el primero de los
 cinco subproyectos en que se partieron las fases 6 y 7. Antes, **al
 29/09/2026: el límite de tasa de la API** (AD-50), lo último que
@@ -1313,20 +1321,40 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-### 0. EL FRENTE VIVO — lo que dejó la prueba en la calle (02–03/10/2026)
+### 0. La prueba en la calle (02–03/10/2026) — CERRADA
 
 El 02/10 el usuario probó la app en la calle por el túnel de Cloudflare y volvió
-con **doce puntos**, partidos en tres partes, cada una con su rama y su PR:
+con **doce puntos**, partidos en tres partes, cada una con su rama y su PR. **Los
+doce están resueltos y en `main` desde el 03/10**, probados en el teléfono con un
+APK que juntaba B y C, y aprobados por el usuario. El repaso punto por punto, con
+la causa raíz de cada uno, está en AD-52, AD-53 y AD-54.
 
 | | Parte | Puntos | Estado |
 |---|---|---|---|
-| **A** | Controles y flujo del viaje | salir siempre a mano, rotación con dos dedos, Detalles obligatorio | ✅ **hecha y fusionada el 03/10** (AD-52, PR #2). Falta el teléfono: el giro con dos dedos no se simula en el navegador |
-| **B** | La Red primero: cartografía | la Red visible siempre como capa de referencia (**el más importante**), Red vs. resto con jerarquía, nombres según el zoom, halo de cromo sobre la Red, autopistas sin punteado, la ruta encima de la calle con mucho zoom | ✅ **hecha el 03/10** (AD-53), rama `la-red-primero`: la Red como tubo de cromo que destella, siempre visible y debajo de la ruta; nombres que crecen; la ruta por zoom. Probada en el teléfono el 03/10 y **aprobada por el usuario**; el destello queda en 10 Hz (0,14 ms por latido) |
-| **C** | El mapa que no se rompe | el cuadrado que no carga, las manchas azules que desaparecen al acercarse | ✅ **hecha el 03/10** (AD-54), rama `el-mapa-que-no-se-rompe`: el agua sólo en polígonos (eran arroyos entubados cerrados como lagos); la caché de PMTiles que no guarda fallas, el reintento de tiles y el respaldo raster sólo si falta el archivo. Falta probarla en la calle |
+| **A** | Controles y flujo del viaje | salir siempre a mano, rotación con dos dedos, Detalles obligatorio | ✅ **fusionada el 03/10** (AD-52, PR #2). Probada en el teléfono el 03/10 junto con B y C, y aprobada |
+| **B** | La Red primero: cartografía | la Red visible siempre como capa de referencia (**el más importante**), Red vs. resto con jerarquía, nombres según el zoom, halo de cromo sobre la Red, autopistas sin punteado, la ruta encima de la calle con mucho zoom | ✅ **fusionada el 03/10** (AD-53, PR #5): la Red como tubo de cromo que destella, siempre visible y debajo de la ruta; nombres que crecen; la ruta por zoom. Probada en el teléfono el 03/10 y **aprobada por el usuario**; el destello queda en 10 Hz (0,14 ms por latido) |
+| **C** | El mapa que no se rompe | el cuadrado que no carga, las manchas azules que desaparecen al acercarse | ✅ **fusionada el 03/10** (AD-54, PR #4): el agua sólo en polígonos (eran arroyos entubados cerrados como lagos); la caché de PMTiles que no guarda fallas, el reintento de tiles y el respaldo raster sólo si falta el archivo. En el teléfono no hubo cortes de señal: **la recuperación sólo se verificó con el corte simulado en el navegador** |
 
 **Defecto del servidor que apareció verificando A**: el viaje no guardaba la
 opción de ruta elegida y al retomarlo volvía por la recomendada. **Arreglado y
 fusionado el 03/10** (`Trip.RouteIndex`, PR #3, apéndice de AD-45).
+
+**Lo que quedó abierto de la prueba** (nada bloquea; todo se ve en la próxima salida):
+
+- **La recuperación de tiles en la calle**: verificada con 502 y cortes simulados,
+  nunca con un corte real de datos móviles.
+- **El hueco entre cuadros del destello**: 674 a 983 ms, una vez por minuto, en
+  las tres mediciones del teléfono. No se le atribuye al destello (0,14 ms por
+  latido), pero no se sabe qué fue. Si aparecen tirones, es el primer número a
+  mirar (AD-53).
+- **De día, a zoom 13, la ruta sobre la Red** se confunde un poco con el azul del
+  tubo. Se le mostró al usuario y aprobó igual; si molesta, se ensancha la ruta de
+  lejos o se cambia el tono.
+- **La calcomanía `red` de `piezas.js`** (el aviso "Fuera de la Red" en Detalles)
+  sigue con el color viejo de la Red, `#6d89a8`. Es un ícono de color fijo y quedó
+  fuera del alcance de B.
+- **El respaldo raster de OpenStreetMap** sigue sin servir para distribuir (L-4):
+  con AD-54 sólo se usa si falta el archivo del mapa base, no por un tile caído.
 
 **Fotos del mapa en el navegador**: las capturas del panel se recortan o vencen
 cuando el panel está oculto o cambia de tamaño. Lo que anduvo: sacar la imagen
