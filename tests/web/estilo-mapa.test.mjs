@@ -38,3 +38,10 @@ test('el borde de día acompaña a su calle desde el mismo zoom', () => {
   assert.equal(capa('avenidas-borde').minzoom, capa('avenidas').minzoom);
   assert.equal(capa('principales-borde').minzoom, capa('principales').minzoom);
 });
+
+test('el agua rellena sólo polígonos: un arroyo es una línea y cerrado se ve como un lago', () => {
+  // La fuente `water` trae también las líneas de arroyos y conductos (el Arroyo
+  // Maldonado bajo la Juan B. Justo, el Antiguo cauce del Riachuelo). Una capa
+  // de relleno las cierra como un polígono: cuñas azules que cambian con el zoom.
+  assert.deepEqual(capa('agua').filter, ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]]);
+});

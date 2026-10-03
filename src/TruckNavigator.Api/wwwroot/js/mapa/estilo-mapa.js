@@ -213,7 +213,20 @@ export function buildBasemapStyle(apiBase = '') {
 
       // El agua si se distingue: el rio y el Riachuelo son referencias de
       // orientacion de primer orden.
-      { id: 'agua', type: 'fill', source: 'base', 'source-layer': 'water', paint: { 'fill-color': t.agua } },
+      //
+      // Solo POLIGONOS. La capa `water` trae tambien las lineas de arroyos y
+      // conductos —el Arroyo Maldonado entubado bajo la Juan B. Justo, el
+      // Antiguo cauce del Riachuelo—, y una capa de relleno cierra cada linea
+      // como si fuera un poligono: salian cunas azules que cambiaban de forma
+      // con el zoom, porque cada tile corta la linea en otro lugar (AD-54).
+      {
+        id: 'agua',
+        type: 'fill',
+        source: 'base',
+        'source-layer': 'water',
+        filter: ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]],
+        paint: { 'fill-color': t.agua }
+      },
 
       /* -- calles: sin borde de noche, con filete de dia -------------------- */
       linea('calles-borde', esCalle, t.calleBorde, conBorde('calle'), {}, DESDE.calle),
