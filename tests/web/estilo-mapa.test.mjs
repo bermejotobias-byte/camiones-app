@@ -38,3 +38,12 @@ test('el borde de día acompaña a su calle desde el mismo zoom', () => {
   assert.equal(capa('avenidas-borde').minzoom, capa('avenidas').minzoom);
   assert.equal(capa('principales-borde').minzoom, capa('principales').minzoom);
 });
+
+test('la autopista no lleva línea punteada: la banda y los dos carriles alcanzan', () => {
+  const punteadas = buildBasemapStyle('').layers
+    .filter((l) => l.paint?.['line-dasharray'] && JSON.stringify(l.filter).includes('highway'))
+    .map((l) => l.id);
+
+  assert.deepEqual(punteadas, []);
+  assert.ok(capa('autopista-carril-a') && capa('autopista-carril-b'));
+});

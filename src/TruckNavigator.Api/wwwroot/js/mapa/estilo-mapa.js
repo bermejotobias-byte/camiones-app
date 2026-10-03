@@ -14,8 +14,9 @@
  *   ancho y por claridad: calle, avenida, y encima de todo la Red de Transito
  *   Pesado —que la pinta layers.js— en el lugar que en Waze ocupa la autopista.
  *   De dia, en cambio, las calles son blancas y llevan un filete gris;
- * · **la autopista** es una banda clara con dos lineas de carril y la linea
- *   central punteada (waze-08);
+ * · **la autopista** es una banda clara con dos lineas de carril (waze-08). La
+ *   linea central punteada se saco el 03/10/2026 (AD-53): de lejos se leia como
+ *   un tramo cortado;
  * · **las manzanas no son todas iguales**: lo residencial va apenas distinto de
  *   la tierra, los predios (industria, comercio, escuelas, hospitales, vias)
  *   mas claros, los parques en verde y el agua en azul;
@@ -132,7 +133,6 @@ export function buildBasemapStyle(apiBase = '') {
     avenida: token('--map-avenida'),
     autopista: token('--map-autopista'),
     carril: token('--map-carril'),
-    centro: token('--map-centro'),
     ferrocarril: token('--map-ferrocarril'),
     ferrocarril2: token('--map-ferrocarril-2'),
     edificio: token('--map-edificio'),
@@ -231,11 +231,10 @@ export function buildBasemapStyle(apiBase = '') {
       linea('ferrocarril-rayas', esFerrocarril, t.ferrocarril2, ancho(PARADAS.ferrocarril, { por: 0.45 }),
         { 'line-dasharray': [1.5, 3] }),
 
-      /* -- la autopista: banda clara, dos carriles y el centro punteado ----- */
+      /* -- la autopista: banda clara y dos carriles ------------------------- */
       linea('autopista', esAutopista, t.autopista, ANCHO.autopista, {}, DESDE.autopista),
       linea('autopista-carril-a', esAutopista, t.carril, 1, { 'line-offset': ancho(PARADAS.autopista, { por: 0.28 }), 'line-opacity': 0.8 }),
       linea('autopista-carril-b', esAutopista, t.carril, 1, { 'line-offset': ancho(PARADAS.autopista, { por: -0.28 }), 'line-opacity': 0.8 }),
-      linea('autopista-centro', esAutopista, t.centro, 1.2, { 'line-dasharray': [4, 5], 'line-opacity': 0.9 }),
 
       // Los edificios aparecen recien muy cerca y sin contorno: sirven para
       // reconocer una esquina, no para mirarlos.
