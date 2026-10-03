@@ -112,6 +112,31 @@ const ANCHO = Object.fromEntries(Object.entries(PARADAS).map(([k, p]) => [k, anc
 /** La misma escala, sumandole un filete de 2 px (de dia). */
 const conBorde = (clase) => ancho(PARADAS[clase], { mas: 2 });
 
+const esAutopista = ['==', ['get', 'kind'], 'highway'];
+const esPrincipal = ['all', ['==', ['get', 'kind'], 'major_road'], esDetalle(['primary', 'primary_link', 'trunk', 'trunk_link'])];
+const esAvenida = ['all', ['==', ['get', 'kind'], 'major_road'], esDetalle(['secondary', 'secondary_link', 'tertiary', 'tertiary_link'])];
+const esCalle = ['==', ['get', 'kind'], 'minor_road'];
+const esSendero = ['==', ['get', 'kind'], 'path'];
+const esFerrocarril = ['all', ['==', ['get', 'kind'], 'rail'], esDetalle(['rail'])];
+
+/**
+ * Que nombres de calle dibuja el mapa base.
+ *
+ * Una avenida de la Red salia dos veces: en mayusculas desde la capa de la Red
+ * y en minusculas desde aca. Con la lista de nombres de la Red, este filtro deja
+ * afuera los suyos (por igualdad exacta del `name` de OSM, que es el mismo en
+ * los dos lados). La lista llega cuando se descarga la Red; hasta entonces van
+ * todos.
+ *
+ * @param {string[]} nombresDeLaRed
+ */
+export function filtroCallesNombre(nombresDeLaRed = []) {
+  const deUnaVia = ['any', esCalle, esAvenida, esPrincipal, esAutopista];
+  if (!nombresDeLaRed.length) return deUnaVia;
+
+  return ['all', deUnaVia, ['!', ['in', ['get', 'name'], ['literal', nombresDeLaRed]]]];
+}
+
 /**
  * Arma el estilo completo, leyendo los colores del tema activo.
  *
@@ -162,13 +187,6 @@ export function buildBasemapStyle(apiBase = '') {
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: { 'line-color': color, 'line-width': width, ...extra }
   });
-
-  const esAutopista = ['==', ['get', 'kind'], 'highway'];
-  const esPrincipal = ['all', ['==', ['get', 'kind'], 'major_road'], esDetalle(['primary', 'primary_link', 'trunk', 'trunk_link'])];
-  const esAvenida = ['all', ['==', ['get', 'kind'], 'major_road'], esDetalle(['secondary', 'secondary_link', 'tertiary', 'tertiary_link'])];
-  const esCalle = ['==', ['get', 'kind'], 'minor_road'];
-  const esSendero = ['==', ['get', 'kind'], 'path'];
-  const esFerrocarril = ['all', ['==', ['get', 'kind'], 'rail'], esDetalle(['rail'])];
 
   return {
     version: 8,
@@ -259,13 +277,14 @@ export function buildBasemapStyle(apiBase = '') {
         source: 'base',
         'source-layer': 'roads',
         minzoom: 14,
-        filter: ['any', esCalle, esAvenida, esPrincipal, esAutopista],
+        filter: filtroCallesNombre(),
         layout: {
           'symbol-placement': 'line',
           'text-field': NOMBRE,
           'text-font': ['NotoSans-Regular'],
-          // 12 sp de cerca (waze-03); un poco menos de lejos, que hay mas.
-          'text-size': ['interpolate', ['linear'], ['zoom'], 14, 10, 16, 12],
+          // 12 sp en 16 (waze-03), y siguen creciendo al acercarse: congelados en
+          // 12 desde el zoom 16 no se leian con el mapa a 19 (AD-53).
+          'text-size': ['interpolate', ['linear'], ['zoom'], 14, 10, 16, 12, 18, 14, 19, 15],
           'symbol-spacing': 300,
           'text-max-angle': 30,
           'text-padding': 6

@@ -9,8 +9,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const { PARADAS } = await import('../../src/TruckNavigator.Api/wwwroot/js/mapa/estilo-mapa.js');
-const { lineasDeLaRed, anclaDeLaRed, mezclar } = await import('../../src/TruckNavigator.Api/wwwroot/js/mapa/red.js');
+// El estilo base lee los colores del tema con getComputedStyle: un documento de mentira.
+globalThis.document = { documentElement: {} };
+globalThis.getComputedStyle = () => ({ getPropertyValue: () => '#123456' });
+
+const { PARADAS, buildBasemapStyle, filtroCallesNombre } = await import('../../src/TruckNavigator.Api/wwwroot/js/mapa/estilo-mapa.js');
+const { lineasDeLaRed, nombreDeLaRed, anclaDeLaRed, nombresDeLaRed, mezclar } = await import('../../src/TruckNavigator.Api/wwwroot/js/mapa/red.js');
 
 const COLORES = { canto: '#111111', cuerpo: '#222222', reflejo: '#333333', brillo: '#444444', rotulo: '#555555', halo: '#666666' };
 
@@ -87,4 +91,69 @@ test('la Red se apila debajo de la ruta si hay ruta, y si no debajo de los nombr
   assert.equal(anclaDeLaRed((id) => id === 'calles-nombre'), 'calles-nombre');
   // El raster de respaldo no tiene ninguna de las dos: va arriba de todo.
   assert.equal(anclaDeLaRed(() => false), undefined);
+});
+
+/** El valor de un `interpolate` lineal sobre el zoom, como lo calcula MapLibre (con tope en las puntas). */
+function valorEn(expr, z) {
+  assert.deepEqual(expr.slice(0, 3), ['interpolate', ['linear'], ['zoom']]);
+  const p = [];
+  for (let i = 3; i < expr.length; i += 2) p.push([expr[i], expr[i + 1]]);
+  if (z <= p[0][0]) return p[0][1];
+  for (let i = 1; i < p.length; i++) {
+    const [z0, v0] = p[i - 1];
+    const [z1, v1] = p[i];
+    if (z <= z1) return v0 + ((v1 - v0) * (z - z0)) / (z1 - z0);
+  }
+  return p.at(-1)[1];
+}
+
+const callesNombre = () => buildBasemapStyle('').layers.find((l) => l.id === 'calles-nombre');
+
+test('los nombres crecen hasta el zoom 19, y los de la Red nunca son más chicos que los de una calle', () => {
+  const calles = callesNombre().layout['text-size'];
+  const red = nombreDeLaRed(COLORES).layout['text-size'];
+
+  assert.equal(valorEn(calles, 14), 10);
+  assert.equal(valorEn(calles, 19), 15);
+  assert.equal(valorEn(red, 13), 10);
+  assert.equal(valorEn(red, 19), 18);
+
+  for (let z = 14; z <= 19; z += 0.25) {
+    assert.ok(valorEn(red, z) > valorEn(calles, z), `zoom ${z}: Red ${valorEn(red, z)}, calle ${valorEn(calles, z)}`);
+  }
+});
+
+test('el nombre de la Red se lee sobre el tubo: negrita, mayúsculas y halo de 2', () => {
+  const nombre = nombreDeLaRed(COLORES);
+
+  assert.equal(nombre.paint['text-halo-width'], 2);
+  assert.equal(nombre.paint['text-halo-color'], COLORES.halo);
+  assert.deepEqual(nombre.layout['text-font'], ['NotoSans-Bold']);
+  assert.equal(nombre.layout['text-transform'], 'uppercase');
+});
+
+test('los nombres de la Red: sin repetir, sin vacíos y en orden', () => {
+  const geojson = {
+    features: [
+      { properties: { name: 'Avenida Juan Bautista Justo' } },
+      { properties: { name: 'Avenida General Paz' } },
+      { properties: { name: 'Avenida Juan Bautista Justo' } },
+      { properties: { name: null } },
+      { properties: {} },
+      { properties: { name: '' } }
+    ]
+  };
+
+  assert.deepEqual(nombresDeLaRed(geojson), ['Avenida General Paz', 'Avenida Juan Bautista Justo']);
+  assert.deepEqual(nombresDeLaRed(null), []);
+});
+
+test('una calle de la Red tiene un solo nombre: el del mapa base se filtra', () => {
+  const sinRed = filtroCallesNombre([]);
+  const conRed = filtroCallesNombre(['Avenida General Paz']);
+
+  // Sin nombres de la Red, el filtro es el de siempre, el que trae el estilo.
+  assert.deepEqual(callesNombre().filter, sinRed);
+  // Con nombres, el mismo filtro y además "el name no está en la lista".
+  assert.deepEqual(conRed, ['all', sinRed, ['!', ['in', ['get', 'name'], ['literal', ['Avenida General Paz']]]]]);
 });

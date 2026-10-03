@@ -9,7 +9,8 @@
  * Todo lo que sabe de MapLibre vive en map.js; esto es lo que sabe de camiones.
  */
 
-import { lineasDeLaRed, nombreDeLaRed, anclaDeLaRed } from './mapa/red.js';
+import { lineasDeLaRed, nombreDeLaRed, anclaDeLaRed, nombresDeLaRed } from './mapa/red.js';
+import { filtroCallesNombre } from './mapa/estilo-mapa.js';
 
 const SOURCES = {
   red: 'data/red-transito-pesado.geojson',
@@ -151,6 +152,16 @@ export async function installTruckLayers(map) {
       instalar(map);
     } catch (error) {
       console.error(`No se pudieron instalar las capas de ${nombre}: ${error.message}`);
+    }
+  }
+
+  // Una calle de la Red lleva un solo nombre: el de la Red. Se aplica en cada
+  // instalacion porque un estilo nuevo trae calles-nombre sin filtrar.
+  if (descargados.red && map.getLayer('calles-nombre')) {
+    try {
+      map.setFilter('calles-nombre', filtroCallesNombre(nombresDeLaRed(descargados.red)));
+    } catch (error) {
+      console.error(`No se pudo filtrar los nombres de la Red: ${error.message}`);
     }
   }
 

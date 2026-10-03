@@ -88,7 +88,9 @@ export function nombreDeLaRed(c) {
       'text-field': ['get', 'name'],
       'text-transform': 'uppercase',
       'text-letter-spacing': 0.1,
-      'text-size': ['interpolate', ['linear'], ['zoom'], 13, 9, 16, 10.5, 18, 12],
+      // Siempre un escalon arriba de los nombres de calle (estilo-mapa.js), y
+      // creciendo hasta el zoom 19 (AD-53).
+      'text-size': ['interpolate', ['linear'], ['zoom'], 13, 10, 15, 11.5, 16, 13, 18, 16, 19, 18],
       'text-font': ['NotoSans-Bold'],
       // Se repite a lo largo de la avenida: sirve de referencia en cualquier
       // punto, no solo donde arranca el tramo.
@@ -100,9 +102,25 @@ export function nombreDeLaRed(c) {
     paint: {
       'text-color': c.rotulo,
       'text-halo-color': c.halo,
-      'text-halo-width': 1.6
+      // Mas ancho que el de una calle: el nombre va encima del tubo claro.
+      'text-halo-width': 2
     }
   };
+}
+
+/**
+ * Los nombres de las calles de la Red, sin repetir, para que el mapa base no
+ * los dibuje una segunda vez (`filtroCallesNombre`).
+ *
+ * @param {{features: {properties: {name?: string|null}}[]}|null} geojson
+ */
+export function nombresDeLaRed(geojson) {
+  const nombres = new Set();
+  for (const f of geojson?.features ?? []) {
+    const nombre = f.properties?.name;
+    if (nombre) nombres.add(nombre);
+  }
+  return [...nombres].sort();
 }
 
 /**
