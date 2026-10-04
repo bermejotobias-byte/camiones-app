@@ -7,8 +7,9 @@
  * `t` es el tiempo de lo decorativo, en segundos; lo que choca sale del motor.
  */
 
-import { CONTORNO, mod, lerp, px, semilla, brillo, letrasFilete, CELESTE7, SOL, estampa, solCol, ancho, texto, centro, CROMO7, centroEn, DEGRADE_VIOLETA, GRIS, MONO_GOLPE, CABEZA, CABEZA_GUINO, pegar } from './sprites.js';
+import { CONTORNO, mod, lerp, px, semilla, brillo, letrasFilete, CELESTE7, SOL, estampa, solCol, ancho, texto, centro, CROMO7, centroEn, DEGRADE_VIOLETA, GRIS, MONO_GOLPE, CABEZA, CABEZA_GUINO, pegar, lienzo } from './sprites.js';
 import { crearCacheDePisos, pisoBase, pisoVivo, cosasDeFila, mono, estrellas, chapuzon } from './escenario.js';
+import { MODELOS, vehiculo } from './vehiculos.js';
 import { puntaje, xVehiculo, xTronco, xDelMono, avanceDelSalto } from './motor.js';
 import { ANCHO, ALTO, HUD, CEL, FILAS_VISIBLES } from './reglas.js';
 
@@ -190,6 +191,23 @@ const CONVOY = [
 function convoy(c, t, y0) {
   CONVOY.forEach((k, i) => { pisoBase(c, k, y0 + i * CEL, CONVOY[i - 1]?.t, CONVOY[i + 1]?.t); pisoVivo(c, k, y0 + i * CEL, t, CONVOY[i - 1]?.t); });
   CONVOY.forEach((k, i) => cosasDeFila(c, k, y0 + i * CEL, t, { xVehiculo, xTronco, tMs: t * 1000 }));
+}
+
+/**
+ * Arma de entrada todo lo que va al cache —los 21 vehiculos, los conventillos, los
+ * galpones, las letras de los carteles prendidas y apagadas, los arboles—, asi la
+ * primera vez que aparece cada cosa no traba un cuadro en plena partida. Se llama
+ * una vez, con la pantalla de inicio.
+ */
+export function precalentar() {
+  const c = lienzo(ANCHO, 120).getContext('2d');
+  const fila = (k) => ({ i: 0, bloq: new Set(), cajas: [], obst: [], ...k });
+  for (const nombre of Object.keys(MODELOS)) vehiculo(c, nombre, 0, 60, 1, 0);
+  for (const t of [0, 1]) {
+    for (let i = 0; i < 6; i++) cosasDeFila(c, fila({ t: 'boca', i, boca: [0, 1, 2, 3, 4, 5, 6, 7, 8], murales: [[0, 'chapa'], [3, 'neon']] }), 60, t, {});
+    for (let color = 0; color < 4; color++) cosasDeFila(c, fila({ t: 'galpones', galpones: [[0, 3, color], [4, 2, color]], murales: [[0, 'senal']] }), 60, t, {});
+    cosasDeFila(c, fila({ t: 'vereda', obst: [[0, 'arbol'], [2, 'jacaranda']] }), 60, t / 1.2, {});
+  }
 }
 
 export function dibujarInicio(c, t, { hi = 0, imagenes = {} } = {}) {

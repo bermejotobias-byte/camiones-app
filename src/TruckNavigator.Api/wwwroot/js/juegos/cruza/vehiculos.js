@@ -52,7 +52,22 @@ const NEGRO = ['#2b2a35', '#4a4958', '#16151d'];
 const PLAST = ['#33333d', '#4c4c58', '#1d1d24'];
 
 // --- las llantas giran
+// El disco de la llanta no gira: se dibuja una vez por radio y despues se copia. Lo
+// que gira son los dos rayos, que van en vivo encima.
+const DISCOS = new Map();
 function rueda(c, cx, cy, r, t, giro) {
+  const n = Math.ceil(r);
+  let cv = DISCOS.get(r);
+  if (!cv) {
+    cv = lienzo(2 * n + 1, 2 * n + 1);
+    disco(cv.getContext('2d'), n, n, r);
+    DISCOS.set(r, cv);
+  }
+  c.drawImage(cv, Math.round(cx) - n, Math.round(cy) - n);
+  const a = t * giro / Math.max(r, 1);
+  for (const f of [0, Math.PI]) px(c, Math.round(cx + Math.cos(a + f) * (r - 2.2)), Math.round(cy + Math.sin(a + f) * (r - 2.2)), 1, 1, '#4a5463');
+}
+function disco(c, cx, cy, r) {
   const n = Math.ceil(r);
   for (let dy = -n; dy <= n; dy++) for (let dx = -n; dx <= n; dx++) {
     const d2 = dx * dx + dy * dy; if (d2 > r * r + 0.6) continue;
@@ -62,8 +77,6 @@ function rueda(c, cx, cy, r, t, giro) {
     if (dy < 0 && d2 <= (r - 1.8) ** 2 && d2 > 1) col = '#eef3f8';
     px(c, cx + dx, cy + dy, 1, 1, col);
   }
-  const a = t * giro / Math.max(r, 1);
-  for (const f of [0, Math.PI]) px(c, Math.round(cx + Math.cos(a + f) * (r - 2.2)), Math.round(cy + Math.sin(a + f) * (r - 2.2)), 1, 1, '#4a5463');
 }
 
 // ================================================================ los vehiculos

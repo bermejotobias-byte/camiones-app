@@ -197,7 +197,23 @@ function mastil(c, x, y, t) {
 }
 function chapa(c, x, y, w, h, base, oscuro) { px(c, x, y, w, h, base); for (let i = 1; i < w; i += 3) px(c, x + i, y, 1, h, oscuro); }
 const COLORES_BOCA = [['#ffcc33', '#d9a400'], ['#33b6ff', '#1f86ad'], ['#ff7a3d', '#c9541c'], ['#7be08a', '#3fa04f'], ['#b388ff', '#7a4fd6'], ['#ff6fae', '#c94680']];
+// Lo que no cambia de un cuadro al otro se dibuja una vez en un lienzo y despues se
+// copia (spec §8): los conventillos, los galpones sin sus lamparitas y las letras de
+// los carteles. `ox`, `oy` es donde cae el origen del dibujo adentro del lienzo.
+const GUARDADOS = new Map();
+function copiar(c, clave, w, h, ox, oy, x, y, dibujar) {
+  let cv = GUARDADOS.get(clave);
+  if (!cv) {
+    cv = lienzo(w, h);
+    dibujar(cv.getContext('2d'), ox, oy);
+    GUARDADOS.set(clave, cv);
+  }
+  c.drawImage(cv, Math.round(x) - ox, Math.round(y) - oy);
+}
 function conventillo(c, x, y, i) {
+  copiar(c, 'conventillo' + (i % COLORES_BOCA.length) + ':' + (i % 2), 26, 46, 1, 22, x, y, (g, ox, oy) => conventilloQuieto(g, ox, oy, i));
+}
+function conventilloQuieto(c, x, y, i) {
   const [base, osc] = COLORES_BOCA[i % COLORES_BOCA.length], top = y - 22;
   sombra(c, x + 1, y + 19, 22, 4);
   px(c, x, top + 2, 24, 40, CONTORNO);
@@ -211,6 +227,10 @@ function conventillo(c, x, y, i) {
 // dientes de sierra y un porton por celda. La fachada tiene lugar para un cartel pintado.
 const COLORES_GALPON = [['#b9c6d3', '#8d99a8', '#5f6b7a'], ['#a6e6ff', '#5fcbf5', '#2a9fd0'], ['#d9c4ff', '#a97bf0', '#7650c9'], ['#ffe6a6', '#f2c25a', '#c9922a']];
 function galpon(c, x, y, ancho, color, t) {
+  copiar(c, 'galpon' + ancho + ':' + (color % COLORES_GALPON.length), ancho * CEL, 48, 0, 23, x, y, (g, ox, oy) => galponQuieto(g, ox, oy, ancho, color));
+  for (let k = 0; k < ancho; k++) px(c, x + k * CEL + 10, y + 3, 4, 1, Math.floor(t * 2 + k) % 4 ? '#fff4c2' : '#8d99a8');
+}
+function galponQuieto(c, x, y, ancho, color) {
   const w = ancho * CEL, top = y - 22, [claro, base, osc] = COLORES_GALPON[color % COLORES_GALPON.length];
   sombra(c, x + 2, y + 19, w - 4, 4);
   px(c, x, top + 4, w, 38, CONTORNO);
@@ -224,7 +244,6 @@ function galpon(c, x, y, ancho, color, t) {
     px(c, dx, y + 5, 18, 15, CONTORNO);
     for (let j = 0; j < 13; j++) px(c, dx + 1, y + 6 + j, 16, 1, j % 2 ? '#8d99a8' : '#c9d3de');
     for (let j = 0; j < 16; j++) px(c, dx + 1 + j, y + 19, 1, 1, Math.floor(j / 2) % 2 ? '#2b2a35' : '#ffd21f');
-    px(c, dx + 7, y + 3, 4, 1, Math.floor(t * 2 + k) % 4 ? '#fff4c2' : '#8d99a8');
   }
 }
 
@@ -270,12 +289,18 @@ export function pixelesGruesa(s, x, y) {
   return v;
 }
 function letraFilete(c, s, x, y, relleno, contorno, luz = '#ffffff') {
+  copiar(c, ['filete', s, relleno, contorno, luz].join('|'), anchoGruesa(s) + 3, 13, 1, 4, x, y, (g, ox, oy) => letraFileteDirecta(g, s, ox, oy, relleno, contorno, luz));
+}
+function letraFileteDirecta(c, s, x, y, relleno, contorno, luz) {
   const v = pixelesGruesa(s, x, y);
   for (const [dx, dy] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [1, 2], [2, 2], [0, 2]]) for (const [px0, py0] of v) px(c, px0 + dx, py0 + dy, 1, 1, contorno);
   for (const [px0, py0, j, arriba] of v) px(c, px0, py0, 1, 1, arriba ? luz : relleno[Math.min(j, relleno.length - 1)]);
 }
 const letraFileteCentro = (c, s, x, w, y, relleno, contorno, luz) => letraFilete(c, s, x + Math.floor((w - anchoGruesa(s)) / 2), y, relleno, contorno, luz);
 function letraNeon(c, s, x, y, nucleo, halo, prendido) {
+  copiar(c, ['neon', s, nucleo, halo, prendido].join('|'), anchoGruesa(s) + 4, 14, 2, 5, x, y, (g, ox, oy) => letraNeonDirecta(g, s, ox, oy, nucleo, halo, prendido));
+}
+function letraNeonDirecta(c, s, x, y, nucleo, halo, prendido) {
   const v = pixelesGruesa(s, x, y);
   if (!prendido) { for (const [a, b] of v) px(c, a, b, 1, 1, '#3a2f55'); return; }
   c.fillStyle = halo;
