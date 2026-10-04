@@ -86,7 +86,7 @@ El diseño llevó **cinco vueltas**:
 - **La marca TBF va en primer plano:**
   - la flota de camiones trompudos fileteados;
   - la caja con la cinta celeste;
-  - los carteles de la app, chicos y repetidos;
+  - los carteles de la app, pintados en las fachadas y repetidos;
   - el cromo celeste;
   - el violeta de recompensa en el HI-SCORE y en el "+50".
 - **El rojo puro (`#FF2E3A`) es sólo para el golpe.** Los autos usan colores vivos, pero ninguno
@@ -116,10 +116,11 @@ El mundo es una sucesión de **filas**, numeradas desde la largada (fila 0) haci
 
 | Tipo | Clase | Qué tiene |
 |---|---|---|
-| `vereda` | segura | Baldosas, cordón y, a veces, cordón amarillo. Obstáculos: plátano, jacarandá, contenedor verde y carteles de la app (§4.3) |
-| `plaza` | segura | Pasto con flores. Obstáculos: plátano, jacarandá, banco con mate y carteles de la app |
-| `boca` | segura | La orilla de La Boca: conventillos de 1 celda cada uno (son los obstáculos), con huecos y mirando al río |
-| `playon` | segura | El hito cada 25 filas: logo TBF y número de fila pintados, bolardos, mástil y, a veces, el cartel de neón |
+| `vereda` | segura | Baldosas, cordón y, a veces, cordón amarillo. Obstáculos: plátano, jacarandá y contenedor verde |
+| `plaza` | segura | Pasto con flores. Obstáculos: plátano, jacarandá y banco con mate |
+| `boca` | segura | La orilla de La Boca: conventillos de 1 celda cada uno (son los obstáculos), con huecos y mirando al río. Sobre 3 seguidos, un cartel pintado |
+| `galpones` | segura | Galpones de carga de 2 o 3 celdas (son los obstáculos). Sobre uno de 3, un cartel pintado |
+| `playon` | segura | El hito cada 25 filas: logo TBF y número de fila pintados, bolardos y mástil |
 | `calle` | peligro | Un carril con vehículos (§3.3) |
 | `rio` | peligro | Un carril de agua con troncos (§3.4) |
 
@@ -143,15 +144,24 @@ que el mono pierde las tres vidas.
 - **Garantía de paso en lo seguro:**
   - cada franja segura tiene al menos **4 celdas libres por fila**;
   - **una misma columna libre en todas sus filas**: el pasillo;
-  - los carteles nunca van sobre el pasillo.
-- **Los carteles de la app se repiten a lo largo del mapa:**
-  - en cada fila de `vereda` o `plaza` hay **0,35 de probabilidad** de un cartel;
-  - **uno por fila como máximo**, y **nunca en dos filas pegadas**: se dibujan hacia arriba y
-    taparían al de adelante;
-  - nunca dos del mismo tipo seguidos;
-  - **la señal de la Red va sólo en una fila segura pegada a una calle** (la de antes o la de
-    después), que es donde tiene sentido. Si no hay calle pegada, se elige entre los otros dos;
-  - **el playón lleva el cartel de neón** con probabilidad 0,5, en las columnas 1 a 3.
+  - **sin bolsillos: desde cualquier celda libre de una franja se llega al pasillo sin salir de
+    ella**, moviéndose por celdas libres. Si una franja sale con un bolsillo, se vuelve a armar.
+    Lo encontró la demostración del prototipo: una fila de conventillos dejaba un hueco libre con
+    edificios a los costados y un árbol adelante. El mono entraba desde el río y no tenía salida.
+    El pasillo solo no lo evita.
+- **La franja que empieza con una fila `boca` tiene al menos 2 filas**: los conventillos son
+  altos, y así lo que tapan hacia adelante es una fila segura.
+- **El playón** tiene los bolardos en las columnas 0 y 8 y el mástil en la 1, pegado a un bolardo.
+  Con el mástil en la 6, la columna 7 quedaba encerrada.
+- **Los carteles de la app van pintados en las fachadas, nunca parados en la vereda** (§4.3):
+  - una `galpones` es una fila segura con 1 o 2 galpones de carga, de 2 o 3 celdas cada uno, sin
+    tocar el pasillo y con 5 celdas bloqueadas como máximo. Sale con probabilidad 0,18 en cada
+    fila de una franja que no sea la primera después de un río;
+  - **un cartel va en todo tramo de 3 edificios seguidos**: conventillos de una `boca`
+    (probabilidad 0,85) o un galpón de 3 celdas;
+  - nunca dos carteles seguidos del mismo tipo;
+  - **la señal de la Red va en un galpón pegado a una calle**, que es donde tiene sentido; en los
+    demás se elige entre los tres.
 
 ### 3.3 Las calles — el reparto del tránsito
 
@@ -239,16 +249,24 @@ cara del mono y el número de línea.
 Plátano y jacarandá, que se mecen; el jacarandá además deja caer flores. Contenedor verde, banco
 con mate y termo, bolardo celeste, mástil con la bandera que flamea y conventillos de colores.
 
-**Los carteles de la app** son chicos y de la calle, como la publicidad de una vereda de verdad.
-Se repiten a lo largo del mapa (§3.2). Son tres:
+**Los galpones de carga** tienen chapa acanalada en cuatro colores, techo en dientes de sierra con
+claraboya y un portón enrollable por celda, con franja de peligro y una lamparita encima.
 
-| Cartel | Tamaño | Cómo es | Qué se mueve |
-|---|---|---|---|
-| **"EL MEJOR AMIGO DEL CAMIONERO"** | 3 celdas | Chapa fileteada sobre dos postes de madera: fondo azul noche, filete amarillo y rulos violetas en las esquinas. Copete: un medallón celeste con la cara del mono | Las lamparitas del borde titilan y el sol gira detrás del medallón |
-| **"RED DE TRÁNSITO PESADO"** | 3 celdas | La señal de la Red: marco de cromo celeste, flechas amarillas al costado de PESADO, franja de peligro amarilla y negra abajo y poste a rayas. Copete: una placa de cromo con el camión y dos balizas ámbar | Las balizas se prenden de a una, las flechas se mueven y un reflejo la cruza |
-| **"TU GPS, BAJALA GRATIS"** | 3 celdas | Cartel de neón sobre chapa oscura: tubos celestes y violetas con halo y un borde de neón. Copete: TBF en neón | La luz corre por el borde, y la segunda línea parpadea de a ratos como un neón viejo |
+**Los carteles de la app van pintados en las fachadas** de los conventillos y de los galpones, a
+la altura de las ventanas. No ocupan celdas propias: van sobre edificios que de por sí no se
+pisan. El usuario lo pidió el 04/10/2026: *"ponelos sobre lugares no transitables porque
+confunde y achica mucho el espacio que tenemos para jugar"*. Parados en la vereda sobre patas,
+parecían pasables y le sacaban 3 celdas al juego. Se repiten a lo largo del mapa (§3.2). Son
+tres:
 
-- **Los tres son de la misma familia**: 3 celdas, y un copete arriba.
+| Cartel | Cómo es | Qué se mueve |
+|---|---|---|
+| **"EL MEJOR AMIGO DEL CAMIONERO"** | Chapa fileteada: fondo azul noche, filete amarillo, esquinas violetas y un sol de mayo chiquito arriba | Las lamparitas del borde titilan |
+| **"RED DE TRÁNSITO PESADO"** | La señal de la Red: marco de cromo celeste, flechas amarillas al costado de PESADO, franja de peligro en el borde de abajo y dos balizas ámbar | Las balizas se prenden de a una, las flechas se mueven y un reflejo la cruza |
+| **"TU GPS, BAJALA GRATIS"** | Cartel de neón: tubos celestes y rosados con halo, y un borde de neón | La luz corre por el borde, y la segunda línea parpadea de a ratos como un neón viejo |
+
+- **Los tres son compactos**: 3 celdas de ancho y 20 px de alto, pintados sobre la fachada, sin
+  patas ni poste. El ancho lo dicta la leyenda: con la letra gruesa, las tres miden de 59 a 66 px.
 - **La letra de los carteles rompe.** El usuario lo pidió el 04/10/2026: *"la fuente debe romper y
   ser más visible que el bit que estamos usando"*.
   - Es una letra **angosta y gruesa de 4 × 7**: la M y la N de 5, la I y la T de 3, y la Á con su
@@ -257,7 +275,6 @@ Se repiten a lo largo del mapa (§3.2). Son tres:
     fila y un brillo blanco arriba de cada trazo.
   - En el neón, cada letra es el tubo, con su halo.
   - Las tres leyendas entran en 3 celdas con esta letra. Con la 5 × 7 no entraban.
-- **Se dibujan hacia arriba**, a lo sumo 30 px por encima de su fila.
 
 ## 5. La jugabilidad
 
@@ -396,7 +413,9 @@ no un accidente.
     - nunca dos ríos seguidos, y ríos vecinos en sentidos opuestos;
     - el hueco mínimo entre vehículos y el agua libre de 3 celdas como máximo;
     - 4 celdas libres y el pasillo en cada franja segura;
-    - los carteles: uno por fila, nunca en filas pegadas, nunca dos iguales seguidos, la señal de la Red sólo pegada a una calle, y alrededor de uno cada 4 filas seguras sobre 3000 filas;
+    - sin bolsillos en ninguna franja segura, sobre 3000 filas: búsqueda en anchura desde el pasillo;
+    - los carteles: sólo sobre tramos de 3 edificios, nunca dos iguales seguidos, la señal de la Red sólo en galpones pegados a una calle;
+    - la franja que empieza con `boca`, de 2 filas o más;
     - la fila `boca` siempre justo después de un río;
     - una caja por fila como máximo;
     - el playón cada 25 filas;
@@ -436,5 +455,5 @@ no un accidente.
 | **Que no ande fluido en el teléfono**: el prototipo redibuja todo en cada cuadro | El caché por fila de §8, y medir los cuadros por segundo en el navegador con la CPU limitada antes de armar el APK |
 | **Un mundo sin paso** (calle sin hueco, río sin tronco al alcance) | Las garantías de §3, probadas sobre miles de filas con semilla fija |
 | **Que el pixel art se degrade al portarlo** | Se copia del prototipo, no se redibuja. Cada pantalla se compara contra la del artifact |
-| **Un cartel encerrando el paso, o tapando a otro** | Nunca sobre el pasillo, uno por fila y nunca en filas pegadas |
+| **Una franja con un bolsillo, donde el mono entra y no sale** | La regla de §3.2, probada con búsqueda en anchura sobre miles de filas. La encontró la demostración, no un test |
 | **La rama**: este juego usa piezas de la Viborita (fuente, récord, `pantalla-completa`) que todavía no están en `main` | `cruza-mono` sale de `viborita-tbf`. Antes de escribir código, con la Viborita ya fusionada, se rebasa sobre `main` (`git rebase --onto main viborita-tbf cruza-mono`) |

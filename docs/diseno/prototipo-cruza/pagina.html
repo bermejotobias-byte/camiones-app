@@ -11,13 +11,11 @@
 
 <header class="portada">
   <div class="gabinete" aria-label="Maqueta animada de la pantalla del juego">
-    <div class="salir">&lt; SALIR</div>
+    <div class="salir">&lt; SALIR · DEMOSTRACIÓN: SE JUEGA SOLO</div>
     <canvas id="escena" data-k="2" aria-label="El mono en una vereda porteña, avenidas con colectivos de varias líneas, Torino, Fiat Uno y camiones TBF fileteados de colores, el Riachuelo, los conventillos de La Boca y un cartel de la app"></canvas>
     <div class="botonera">
-      <button class="arcade" id="b-saltar" type="button">SALTAR</button>
-      <button class="arcade violeta" id="b-caja" type="button">LEVANTAR CAJA</button>
-      <button class="arcade rojo" id="b-golpe" type="button">PERDER UNA VIDA</button>
-      <button class="arcade gris" id="b-reponer" type="button">REPONER</button>
+      <button class="arcade" id="b-otra" type="button">OTRA PARTIDA</button>
+      <button class="arcade gris" id="b-pausa" type="button">PAUSA</button>
     </div>
   </div>
 
@@ -30,7 +28,7 @@
     <div class="caja-info">
       <h3>QUÉ CAMBIÓ DESDE LA V4</h3>
       <ul>
-        <li><b>Carteles chicos y en contexto</b>, repetidos a lo largo del mapa, todos de la misma familia: 3 celdas con un copete arriba. La chapa fileteada “EL MEJOR AMIGO DEL CAMIONERO”, la señal de la Red con balizas “RED DE TRÁNSITO PESADO” y el cartel de neón “TU GPS, BAJALA GRATIS”. <b>La letra rompe:</b> gruesa, con contorno y degradé, como las letras fileteadas del logo de los camiones.</li>
+        <li><b>Los carteles van pintados en las fachadas</b>, sobre conventillos y galpones de carga, que no se pisan: no le sacan celdas al juego ni parecen pasables. La chapa fileteada “EL MEJOR AMIGO DEL CAMIONERO”, la señal de la Red con balizas “RED DE TRÁNSITO PESADO” y el cartel de neón “TU GPS, BAJALA GRATIS”, con una letra gruesa que rompe. <b>Y arriba, una demostración que se juega sola</b>, con el mapa sin fin.</li>
         <li><b>El tránsito tiene criterio.</b> Lo que más pasa son autos, después los camiones TBF, y lo que menos, los colectivos. Nunca hay dos carriles seguidos de vehículos largos, y al principio casi todo son autos.</li>
         <li><b>El mapa no se termina.</b> Se arma por bloques a medida que el mono avanza y sigue hasta que pierde las tres vidas.</li>
         <li><b>El HI-SCORE se guarda en el servidor</b>, como el récord de la Viborita.</li>
@@ -109,9 +107,9 @@
   <h2><span class="n">03</span>Diseño de carreteras y del barrio</h2>
   <canvas id="calles" class="lienzo" data-k="3" aria-label="Vereda con plátanos y jacarandá, calle de adoquines con un Fitito, avenida de la Red con un colectivo y un camión TBF, senda peatonal con un Torino y plaza con jacarandá"></canvas>
   <div class="galeria gal-k">
-    <div class="ficha"><canvas id="p-chapa" class="lienzo" data-k="4"></canvas><span>CHAPA FILETEADA · 3 CELDAS</span></div>
-    <div class="ficha"><canvas id="p-senal" class="lienzo" data-k="4"></canvas><span>SEÑAL DE LA RED, CON BALIZAS · 3 CELDAS</span></div>
-    <div class="ficha"><canvas id="p-neon" class="lienzo" data-k="4"></canvas><span>CARTEL DE NEÓN · 3 CELDAS</span></div>
+    <div class="ficha"><canvas id="p-chapa" class="lienzo" data-k="4"></canvas><span>CHAPA FILETEADA · EN LOS CONVENTILLOS</span></div>
+    <div class="ficha"><canvas id="p-senal" class="lienzo" data-k="4"></canvas><span>SEÑAL DE LA RED · EN UN GALPÓN</span></div>
+    <div class="ficha"><canvas id="p-neon" class="lienzo" data-k="4"></canvas><span>NEÓN · EN UN GALPÓN</span></div>
     <div class="ficha"><canvas id="p-jacaranda" class="lienzo" data-k="3"></canvas><span>JACARANDÁ EN FLOR</span></div>
     <div class="ficha"><canvas id="p-bandera" class="lienzo" data-k="3"></canvas><span>LA BANDERA FLAMEA</span></div>
     <div class="ficha"><canvas id="p-mate" class="lienzo" data-k="3"></canvas><span>BANCO CON MATE Y TERMO</span></div>
@@ -125,19 +123,20 @@
         <li>vereda de baldosa clara con cordón pintado, plátanos, jacarandás y contenedores verdes;</li>
         <li>plaza con jacarandá, flores y un banco con mate y termo;</li>
         <li>la orilla de La Boca con conventillos de chapa de colores;</li>
-        <li>el <b>playón TBF</b>, con el logo pintado, bolardos celestes y la bandera en el mástil.</li>
+        <li>el <b>playón TBF</b>, con el logo pintado, bolardos celestes y la bandera en el mástil;</li>
+        <li>una fila de <b>galpones de carga</b>, con chapa acanalada de colores, techo en dientes de sierra y portones con franja de peligro.</li>
       </ul>
     </li>
-    <li><b>Los carteles de la app se repiten a lo largo del mapa.</b> Son chicos y de la calle, y los tres son de la misma familia: 3 celdas, con un copete arriba.
+    <li><b>Los carteles de la app van pintados en las fachadas</b> de los conventillos y de los galpones, a la altura de las ventanas. No ocupan celdas propias: van sobre edificios que de por sí no se pisan, así que no achican el lugar para jugar ni parecen pasables.
       <ul>
-        <li><b>“EL MEJOR AMIGO DEL CAMIONERO”</b>: chapa fileteada sobre postes de madera, con fondo azul noche, filete amarillo y rulos violetas en las esquinas. Arriba, el medallón celeste con la cara del mono y el sol que gira; en el borde, lamparitas que titilan.</li>
-        <li><b>“RED DE TRÁNSITO PESADO”</b>: la señal de la Red, con marco de cromo celeste. Arriba, una placa de cromo con el camión y dos balizas ámbar que se prenden de a una. Al costado de PESADO hay flechas amarillas que se mueven, y abajo una franja de peligro amarilla y negra. Un reflejo la cruza, y el poste es a rayas. Va sólo pegada a una calle.</li>
-        <li><b>“TU GPS, BAJALA GRATIS”</b>: cartel de neón sobre chapa oscura. Tiene tubos celestes y violetas con halo, un borde de neón con una luz que corre y TBF en neón en el copete. La segunda línea parpadea de a ratos, como un neón viejo.</li>
+        <li><b>“EL MEJOR AMIGO DEL CAMIONERO”</b>: chapa fileteada, con fondo azul noche, filete amarillo, esquinas violetas, lamparitas que titilan y un sol de mayo chiquito arriba.</li>
+        <li><b>“RED DE TRÁNSITO PESADO”</b>: la señal de la Red, con marco de cromo celeste, flechas amarillas, franja de peligro y dos balizas ámbar. Va en un galpón pegado a una calle.</li>
+        <li><b>“TU GPS, BAJALA GRATIS”</b>: cartel de neón con tubos celestes y rosados, un borde con una luz que corre y una línea que parpadea de a ratos.</li>
       </ul>
     </li>
     <li><b>La letra de los carteles rompe:</b> es angosta y gruesa, de 4 × 7, y se dibuja como las letras fileteadas del logo de los camiones, con contorno oscuro, relleno en degradé y brillo arriba. En el neón, la letra es el tubo con su halo.</li>
-    <li><b>Cuántos y dónde:</b> en cada fila de vereda o plaza hay un 35 % de chance de un cartel, nunca dos del mismo tipo seguidos y nunca sobre el pasillo.</li>
-    <li>Los obstáculos bloquean el paso pero nunca cierran el camino. Los carteles ocupan 3 celdas y se rodean.</li>
+    <li><b>Cuántos y dónde:</b> un cartel en todo tramo de 3 edificios seguidos, nunca dos iguales seguidos.</li>
+    <li>Los obstáculos bloquean el paso pero nunca cierran el camino, y <b>no dejan bolsillos</b>: desde cualquier celda libre se llega al pasillo.</li>
   </ul>
 </section>
 
@@ -290,7 +289,7 @@
     <tr><td>Paso</td><td>Salta en un arco de 6 px. Se estira al despegar y se aplasta al caer. La sombra se achica en el aire y levanta polvo al aterrizar.</td><td class="num">140 ms</td><td>—</td></tr>
     <tr><td>La flota TBF</td><td>Ruedas que giran, humo del escape, luces de gálibo que titilan y destello sobre el cromo.</td><td class="num">continuo</td><td>—</td></tr>
     <tr><td>Autos y colectivo</td><td>Llantas que giran, la luz de LIBRE del taxi y el cartel de destino del colectivo.</td><td class="num">continuo</td><td>—</td></tr>
-    <tr><td>Los carteles</td><td>En la chapa titilan las lamparitas y el sol gira detrás del medallón. En la señal de la Red se prenden las balizas de a una, se mueven las flechas y la cruza un reflejo. En el neón corre la luz del borde, y la segunda línea parpadea de a ratos.</td><td class="num">continuo</td><td>—</td></tr>
+    <tr><td>Los carteles</td><td>En la chapa titilan las lamparitas. En la señal de la Red se prenden las balizas de a una, se mueven las flechas y la cruza un reflejo. En el neón corre la luz del borde, y la segunda línea parpadea de a ratos.</td><td class="num">continuo</td><td>—</td></tr>
     <tr><td>El barrio</td><td>La bandera flamea, los árboles se mecen y caen flores de jacarandá.</td><td class="num">continuo</td><td>—</td></tr>
     <tr><td>Agua y troncos</td><td>Las crestas corren, la espuma bate y los troncos se mecen.</td><td class="num">continuo</td><td>—</td></tr>
     <tr><td>Levantar caja</td><td>“+50” violeta que sube, chispas y el SCORE que cuenta hacia arriba.</td><td class="num">500 ms</td><td>vibración <code>caja</code></td></tr>
@@ -332,7 +331,7 @@
     <li>El campo tiene <b>9 columnas</b>. El mono arranca en la columna del centro, en la vereda de largada.</li>
     <li><b>El mapa no se termina.</b> Se genera por bloques a medida que el mono avanza: cuando la cámara sube, nacen filas nuevas arriba y se olvidan las que quedaron abajo. Sigue hasta que el mono pierde las tres vidas.</li>
     <li>Un paso mueve <b>una celda</b> y tarda 140 ms. Se puede ir adelante, atrás, a la izquierda y a la derecha.</li>
-    <li>Bloquean el paso, que no se da y no cuesta nada: árboles, carteles, conventillos, bancos, bolardos, contenedores y los bordes del campo.</li>
+    <li>Bloquean el paso, que no se da y no cuesta nada: árboles, conventillos, galpones, bancos, bolardos, contenedores y los bordes del campo.</li>
     <li><b>La cámara sigue al mono</b> cuando avanza y, además, <b>sube sola y despacio</b>. Si el mono queda por debajo del borde inferior, llega la grúa: cumple la función del águila de Crossy Road.</li>
     <li><b>Sobre un tronco</b>, el mono se mueve con él. Al saltar desde un tronco, cae en la celda más cercana.</li>
   </ul>
