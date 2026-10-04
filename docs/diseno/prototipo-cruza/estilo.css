@@ -1,0 +1,110 @@
+
+/* Una maquina de arcade con la marca TBF: negro puro de marco, el juego a escala entera
+   como protagonista, el cromo celeste y el violeta de recompensa de la app como acentos,
+   y la prosa en Nunito (la de la app) en columnas angostas al lado de cada dibujo. */
+:root{
+  --negro:#000000;
+  --panel:#07090d;
+  --filo:#1f2833;
+  --tinta:#f1f4f8;
+  --apagado:#97a3b3;
+  --celeste:#35b8e8;
+  --celeste-tinta:#8fdcf7;
+  --violeta:#a97bf0;
+  --violeta-claro:#c9a8ff;
+  --rojo:#ff2e3a;
+  --verde:#43c98b;
+  --pixel:"Silkscreen", ui-monospace, monospace;
+  --texto:"Nunito", system-ui, sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--negro);color:var(--tinta)}
+body{font-family:var(--texto);font-size:16px;line-height:1.55;padding-inline:16px;padding-block:28px 64px}
+.hoja{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:60px}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;max-width:100%;height:auto}
+h1,h2,h3{font-family:var(--pixel);font-weight:700;letter-spacing:.04em;text-wrap:balance}
+h1{font-size:clamp(36px,7vw,66px);line-height:1;margin:0;
+  background:linear-gradient(#ffffff 0 22%,#bfeeff 22% 40%,#5fc8f0 40% 62%,#1f86ad 62% 82%,#8fdcf7 82%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(4px 4px 0 #6a3fc0)}
+h2{font-size:20px;margin:0}
+h2 .n{color:var(--celeste);margin-right:10px}
+h3{font-size:13px;margin:0;color:var(--celeste-tinta);letter-spacing:.08em}
+p{margin:0;max-width:64ch}
+.apagado{color:var(--apagado)}
+b{color:#fff}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.88em;background:#0f141b;border:1px solid var(--filo);padding:1px 5px;border-radius:4px;color:#d9f4ff}
+
+.portada{display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;align-items:start}
+.gabinete{background:var(--panel);border:2px solid var(--filo);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;align-items:center;
+  box-shadow:0 0 0 6px #030405,0 0 70px rgba(53,184,232,.16),0 0 120px rgba(169,123,240,.10)}
+.gabinete .salir{align-self:stretch;font-family:var(--pixel);font-size:12px;color:#9aa6b8}
+.botonera{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:432px}
+button.arcade{font-family:var(--pixel);font-size:12px;letter-spacing:.06em;color:#06202c;background:var(--celeste);border:0;border-bottom:4px solid #1f86ad;border-radius:10px;padding:10px 12px;cursor:pointer}
+button.arcade.violeta{background:var(--violeta);border-bottom-color:#7650c9;color:#fff}
+button.arcade.rojo{background:var(--rojo);border-bottom-color:#8d0f17;color:#fff}
+button.arcade.gris{background:#202a36;border-bottom-color:#0d1218;color:#fff}
+button.arcade:active{transform:translateY(2px);border-bottom-width:2px}
+button.arcade:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.tesis{display:flex;flex-direction:column;gap:18px;min-width:0}
+.lead{font-size:19px;line-height:1.5;color:#e6ebf1}
+.lema{font-family:var(--pixel);font-size:12px;color:var(--celeste);letter-spacing:.08em}
+
+.caja-info{border:2px solid var(--filo);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;background:#080b10}
+.caja-info.decide{border-color:var(--violeta);background:#0d0817}
+.caja-info.decide h3{color:var(--violeta-claro)}
+.caja-info ol,.caja-info ul{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:9px}
+.caja-info li{max-width:62ch}
+
+section{display:flex;flex-direction:column;gap:18px;border-top:2px dashed var(--filo);padding-top:28px}
+.par{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.galeria{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+.ficha{display:flex;flex-direction:column;gap:8px;align-items:center}
+.ficha span{font-family:var(--pixel);font-size:10px;color:var(--apagado);text-align:center;max-width:170px;letter-spacing:.04em}
+.lienzo{background:#030405;border:1px solid var(--filo);border-radius:8px;padding:8px}
+.ref{width:150px;background:#fff;border-radius:10px;padding:6px}
+ul.reglas{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+ul.reglas li{max-width:64ch}
+.muestras{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.muestra{display:flex;gap:10px;align-items:center;font-size:14px}
+.muestra i{width:30px;height:30px;border-radius:6px;border:1px solid #2a3340;flex:none}
+.muestra b{font-family:var(--pixel);font-size:10px;display:block;color:var(--tinta);font-weight:400}
+.muestra small{color:var(--apagado);font-family:ui-monospace,Consolas,monospace}
+
+.tabla{overflow-x:auto;border:1px solid var(--filo);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:600px;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--filo);vertical-align:top}
+th{font-family:var(--pixel);font-size:10px;letter-spacing:.06em;color:var(--apagado);font-weight:400;background:#080b10}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--celeste-tinta)}
+
+.flujo{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.paso{font-family:var(--pixel);font-size:11px;background:#0d1219;border:1px solid var(--filo);border-radius:8px;padding:8px 10px}
+.paso.vivo{border-color:var(--celeste);color:var(--celeste-tinta)}
+.paso.malo{border-color:var(--rojo);color:#ff7a82}
+.paso.premio{border-color:var(--violeta);color:var(--violeta-claro)}
+.flecha{color:var(--apagado);font-family:var(--pixel);font-size:12px}
+
+.tel{width:210px;height:380px;border:3px solid #263040;border-radius:30px;background:#030405;position:relative;flex:none;overflow:hidden}
+.tel .hud{position:absolute;left:14px;right:14px;top:16px;height:20px;font-family:var(--pixel);font-size:9px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--celeste)}
+.tel .campo{position:absolute;inset:44px 14px 18px;border-radius:8px;background:linear-gradient(#127a2c 0 16%,#1d1e26 16% 52%,#0b2c9e 52% 80%,#4a4e5a 80%)}
+.gesto{position:absolute;font-family:var(--pixel);font-size:9px;color:#fff;background:rgba(0,0,0,.8);border:1px solid var(--celeste);border-radius:6px;padding:3px 6px;white-space:nowrap}
+.dedo{position:absolute;width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:rgba(53,184,232,.35);animation:toque 1.4s ease-out infinite}
+.rastro{position:absolute;height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--violeta-claro));animation:rastro 1.4s ease-in-out infinite}
+@keyframes toque{0%{transform:scale(.6);opacity:0}30%{opacity:1}100%{transform:scale(1.3);opacity:0}}
+@keyframes rastro{0%{opacity:0;transform:scaleX(.2)}50%{opacity:1;transform:scaleX(1)}100%{opacity:0}}
+
+.app{background:#0f1720;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;max-width:380px;font-family:var(--texto)}
+.app .titulo{font-weight:900;font-size:22px}
+.app .tarjeta{background:#18232e;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.app .tarjeta h4{margin:0;font-weight:900;font-size:19px}
+.app .tarjeta p{color:#93a6b6;font-size:14px}
+.app .jugar{background:#35b8e8;color:#06202c;font-weight:900;letter-spacing:.06em;text-align:center;border-radius:14px;padding:12px;border-bottom:4px solid #1f86ad}
+.app .nuevo{outline:2px solid var(--violeta);outline-offset:3px}
+.app .pill{align-self:flex-start;font-size:11px;font-weight:800;background:#2a2147;color:#c7b0ff;border-radius:99px;padding:3px 10px}
+
+@media (max-width:860px){
+  .portada,.par{grid-template-columns:minmax(0,1fr)}
+  .gabinete{justify-self:center}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}

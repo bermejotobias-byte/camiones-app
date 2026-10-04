@@ -1,0 +1,443 @@
+<title>Cruzá, Mono</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Nunito:wght@500;700;800;900&display=swap">
+<style>
+/*ESTILO*/
+.sol-linea{height:6px;border-radius:3px;background:linear-gradient(90deg,#74c7ff 0 33%,#ffffff 33% 66%,#74c7ff 66%);opacity:.9}
+.gal-k{gap:20px}
+</style>
+
+<div class="hoja">
+
+<header class="portada">
+  <div class="gabinete" aria-label="Maqueta animada de la pantalla del juego">
+    <div class="salir">&lt; SALIR</div>
+    <canvas id="escena" data-k="2" aria-label="El mono en una vereda porteña, avenidas con colectivos de varias líneas, Torino, Fiat Uno y camiones TBF fileteados de colores, el Riachuelo, los conventillos de La Boca y un cartel de la app"></canvas>
+    <div class="botonera">
+      <button class="arcade" id="b-saltar" type="button">SALTAR</button>
+      <button class="arcade violeta" id="b-caja" type="button">LEVANTAR CAJA</button>
+      <button class="arcade rojo" id="b-golpe" type="button">PERDER UNA VIDA</button>
+      <button class="arcade gris" id="b-reponer" type="button">REPONER</button>
+    </div>
+  </div>
+
+  <div class="tesis">
+    <div class="lema">DISEÑO APROBADO · V5 · JUEGOS · 04/10/2026</div>
+    <h1>CRUZÁ,<br>MONO</h1>
+    <div class="sol-linea" aria-hidden="true"></div>
+    <p class="lead">El mono de la app cruza Buenos Aires: avenidas con colectivos fileteados, Torinos y Fiat Uno, el Riachuelo frente a los conventillos de La Boca, y la flota TBF pintada con fileteado porteño. Por el camino hay carteles de la app. La mecánica es la de Crossy Road; todo lo que se ve es argentino.</p>
+
+    <div class="caja-info">
+      <h3>QUÉ CAMBIÓ DESDE LA V4</h3>
+      <ul>
+        <li><b>Más camiones TBF.</b> Son el vehículo más común de la calle: la mitad de los carriles son de la Red y llevan sólo la flota, y en los demás uno de cada tres vehículos es un TBF.</li>
+        <li><b>El mapa no se termina.</b> Se arma por bloques a medida que el mono avanza y sigue hasta que pierde las tres vidas.</li>
+        <li><b>El HI-SCORE se guarda en el servidor</b>, como el récord de la Viborita.</li>
+      </ul>
+    </div>
+
+    <div class="caja-info decide">
+      <h3>DECIDIDO EL 04/10/2026</h3>
+      <ol>
+        <li><b>El sprite del mono de 24 px</b> queda aprobado como la versión oficial en chico.</li>
+        <li><b>El nombre</b> es <b>CRUZÁ, MONO</b>.</li>
+        <li><b>El invitado no juega</b>: Juegos pide cuenta, como en la Viborita.</li>
+        <li><b>El HI-SCORE va en el servidor</b>, como el récord de la Viborita.</li>
+      </ol>
+    </div>
+  </div>
+</header>
+
+<section id="s1">
+  <h2><span class="n">01</span>Concepto visual general</h2>
+  <div class="par">
+    <div class="col">
+      <p><b>Es un arcade de los 80 que pasa por Buenos Aires.</b> El marco y el HUD van en negro puro. El campo tiene 9 columnas de 24 px y se dibuja a escala entera. Cada material lleva luz, base, sombra y contorno, y el cromo se hace con bandas, como el de la barra de nivel de la app.</p>
+      <p><b>Lo argentino está en todo lo que se ve:</b></p>
+      <ul class="reglas">
+        <li>el fileteado porteño en los camiones y en los carteles;</li>
+        <li>los autos que andan por acá: Torino, Fiat Uno, Fitito, 504, el taxi negro y amarillo, y colectivos de seis líneas;</li>
+        <li>los conventillos de La Boca, el jacarandá, la plaza con mate y la baldosa de vainillas;</li>
+        <li>la bandera, el sol de mayo y el Obelisco.</li>
+      </ul>
+      <p><b>La marca TBF va en primer plano:</b> la flota, los carteles con el mono, el playón con el logo pintado, la caja con la cinta celeste, el cromo celeste y el violeta de recompensa. El celeste de la marca y el de la bandera son casi el mismo, y eso se aprovecha.</p>
+      <p><b>Los autos evocan la silueta, no la marca.</b> No llevan emblemas ni logos ajenos, por la misma regla que dejó afuera la gorra MACK de la mascota.</p>
+      <p><b>Los colores son más vivos:</b> un mediodía soleado. El rojo puro queda sólo para el golpe.</p>
+    </div>
+    <div class="col">
+      <h3>PALETA</h3>
+      <div class="muestras">
+        <div class="muestra"><i style="background:#000"></i><div><b>NEGRO ARCADE</b><small>#000000 · marco, HUD</small></div></div>
+        <div class="muestra"><i style="background:linear-gradient(#ffffff,#8fdcf7 35%,#35b8e8 60%,#1f86ad)"></i><div><b>CELESTE TBF</b><small>#35B8E8 · marca y bandera</small></div></div>
+        <div class="muestra"><i style="background:linear-gradient(#e3c9ff,#a97bf0 55%,#6f42c1)"></i><div><b>VIOLETA</b><small>#A97BF0 · premio, jacarandá</small></div></div>
+        <div class="muestra"><i style="background:#ffd21f"></i><div><b>SOL DE MAYO</b><small>#FFD21F · fileteado, Fitito</small></div></div>
+        <div class="muestra"><i style="background:#ff7f1f"></i><div><b>NARANJA TORINO</b><small>#FF7F1F</small></div></div>
+        <div class="muestra"><i style="background:#2f3240"></i><div><b>ASFALTO</b><small>#2F3240</small></div></div>
+        <div class="muestra"><i style="background:#a3a9b6"></i><div><b>BALDOSA</b><small>#A3A9B6</small></div></div>
+        <div class="muestra"><i style="background:#33c24d"></i><div><b>PLAZA</b><small>#33C24D</small></div></div>
+        <div class="muestra"><i style="background:#1668ff"></i><div><b>RIACHUELO</b><small>#1668FF</small></div></div>
+        <div class="muestra"><i style="background:#ff2e3a"></i><div><b>ROJO GOLPE</b><small>#FF2E3A · sólo peligro</small></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="n">02</span>Diseño de la mascota</h2>
+  <div class="galeria">
+    <div class="ficha"><img class="ref" alt="La pose del joystick de la mascota" src="__JOYSTICK__"><span>LA REFERENCIA</span></div>
+    <div class="ficha"><canvas id="m-atras" class="lienzo" data-k="5"></canvas><span>AVANZA · MUEVE LA COLA</span></div>
+    <div class="ficha"><canvas id="m-frente" class="lienzo" data-k="5"></canvas><span>RETROCEDE · PARPADEA</span></div>
+    <div class="ficha"><canvas id="m-lado" class="lienzo" data-k="5"></canvas><span>A LOS COSTADOS</span></div>
+    <div class="ficha"><canvas id="m-salto" class="lienzo" data-k="5"></canvas><span>EL SALTO</span></div>
+    <div class="ficha"><canvas id="m-golpe" class="lienzo" data-k="5"></canvas><span>GOLPE EN LA CALLE</span></div>
+    <div class="ficha"><canvas id="m-agua" class="lienzo" data-k="5"></canvas><span>GOLPE EN EL RÍO</span></div>
+  </div>
+  <div class="par">
+    <div class="col">
+      <p>Es un sprite de <b>24 × 24</b> sacado de la referencia: la gorra roja con la placa blanca, las orejas, el antifaz claro con ojos con brillo, la camisa verde a cuadros, el mameluco azul con botones dorados y los pies descalzos. El contorno es marrón muy oscuro, para que se despegue del asfalto.</p>
+    </div>
+    <div class="col">
+      <p><b>Está vivo aunque no lo toques:</b> mueve la cola y parpadea, salta estirándose y aplastándose, y al caer levanta polvo.</p>
+      <p>Los golpes no tienen crueldad: en la calle queda aplastado con estrellitas, y en el río sólo flota la gorra. Así lo pide el brief: “reaccionar a un error sin castigar al usuario”.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="n">03</span>Diseño de carreteras y del barrio</h2>
+  <canvas id="calles" class="lienzo" data-k="3" aria-label="Vereda con plátanos y jacarandá, calle de adoquines con un Fitito, avenida de la Red con un colectivo y un camión TBF, senda peatonal con un Torino y plaza con jacarandá"></canvas>
+  <div class="galeria gal-k">
+    <div class="ficha"><canvas id="p-cartel" class="lienzo" data-k="4"></canvas><span>CARTEL DE LA APP · TABLILLAS QUE GIRAN</span></div>
+    <div class="ficha"><canvas id="p-cartel2" class="lienzo" data-k="4"></canvas><span>EL MISMO CARTEL, OTRO AVISO</span></div>
+    <div class="ficha"><canvas id="p-jacaranda" class="lienzo" data-k="3"></canvas><span>JACARANDÁ EN FLOR</span></div>
+    <div class="ficha"><canvas id="p-bandera" class="lienzo" data-k="3"></canvas><span>LA BANDERA FLAMEA</span></div>
+    <div class="ficha"><canvas id="p-mate" class="lienzo" data-k="3"></canvas><span>BANCO CON MATE Y TERMO</span></div>
+  </div>
+  <ul class="reglas">
+    <li><b>Asfalto</b> azulado, con grano y alguna mancha de aceite. Las calles tienen un carril y las avenidas de 2 a 5, separados por líneas blancas. Algunas cuadras son de <b>adoquines</b>, como en San Telmo.</li>
+    <li><b>Los carriles de la Red de Tránsito Pesado</b> llevan la línea de cromo celeste de la app. Por ahí pasan los camiones.</li>
+    <li><b>La senda peatonal</b> cruza la avenida. Ahí aparecen cajas: el lugar más tentador y el más expuesto.</li>
+    <li><b>Las zonas seguras son del barrio:</b>
+      <ul>
+        <li>vereda de baldosa clara con cordón pintado, plátanos, jacarandás y contenedores verdes;</li>
+        <li>plaza con jacarandá, flores y un banco con mate y termo;</li>
+        <li>la orilla de La Boca con conventillos de chapa de colores;</li>
+        <li>el <b>playón TBF</b>, con el logo pintado, bolardos celestes y la bandera en el mástil.</li>
+      </ul>
+    </li>
+    <li><b>Los carteles de la app</b> ocupan 4 celdas, y son la publicidad del barrio:
+      <ul>
+        <li><b>Arriba</b>, un copete fileteado con el sol de mayo y dos volutas.</li>
+        <li><b>El marco</b> es de cromo celeste en cuatro tonos y lleva adentro un filete amarillo con volutas violetas en las esquinas.</li>
+        <li><b>Abajo</b> hay una pasarela con baranda y tres lámparas que alumbran el aviso desde abajo y a veces parpadean. El cartel se apoya en dos columnas de hierro con cruces y placas de base.</li>
+        <li><b>El aviso cambia cada 4 s con tablillas que giran una por una</b>, como los carteles tri-visión de las avenidas.</li>
+      </ul>
+    </li>
+    <li><b>Los cuatro avisos están ilustrados:</b>
+      <ul>
+        <li>“TBF · TU GPS”: cielo celeste con nubes, la cara del mono, el logo fileteado y un pin de mapa que late sobre una ruta punteada;</li>
+        <li>“¡BAJATELA GRATIS!”: fondo violeta y un teléfono con la app abierta, donde un punto avanza por la ruta;</li>
+        <li>“RUTA LIBRE CON TBF”: atardecer con el sol de mayo y un camioncito TBF que cruza por una ruta;</li>
+        <li>“SUMÁ EXP MANEJANDO”: noche estrellada y la barra de nivel de la app, en cromo celeste y violeta, que se llena.</li>
+      </ul>
+    </li>
+    <li>Los obstáculos bloquean el paso pero nunca cierran el camino. El cartel ocupa 4 celdas y se rodea.</li>
+  </ul>
+</section>
+
+<section id="s4">
+  <h2><span class="n">04</span>Diseño de vehículos</h2>
+  <h3>LA FLOTA TBF · TROMPUDOS FILETEADOS EN NUEVE PINTURAS</h3>
+  <div class="galeria">
+    <div class="ficha"><canvas id="v-celeste" class="lienzo" data-k="3"></canvas><span>CELESTE Y BLANCO</span></div>
+    <div class="ficha"><canvas id="v-violeta" class="lienzo" data-k="3"></canvas><span>VIOLETA</span></div>
+    <div class="ficha"><canvas id="v-naranja" class="lienzo" data-k="3"></canvas><span>NARANJA</span></div>
+    <div class="ficha"><canvas id="v-amarillo" class="lienzo" data-k="3"></canvas><span>AMARILLO Y AZUL</span></div>
+    <div class="ficha"><canvas id="v-verde" class="lienzo" data-k="3"></canvas><span>VERDE</span></div>
+    <div class="ficha"><canvas id="v-rojo" class="lienzo" data-k="3"></canvas><span>ROJO</span></div>
+    <div class="ficha"><canvas id="v-azul" class="lienzo" data-k="3"></canvas><span>AZUL</span></div>
+    <div class="ficha"><canvas id="v-jaula" class="lienzo" data-k="3"></canvas><span>JAULA DE HACIENDA</span></div>
+    <div class="ficha"><canvas id="v-cisterna" class="lienzo" data-k="3"></canvas><span>CISTERNA DE CROMO</span></div>
+  </div>
+  <h3>LOS AUTOS DE ACÁ</h3>
+  <div class="galeria">
+    <div class="ficha"><canvas id="v-torino" class="lienzo" data-k="3"></canvas><span>TORINO · TECHO VINÍLICO</span></div>
+    <div class="ficha"><canvas id="v-uno" class="lienzo" data-k="3"></canvas><span>FIAT UNO</span></div>
+    <div class="ficha"><canvas id="v-fitito" class="lienzo" data-k="3"></canvas><span>FITITO</span></div>
+    <div class="ficha"><canvas id="v-504" class="lienzo" data-k="3"></canvas><span>504</span></div>
+    <div class="ficha"><canvas id="v-taxi" class="lienzo" data-k="3"></canvas><span>TAXI · LUZ DE LIBRE</span></div>
+    </div>
+  <h3>LOS COLECTIVOS · SEIS LÍNEAS</h3>
+  <div class="galeria">
+    <div class="ficha"><canvas id="c-152" class="lienzo" data-k="3"></canvas><span>152 · BLANCO Y AZUL</span></div>
+    <div class="ficha"><canvas id="c-60" class="lienzo" data-k="3"></canvas><span>60 · CREMA Y ROJO</span></div>
+    <div class="ficha"><canvas id="c-29" class="lienzo" data-k="3"></canvas><span>29 · AMARILLO Y VERDE</span></div>
+    <div class="ficha"><canvas id="c-39" class="lienzo" data-k="3"></canvas><span>39 · BLANCO Y NARANJA</span></div>
+    <div class="ficha"><canvas id="c-64" class="lienzo" data-k="3"></canvas><span>64 · CELESTE Y VIOLETA</span></div>
+    <div class="ficha"><canvas id="c-12" class="lienzo" data-k="3"></canvas><span>12 · BLANCO Y TURQUESA</span></div>
+  </div>
+  <ul class="reglas">
+    <li><b>Los camiones TBF</b> ocupan 4 celdas y tienen cabina con trompa, la silueta de los camiones de ruta argentinos.
+      <ul>
+        <li>Llevan capó con persianas, paragolpes y faro de cromo, el caño de escape detrás de la cabina y guardabarros.</li>
+        <li>En el techo tienen <b>luces de gálibo</b> que titilan, un guiño a los gálibos de la app.</li>
+        <li>El furgón lleva el logo TBF en letras de fileteado (relleno en degradé, brillo blanco y contorno), volutas, el sol de mayo y la cara del mono.</li>
+        <li>Hay <b>nueve pinturas</b>, cada una con sus letras de fileteado en un color que contrasta: celeste y blanca (la bandera y la marca a la vez), violeta, naranja, amarilla con azul, verde, roja, azul, jaula de hacienda con tablas de madera y cisterna de cromo. En la calle se mezclan, así cada carril se ve distinto.</li>
+      </ul>
+    </li>
+    <li><b>Los autos</b> ocupan 2 celdas, y cada uno tiene su forma y su color:
+      <ul>
+        <li>el <b>Torino</b>, cupé de cola larga, naranja con techo vinílico negro y cromados;</li>
+        <li>el <b>Fiat Uno</b>, cuadrado, celeste, con paragolpes de plástico;</li>
+        <li>el <b>Fitito</b>, redondito y amarillo, con las rejillas del motor atrás;</li>
+        <li>el <b>504</b>, sedán turquesa;</li>
+        <li>el <b>taxi</b>, negro con el techo amarillo y la luz roja de LIBRE que titila.</li>
+      </ul>
+    </li>
+    <li><b>Los colectivos</b> ocupan 4 celdas. Hay <b>seis líneas</b>: 152, 60, 29, 39, 64 y 12. Cada una tiene su combinación de colores arriba y abajo, dos franjas, el número pintado al costado entre dos volutas y el cartel de destino que se enciende. <span class="apagado">Los colores son de fantasía: no copian la pintura real de cada línea.</span></li>
+    <li><b>Los camiones TBF son el vehículo más común.</b> La mitad de los carriles son de la Red, con su línea de cromo, y llevan sólo la flota. En los demás, uno de cada tres vehículos es TBF y el resto se reparte entre autos y colectivos.</li>
+    <li><b>Cada carril tiene un sentido, una velocidad y un tipo de vehículo</b> y los escapes echan humo. El sentido de cada vehículo se lee por los faros: el logo, el número y la cara del mono se dibujan siempre derechos, nunca espejados.</li>
+  </ul>
+</section>
+
+<section id="s5">
+  <h2><span class="n">05</span>Diseño de ríos y troncos</h2>
+  <div class="par">
+    <div class="col"><canvas id="rio" class="lienzo" data-k="2" aria-label="Los conventillos de La Boca y tres carriles del Riachuelo con troncos y una caja arriba de un tronco"></canvas></div>
+    <div class="col">
+      <ul class="reglas">
+        <li><b>El Riachuelo</b> es azul vivo, con trama, crestas claras que corren en el sentido del carril y orillas marcadas. En la costa están los <b>conventillos de La Boca</b>: chapa acanalada de colores, ventanas con persianas y balcones.</li>
+        <li><b>Los troncos</b> miden 2, 3 o 4 celdas y tienen vetas, musgo, anillos en las puntas y espuma donde cortan el agua. Se mecen.</li>
+        <li><b>Parado sobre un tronco, el mono viaja con él.</b> Si cae al agua sin tronco, o si el tronco lo lleva fuera de la pantalla, pierde una vida.</li>
+        <li>Dos carriles de río seguidos nunca van en el mismo sentido.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><span class="n">06</span>Diseño de cajas</h2>
+  <div class="par">
+    <div class="col">
+      <div class="galeria">
+        <div class="ficha"><canvas id="caja" class="lienzo" data-k="6"></canvas><span>LA CAJA TBF</span></div>
+        <div class="ficha"><canvas id="caja-toma" class="lienzo" data-k="4"></canvas><span>AL LEVANTARLA</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <p><b>Es una caja de cartón con la cinta celeste de TBF</b> y su etiqueta: la carga de la flota. Flota, tiene un halo celeste que late y la recorre un destello.</p>
+      <p><b>Vale +50</b> en cualquier lado. Aparece, de menos a más riesgo:</p>
+      <ul class="reglas">
+        <li>en la vereda o la plaza;</li>
+        <li>sobre un tronco;</li>
+        <li>en la senda peatonal, en medio de la avenida.</li>
+      </ul>
+      <p>Al levantarla salta un “+50” violeta con chispas celestes y blancas, y el teléfono da la vibración corta de la caja.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s7">
+  <h2><span class="n">07</span>Diseño del HUD</h2>
+  <canvas id="hud" class="lienzo" data-k="3" aria-label="El HUD: SCORE, HI-SCORE y tres vidas"></canvas>
+  <ul class="reglas">
+    <li>Es una franja negra de 28 px, cerrada abajo por la línea de cromo celeste, la firma de la marca. Queda limpia: el folclore va en el campo, no en los números.</li>
+    <li><b>SCORE</b>: el rótulo en celeste y el número grande en blanco. Cuando sube, los dígitos cuentan hacia arriba.</li>
+    <li><b>HI-SCORE</b>: el rótulo en violeta de recompensa. Al superarlo, el número sigue al SCORE y late en violeta.</li>
+    <li><b>Las vidas</b> van a la derecha. SALIR queda fuera del juego, arriba, como en la Viborita.</li>
+  </ul>
+</section>
+
+<section id="s8">
+  <h2><span class="n">08</span>Diseño de vidas</h2>
+  <div class="galeria">
+    <div class="ficha"><canvas id="vidas3" class="lienzo" data-k="4"></canvas><span>3 VIDAS</span></div>
+    <div class="ficha"><canvas id="vidas2" class="lienzo" data-k="4"></canvas><span>2 VIDAS</span></div>
+    <div class="ficha"><canvas id="vidas1" class="lienzo" data-k="4"></canvas><span>LA ÚLTIMA LATE</span></div>
+    <div class="ficha"><canvas id="vidas0" class="lienzo" data-k="4"></canvas><span>GAME OVER</span></div>
+  </div>
+  <p>Cada vida es la cabeza del mono en <b>12 × 12</b>, con la gorra roja, y parpadea cada tanto. Al perder una, titila tres veces y queda como <b>silueta gris</b>, la misma convención de los logros bloqueados de la app. Con la última vida, esa cabeza late en rojo.</p>
+</section>
+
+<section id="s9">
+  <h2><span class="n">09</span>Diseño de controles</h2>
+  <div class="par">
+    <div class="col" style="align-items:center">
+      <div class="tel" aria-label="Los gestos sobre el teléfono">
+        <div class="hud"><span style="color:#35b8e8">SCORE</span><span style="color:#c9a8ff">HI-SCORE</span><span>VIDAS</span></div>
+        <div class="campo" style="background:linear-gradient(#a3a9b6 0 14%,#2f3240 14% 50%,#1668ff 50% 78%,#33c24d 78%)"></div>
+        <div class="dedo" style="left:88px;top:150px"></div>
+        <div class="gesto" style="left:52px;top:118px">TOCAR = ADELANTE</div>
+        <div class="rastro" style="left:30px;top:262px;width:60px;transform-origin:right"></div>
+        <div class="gesto" style="left:18px;top:240px">← DESLIZAR</div>
+        <div class="rastro" style="left:120px;top:262px;width:60px;transform-origin:left;background:linear-gradient(90deg,var(--violeta-claro),transparent)"></div>
+        <div class="gesto" style="left:118px;top:240px">DESLIZAR →</div>
+        <div class="gesto" style="left:44px;top:318px">↓ DESLIZAR = ATRÁS</div>
+      </div>
+    </div>
+    <div class="col">
+      <ul class="reglas">
+        <li><b>Tocar en cualquier lugar del campo da un paso adelante.</b> Deslizar hacia arriba también avanza.</li>
+        <li><b>Deslizar a la izquierda, a la derecha o hacia abajo</b> da un paso en esa dirección. Se decide en cuanto el dedo pasa los 24 px, sin esperar a que se levante, como en la Viborita.</li>
+        <li><b>Es un paso por gesto.</b> Si tocás en medio de un salto, el próximo sale al aterrizar, y los toques de más se descartan.</li>
+        <li><b>No hay cruceta en pantalla:</b> el campo entero es el control. En la computadora se juega con las flechas o con WASD.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="s10">
+  <h2><span class="n">10</span>Animaciones y feedback</h2>
+  <div class="tabla"><table>
+    <tr><th>QUÉ</th><th>CÓMO SE MUEVE</th><th>TIEMPO</th><th>TELÉFONO</th></tr>
+    <tr><td>Mono quieto</td><td>Mueve la cola de espaldas y parpadea de frente.</td><td class="num">0,4 s · 3 s</td><td>—</td></tr>
+    <tr><td>Paso</td><td>Salta en un arco de 6 px. Se estira al despegar y se aplasta al caer. La sombra se achica en el aire y levanta polvo al aterrizar.</td><td class="num">140 ms</td><td>—</td></tr>
+    <tr><td>La flota TBF</td><td>Ruedas que giran, humo del escape, luces de gálibo que titilan y destello sobre el cromo.</td><td class="num">continuo</td><td>—</td></tr>
+    <tr><td>Autos y colectivo</td><td>Llantas que giran, la luz de LIBRE del taxi y el cartel de destino del colectivo.</td><td class="num">continuo</td><td>—</td></tr>
+    <tr><td>Los carteles</td><td>Cada 4 s las tablillas giran una por una y aparece el aviso siguiente. Las lámparas parpadean, y adentro de cada aviso algo se mueve: el pin que late, el punto que avanza por la ruta, el camioncito que cruza o la barra de EXP que se llena.</td><td class="num">4 s</td><td>—</td></tr>
+    <tr><td>El barrio</td><td>La bandera flamea, los árboles se mecen y caen flores de jacarandá.</td><td class="num">continuo</td><td>—</td></tr>
+    <tr><td>Agua y troncos</td><td>Las crestas corren, la espuma bate y los troncos se mecen.</td><td class="num">continuo</td><td>—</td></tr>
+    <tr><td>Levantar caja</td><td>“+50” violeta que sube, chispas y el SCORE que cuenta hacia arriba.</td><td class="num">500 ms</td><td>vibración <code>caja</code></td></tr>
+    <tr><td><b>Golpe</b></td><td>El mundo se congela. <b>Flash rojo sobre el campo, tres parpadeos</b>, una sacudida de 2 px y el mono aplastado o la gorra flotando. La vida titila y se apaga.</td><td class="num">~900 ms</td><td>vibración <code>choque</code></td></tr>
+    <tr><td>Reaparecer</td><td>En la última fila segura. El mono titila mientras es invulnerable.</td><td class="num">1,5 s</td><td>—</td></tr>
+    <tr><td>La grúa</td><td>Si el mono queda atrás, entra la grúa con la baliza prendida y se lo lleva. Cuenta como golpe.</td><td class="num">~900 ms</td><td>vibración <code>choque</code></td></tr>
+    <tr><td>Hitos</td><td>Cada 25 filas hay un playón TBF con el número pintado en el piso, que se ilumina al cruzarlo. En la fila 100 aparece el Obelisco, en una plaza.</td><td class="num">400 ms</td><td>—</td></tr>
+    <tr><td>Nuevo HI-SCORE</td><td>Confeti celeste, blanco y violeta, y el mono festeja.</td><td class="num">2 s</td><td>—</td></tr>
+  </table></div>
+  <p class="apagado">Con “reducir movimiento” activado en el teléfono, se quitan la sacudida y el confeti, y el flash queda en un solo parpadeo largo.</p>
+</section>
+
+<section id="s11">
+  <h2><span class="n">11</span>Flujo de partida</h2>
+  <div class="flujo">
+    <span class="paso">JUEGOS</span><span class="flecha">→</span>
+    <span class="paso vivo">INICIO</span><span class="flecha">→</span>
+    <span class="paso vivo">JUGANDO</span><span class="flecha">→</span>
+    <span class="paso malo">GOLPE</span><span class="flecha">→</span>
+    <span class="paso vivo">REAPARECE</span><span class="flecha">… con la última vida →</span>
+    <span class="paso malo">¡QUÉ MACANA!</span><span class="flecha">o</span>
+    <span class="paso premio">¡SOS UN CRACK!</span><span class="flecha">→</span>
+    <span class="paso">OTRA VEZ · SALIR</span>
+  </div>
+  <div class="par">
+    <div class="col"><canvas id="inicio" class="lienzo" data-k="2" aria-label="Pantalla de inicio: atardecer porteño con el Obelisco, un cartel TBF en una terraza, el título en cromo, el mono con el joystick y un convoy por la 9 de Julio"></canvas></div>
+    <div class="col">
+      <p><b>El inicio es un atardecer porteño:</b> el cielo va del violeta al naranja, con el sol de mayo bajando detrás del skyline. El Obelisco está en el centro, hay ventanas que se prenden y un cartel TBF titila en una terraza.</p>
+      <p>Arriba, el título en cromo celeste con sombra violeta. Al frente, el mono con su joystick. Abajo, por la 9 de Julio, pasa un convoy: dos furgones TBF, un colectivo de la 64 y un Torino. Todo va enmarcado en las lamparitas de la marquesina.</p>
+      <p><b>Jugando.</b> La partida arranca en una vereda de tres filas, para que el primer toque nunca mate.</p>
+      <p><b>Pausa.</b> Tocar SALIR la pausa, con SEGUIR y SALIR. También se pausa sola si la app pasa a segundo plano.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s12">
+  <h2><span class="n">12</span>Reglas de movimiento</h2>
+  <ul class="reglas">
+    <li>El campo tiene <b>9 columnas</b>. El mono arranca en la columna del centro, en la vereda de largada.</li>
+    <li><b>El mapa no se termina.</b> Se genera por bloques a medida que el mono avanza: cuando la cámara sube, nacen filas nuevas arriba y se olvidan las que quedaron abajo. Sigue hasta que el mono pierde las tres vidas.</li>
+    <li>Un paso mueve <b>una celda</b> y tarda 140 ms. Se puede ir adelante, atrás, a la izquierda y a la derecha.</li>
+    <li>Bloquean el paso, que no se da y no cuesta nada: árboles, carteles, conventillos, bancos, bolardos, contenedores y los bordes del campo.</li>
+    <li><b>La cámara sigue al mono</b> cuando avanza y, además, <b>sube sola y despacio</b>. Si el mono queda por debajo del borde inferior, llega la grúa: cumple la función del águila de Crossy Road.</li>
+    <li><b>Sobre un tronco</b>, el mono se mueve con él. Al saltar desde un tronco, cae en la celda más cercana.</li>
+  </ul>
+</section>
+
+<section id="s13">
+  <h2><span class="n">13</span>Reglas de colisión</h2>
+  <div class="tabla"><table>
+    <tr><th>CON QUÉ</th><th>CUÁNDO SE DECIDE</th><th>RESULTADO</th></tr>
+    <tr><td>Vehículo</td><td>En cada cuadro, también en medio del salto. La caja de golpe del mono mide 16 × 18 y está centrada. La del vehículo es su largo menos 3 px de cada punta.</td><td>Pierde una vida. Rozar un paragolpes no cuenta: el juego tiene que sentirse justo.</td></tr>
+    <tr><td>Agua</td><td>Al aterrizar, si el centro del mono no queda sobre un tronco.</td><td>Pierde una vida.</td></tr>
+    <tr><td>Borde, sobre un tronco</td><td>Cuando el centro del mono sale de la columna 1 o de la 9.</td><td>Pierde una vida.</td></tr>
+    <tr><td>Grúa</td><td>Cuando el mono queda por debajo del borde inferior de la cámara.</td><td>Pierde una vida.</td></tr>
+    <tr><td>Obstáculo fijo</td><td>Antes de saltar.</td><td>El paso no se da. No hace daño.</td></tr>
+    <tr><td>Caja</td><td>Al aterrizar en su celda, también sobre un tronco.</td><td>+50, y la caja desaparece.</td></tr>
+  </table></div>
+</section>
+
+<section id="s14">
+  <h2><span class="n">14</span>Sistema de puntuación</h2>
+  <div class="tabla"><table>
+    <tr><th>QUÉ</th><th>PUNTOS</th><th>DETALLE</th></tr>
+    <tr><td>Fila nueva alcanzada</td><td class="num">+10</td><td>Cuenta sólo la fila más lejana: ir y volver no suma.</td></tr>
+    <tr><td>Caja</td><td class="num">+50</td><td>En cualquier lado. Una caja vale lo mismo que 5 filas.</td></tr>
+    <tr><td>SCORE</td><td class="num">10 × filas + 50 × cajas</td><td>Por ejemplo, 120 filas y 7 cajas dan 1.550.</td></tr>
+    <tr><td>HI-SCORE</td><td class="num">el SCORE más alto</td><td>Lo calcula y lo guarda el servidor al terminar la partida, como el récord de la Viborita (sección 17).</td></tr>
+  </table></div>
+  <p><b>Riesgo y recompensa:</b> la caja más tentadora está en la senda peatonal, en medio de la avenida, o arriba de un tronco que se va. Vale 5 filas, pero para buscarla hay que desviarse, y mientras tanto la cámara sube.</p>
+</section>
+
+<section id="s15">
+  <h2><span class="n">15</span>Progresión y dificultad</h2>
+  <div class="tabla"><table>
+    <tr><th>FILAS</th><th>CALLES</th><th>RÍO</th><th>VELOCIDAD MÁX.</th><th>LA CÁMARA SUBE</th></tr>
+    <tr><td class="num">0–20</td><td>1–2 carriles: Fitito, Uno, 504</td><td>1–2 carriles, troncos de 3–4</td><td class="num">1,5 celdas/s</td><td class="num">1 fila cada 4 s</td></tr>
+    <tr><td class="num">20–60</td><td>avenidas de hasta 3, colectivos y la flota TBF</td><td>hasta 3, troncos de 2–3</td><td class="num">2,5 celdas/s</td><td class="num">1 fila cada 3 s</td></tr>
+    <tr><td class="num">60–120</td><td>avenidas de 4, taxis y Torinos rápidos</td><td>hasta 3, troncos de 2</td><td class="num">3,5 celdas/s</td><td class="num">1 fila cada 2,5 s</td></tr>
+    <tr><td class="num">120 o más</td><td>hasta 5 carriles</td><td>hasta 4</td><td class="num">4,5 celdas/s</td><td class="num">1 fila cada 2 s</td></tr>
+  </table></div>
+  <ul class="reglas">
+    <li>El mundo se arma por bloques: una franja segura del barrio de 1 a 3 filas, seguida de un bloque de peligro (calles o río). El primer bloque siempre es una calle de un carril.</li>
+    <li><b>Siempre hay paso.</b> El hueco entre vehículos alcanza para cruzar a la velocidad del carril, y en el río cada fila tiene un tronco al alcance a tiempo.</li>
+    <li class="apagado">Los números son el punto de partida. Se calibran jugando, y quedan como constantes con nombre fijadas por test, como en la Viborita.</li>
+  </ul>
+</section>
+
+<section id="s16">
+  <h2><span class="n">16</span>Game Over</h2>
+  <div class="galeria">
+    <div class="ficha"><canvas id="gameover" class="lienzo" data-k="2" aria-label="Game over: qué macana, el mono cambiando la rueda y los números de la partida"></canvas><span>GAME OVER</span></div>
+    <div class="ficha"><canvas id="record" class="lienzo" data-k="2" aria-label="Nuevo hi-score: sos un crack, el mono festejando con confeti"></canvas><span>CON NUEVO HI-SCORE</span></div>
+  </div>
+  <ul class="reglas">
+    <li><b>GAME OVER</b> cae en rojo y rebota, y abajo aparece <b>¡QUÉ MACANA!</b>. Debajo está el mono en su pose de “esto se arregla”, la de la rueda, y después los números de la partida.</li>
+    <li><b>Si superó el récord, aparece ¡SOS UN CRACK!</b>: el mono festeja con confeti celeste, blanco y violeta, el número cuenta hacia arriba y ¡NUEVO HI-SCORE! late. Es el momento en que se guarda.</li>
+    <li>Tiene dos botones con el reborde de la app: <b>OTRA VEZ</b> en celeste y <b>SALIR</b> en gris. Durante los primeros 600 ms los toques se ignoran.</li>
+  </ul>
+</section>
+
+<section id="s17">
+  <h2><span class="n">17</span>Integración con la sección Juegos</h2>
+  <div class="par">
+    <div class="col">
+      <div class="app" aria-label="Maqueta de la pantalla Juegos con la fila nueva">
+        <div class="titulo">Juegos</div>
+        <div class="tarjeta"><h4>Viborita TBF</h4><p>El Snake del 1100, con tu camión: cada caja es un acoplado más.</p><div class="jugar">JUGAR</div></div>
+        <div class="tarjeta nuevo"><h4>Cruzá, Mono</h4><p>Cruzá avenidas y el Riachuelo entre colectivos, Torinos y la flota TBF. Cada caja suma 50.</p><div class="jugar">JUGAR</div></div>
+        <div class="tarjeta"><span class="pill">Pronto</span><h4>Trivia del camionero</h4></div>
+      </div>
+    </div>
+    <div class="col">
+      <ul class="reglas">
+        <li><b>Una fila en Juegos</b>, con la misma tarjeta y el mismo botón JUGAR que la Viborita, debajo de ella.</li>
+        <li><b>Abre a pantalla completa</b>: tiene su propia ruta (<code>#cruza</code>), avisa <code>pantalla-completa</code> para que el zócalo se esconda, y SALIR vuelve a Juegos.</li>
+        <li><b>Pide cuenta</b>, igual que todos los juegos: el invitado ve el aviso de cuenta.</li>
+        <li><b>Usa lo que ya hizo la app:</b>
+          <ul>
+            <li>las poses de <code>mascota.js</code> en el inicio y en el final;</li>
+            <li>la fuente 5 × 7, con tres glifos nuevos;</li>
+            <li>las vibraciones <code>caja</code> y <code>choque</code>;</li>
+            <li>la pausa al pasar a segundo plano;</li>
+            <li>la escala entera, medida por lo que ocupa el marco.</li>
+          </ul>
+        </li>
+        <li><b>El HI-SCORE va en el servidor, como el récord de la Viborita.</b>
+          <ul>
+            <li>Al terminar, la app manda <code>POST /api/juegos/cruza/partidas</code> con <code>{filas, cajas, duracionMs}</code>.</li>
+            <li>El servidor calcula los puntos (10 × filas + 50 × cajas), rechaza con 422 una partida imposible y guarda el récord en la tabla de récords, con el código <code>cruza</code>.</li>
+            <li>El inicio lo lee de <code>/api/progress/records</code>. Si no hay señal, la partida se juega igual y el final lo dice.</li>
+          </ul>
+        </li>
+        <li><b>Sin EXP, sin batería y sin sonido</b> en esta etapa, como la Viborita.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<p class="apagado">Este es el diseño aprobado. La spec y el plan viven en <code>docs/superpowers/</code>, y el prototipo en <code>docs/diseno/prototipo-cruza/</code>.</p>
+</div>
+
+<img id="png-joystick" src="__JOYSTICK__" alt="" hidden>
+<img id="png-rueda" src="__RUEDA__" alt="" hidden>
+<img id="png-festejo" src="__FESTEJO__" alt="" hidden>
