@@ -49,6 +49,10 @@ El diseño llevó **cinco vueltas**:
    - "TU GPS, BAJALA GRATIS";
    - "RED DE TRÁNSITO PESADO".
 
+   En la segunda vuelta de carteles, el usuario dijo que el único con criterio era la chapa
+   fileteada y que los otros dos eran pobres. Se rehicieron al nivel de la chapa, y la letra pasó
+   a ser gruesa y fileteada.
+
 ## 2. La pantalla
 
 ### 2.1 El marco
@@ -115,7 +119,7 @@ El mundo es una sucesión de **filas**, numeradas desde la largada (fila 0) haci
 | `vereda` | segura | Baldosas, cordón y, a veces, cordón amarillo. Obstáculos: plátano, jacarandá, contenedor verde y carteles de la app (§4.3) |
 | `plaza` | segura | Pasto con flores. Obstáculos: plátano, jacarandá, banco con mate y carteles de la app |
 | `boca` | segura | La orilla de La Boca: conventillos de 1 celda cada uno (son los obstáculos), con huecos y mirando al río |
-| `playon` | segura | El hito cada 25 filas: logo TBF y número de fila pintados, bolardos, mástil y, a veces, el mupi |
+| `playon` | segura | El hito cada 25 filas: logo TBF y número de fila pintados, bolardos, mástil y, a veces, el cartel de neón |
 | `calle` | peligro | Un carril con vehículos (§3.3) |
 | `rio` | peligro | Un carril de agua con troncos (§3.4) |
 
@@ -147,7 +151,7 @@ que el mono pierde las tres vidas.
   - nunca dos del mismo tipo seguidos;
   - **la señal de la Red va sólo en una fila segura pegada a una calle** (la de antes o la de
     después), que es donde tiene sentido. Si no hay calle pegada, se elige entre los otros dos;
-  - **el playón lleva el mupi** con probabilidad 0,5, en la columna 1.
+  - **el playón lleva el cartel de neón** con probabilidad 0,5, en las columnas 1 a 3.
 
 ### 3.3 Las calles — el reparto del tránsito
 
@@ -240,12 +244,19 @@ Se repiten a lo largo del mapa (§3.2). Son tres:
 
 | Cartel | Tamaño | Cómo es | Qué se mueve |
 |---|---|---|---|
-| **"EL MEJOR AMIGO DEL CAMIONERO"** | 3 celdas | Chapa fileteada sobre dos postes de madera: fondo azul noche, filete amarillo, volutas en las esquinas. Arriba, un medallón celeste con la cara del mono | Las lamparitas del borde titilan y el sol gira detrás del medallón |
-| **"RED DE TRÁNSITO PESADO"** | 3 celdas | Señal vial azul con borde blanco, el pictograma del camión y la línea de cromo celeste de la Red abajo, sobre un poste | Un reflejo la cruza cada 5 s |
-| **"TU GPS, BAJALA GRATIS"** | 2 celdas | Mupi luminoso, como los de las paradas: marco de cromo celeste y un teléfono con la app al lado del texto | El halo late, y en el teléfono un punto avanza por la ruta |
+| **"EL MEJOR AMIGO DEL CAMIONERO"** | 3 celdas | Chapa fileteada sobre dos postes de madera: fondo azul noche, filete amarillo y rulos violetas en las esquinas. Copete: un medallón celeste con la cara del mono | Las lamparitas del borde titilan y el sol gira detrás del medallón |
+| **"RED DE TRÁNSITO PESADO"** | 3 celdas | La señal de la Red: marco de cromo celeste, flechas amarillas al costado de PESADO, franja de peligro amarilla y negra abajo y poste a rayas. Copete: una placa de cromo con el camión y dos balizas ámbar | Las balizas se prenden de a una, las flechas se mueven y un reflejo la cruza |
+| **"TU GPS, BAJALA GRATIS"** | 3 celdas | Cartel de neón sobre chapa oscura: tubos celestes y violetas con halo y un borde de neón. Copete: TBF en neón | La luz corre por el borde, y la segunda línea parpadea de a ratos como un neón viejo |
 
-- **Las leyendas van con una fuente de píxel chica de 3 × 5**, con la M y la N más anchas y una
-  fila arriba para el acento de la Á. En la 5 × 7 no entran.
+- **Los tres son de la misma familia**: 3 celdas, y un copete arriba.
+- **La letra de los carteles rompe.** El usuario lo pidió el 04/10/2026: *"la fuente debe romper y
+  ser más visible que el bit que estamos usando"*.
+  - Es una letra **angosta y gruesa de 4 × 7**: la M y la N de 5, la I y la T de 3, y la Á con su
+    acento arriba.
+  - Se dibuja **como las letras fileteadas del logo TBF**: contorno oscuro, relleno en degradé por
+    fila y un brillo blanco arriba de cada trazo.
+  - En el neón, cada letra es el tubo, con su halo.
+  - Las tres leyendas entran en 3 celdas con esta letra. Con la 5 × 7 no entraban.
 - **Se dibujan hacia arriba**, a lo sumo 30 px por encima de su fila.
 
 ## 5. La jugabilidad
@@ -358,7 +369,7 @@ no un accidente.
 | El motor | `wwwroot/js/juegos/cruza/motor.js` (puro: pasos, cámara, colisiones, vidas, puntos) |
 | Sprites | `wwwroot/js/juegos/cruza/sprites.js` (portados del prototipo) |
 | Vehículos | `wwwroot/js/juegos/cruza/vehiculos.js` (rasterizador y modelos, portados) |
-| Escenario | `wwwroot/js/juegos/cruza/escenario.js` (piso, barrio y los tres carteles, portados; la fuente chica 3 × 5) |
+| Escenario | `wwwroot/js/juegos/cruza/escenario.js` (piso, barrio y los tres carteles, portados; la letra gruesa 4 × 7) |
 | Pantallas | `wwwroot/js/juegos/cruza/pantallas.js` (dibujar el juego, HUD, inicio, final) |
 | La vista | `wwwroot/js/views/cruza.js` (reloj, controles, pausa, servidor) |
 | Fuente | `wwwroot/js/juegos/viborita/dibujos.js` suma `-`, `+`, `,` |
