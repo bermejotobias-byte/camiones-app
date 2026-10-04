@@ -8,7 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { SPRITES, FUENTE, spriteDe, faltantes, anchoDeTexto } from '../../src/TruckNavigator.Api/wwwroot/js/juegos/viborita/dibujos.js';
+import { SPRITES, FUENTE, spriteDe, faltantes, anchoDeTexto, rotulo } from '../../src/TruckNavigator.Api/wwwroot/js/juegos/viborita/dibujos.js';
 
 test('los sprites aprobados, píxel por píxel', () => {
   assert.deepEqual(SPRITES.CAB_R, ['....#.....', '....#####.', '....##..#.', '....##..##', '....######', '....######', '##########', '.##....##.', '.##....##.', '..........']);
@@ -57,4 +57,18 @@ test('un carácter que no está se informa, no se dibuja en blanco callado', () 
 test('el ancho de un texto: seis por letra menos el último espacio', () => {
   assert.equal(anchoDeTexto('TBF'), 17);
   assert.equal(anchoDeTexto('TBF', 2), 34);
+});
+
+test('la fuente trae los signos de CRUZÁ, MONO: el guion, el más y la coma', () => {
+  assert.deepEqual(FUENTE['-'], ['.....', '.....', '.....', '#####', '.....', '.....', '.....']);
+  assert.deepEqual(FUENTE['+'], ['.....', '..#..', '..#..', '#####', '..#..', '..#..', '.....']);
+  assert.deepEqual(FUENTE[','], ['.....', '.....', '.....', '.....', '.....', '..#..', '.#...']);
+  assert.deepEqual(faltantes('HI-SCORE +50 CRUZÁ, MONO'), []);
+});
+
+test('rotulo arma un SVG de la fuente de píxel, con un rectángulo por píxel', () => {
+  const svg = rotulo('< SALIR', '#9aa6b8');
+  assert.match(svg, /^<svg viewBox="0 0 82 14" width="82" height="14"/);
+  assert.match(svg, /aria-label="< SALIR"/);
+  assert.equal((svg.match(/<rect /g) ?? []).length, 80);
 });
