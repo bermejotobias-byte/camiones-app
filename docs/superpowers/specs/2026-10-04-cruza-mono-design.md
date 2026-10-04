@@ -42,6 +42,12 @@ El diseño llevó **cinco vueltas**:
    camiones, y el usuario la corrigió: *"No tantos camiones, se complica mucho la jugabilidad…
    que lo que menos pasen sean colectivos"*. Lo que más pasa son autos, después camiones TBF y
    al final colectivos. Nunca hay dos carriles seguidos de vehículos largos.
+7. **Carteles chicos, en contexto y repetidos** (§4.3). El cartel grande de 4 celdas se sacó a
+   pedido del usuario: *"que aparezcan carteles con mejor diseño… repetidos a lo largo del mapa,
+   sin ser tan grandes y fuera de contexto como el único que tenemos ahora"*. Son tres:
+   - "EL MEJOR AMIGO DEL CAMIONERO";
+   - "TU GPS, BAJALA GRATIS";
+   - "RED DE TRÁNSITO PESADO".
 
 ## 2. La pantalla
 
@@ -75,8 +81,8 @@ El diseño llevó **cinco vueltas**:
   - el playón TBF con la bandera en el mástil.
 - **La marca TBF va en primer plano:**
   - la flota de camiones trompudos fileteados;
-  - los carteles de la app;
   - la caja con la cinta celeste;
+  - los carteles de la app, chicos y repetidos;
   - el cromo celeste;
   - el violeta de recompensa en el HI-SCORE y en el "+50".
 - **El rojo puro (`#FF2E3A`) es sólo para el golpe.** Los autos usan colores vivos, pero ninguno
@@ -106,10 +112,10 @@ El mundo es una sucesión de **filas**, numeradas desde la largada (fila 0) haci
 
 | Tipo | Clase | Qué tiene |
 |---|---|---|
-| `vereda` | segura | Baldosas, cordón y, a veces, cordón amarillo. Obstáculos: plátano, jacarandá, contenedor verde y cartel de la app (4 celdas) |
-| `plaza` | segura | Pasto con flores. Obstáculos: plátano, jacarandá y banco con mate |
-| `boca` | segura | La orilla de La Boca: conventillos de 1 celda cada uno (son los obstáculos), con huecos |
-| `playon` | segura | El hito cada 25 filas: logo TBF y número de fila pintados, bolardos y mástil |
+| `vereda` | segura | Baldosas, cordón y, a veces, cordón amarillo. Obstáculos: plátano, jacarandá, contenedor verde y carteles de la app (§4.3) |
+| `plaza` | segura | Pasto con flores. Obstáculos: plátano, jacarandá, banco con mate y carteles de la app |
+| `boca` | segura | La orilla de La Boca: conventillos de 1 celda cada uno (son los obstáculos), con huecos y mirando al río |
+| `playon` | segura | El hito cada 25 filas: logo TBF y número de fila pintados, bolardos, mástil y, a veces, el mupi |
 | `calle` | peligro | Un carril con vehículos (§3.3) |
 | `rio` | peligro | Un carril de agua con troncos (§3.4) |
 
@@ -125,15 +131,23 @@ que el mono pierde las tres vidas.
   - El primer bloque de peligro es siempre **una calle de un carril**.
   - Después, es **río con probabilidad 0,3** y **calle** el resto. Nunca hay dos bloques de río
     seguidos.
-  - La franja segura que viene **justo antes de un río** es de tipo `boca` en su última fila.
+  - La franja segura que viene **justo después de un río** empieza con una fila `boca`: los
+    conventillos miran al río, que queda detrás (abajo en la pantalla).
 - **Cada fila múltiplo de 25** es un `playon`, con su número pintado. Si cae en medio de un bloque
   de peligro, el bloque se corta ahí y sigue después.
 - **En la fila 100, el playón tiene el Obelisco**: un obstáculo de 1 celda que se dibuja alto.
 - **Garantía de paso en lo seguro:**
   - cada franja segura tiene al menos **4 celdas libres por fila**;
   - **una misma columna libre en todas sus filas**: el pasillo;
-  - el cartel (4 celdas) va sólo en una `vereda`, uno por fila como máximo, y nunca sobre el
-    pasillo.
+  - los carteles nunca van sobre el pasillo.
+- **Los carteles de la app se repiten a lo largo del mapa:**
+  - en cada fila de `vereda` o `plaza` hay **0,35 de probabilidad** de un cartel;
+  - **uno por fila como máximo**, y **nunca en dos filas pegadas**: se dibujan hacia arriba y
+    taparían al de adelante;
+  - nunca dos del mismo tipo seguidos;
+  - **la señal de la Red va sólo en una fila segura pegada a una calle** (la de antes o la de
+    después), que es donde tiene sentido. Si no hay calle pegada, se elige entre los otros dos;
+  - **el playón lleva el mupi** con probabilidad 0,5, en la columna 1.
 
 ### 3.3 Las calles — el reparto del tránsito
 
@@ -221,19 +235,18 @@ cara del mono y el número de línea.
 Plátano y jacarandá, que se mecen; el jacarandá además deja caer flores. Contenedor verde, banco
 con mate y termo, bolardo celeste, mástil con la bandera que flamea y conventillos de colores.
 
-**El cartel de la app** ocupa 4 celdas:
+**Los carteles de la app** son chicos y de la calle, como la publicidad de una vereda de verdad.
+Se repiten a lo largo del mapa (§3.2). Son tres:
 
-- **El armado:**
-  - copete fileteado con el sol de mayo;
-  - marco de cromo celeste en cuatro tonos y filete amarillo con volutas;
-  - pasarela con baranda y tres lámparas que lo alumbran desde abajo;
-  - dos columnas de hierro con cruces.
-- **El cambio de aviso:** cada 4 s, con tablillas que giran una por una, como un tri-visión.
-- **Los cuatro avisos:**
-  - "TBF · TU GPS";
-  - "¡BAJATELA GRATIS!";
-  - "RUTA LIBRE CON TBF";
-  - "SUMÁ EXP MANEJANDO".
+| Cartel | Tamaño | Cómo es | Qué se mueve |
+|---|---|---|---|
+| **"EL MEJOR AMIGO DEL CAMIONERO"** | 3 celdas | Chapa fileteada sobre dos postes de madera: fondo azul noche, filete amarillo, volutas en las esquinas. Arriba, un medallón celeste con la cara del mono | Las lamparitas del borde titilan y el sol gira detrás del medallón |
+| **"RED DE TRÁNSITO PESADO"** | 3 celdas | Señal vial azul con borde blanco, el pictograma del camión y la línea de cromo celeste de la Red abajo, sobre un poste | Un reflejo la cruza cada 5 s |
+| **"TU GPS, BAJALA GRATIS"** | 2 celdas | Mupi luminoso, como los de las paradas: marco de cromo celeste y un teléfono con la app al lado del texto | El halo late, y en el teléfono un punto avanza por la ruta |
+
+- **Las leyendas van con una fuente de píxel chica de 3 × 5**, con la M y la N más anchas y una
+  fila arriba para el acento de la Á. En la 5 × 7 no entran.
+- **Se dibujan hacia arriba**, a lo sumo 30 px por encima de su fila.
 
 ## 5. La jugabilidad
 
@@ -345,7 +358,7 @@ no un accidente.
 | El motor | `wwwroot/js/juegos/cruza/motor.js` (puro: pasos, cámara, colisiones, vidas, puntos) |
 | Sprites | `wwwroot/js/juegos/cruza/sprites.js` (portados del prototipo) |
 | Vehículos | `wwwroot/js/juegos/cruza/vehiculos.js` (rasterizador y modelos, portados) |
-| Escenario | `wwwroot/js/juegos/cruza/escenario.js` (piso, barrio, carteles, portados) |
+| Escenario | `wwwroot/js/juegos/cruza/escenario.js` (piso, barrio y los tres carteles, portados; la fuente chica 3 × 5) |
 | Pantallas | `wwwroot/js/juegos/cruza/pantallas.js` (dibujar el juego, HUD, inicio, final) |
 | La vista | `wwwroot/js/views/cruza.js` (reloj, controles, pausa, servidor) |
 | Fuente | `wwwroot/js/juegos/viborita/dibujos.js` suma `-`, `+`, `,` |
@@ -372,6 +385,8 @@ no un accidente.
     - nunca dos ríos seguidos, y ríos vecinos en sentidos opuestos;
     - el hueco mínimo entre vehículos y el agua libre de 3 celdas como máximo;
     - 4 celdas libres y el pasillo en cada franja segura;
+    - los carteles: uno por fila, nunca en filas pegadas, nunca dos iguales seguidos, la señal de la Red sólo pegada a una calle, y alrededor de uno cada 4 filas seguras sobre 3000 filas;
+    - la fila `boca` siempre justo después de un río;
     - una caja por fila como máximo;
     - el playón cada 25 filas;
     - el reparto sobre 3000 filas: autos alrededor del 55 %, Red del 30 % y colectivos del 15 %,
@@ -410,5 +425,5 @@ no un accidente.
 | **Que no ande fluido en el teléfono**: el prototipo redibuja todo en cada cuadro | El caché por fila de §8, y medir los cuadros por segundo en el navegador con la CPU limitada antes de armar el APK |
 | **Un mundo sin paso** (calle sin hueco, río sin tronco al alcance) | Las garantías de §3, probadas sobre miles de filas con semilla fija |
 | **Que el pixel art se degrade al portarlo** | Se copia del prototipo, no se redibuja. Cada pantalla se compara contra la del artifact |
-| **El cartel (4 celdas) encerrando el paso** | Nunca sobre el pasillo, y uno por fila |
+| **Un cartel encerrando el paso, o tapando a otro** | Nunca sobre el pasillo, uno por fila y nunca en filas pegadas |
 | **La rama**: este juego usa piezas de la Viborita (fuente, récord, `pantalla-completa`) que todavía no están en `main` | `cruza-mono` sale de `viborita-tbf`. Antes de escribir código, con la Viborita ya fusionada, se rebasa sobre `main` (`git rebase --onto main viborita-tbf cruza-mono`) |

@@ -30,6 +30,7 @@
     <div class="caja-info">
       <h3>QUÉ CAMBIÓ DESDE LA V4</h3>
       <ul>
+        <li><b>Carteles chicos y en contexto</b>, repetidos a lo largo del mapa. Hay tres: “EL MEJOR AMIGO DEL CAMIONERO” en una chapa fileteada, “RED DE TRÁNSITO PESADO” en una señal vial pegada a las calles, y “TU GPS, BAJALA GRATIS” en un mupi luminoso. El cartel grande se fue.</li>
         <li><b>El tránsito tiene criterio.</b> Lo que más pasa son autos, después los camiones TBF, y lo que menos, los colectivos. Nunca hay dos carriles seguidos de vehículos largos, y al principio casi todo son autos.</li>
         <li><b>El mapa no se termina.</b> Se arma por bloques a medida que el mono avanza y sigue hasta que pierde las tres vidas.</li>
         <li><b>El HI-SCORE se guarda en el servidor</b>, como el récord de la Viborita.</li>
@@ -108,8 +109,9 @@
   <h2><span class="n">03</span>Diseño de carreteras y del barrio</h2>
   <canvas id="calles" class="lienzo" data-k="3" aria-label="Vereda con plátanos y jacarandá, calle de adoquines con un Fitito, avenida de la Red con un colectivo y un camión TBF, senda peatonal con un Torino y plaza con jacarandá"></canvas>
   <div class="galeria gal-k">
-    <div class="ficha"><canvas id="p-cartel" class="lienzo" data-k="4"></canvas><span>CARTEL DE LA APP · TABLILLAS QUE GIRAN</span></div>
-    <div class="ficha"><canvas id="p-cartel2" class="lienzo" data-k="4"></canvas><span>EL MISMO CARTEL, OTRO AVISO</span></div>
+    <div class="ficha"><canvas id="p-chapa" class="lienzo" data-k="4"></canvas><span>CHAPA FILETEADA · 3 CELDAS</span></div>
+    <div class="ficha"><canvas id="p-senal" class="lienzo" data-k="4"></canvas><span>SEÑAL DE LA RED · 3 CELDAS</span></div>
+    <div class="ficha"><canvas id="p-mupi" class="lienzo" data-k="4"></canvas><span>MUPI LUMINOSO · 2 CELDAS</span></div>
     <div class="ficha"><canvas id="p-jacaranda" class="lienzo" data-k="3"></canvas><span>JACARANDÁ EN FLOR</span></div>
     <div class="ficha"><canvas id="p-bandera" class="lienzo" data-k="3"></canvas><span>LA BANDERA FLAMEA</span></div>
     <div class="ficha"><canvas id="p-mate" class="lienzo" data-k="3"></canvas><span>BANCO CON MATE Y TERMO</span></div>
@@ -126,23 +128,16 @@
         <li>el <b>playón TBF</b>, con el logo pintado, bolardos celestes y la bandera en el mástil.</li>
       </ul>
     </li>
-    <li><b>Los carteles de la app</b> ocupan 4 celdas, y son la publicidad del barrio:
+    <li><b>Los carteles de la app se repiten a lo largo del mapa</b>, chicos y en su contexto, como la publicidad de una vereda de verdad. Hay tres:
       <ul>
-        <li><b>Arriba</b>, un copete fileteado con el sol de mayo y dos volutas.</li>
-        <li><b>El marco</b> es de cromo celeste en cuatro tonos y lleva adentro un filete amarillo con volutas violetas en las esquinas.</li>
-        <li><b>Abajo</b> hay una pasarela con baranda y tres lámparas que alumbran el aviso desde abajo y a veces parpadean. El cartel se apoya en dos columnas de hierro con cruces y placas de base.</li>
-        <li><b>El aviso cambia cada 4 s con tablillas que giran una por una</b>, como los carteles tri-visión de las avenidas.</li>
+        <li><b>“EL MEJOR AMIGO DEL CAMIONERO”</b> va en una chapa fileteada de 3 celdas, sobre dos postes de madera. Tiene fondo azul noche, filete amarillo, volutas en las esquinas, lamparitas en el borde y, arriba, un medallón celeste con la cara del mono y el sol que gira detrás.</li>
+        <li><b>“RED DE TRÁNSITO PESADO”</b> es una señal vial azul de 3 celdas, con borde blanco, el pictograma del camión, la línea de cromo celeste de la Red y un reflejo que la cruza. Va sólo en las veredas pegadas a una calle, que es donde tiene sentido.</li>
+        <li><b>“TU GPS, BAJALA GRATIS”</b> es un mupi luminoso de 2 celdas, como los de las paradas, con el marco de cromo celeste y un halo que late. Adentro hay un teléfono con la app, donde un punto avanza por la ruta.</li>
       </ul>
     </li>
-    <li><b>Los cuatro avisos están ilustrados:</b>
-      <ul>
-        <li>“TBF · TU GPS”: cielo celeste con nubes, la cara del mono, el logo fileteado y un pin de mapa que late sobre una ruta punteada;</li>
-        <li>“¡BAJATELA GRATIS!”: fondo violeta y un teléfono con la app abierta, donde un punto avanza por la ruta;</li>
-        <li>“RUTA LIBRE CON TBF”: atardecer con el sol de mayo y un camioncito TBF que cruza por una ruta;</li>
-        <li>“SUMÁ EXP MANEJANDO”: noche estrellada y la barra de nivel de la app, en cromo celeste y violeta, que se llena.</li>
-      </ul>
-    </li>
-    <li>Los obstáculos bloquean el paso pero nunca cierran el camino. El cartel ocupa 4 celdas y se rodea.</li>
+    <li><b>Su letra es una fuente de píxel chica de 3 × 5</b>, con la Á: las leyendas no entran con la 5 × 7.</li>
+    <li><b>Cuántos y dónde:</b> en cada fila de vereda o plaza hay un 35 % de chance de un cartel, nunca dos del mismo tipo seguidos y nunca sobre el pasillo.</li>
+    <li>Los obstáculos bloquean el paso pero nunca cierran el camino. Los carteles ocupan 2 o 3 celdas y se rodean.</li>
   </ul>
 </section>
 
@@ -295,7 +290,7 @@
     <tr><td>Paso</td><td>Salta en un arco de 6 px. Se estira al despegar y se aplasta al caer. La sombra se achica en el aire y levanta polvo al aterrizar.</td><td class="num">140 ms</td><td>—</td></tr>
     <tr><td>La flota TBF</td><td>Ruedas que giran, humo del escape, luces de gálibo que titilan y destello sobre el cromo.</td><td class="num">continuo</td><td>—</td></tr>
     <tr><td>Autos y colectivo</td><td>Llantas que giran, la luz de LIBRE del taxi y el cartel de destino del colectivo.</td><td class="num">continuo</td><td>—</td></tr>
-    <tr><td>Los carteles</td><td>Cada 4 s las tablillas giran una por una y aparece el aviso siguiente. Las lámparas parpadean, y adentro de cada aviso algo se mueve: el pin que late, el punto que avanza por la ruta, el camioncito que cruza o la barra de EXP que se llena.</td><td class="num">4 s</td><td>—</td></tr>
+    <tr><td>Los carteles</td><td>En la chapa titilan las lamparitas y el sol gira detrás del medallón. A la señal de la Red la cruza un reflejo, y en el mupi late el halo mientras el punto avanza por la ruta del teléfono.</td><td class="num">continuo</td><td>—</td></tr>
     <tr><td>El barrio</td><td>La bandera flamea, los árboles se mecen y caen flores de jacarandá.</td><td class="num">continuo</td><td>—</td></tr>
     <tr><td>Agua y troncos</td><td>Las crestas corren, la espuma bate y los troncos se mecen.</td><td class="num">continuo</td><td>—</td></tr>
     <tr><td>Levantar caja</td><td>“+50” violeta que sube, chispas y el SCORE que cuenta hacia arriba.</td><td class="num">500 ms</td><td>vibración <code>caja</code></td></tr>

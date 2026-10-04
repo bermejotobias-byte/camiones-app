@@ -412,100 +412,94 @@ function conventillo(c, x, y, i) {
   px(c, x + 3, top + 21, 18, 1, CONTORNO); for (let k = 0; k < 18; k += 3) px(c, x + 3 + k, top + 21, 1, 4, CONTORNO);
   px(c, x + 8, top + 28, 8, 13, CONTORNO); px(c, x + 9, top + 29, 6, 12, i % 2 ? '#8a4f22' : '#3d1f7a'); px(c, x + 13, top + 35, 1, 1, '#ffd21f');
 }
-// --- el cartel de la app: copete fileteado, marco de cromo, estructura de hierro, lamparas
-// y avisos en tablillas giratorias (tri-vision)
-const AV_W = 84, AV_H = 27;
-const avisoLienzo = [0, 1].map(() => { const cv = document.createElement('canvas'); cv.width = AV_W; cv.height = AV_H; const c = cv.getContext('2d'); c.imageSmoothingEnabled = false; return { cv, c }; });
-function fondoBandas(c, cols) { const h = AV_H / cols.length; cols.forEach((col, i) => px(c, 0, Math.round(i * h), AV_W, Math.ceil(h) + 1, col)); }
-const AVISOS = [
-  (c, t) => {                                                                   // TBF · tu GPS de ruta
-    fondoBandas(c, ['#bfeeff', '#d4f3ff', '#e6f8ff', '#f2fbff', '#ffffff']);
-    for (const [nx, ny] of [[44, 3], [70, 6]]) { px(c, nx, ny, 9, 2, '#ffffff'); px(c, nx + 2, ny - 1, 5, 1, '#ffffff'); }
-    pegar(c, CABEZA, 3, 2, { k: 2 });
-    letrasFilete(c, 'TBF', 31, 3, 2, CELESTE7, '#0d2a3a');
-    texto(c, 'TU GPS', 32, 19, '#7650c9');
-    const b = Math.floor(t * 3) % 2;
-    px(c, 74, 15 - b, 7, 7, '#1f86ad'); px(c, 75, 14 - b, 5, 9, '#1f86ad'); px(c, 76, 22 - b, 3, 2, '#1f86ad'); px(c, 77, 24 - b, 1, 1, '#1f86ad');
-    px(c, 76, 16 - b, 3, 3, '#ffffff');
-    for (let k = 0; k < 6; k++) px(c, 70 - k * 4, 25 - (k % 2), 2, 1, '#35b8e8');
-  },
-  (c, t) => {                                                                   // bajatela gratis
-    fondoBandas(c, ['#5a33a8', '#6a3cc0', '#7a4fd6', '#8d5fe0', '#a97bf0']);
-    px(c, 4, 2, 16, 24, '#0d0c18'); px(c, 5, 3, 14, 22, '#1b1a2e'); px(c, 6, 5, 12, 17, '#bfeeff');
-    px(c, 6, 5, 12, 17, '#d4f3ff'); for (let k = 0; k < 4; k++) px(c, 6, 7 + k * 4, 12, 1, '#ffffff');
-    px(c, 10, 5, 1, 17, '#ffffff'); px(c, 14, 5, 1, 17, '#ffffff'); px(c, 8, 9, 3, 3, '#7be08a'); px(c, 13, 15, 3, 4, '#7be08a');
-    const pr = mod(t * 0.8, 1); for (let k = 0; k < 12; k++) px(c, 7 + Math.round(k * 0.8), 20 - k, 2, 1, '#35b8e8');
-    px(c, 7 + Math.round(pr * 12 * 0.8), 20 - Math.round(pr * 12), 2, 2, '#ff7f1f');
-    px(c, 10, 23, 4, 1, '#3a3958');
-    texto(c, '¡BAJATELA', 25, 5, '#2a1660'); texto(c, '¡BAJATELA', 24, 4, '#ffffff');
-    texto(c, 'GRATIS!', 31, 16, '#2a1660'); texto(c, 'GRATIS!', 30, 15, '#ffd21f');
-  },
-  (c, t) => {                                                                   // ruta libre con TBF
-    fondoBandas(c, ['#ffd88a', '#ffc27a', '#ffad6b', '#ff9e6a', '#f5837f']);
-    estampa(c, SOL, 72, 2, solCol);
-    px(c, 0, 20, AV_W, 7, '#3a3e4f'); for (let x = mod(-t * 30, 10) - 10; x < AV_W; x += 10) px(c, x, 23, 5, 1, '#f4f4f4');
-    const tx = Math.round(mod(t * 26, AV_W + 30) - 30);
-    px(c, tx, 13, 18, 8, CONTORNO); px(c, tx + 1, 14, 16, 6, '#ffffff'); texto(c, 'TBF', tx + 1, 13, '#1f86ad');
-    px(c, tx + 18, 15, 7, 6, CONTORNO); px(c, tx + 19, 16, 5, 4, '#35b8e8'); px(c, tx + 22, 16, 2, 2, '#bfeeff');
-    for (const wx of [3, 12, 21]) { px(c, tx + wx, 20, 3, 3, '#0d0c12'); px(c, tx + wx + 1, 21, 1, 1, '#cfd8e3'); }
-    texto(c, 'RUTA LIBRE', 4, 2, '#3d1f7a');
-    texto(c, 'CON TBF', 13, 11 - 0, '#1f4a5c');
-  },
-  (c, t) => {                                                                   // suma EXP manejando
-    fondoBandas(c, ['#0d1640', '#121d52', '#172668', '#1d2f7a', '#22388a']);
-    for (let k = 0; k < 9; k++) { const sx = (k * 37) % AV_W, sy = (k * 13) % 12; if (Math.floor(t * 3 + k) % 3) px(c, sx, sy, 1, 1, '#ffffff'); }
-    estampa(c, ['..a..', '.aaa.', 'aaaaa', '.aaa.', '.a.a.'], 4, 4, { a: '#c9a8ff' });
-    texto(c, 'SUMÁ EXP', 12, 2, '#ffffff');
-    texto(c, 'MANEJANDO', 12, 11, '#c9a8ff');
-    const lleno = Math.round(mod(t * 0.4, 1) * 64);
-    px(c, 10, 20, 66, 6, '#0b0f2a'); px(c, 11, 21, 64, 4, '#26305a');
-    const barra = ['#ffffff', '#8fdcf7', '#35b8e8', '#a97bf0'];
-    barra.forEach((col, i) => px(c, 11, 21 + i, lleno, 1, col));
-    if (lleno > 2) px(c, 11 + lleno - 2, 21, 2, 4, '#ffffff');
+// --- la letra chica de los carteles: 3 x 5 (la M y la N mas anchas), con una fila arriba
+// para el acento. Los carteles chicos no entran con la 5 x 7.
+const MINI = {
+  A: ['...', '.#.', '#.#', '###', '#.#', '#.#'], 'Á': ['..#', '.#.', '#.#', '###', '#.#', '#.#'],
+  B: ['...', '##.', '#.#', '##.', '#.#', '##.'], C: ['...', '.##', '#..', '#..', '#..', '.##'],
+  D: ['...', '##.', '#.#', '#.#', '#.#', '##.'], E: ['...', '###', '#..', '##.', '#..', '###'],
+  F: ['...', '###', '#..', '##.', '#..', '#..'], G: ['...', '.##', '#..', '#.#', '#.#', '.##'],
+  I: ['...', '###', '.#.', '.#.', '.#.', '###'], J: ['...', '..#', '..#', '..#', '#.#', '.#.'],
+  L: ['...', '#..', '#..', '#..', '#..', '###'], M: ['.....', '#...#', '##.##', '#.#.#', '#...#', '#...#'],
+  N: ['....', '#..#', '##.#', '#.##', '#..#', '#..#'], O: ['...', '.#.', '#.#', '#.#', '#.#', '.#.'],
+  P: ['...', '##.', '#.#', '##.', '#..', '#..'], R: ['...', '##.', '#.#', '##.', '#.#', '#.#'],
+  S: ['...', '.##', '#..', '.#.', '..#', '##.'], T: ['...', '###', '.#.', '.#.', '.#.', '.#.'],
+  U: ['...', '#.#', '#.#', '#.#', '#.#', '###'], ',': ['..', '..', '..', '..', '.#', '#.'],
+  ' ': ['..', '..', '..', '..', '..', '..']
+};
+const anchoMini = (s) => [...s].reduce((a, ch) => a + (MINI[ch] || MINI[' '])[0].length + 1, 0) - 1;
+function textoMini(c, s, x, y, color, sombra) {
+  if (sombra) textoMini(c, s, x + 1, y + 1, sombra);
+  let cx = x;
+  for (const ch of s) {
+    const g = MINI[ch] || MINI[' '];
+    g.forEach((fila, j) => [...fila].forEach((p, i) => { if (p === '#') px(c, cx + i, y + j, 1, 1, color); }));
+    cx += g[0].length + 1;
   }
-];
-function cartel(c, x, y, t, fase = 0) {
-  const top = y - 40;
-  sombra(c, x + 8, y + 19, 82, 4);
-  // estructura de hierro: dos columnas, cruces y placas de base
-  for (const p of [20, 72]) { px(c, x + p, top + 46, 5, y + 21 - (top + 46), CONTORNO); px(c, x + p + 1, top + 46, 3, y + 21 - (top + 46), '#8d99a8'); px(c, x + p + 1, top + 46, 1, y + 21 - (top + 46), '#c9d3de'); px(c, x + p - 2, y + 19, 9, 2, '#5f6b7a'); }
-  for (let k = 0; k <= 46; k++) { const yy = top + 48 + Math.round(k * (y + 16 - top - 48) / 46); px(c, x + 25 + k, yy, 1, 1, '#5f6b7a'); px(c, x + 71 - k, yy, 1, 1, '#5f6b7a'); }
-  // pasarela con baranda y lamparas que alumbran hacia arriba
-  px(c, x + 4, top + 44, 88, 3, CONTORNO); px(c, x + 5, top + 45, 86, 1, '#8d99a8');
-  for (let k = 6; k < 92; k += 6) px(c, x + k, top + 41, 1, 3, '#5f6b7a');
-  px(c, x + 5, top + 41, 86, 1, '#5f6b7a');
-  // marco: contorno, cromo celeste en bandas, filete amarillo
-  px(c, x + 1, top + 6, 94, 38, CONTORNO);
-  [['#d4f3ff', 0], ['#7fdcff', 1], ['#35b8e8', 2], ['#1f86ad', 3]].forEach(([col, i]) => { px(c, x + 2 + i, top + 7 + i, 92 - 2 * i, 36 - 2 * i, col); });
-  px(c, x + 6, top + 11, 84, 28, CONTORNO);
-  // los avisos, con tablillas que giran
-  const per = 4, n = Math.floor((t + fase) / per) % AVISOS.length, f = mod(t + fase, per);
-  const prev = (n + AVISOS.length - 1) % AVISOS.length;
-  const [A, B] = avisoLienzo;
-  AVISOS[n](A.c, t); AVISOS[prev](B.c, t);
-  const dx = x + 6, dy = top + 12, sl = 7, n_sl = AV_W / sl;
-  for (let i = 0; i < n_sl; i++) {
-    const p = Math.max(0, Math.min(1, (f - i * 0.035) / 0.35)), ang = p * Math.PI;
-    const src = ang < Math.PI / 2 ? B.cv : A.cv, ww = Math.max(1, Math.round(sl * Math.abs(Math.cos(ang))));
-    c.drawImage(src, i * sl, 0, sl, AV_H, dx + i * sl + Math.floor((sl - ww) / 2), dy, ww, AV_H);
-    if (i > 0) px(c, dx + i * sl, dy, 1, AV_H, 'rgba(0,0,0,.12)');
-  }
-  // filete amarillo con volutas en las cuatro esquinas
-  for (let k = 0; k < 84; k++) if (k % 5 !== 4) { px(c, x + 6 + k, top + 10, 1, 1, '#ffd21f'); px(c, x + 6 + k, top + 39, 1, 1, '#ffd21f'); }
-  const vol = { a: '#a97bf0', b: '#ffffff', c: '#ffd21f' };
-  estampa(c, VOLUTA, x + 1, top + 4, vol); estampa(c, VOLUTA, x + 88, top + 4, vol, true);
-  estampa(c, VOLUTA.slice().reverse(), x + 1, top + 38, vol); estampa(c, VOLUTA.slice().reverse(), x + 88, top + 38, vol, true);
-  // copete fileteado con el sol de mayo
-  px(c, x + 34, top + 2, 28, 6, CONTORNO); px(c, x + 35, top + 3, 26, 4, '#35b8e8'); px(c, x + 35, top + 3, 26, 1, '#d4f3ff');
-  for (let k = 0; k < 26; k += 3) px(c, x + 35 + k, top + 5, 1, 1, '#ffffff');
-  estampa(c, VOLUTA, x + 26, top + 1, vol, true); estampa(c, VOLUTA, x + 63, top + 1, vol);
-  estampa(c, SOL, x + 44, top - 3, solCol);
-  // lamparas sobre la pasarela, con su luz hacia el aviso
-  for (let k = 0; k < 3; k++) {
-    const lx = x + 18 + k * 28, on = Math.floor(t * 2 + k + fase) % 5 !== 0;
-    px(c, lx, top + 45, 7, 4, CONTORNO); px(c, lx + 1, top + 45, 5, 1, on ? '#fff4c2' : '#8d99a8'); px(c, lx + 2, top + 49, 3, 2, '#5f6b7a');
-    if (on) { c.fillStyle = 'rgba(255,244,194,.13)'; for (let r = 0; r < 8; r++) c.fillRect(lx - r, top + 44 - r, 7 + 2 * r, 1); }
-  }
+}
+const centroMini = (c, s, x, w, y, color, sombra) => textoMini(c, s, x + Math.floor((w - anchoMini(s)) / 2), y, color, sombra);
+
+// --- "EL MEJOR AMIGO DEL CAMIONERO": chapa fileteada de 3 celdas, con el mono en el medallon
+function chapaFilete(c, x, y, t) {
+  const top = y - 18;
+  sombra(c, x + 6, y + 19, 60, 4);
+  for (const p of [12, 56]) { px(c, x + p, top + 25, 4, y + 21 - (top + 25), CONTORNO); px(c, x + p + 1, top + 25, 2, y + 21 - (top + 25), '#6b3a1c'); px(c, x + p + 1, top + 25, 1, y + 21 - (top + 25), '#a8602a'); }
+  px(c, x, top, 72, 27, CONTORNO);
+  px(c, x + 1, top + 1, 70, 25, '#1b1747'); px(c, x + 1, top + 1, 70, 8, '#221d5a'); px(c, x + 1, top + 1, 70, 1, '#3a3380');
+  for (let k = 0; k < 62; k++) if (k % 3 !== 2) { px(c, x + 5 + k, top + 3, 1, 1, '#ffd21f'); px(c, x + 5 + k, top + 23, 1, 1, '#ffd21f'); }
+  for (let k = 0; k < 18; k++) if (k % 3 !== 2) { px(c, x + 3, top + 4 + k, 1, 1, '#ffd21f'); px(c, x + 68, top + 4 + k, 1, 1, '#ffd21f'); }
+  const vol = { a: '#c9a8ff', b: '#ffffff', c: '#ffd21f' };
+  estampa(c, VOLUTA, x + 1, top + 1, vol); estampa(c, VOLUTA, x + 64, top + 1, vol, true);
+  estampa(c, VOLUTA.slice().reverse(), x + 1, top + 19, vol); estampa(c, VOLUTA.slice().reverse(), x + 64, top + 19, vol, true);
+  centroMini(c, 'EL MEJOR AMIGO', x, 72, top + 8, '#ffd21f', '#5a3a00');
+  centroMini(c, 'DEL CAMIONERO', x, 72, top + 16, '#ffffff', '#3d1f7a');
+  // el medallon con la cara del mono, y el sol detras
+  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + t * 0.6; px(c, x + 36 + Math.round(Math.cos(a) * 11), top - 5 + Math.round(Math.sin(a) * 9), 2, 2, '#ffd21f'); }
+  for (let yy = -9; yy <= 9; yy++) for (let xx = -9; xx <= 9; xx++) { const d = xx * xx + yy * yy; if (d <= 81) px(c, x + 36 + xx, top - 5 + yy, 1, 1, d > 64 ? CONTORNO : d > 49 ? '#35b8e8' : '#d4f3ff'); }
+  pegar(c, CABEZA, x + 30, top - 11);
+  // lamparitas del borde de arriba
+  for (let k = 0; k < 6; k++) { const lx = x + 8 + k * 11 + (k > 2 ? 9 : 0), on = Math.floor(t * 3 + k) % 3 !== 0; px(c, lx, top - 1, 2, 2, on ? '#fff4c2' : '#5a4a2a'); }
+}
+// --- "RED DE TRANSITO PESADO": senal vial azul de 3 celdas, con la linea de cromo de la Red
+function senalRed(c, x, y, t) {
+  const top = y - 20;
+  sombra(c, x + 24, y + 19, 24, 4);
+  px(c, x + 34, top + 28, 4, y + 21 - (top + 28), CONTORNO); px(c, x + 35, top + 28, 2, y + 21 - (top + 28), '#8d99a8'); px(c, x + 35, top + 28, 1, y + 21 - (top + 28), '#c9d3de');
+  px(c, x + 31, y + 18, 10, 3, '#5f6b7a');
+  px(c, x + 4, top, 64, 29, CONTORNO); px(c, x + 3, top + 1, 66, 27, CONTORNO);
+  px(c, x + 5, top + 1, 62, 27, '#ffffff'); px(c, x + 4, top + 2, 64, 25, '#ffffff');
+  px(c, x + 6, top + 2, 60, 25, '#1f4fbf'); px(c, x + 5, top + 3, 62, 23, '#1f4fbf'); px(c, x + 6, top + 2, 60, 6, '#2a5fd6');
+  // el pictograma del camion
+  const cx = x + 27;
+  px(c, cx, top + 4, 11, 6, '#ffffff'); px(c, cx + 12, top + 6, 5, 4, '#ffffff'); px(c, cx + 14, top + 7, 2, 1, '#1f4fbf');
+  for (const w of [2, 8, 14]) { px(c, cx + w, top + 10, 2, 2, '#ffffff'); }
+  centroMini(c, 'RED DE TRÁNSITO', x + 3, 66, top + 12, '#ffffff');
+  centroMini(c, 'PESADO', x + 3, 66, top + 19, '#ffffff');
+  px(c, x + 6, top + 25, 60, 1, '#d4f3ff'); px(c, x + 6, top + 26, 60, 1, '#35b8e8');
+  c.save(); c.beginPath(); c.rect(x + 5, top + 2, 62, 25); c.clip(); brillo(c, x + 5, top + 2, 62, 25, t + x * 0.01, 5, 'rgba(255,255,255,.35)'); c.restore();
+}
+// --- "TU GPS, BAJALA GRATIS": mupi luminoso de 2 celdas, como los de las paradas
+function mupi(c, x, y, t) {
+  const top = y - 22;
+  const pulso = 0.12 + 0.08 * Math.sin(t * 3 + x);
+  c.fillStyle = `rgba(143,220,247,${pulso.toFixed(2)})`; c.fillRect(x + 1, top - 2, 46, 44);
+  sombra(c, x + 6, y + 19, 36, 4);
+  px(c, x + 9, top + 38, 3, y + 21 - (top + 38), '#5f6b7a'); px(c, x + 36, top + 38, 3, y + 21 - (top + 38), '#5f6b7a');
+  px(c, x + 3, top, 42, 39, CONTORNO);
+  [['#d4f3ff', 0], ['#7fdcff', 1], ['#35b8e8', 2]].forEach(([col, i]) => px(c, x + 4 + i, top + 1 + i, 40 - 2 * i, 37 - 2 * i, col));
+  px(c, x + 7, top + 4, 34, 26, '#ffffff'); px(c, x + 7, top + 18, 34, 12, '#e6f8ff');
+  c.fillStyle = `rgba(255,255,255,${(0.25 + pulso).toFixed(2)})`; c.fillRect(x + 7, top + 4, 34, 3);
+  // el telefono con la app
+  px(c, x + 8, top + 7, 7, 15, CONTORNO); px(c, x + 9, top + 8, 5, 12, '#d4f3ff');
+  px(c, x + 9, top + 11, 5, 1, '#ffffff'); px(c, x + 9, top + 15, 5, 1, '#ffffff'); px(c, x + 11, top + 8, 1, 12, '#ffffff');
+  px(c, x + 9, top + 9, 2, 2, '#7be08a');
+  const a = mod(t * 0.8, 1); for (let k = 0; k < 7; k++) px(c, x + 9 + Math.floor(k * 0.5), top + 18 - k, 1, 1, '#35b8e8');
+  px(c, x + 9 + Math.floor(a * 7 * 0.5), top + 18 - Math.floor(a * 7), 2, 2, '#ff7f1f');
+  px(c, x + 10, top + 20, 3, 1, '#3a3958');
+  textoMini(c, 'TU GPS,', x + 16, top + 5, '#1f4a5c');
+  textoMini(c, 'BAJALA', x + 17, top + 12, '#7650c9');
+  textoMini(c, 'GRATIS', x + 17, top + 19, '#7650c9');
+  px(c, x + 7, top + 31, 34, 6, '#1f86ad'); centroMini(c, 'TBF', x + 7, 34, top + 31, '#ffffff');
 }
 
 // ================================================================ el mono, animado
@@ -596,15 +590,15 @@ const CARRILES = [
   { t: 'vereda', boca: [0, 1, 3, 4, 6, 8] },
   { t: 'rio', dir: -1, vel: 20, n: 3, xs: [30, 190] },
   { t: 'rio', dir: 1, vel: 11, n: 4, xs: [16, 170], cajaEn: 0 },
-  { t: 'playon', obst: [[0, 'bolardo'], [8, 'bolardo'], [6, 'mastil']], numero: 50 },
+  { t: 'playon', obst: [[0, 'bolardo'], [8, 'bolardo'], [6, 'mastil'], [1, 'mupi']], numero: 50 },
   { t: 'calle', red: true, veh: [['tbf-naranja', 10]], dir: 1, vel: 28 },
   { t: 'calle', veh: [['torino', 40], ['uno', 200]], dir: -1, vel: 40, mancha: 150 },
   { t: 'calle', senda: [84, 128], veh: [['fitito', 0], ['taxi', 170]], dir: 1, vel: 46, cajas: [4] },
   { t: 'calle', red: true, veh: [['tbf-celeste', 40]], dir: -1, vel: 26 },
-  { t: 'plaza', obst: [[2, 'jacaranda'], [5, 'mate']], cajas: [3] },
+  { t: 'plaza', obst: [[1, 'jacaranda'], [3, 'mate'], [5, 'senal']], cajas: [8] },
   { t: 'vereda', obst: [[0, 'arbol'], [2, 'contenedor'], [7, 'arbol']], amarillo: true, petalos: true },
   { t: 'calle', adoquin: true, veh: [['504', 60], ['colectivo-60', 210]], dir: 1, vel: 30 },
-  { t: 'vereda', obst: [[5, 'cartel'], [1, 'arbol'], [3, 'contenedor']] }
+  { t: 'vereda', obst: [[0, 'contenedor'], [2, 'chapa'], [7, 'arbol']] }
 ];
 const P = W + 130;
 const pos = (x0, dir, vel, t) => mod(x0 + dir * vel * t, P) - 110;
@@ -629,7 +623,9 @@ function cosas(c, k, i, y, t, tomadas) {
     if (que === 'mate') banco(c, x, y, true);
     if (que === 'bolardo') bolardo(c, x, y);
     if (que === 'mastil') mastil(c, x, y, t);
-    if (que === 'cartel') cartel(c, x, y, t, i);
+    if (que === 'chapa') chapaFilete(c, x, y, t);
+    if (que === 'senal') senalRed(c, x, y, t);
+    if (que === 'mupi') mupi(c, x, y, t);
   });
   (k.cajas || []).forEach((col) => { if (!tomadas.has(i + ':' + col)) cajaTBF(c, col * CEL, y, t); });
   if (k.t === 'rio') k.xs.forEach((x0, j) => {
@@ -758,15 +754,16 @@ lienzo('m-agua', 28, 28, (c, t) => { px(c, 0, 0, 28, 28, '#1668ff'); for (let x 
 
 // --- el barrio
 lienzo('calles', W, 5 * CEL + 18, (c, t) => { px(c, 0, 0, W, 18, '#a3a9b6'); campo(c, t, [
-  { t: 'vereda', obst: [[0, 'arbol'], [3, 'contenedor'], [7, 'jacaranda']], amarillo: true, petalos: true },
+  { t: 'vereda', obst: [[0, 'arbol'], [2, 'chapa'], [7, 'jacaranda']], amarillo: true, petalos: true },
   { t: 'calle', adoquin: true, veh: [['fitito', 30], ['504', 190]], dir: 1, vel: 40 },
   { t: 'calle', red: true, veh: [['tbf-rojo', 80]], dir: -1, vel: 28, mancha: 20 },
   { t: 'calle', senda: [96, 140], veh: [['torino', 20], ['taxi', 200]], dir: 1, vel: 48, cajas: [4] },
   { t: 'plaza', obst: [[2, 'jacaranda'], [6, 'mate']] }
 ], 18); });
 const fondoP = (c, w, h) => { px(c, 0, 0, w, h, '#a3a9b6'); for (let x = 0; x < w; x += 12) for (let y = 0; y < h; y += 12) { px(c, x, y, 12, 1, '#8c93a1'); px(c, x, y, 1, 12, '#8c93a1'); } };
-lienzo('p-cartel', 100, 68, (c, t) => { fondoP(c, 100, 68); cartel(c, 2, 46, t); });
-lienzo('p-cartel2', 100, 68, (c, t) => { fondoP(c, 100, 68); cartel(c, 2, 46, t, 2); });
+lienzo('p-chapa', 76, 60, (c, t) => { fondoP(c, 76, 60); chapaFilete(c, 2, 36, t); });
+lienzo('p-senal', 76, 52, (c, t) => { fondoP(c, 76, 52); senalRed(c, 2, 28, t); });
+lienzo('p-mupi', 52, 52, (c, t) => { fondoP(c, 52, 52); mupi(c, 2, 28, t); });
 lienzo('p-jacaranda', 28, 36, (c, t) => { px(c, 0, 0, 28, 36, '#33c24d'); arbol(c, 2, 12, t, 0, true); });
 lienzo('p-bandera', 44, 56, (c, t) => { px(c, 0, 0, 44, 56, '#68707f'); mastil(c, 4, 34, t); });
 lienzo('p-mate', 28, 30, (c, t) => { px(c, 0, 0, 28, 30, '#33c24d'); banco(c, 2, 6, true); });
