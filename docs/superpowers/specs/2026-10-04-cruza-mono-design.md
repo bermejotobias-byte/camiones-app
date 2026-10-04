@@ -1,6 +1,7 @@
 # CRUZÁ, MONO — spec
 
-**Fecha:** 04/10/2026 · **Estado:** diseño aprobado por el usuario, plan por escribir.
+**Fecha:** 04/10/2026 · **Estado:** diseño aprobado por el usuario; plan en
+`docs/superpowers/plans/2026-10-04-cruza-mono.md`.
 **Prototipo:** `docs/diseno/prototipo-cruza/` (ver su README). **Antecedente:** la Viborita TBF
 (`2026-10-03-viborita-tbf-design.md`, AD-55), de la que este juego toma el marco, el récord
 en el servidor y la fuente de píxel.
@@ -140,10 +141,16 @@ que el mono pierde las tres vidas.
     conventillos miran al río, que queda detrás (abajo en la pantalla).
 - **Cada fila múltiplo de 25** es un `playon`, con su número pintado. Si cae en medio de un bloque
   de peligro, el bloque se corta ahí y sigue después.
-- **En la fila 100, el playón tiene el Obelisco**: un obstáculo de 1 celda que se dibuja alto.
+- **En la fila 100, el playón tiene el Obelisco**: un obstáculo de 1 celda que se dibuja alto. Va
+  en la columna 2, pegado al mástil, o en la 7 si el pasillo es la 2: así lo libre del playón
+  queda de una pieza.
 - **Garantía de paso en lo seguro:**
   - cada franja segura tiene al menos **4 celdas libres por fila**;
-  - **una misma columna libre en todas sus filas**: el pasillo;
+  - **una misma columna libre en todas sus filas**: el pasillo, siempre entre la columna 2 y la 7
+    para que el playón no lo tape;
+  - **las filas de largada son parte de la primera franja**, con el pasillo en la columna 4;
+  - **un playón que corta el último carril de un bloque queda pegado a la franja siguiente**, y
+    cuenta como parte de ella: comparte el pasillo y entra en la búsqueda de bolsillos;
   - **sin bolsillos: desde cualquier celda libre de una franja se llega al pasillo sin salir de
     ella**, moviéndose por celdas libres. Si una franja sale con un bolsillo, se vuelve a armar.
     Lo encontró la demostración del prototipo: una fila de conventillos dejaba un hueco libre con
@@ -160,8 +167,9 @@ que el mono pierde las tres vidas.
   - **un cartel va en todo tramo de 3 edificios seguidos**: conventillos de una `boca`
     (probabilidad 0,85) o un galpón de 3 celdas;
   - nunca dos carteles seguidos del mismo tipo;
-  - **la señal de la Red va en un galpón pegado a una calle**, que es donde tiene sentido; en los
-    demás se elige entre los tres.
+  - **la señal de la Red va en un galpón pegado a una calle**, que es donde tiene sentido, y sólo
+    ahí. Los demás galpones llevan la chapa o el neón, y también el pegado a una calle si el
+    cartel anterior ya fue una señal.
 
 ### 3.3 Las calles — el reparto del tránsito
 
@@ -179,7 +187,9 @@ largos (4 celdas) son los que complican cruzar, así que se reparten con cuidado
 | **Colectivos** | Colectivos (4 celdas), de las 6 líneas | 0 | 0,15 |
 
 - **Nunca hay dos carriles seguidos de vehículos largos** (Red o colectivos) en un mismo bloque. Si
-  sale uno pegado a otro, se cambia por un carril de autos.
+  sale uno pegado a otro, se cambia por un carril de autos. Por eso **lo que queda en la calle**
+  desde la fila 20 es cerca de **2/3 de autos, 2/9 de la Red y 1/9 de colectivos**, medido con el
+  generador sobre 3000 filas. Es el mismo reparto que se vio en la demostración.
 - **Un carril de vehículos largos lleva 2 como máximo**, y va a **0,75 × la velocidad máxima** de
   la banda: los camiones y los colectivos son más lentos que los autos.
 - **Las 9 pinturas de la flota:** celeste y blanca, violeta, naranja, amarilla con azul, verde,
@@ -302,7 +312,8 @@ tres:
   columna más cercana a su posición.
 - **La cámara:**
   - sube sola a la velocidad de la banda (§5.5);
-  - además sigue al mono, que nunca queda a más de 8 filas del borde de abajo;
+  - además sigue al mono, que nunca queda a más de 6 filas del borde de abajo, como en la
+    demostración: así siempre ve 6 filas adelante;
   - nunca baja.
 
 ### 5.3 Las colisiones
@@ -325,7 +336,9 @@ tres:
   - la vida titila y queda gris;
   - el teléfono da la vibración `choque`.
 - **Después, el mono reaparece** en **la última fila segura en la que estuvo**, en la columna libre
-  más cercana a la 4. Durante 1,5 s es invulnerable, y titila.
+  más cercana a la 4. Si esa fila ya quedó debajo de la cámara, reaparece en la primera fila
+  segura que se vea entera. Durante 1,5 s titila y los vehículos no lo golpean. El agua, el
+  borde y la grúa sí: perdonarlos dejaría al mono parado sobre el agua.
 - **Sin vidas, GAME OVER** (§6).
 
 ### 5.5 Puntuación y dificultad
@@ -419,8 +432,8 @@ no un accidente.
     - la fila `boca` siempre justo después de un río;
     - una caja por fila como máximo;
     - el playón cada 25 filas;
-    - el reparto sobre 3000 filas: autos alrededor del 55 %, Red del 30 % y colectivos del 15 %,
-      con los colectivos siempre por debajo de la Red;
+    - el reparto sobre 3000 filas: autos entre el 60 y el 72 %, Red entre el 18 y el 28 % y
+      colectivos entre el 8 y el 16 %, con los colectivos siempre por debajo de la Red (§3.3);
     - nunca dos carriles largos seguidos, a lo sumo 2 vehículos por carril largo y ningún
       colectivo antes de la fila 20;
   - `motor`:
