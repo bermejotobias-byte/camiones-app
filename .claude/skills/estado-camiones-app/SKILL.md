@@ -36,7 +36,15 @@ mostrar los 386 archivos— y **no se borra**: es el único lugar con los 181
 commits uno por uno, cuyos mensajes cargan buena parte del porqué
 (`git log cuentas-de-usuario`).
 
-**Punta al 03/10/2026, más tarde: VIBORITA TBF, el primer juego de la Fase 6**
+**Punta al 04/10/2026: CRUZÁ, MONO, el segundo juego de la Fase 6** (AD-56). Tres
+ramas apiladas, una por PR: `viborita-tbf` (PR #7 contra `main`), `cruza-mono`
+con la spec, el prototipo y el plan (PR #6 contra `viborita-tbf`) y
+**`cruza-mono-juego`** con el código, todavía sin PR. Cuando se fusionen #7 y #6, cada
+una se rebasa sobre `main` (`main` se fusiona con squash). Es el Crossy Road porteño
+con el mono, un mundo sin fin con semilla y el HI-SCORE en el servidor. **Falta el
+teléfono.** 443 unitarios, 267 de integración y 487 de web. Ver §8.0.
+
+**Antes, al 03/10/2026, más tarde: VIBORITA TBF, el primer juego de la Fase 6**
 (AD-55). Rama **`viborita-tbf`**, desde `main` en `614ad9e`, en `b6852a0` al
 terminar el código y los tests; **sin PR todavía** y **falta probarla en el
 teléfono** (Tarea 10 del plan). Es el Snake del Nokia 1100 con un camión que suma
@@ -1329,7 +1337,30 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-### 0. La Viborita TBF (03/10/2026) — construida, falta el teléfono
+### 0. CRUZÁ, MONO (04/10/2026) — construido, falta el teléfono
+
+El segundo juego de la Fase 6, con la decisión en AD-56. El diseño llevó cinco vueltas de
+prototipo y una demostración que se juega sola (`docs/diseno/prototipo-cruza/`). El código
+va en `cruza-mono-juego`, un commit por tarea del plan. **Lo que está**:
+- el dominio y el récord `cruza` en `DriverRecord`, con `POST /api/juegos/cruza/partidas`;
+- en `wwwroot/js/juegos/cruza/`:
+  - las reglas;
+  - el mundo con semilla y sus garantías, con un test cada una sobre 3000 filas;
+  - el motor puro;
+  - los dibujos portados del prototipo por rangos de líneas, con lo quieto en caché;
+- la pantalla `views/cruza.js`, abierta desde Juegos.
+
+**Verificado en el navegador**: escala entera sin scroll en los tres tamaños, la partida, la
+pausa, el golpe, los dos finales, el POST 200, el récord tras recargar y SALIR con el zócalo.
+**Lo que falta**:
+1. **el teléfono**: la fluidez real, los gestos, la vibración y la pausa al salir de la app;
+2. **el invitado en el navegador**, que no se probó para no cerrar la sesión;
+3. **el PR** de `cruza-mono-juego`, apilado como los otros dos.
+
+### 0bis. La Viborita TBF (03/10/2026) — PR #7 abierto
+
+El usuario la probó en el teléfono sin errores. **Falta confirmar que vibra** después de
+agregar `android.permission.VIBRATE`: sin ese permiso, la vibración no anduvo nunca en la app.
 
 El primer juego de la Fase 6, en la rama `viborita-tbf` (desde `614ad9e`, de la spec
 `9d096b8` a `b6852a0`), con la decisión en AD-55. **Lo que está**: el dominio

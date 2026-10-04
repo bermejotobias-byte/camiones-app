@@ -3525,3 +3525,91 @@ ni batería todavía**, primero que el juego enganche.
 - **Falta el teléfono** (Tarea 10): el pulgar sobre la cruceta, la nitidez de la LCD con la
   densidad real del aparato y la vibración. Es la costura nativa-web, la franja donde este
   proyecto se equivocó más veces.
+
+## AD-56 · CRUZÁ, MONO: un mundo sin fin con sus garantías probadas
+
+**Fecha:** 04/10/2026
+**Estado:** aceptada y construida en la rama `cruza-mono-juego` (apilada sobre `cruza-mono`, que
+lleva el diseño, y sobre la Viborita); **falta probarla en el teléfono** (Task 12 del plan).
+Es el segundo juego de la Fase 6. Spec y plan en
+`docs/superpowers/{specs,plans}/2026-10-04-cruza-mono*`; el prototipo aprobado en
+`docs/diseno/prototipo-cruza/`.
+
+### Contexto
+
+El usuario pidió un Crossy Road con el mono de la app: *"reconociblemente Crossy Road +
+universo camionero + nuestra mascota + arcade retro"*. El diseño llevó cinco vueltas de
+prototipo (spec §1). En ellas definió una Buenos Aires de Torinos, colectivos y camiones TBF;
+el reparto del tránsito con menos camiones y lo que menos pasa, colectivos; y los tres
+carteles de la app pintados en las fachadas. Aprobó también que el mapa no se termina y que
+el HI-SCORE se guarda en el servidor como el de la Viborita.
+
+### Decisiones
+
+- **El mundo se genera con semilla, por bloques, a medida que se pide**
+  (`js/juegos/cruza/mundo.js`). Es el generador de la demostración del prototipo, con las
+  garantías de la spec cerradas: una franja segura y un bloque de peligro, un playón cada 25
+  filas, el Obelisco en la 100, ríos que nunca van seguidos y carriles de río vecinos en
+  sentidos opuestos. **Cada garantía tiene su test, sobre 3000 filas y cuatro semillas.** Un
+  mundo sin paso no se ve mirando diez filas.
+- **Sin bolsillos.** Desde cualquier celda libre de una franja segura se llega al pasillo sin
+  salir de ella; si una franja sale con un bolsillo, se vuelve a armar, y desde el quinto
+  intento sale sin obstáculos, que no puede tenerlos. **La regla la encontró la demostración
+  jugándose sola, no un test**: una fila de conventillos dejaba un hueco con edificios a los
+  costados y un árbol adelante, y el pasillo solo no lo evitaba. Escribir el código dejó a la
+  vista dos casos más, que también entran en la búsqueda:
+  - la largada es parte de la primera franja;
+  - un playón que corta el último carril de un bloque queda pegado a la franja siguiente.
+
+  Además, el pasillo va entre las columnas 2 y 7, porque el playón tapa la 0, la 1 y la 8.
+- **El reparto que queda en la calle no es el sorteado.** Se sortea 0,55, 0,30 y 0,15 (autos,
+  Red, colectivos), pero nunca van dos carriles largos seguidos y el que toca pasa a autos. Lo
+  que se ve desde la fila 20 es cerca de **2/3, 2/9 y 1/9**, y es lo que el usuario vio en la
+  demostración. El test fija lo que se ve, no el sorteo.
+- **El motor es puro** (`motor.js`): recibe el tiempo y los gestos, cambia la partida y
+  devuelve eventos. La vista lo avanza en **pasos fijos de 1/60 s**, así lo que choca no
+  depende de los cuadros por segundo. **Lo que se dibuja sale de las mismas funciones que
+  chocan** (`xVehiculo`, `xTronco`): lo que se ve es lo que choca.
+- **La invulnerabilidad al reaparecer es sólo contra los vehículos.** El agua, el borde y la
+  grúa no perdonan: perdonarlos dejaría al mono parado sobre el agua.
+- **El récord va en `DriverRecord` con el código `cruza`**, como la Viborita (AD-55), y reusa
+  `ResultadoDePartida`. `POST /api/juegos/cruza/partidas` recibe
+  `{ filas, cajas, duracionMs }`. El servidor calcula `10 × filas + 50 × cajas` y rechaza con
+  422 lo imposible: negativos, más cajas que filas (hay una por fila como máximo), o más filas
+  de las que se cruzan en ese tiempo.
+- **Lo visual se porta del prototipo, no se redibuja**, por rangos de líneas del commit
+  `39f4181`. **Lo quieto va al caché** (spec §8): el piso de cada fila, los árboles en sus dos
+  posiciones, los conventillos, los galpones sin sus lamparitas, las letras de los carteles y
+  el disco de las ruedas. Cada cuadro sólo dibuja lo que se mueve, y `precalentar()` arma todo
+  con la pantalla de inicio.
+
+### Descartado
+
+- **Copiar a mano los dibujos del prototipo.** Se armaron con scripts que copian rangos de
+  líneas y aplican sólo los cambios del plan; un dibujo redibujado es un dibujo que el usuario
+  no aprobó.
+- **EXP, batería, ranking y sonido**, como en la Viborita.
+
+### Consecuencias
+
+- **15 tests de .NET nuevos**: 8 de dominio y 7 de integración, el último que el récord vive al
+  lado del de la Viborita sin tocarlo (443 y 267, 710 en total). **59 de JS** (487 en total):
+  reglas, mundo, motor, sprites, vehículos, escenario, pantallas y la fuente.
+- **`node --check` no ve un nombre sin importar, y el test de vehículos pasaba igual.** Un
+  banco de prueba con un lienzo falso, que dibuja cada vehículo, cada fila de 2000 de un
+  mundo real y partidas enteras, encontró `ancho` sin importar en los colectivos. Fue antes
+  de que llegara al navegador.
+- **Verificado en el navegador el 04/10/2026**:
+  - a 360 × 740, 375 × 812 y 412 × 915 el campo queda a escala entera y sin scroll;
+  - el inicio, la partida, la pausa, el golpe con su destello y la vibración, el game over y
+    el nuevo récord se ven como en el prototipo;
+  - el `POST` da 200 y el récord aparece en el inicio después de recargar;
+  - SALIR vuelve a Juegos con el zócalo.
+- **El caché bajó el cuadro** de 6.319 a 2.366 `fillRect` en promedio, y a 1,1 ms de mediana
+  en una PC (2,3 ms el p90, sacando el ruido del panel oculto). Los píxeles son los mismos:
+  contra el dibujo directo cambian 1.347 de 194.400, por 2/255 a lo sumo, que es el redondeo
+  de las sombras semitransparentes.
+- **El invitado no se probó en el navegador**: habría que cerrar la sesión de la cuenta de
+  desarrollo. El código es el mismo de la Viborita.
+- **Falta el teléfono**: la fluidez con la CPU real, los gestos, la vibración y la pausa al
+  salir de la app. La medición en la PC no reemplaza esa prueba.

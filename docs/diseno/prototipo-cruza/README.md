@@ -16,6 +16,8 @@ acá, no se vuelve a dibujar.
   - el barrio: árbol, jacarandá, contenedor, banco con mate, bolardo, mástil, conventillo y el
     cartel de la app con sus cuatro avisos;
   - el mono animado, el HUD y las pantallas de inicio, game over y récord.
+- `demo.js` — el mundo sin fin de la spec y un mono en piloto automático. Es la demostración
+  arriba de todo de la página, y la que encontró la regla de los bolsillos.
 - `pagina.html` y `estilo.css` — la página de la propuesta, con sus 17 secciones.
 - `armar.mjs` — junta todo, con las tres poses de la mascota incrustadas, en un solo HTML.
 
@@ -27,5 +29,7 @@ node docs/diseno/prototipo-cruza/armar.mjs cruza-mono.html
 
 El HTML generado (unos 520 KB) no se versiona; se abre suelto en el navegador.
 
-**Lo que el prototipo NO es:** no tiene motor, ni colisiones, ni generación del mundo. La escena
-es fija y se mueve en bucle. La jugabilidad está en la spec, y se construye con tests.
+**Lo que el prototipo NO es:** el juego. La demostración tiene un motor y un generador escritos
+para mirar, sin tests. **El juego está construido en `src/TruckNavigator.Api/wwwroot/js/juegos/cruza/`**
+(AD-56): el mundo y el motor se escribieron con tests, y los dibujos se portaron de acá por
+rangos de líneas del commit `39f4181`, sin redibujarlos.
