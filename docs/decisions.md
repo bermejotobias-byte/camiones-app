@@ -3441,11 +3441,13 @@ teléfono** (Tarea 10 del plan). Es el primero de los cinco juegos de la Fase 6
 
 El pedido del usuario fue *"replicar la esencia del Snake clásico, pero reemplazando la
 serpiente por un camión"*: arcade, simple, inmediata, que el cuerpo se sienta como un camión
-que va incorporando acoplados. El diseño llevó **cinco vueltas de prototipo** (spec §1), y en
-casi todas la respuesta fue la misma: *no te orientes tanto en la estética de la app*.
-Eligió la base arcade, mandó una foto del **Nokia 1100**, pidió que la pantalla fuera verde y
-los controles simularan lo físico de esa época, rechazó un teléfono entero con teclado
-numérico (*"no me da una sensación agradable"*) y aprobó al fin la carcasa de plástico azul
+que va incorporando acoplados. El diseño llevó **cinco vueltas de prototipo** (spec §1).
+En la primera eligió la base arcade y mandó una foto del **Nokia 1100**; en la segunda, con la
+LCD dentro de la estética de la app, pidió la estética del 1100, la pantalla verde y
+controles que simularan lo físico de esa época (*"no te orientes tanto en la estética de la
+app"*); en la tercera rechazó un teléfono entero con teclado numérico (*"no me da una
+sensación agradable"*) y mandó *"andá a la foto de referencia"*; en la cuarta pidió el
+contorno texturado azul, y en la quinta aprobó la carcasa de plástico azul
 texturado con el frente plateado, el nombre **VIBORITA TBF** y la cruceta de la referencia.
 Alcance acordado: el juego completo y pulido, con el récord propio en el servidor; **sin EXP
 ni batería todavía**, primero que el juego enganche.
@@ -3477,8 +3479,8 @@ ni batería todavía**, primero que el juego enganche.
 - **La LCD es un `<canvas>` a escala entera.** Cada píxel del juego es un cuadrado de
   `escala × escala` píxeles de pantalla, sin suavizado, y la escala es el mayor entero que
   entra: se mide por lo que ocupa la carcasa y se recalcula al cambiar el tamaño. Los dibujos
-  —el camión, la caja, las letras— viajan en el APK, así que el juego anda sin conexión; si
-  perder no puede guardar el récord, el epígrafe lo dice y no se reintenta en segundo plano.
+  —el camión, la caja, las letras— viajan en el APK, así que debería andar sin conexión (no probado);
+  si perder no puede guardar el récord, el epígrafe lo dice y no se reintenta en segundo plano.
 - **Un módulo por tema en `js/juegos/viborita/`**: `motor.js` (puro, con el azar
   inyectado), `reglas.js`, `dibujos.js`, `lcd.js` y `pantallas.js`; la vista y el cableado
   del teclado, la cruceta y el deslizar están en `views/viborita.js`. Se abre desde **Juegos**.
@@ -3506,7 +3508,7 @@ ni batería todavía**, primero que el juego enganche.
   recargar, el invitado ve el aviso de cuenta, y SALIR vuelve a Juegos con el zócalo.
 - **Esa verificación encontró dos cosas que los tests no veían.** El récord del inicio se
   buscaba por `recordCode` y el servidor manda `code`: **el récord no se mostraba nunca**,
-  porque el test armaba la entrada con el nombre que él mismo inventaba. Y a 360 de ancho la
+  y ningún test cubría la lectura del récord en la vista. Y a 360 de ancho la
   escala se calculaba con un margen fijo de 60 px, más que la carcasa real (52), así que la
   LCD caía a escala 2 y salía chica; hoy se mide por lo que ocupa la carcasa.
 - **Falta el teléfono** (Tarea 10): el pulgar sobre la cruceta, la nitidez de la LCD con la

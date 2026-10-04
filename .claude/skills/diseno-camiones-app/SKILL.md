@@ -1042,9 +1042,10 @@ a Juegos.
   píxel.
 
 **La lección de las cinco vueltas: cuando el usuario manda una referencia, se toma de la
-referencia, no de la app.** Las primeras vueltas partieron de la estética de la app y el
-usuario las devolvió; la que anduvo fue ir a la foto del 1100 y copiar de ahí el contorno,
-la pantalla y los controles. Es la misma lección de §7bis y §17: primero se copia exacto,
+referencia, no de la app.** La segunda vuelta puso la LCD dentro de la estética de la app y el
+usuario pidió no orientarse tanto en ella; la tercera, un teléfono entero con teclado
+numérico, tampoco le gustó y mandó *"andá a la foto de referencia"*. Lo que anduvo fue ir a
+la foto del 1100 y copiar de ahí el contorno, la pantalla y los controles. Es la misma lección de §7bis y §17: primero se copia exacto,
 después se eleva.
 
 **Dos cosas de construcción que salieron de verificar:**

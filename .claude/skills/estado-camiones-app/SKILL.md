@@ -41,8 +41,8 @@ commits uno por uno, cuyos mensajes cargan buena parte del porqué
 terminar el código y los tests; **sin PR todavía** y **falta probarla en el
 teléfono** (Tarea 10 del plan). Es el Snake del Nokia 1100 con un camión que suma
 acoplados, dentro de Juegos, con el **récord propio en el servidor**: el primero que
-escribe la tabla de récords. Sin EXP ni batería: primero que enganche. 435 tests de
-dominio, 260 de integración y 427 de web. Ver §8.0.
+escribe la tabla de récords. Sin EXP ni batería: primero que enganche. 435 unitarios,
+260 de integración y 427 de web. Ver §8.0.
 
 **Antes, al 03/10/2026: las correcciones de la prueba en la calle, todas en `main`**
 (AD-52 a AD-54). El 02/10 el usuario probó el GPS en la calle y volvió con doce
@@ -1409,11 +1409,12 @@ en una sola spec:
 | **D** | La batería y la trivia | pendiente |
 | **E** | El chat | proyecto aparte |
 
-**Dos cosas que las fuentes suponen y el motor NO tiene**, para el subproyecto B:
-los récords personales **no se escribían** (desde el 03/10 los escribe la Viborita, AD-55) —la tabla existe, el endpoint los lee
-y `PersonalRecords.Improve` está probado, pero nada en `src/` lo llama— y **la
-racha no existe** en el dominio, aunque el prototipo tenga su tablero y la mascota
-su pose.
+**Dos cosas que las fuentes suponen y el motor tenía sin hacer**, para el
+subproyecto B: los récords personales **no se escribían** —la tabla existía, el
+endpoint los lee y `PersonalRecords.Improve` estaba probado, pero nada en `src/`
+lo llamaba—; desde el 03/10 los escribe **sólo la Viborita** (AD-55) y el resto
+de los códigos sigue sin escritor. Y **la racha no existe** en el dominio, aunque
+el prototipo tenga su tablero y la mascota su pose.
 
 **Mirar las pantallas encontró tres defectos más** (30/09, después de los docs),
 ninguno visto por los tests: dos filas del menú MÁS salían **sin ícono** porque
