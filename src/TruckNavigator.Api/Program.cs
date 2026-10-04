@@ -112,6 +112,7 @@ builder.Services.AddScoped<PoiContributing>();
 builder.Services.AddScoped<ReportWriter>();
 builder.Services.AddScoped<ReportReader>();
 builder.Services.AddScoped<ViboritaPartidas>();
+builder.Services.AddScoped<CruzaPartidas>();
 
 // Los cierres y galibos validados por la comunidad entran a cada calculo de
 // ruta como areas del custom model; sin esta linea el calculador no los ve.
@@ -1684,9 +1685,10 @@ progress.MapPost("/equip", async (
 
 // ------------------------------------------------------------------ juegos
 //
-// La Viborita TBF guarda el record propio (spec 2026-10-03-viborita-tbf). El
-// telefono informa cajas y duracion; los puntos los calcula el servidor, y lo
-// imposible se rechaza. Cae en la canasta de escritura del limite de tasa.
+// La Viborita TBF (spec 2026-10-03-viborita-tbf) y Cruza, Mono (spec
+// 2026-10-04-cruza-mono) guardan su record propio. El telefono informa lo que
+// junto y la duracion; los puntos los calcula el servidor, y lo imposible se
+// rechaza. Cae en la canasta de escritura del limite de tasa.
 var juegos = app.MapGroup("/api/juegos").WithTags("Juegos").RequireAuthorization();
 
 juegos.MapPost("/viborita/partidas", async (
@@ -1715,6 +1717,34 @@ juegos.MapPost("/viborita/partidas", async (
     return Results.Ok(new PartidaDeViboritaDto(resultado.Puntos, record, resultado.NuevoRecord));
 })
 .WithSummary("Registra una partida de la Viborita TBF y devuelve los puntos y el record.");
+
+juegos.MapPost("/cruza/partidas", async (
+    PartidaDeCruzaRequest request,
+    ClaimsPrincipal principal,
+    CruzaPartidas partidas,
+    CancellationToken ct) =>
+{
+    var userId = CurrentUserId(principal);
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var resultado = await partidas.RegistrarAsync(
+        userId.Value, request.Filas, request.Cajas, request.DuracionMs, DateTimeOffset.UtcNow, ct);
+
+    if (resultado is null)
+    {
+        return Results.Problem(
+            title: "Esa partida no pudo existir",
+            detail: "Mas cajas que filas, o mas filas de las que se cruzan en ese tiempo.",
+            statusCode: StatusCodes.Status422UnprocessableEntity);
+    }
+
+    var record = resultado.Record is { } r ? new RecordDeCruzaDto(r.Value, r.AchievedAt) : null;
+    return Results.Ok(new PartidaDeCruzaDto(resultado.Puntos, record, resultado.NuevoRecord));
+})
+.WithSummary("Registra una partida de Cruza, Mono y devuelve los puntos y el record.");
 
 trips.MapGet("/", async (
     int? limit,

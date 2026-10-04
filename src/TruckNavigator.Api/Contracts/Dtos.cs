@@ -971,3 +971,12 @@ public sealed record RecordDeViboritaDto(long Valor, DateTimeOffset Fecha);
 
 /// <summary>Lo que devuelve una partida. Los puntos los calcula el servidor.</summary>
 public sealed record PartidaDeViboritaDto(long Puntos, RecordDeViboritaDto? Record, bool NuevoRecord);
+
+/// <summary>Una partida de Cruza, Mono: el telefono informa filas, cajas y duracion, no puntos.</summary>
+public sealed record PartidaDeCruzaRequest(int Filas, int Cajas, long DuracionMs);
+
+/// <summary>El record de Cruza, Mono: el valor y cuando se consiguio.</summary>
+public sealed record RecordDeCruzaDto(long Valor, DateTimeOffset Fecha);
+
+/// <summary>Lo que devuelve una partida. Los puntos los calcula el servidor.</summary>
+public sealed record PartidaDeCruzaDto(long Puntos, RecordDeCruzaDto? Record, bool NuevoRecord);
