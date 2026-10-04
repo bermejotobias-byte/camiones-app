@@ -32,6 +32,12 @@ export function juegosView(host, { go, openDrawer }) {
         <span class="btn btn-primary btn-duo">JUGAR</span>
       </button>
 
+      <button class="card stack juego-fila" id="to-cruza" type="button">
+        <h2>Cruzá, Mono</h2>
+        <p class="muted">Cruzá calles y el Riachuelo con el mono: esquivá el tránsito, subite a los troncos y juntá cajas TBF.</p>
+        <span class="btn btn-primary btn-duo">JUGAR</span>
+      </button>
+
       <div class="card stack">
         <span class="pill pill-reward" style="align-self:flex-start">Pronto</span>
         <h2>Trivia del camionero</h2>
@@ -55,6 +61,7 @@ export function juegosView(host, { go, openDrawer }) {
   wire(host, {
     '#menu': openDrawer,
     '#to-viborita': () => go('viborita'),
+    '#to-cruza': () => go('cruza'),
     '#to-perfil': () => go('perfil')
   });
 }

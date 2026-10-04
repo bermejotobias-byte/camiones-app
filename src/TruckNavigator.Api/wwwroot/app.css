@@ -4460,3 +4460,14 @@ button { font-family: inherit; font-size: inherit; }
 @media (max-height:820px){.viborita{gap:10px}}
 /* Muy bajo (360 x 740): sin esto la LCD cae a escala 2. Menos aire y cruceta de 48. */
 @media (max-height:779px){.viborita{gap:6px;padding-top:calc(8px + var(--safe-top,0px))}.vb-cruceta{--k:48px;gap:6px}}
+
+/* ===========================================================================
+   CRUZA, MONO (spec 2026-10-04-cruza-mono). Pantalla completa sobre negro puro:
+   adentro del juego vale la estetica arcade de la propuesta, no la de la app.
+=========================================================================== */
+.cruza{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;background:#000;
+  padding:var(--safe-top,0px) 0 var(--safe-bottom,0px);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+/* area tocable de 48 px de alto: 17 + 14 del rotulo + 17 */
+.cz-salir{align-self:flex-start;margin:0 0 0 10px;background:none;border:0;padding:17px 12px;cursor:pointer}
+.cz-campo{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.cz-lienzo{display:block;image-rendering:pixelated;touch-action:none}

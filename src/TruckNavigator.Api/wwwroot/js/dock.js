@@ -35,7 +35,7 @@ import { icono } from './iconos.js';
  */
 export const ACCESOS = [
   { id: 'mapa',       label: 'GPS',    ruta: 'mapa',       cubre: ['mapa'] },
-  { id: 'juegos',     label: 'Juegos', ruta: 'juegos',     cubre: ['juegos', 'viborita'] },
+  { id: 'juegos',     label: 'Juegos', ruta: 'juegos',     cubre: ['juegos', 'viborita', 'cruza'] },
   { id: 'emergencia', label: 'S.O.S.', ruta: 'emergencia', cubre: ['emergencia'] },
   { id: 'mas',        label: 'Más',    ruta: null,         cubre: ['perfil', 'resumen', 'reportes', 'carnet', 'camiones', 'configuracion', 'fuentes'] }
 ];
