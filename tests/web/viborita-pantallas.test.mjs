@@ -113,3 +113,12 @@ test('el tamaño de la LCD con DPR fraccionario: dpr=2.625 escala=3 → P=7, buf
   assert.ok(Math.abs(t.altoCss - 341.33) < 0.1);
   assert.ok(Number.isInteger(t.P));
 });
+
+test('¡GANASTE! no reusa la pared de GAME OVER: el camión no choca contra nada', () => {
+  // La pared es la columna 68, de la fila 30 a la 42.
+  const pared = Array.from({ length: 13 }, (_, k) => (30 + k) * AN + 68);
+  const gano = pixeles(fin({ ...partida, estado: 'gano', cajas: 97 }, { record: 4947, nuevoRecord: true, guardado: true }).ordenes);
+  const perdio = pixeles(fin({ ...partida, estado: 'choco', motivo: 'borde', cajas: 9 }, { record: 117, nuevoRecord: true, guardado: true }).ordenes);
+  assert.ok(pared.every((i) => perdio.has(i)), 'al perder, la pared está');
+  assert.ok(pared.every((i) => !gano.has(i)), 'al ganar, la pared no está');
+});

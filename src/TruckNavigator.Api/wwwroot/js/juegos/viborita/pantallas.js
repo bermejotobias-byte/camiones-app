@@ -98,7 +98,8 @@ export function fin(partida, { record, nuevoRecord, guardado }) {
       { op: 'estado' },
       centro(gano ? '¡GANASTE!' : 'GAME OVER', 14),
       linea(10, 24, AN - 11, 24),
-      ...camionDeCostado(16, 32, 4), linea(68, 30, 68, 42),
+      // La pared es del choque: al ganar, el camión no choca contra nada.
+      ...camionDeCostado(16, 32, 4), ...(gano ? [] : [linea(68, 30, 68, 42)]),
       centro(`PUNTOS ${cuatro(puntos(partida.cajas))}`, 54),
       centro(nuevoRecord ? '¡NUEVO RÉCORD!' : `RÉCORD ${cuatro(record)}`, 66),
       centro(`X${acoplados} ACOPLADOS`, 78),

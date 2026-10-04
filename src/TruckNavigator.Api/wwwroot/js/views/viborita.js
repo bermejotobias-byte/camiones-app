@@ -51,8 +51,6 @@ export function viboritaView(host, { go }) {
     </div>
     <div class="vb-epigrafe"></div>`;
 
-  document.dispatchEvent(new CustomEvent('pantalla-completa', { detail: { activa: true } }));
-
   const canvas = host.querySelector('.vb-lcd');
   const epigrafe = host.querySelector('.vb-epigrafe');
   const carcasa = host.querySelector('.vb-carcasa');
@@ -175,15 +173,19 @@ export function viboritaView(host, { go }) {
   // no pelearse con el gesto de volver de Android.
   const pantalla = host.querySelector('.vb-hundido');
   let toque = null;
+  // Gira en cuanto el dedo pasa el umbral, sin esperar a que se levante, y rearma el
+  // origen ahi: se encadena una L con un solo gesto.
   pantalla.addEventListener('touchstart', (e) => { toque = e.touches[0]; }, { passive: true });
-  pantalla.addEventListener('touchend', (e) => {
+  pantalla.addEventListener('touchmove', (e) => {
     if (!toque) return;
-    const t = e.changedTouches[0];
+    const t = e.touches[0];
     const dx = t.clientX - toque.clientX, dy = t.clientY - toque.clientY;
-    toque = null;
     if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+    toque = t;
     doblar(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'der' : 'izq') : (dy > 0 ? 'aba' : 'arr'));
-  });
+  }, { passive: true });
+  pantalla.addEventListener('touchend', () => { toque = null; }, { passive: true });
+  pantalla.addEventListener('touchcancel', () => { toque = null; }, { passive: true });
 
   const alTeclado = (e) => {
     if (TECLAS[e.key]) { e.preventDefault(); doblar(TECLAS[e.key]); }
@@ -206,6 +208,9 @@ export function viboritaView(host, { go }) {
   dibujar();
   medir();
   window.addEventListener('resize', medir);
+
+  // Al final del montaje: si algo de arriba falla, el zocalo de la app no queda oculto.
+  document.dispatchEvent(new CustomEvent('pantalla-completa', { detail: { activa: true } }));
 
   return () => {
     clearTimeout(reloj);

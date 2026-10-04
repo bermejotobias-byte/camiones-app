@@ -48,7 +48,7 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
 dotnet test                                    # 695 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 427 tests: guiado, **el mapa que no se rompe** (el agua, el reintento de tiles, el respaldo), avisos de ruta, el estilo del mapa, **la Red** (el cromo, el destello, los nombres, el contraste medido desde app.css), piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), **la Viborita TBF** (motor, dibujos, pantallas), el vocabulario y los iconos
+node --test "tests/web/*.test.mjs"             # 428 tests: guiado, **el mapa que no se rompe** (el agua, el reintento de tiles, el respaldo), avisos de ruta, el estilo del mapa, **la Red** (el cromo, el destello, los nombres, el contraste medido desde app.css), piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), **la Viborita TBF** (motor, dibujos, pantallas), el vocabulario y los iconos
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -390,7 +390,10 @@ node --test "tests/web/*.test.mjs"             # 427 tests: guiado, **el mapa qu
   que la vibración vino a evitar. Están en `VIBRACION` (`platform.js`). **No se usa
   `Vibration.Default` de MAUI**: sólo acepta una duración suelta. Va contra el `Vibrator`
   de Android con `VibrationEffect.CreateWaveform`, y la onda **arranca vibrando**, así que
-  el primer tramo debe ser una espera de cero o el patrón sale invertido. Ver AD-39.
+  el primer tramo debe ser una espera de cero o el patrón sale invertido. Sin
+  `android.permission.VIBRATE` en el manifiesto `Vibrate` tira `SecurityException` y la
+  cáscara la atrapa en silencio — así estuvo desde AD-39 hasta el 04/10/2026; el rastro
+  está en `adb logcat -s Cascara`. Ver AD-39.
 - **Los avisos de ruta se calculan UNA vez, al preparar la ruta.** Cruzar cada posición
   contra 685 gálibos, 312 pasos a nivel y 129 radares una vez por segundo es trabajo de
   sobra para un teléfono que además dibuja el mapa. `alertsAlongRoute` deja una lista corta

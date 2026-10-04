@@ -2083,6 +2083,17 @@ El generador hoy descarta los gálibos sin altura, pero el motor no puede depend
 de eso: es exactamente la clase de dato faltante que la regla de la casa manda
 tratar como faltante.
 
+### Apéndice (04/10/2026) · El permiso VIBRATE faltaba desde el principio
+
+La vibración **nunca vibró en el teléfono**. `AndroidManifest.xml` no declaraba
+`android.permission.VIBRATE` y sin él `Vibrator.Vibrate` tira `SecurityException`.
+No se notó porque la cáscara atrapa la excepción y sólo la loguea
+(`no se pudo vibrar (SecurityException)`, etiqueta `Cascara`). Lo destapó el
+logcat de la prueba de la Viborita: 27 excepciones, una por cada caja y cada
+choque. Afectaba a **toda** la vibración de la app —avisos de ruta y maniobras—,
+no sólo al juego. Se declaró el permiso; es un permiso normal, se concede al
+instalar y no abre ningún diálogo.
+
 ## AD-40 · Las rutas alternativas se ordenan por restricciones, no por tiempo
 
 **Fecha:** 01/09/2026
@@ -3499,7 +3510,7 @@ ni batería todavía**, primero que el juego enganche.
 - **14 tests de .NET nuevos**, 8 de dominio y 6 de integración (435 y 260; 695 en total, con
   los 15 que se saltean sin GraphHopper): la fórmula de los puntos, lo posible y lo imposible, y el
   récord en la base (el primero, no superarlo, igualarlo sin mover la fecha, mejorarlo, una
-  partida sin cajas y lo imposible sin guardar nada). **36 de JS** (427 en total): el motor,
+  partida sin cajas y lo imposible sin guardar nada). **36 de JS** (428 en total): el motor,
   los dibujos, las pantallas, las reglas y la vibración.
 - **Verificado en el navegador el 03/10/2026**: a 360 × 740, 375 × 812 y 412 × 915 la LCD queda
   a escala 3 (306 px) sin scroll, y la escala achica y vuelve a crecer al cambiar el tamaño de
