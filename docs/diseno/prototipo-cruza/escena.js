@@ -597,13 +597,13 @@ const CARRILES = [
   { t: 'rio', dir: -1, vel: 20, n: 3, xs: [30, 190] },
   { t: 'rio', dir: 1, vel: 11, n: 4, xs: [16, 170], cajaEn: 0 },
   { t: 'playon', obst: [[0, 'bolardo'], [8, 'bolardo'], [6, 'mastil']], numero: 50 },
-  { t: 'calle', red: true, veh: [['tbf-naranja', 10], ['tbf-celeste', 196]], dir: 1, vel: 30 },
-  { t: 'calle', veh: [['colectivo-60', 40], ['tbf-violeta', 226]], dir: -1, vel: 26, mancha: 150 },
-  { t: 'calle', red: true, senda: [84, 128], veh: [['tbf-rojo', 0], ['tbf-azul', 180]], dir: 1, vel: 40, cajas: [4] },
-  { t: 'calle', adoquin: true, veh: [['torino', 40], ['tbf-cisterna', 170]], dir: -1, vel: 36 },
+  { t: 'calle', red: true, veh: [['tbf-naranja', 10]], dir: 1, vel: 28 },
+  { t: 'calle', veh: [['torino', 40], ['uno', 200]], dir: -1, vel: 40, mancha: 150 },
+  { t: 'calle', senda: [84, 128], veh: [['fitito', 0], ['taxi', 170]], dir: 1, vel: 46, cajas: [4] },
+  { t: 'calle', red: true, veh: [['tbf-celeste', 40]], dir: -1, vel: 26 },
   { t: 'plaza', obst: [[2, 'jacaranda'], [5, 'mate']], cajas: [3] },
   { t: 'vereda', obst: [[0, 'arbol'], [2, 'contenedor'], [7, 'arbol']], amarillo: true, petalos: true },
-  { t: 'calle', red: true, veh: [['tbf-amarillo', 60], ['tbf-verde', 250]], dir: 1, vel: 34 },
+  { t: 'calle', adoquin: true, veh: [['504', 60], ['colectivo-60', 210]], dir: 1, vel: 30 },
   { t: 'vereda', obst: [[5, 'cartel'], [1, 'arbol'], [3, 'contenedor']] }
 ];
 const P = W + 130;
@@ -760,7 +760,7 @@ lienzo('m-agua', 28, 28, (c, t) => { px(c, 0, 0, 28, 28, '#1668ff'); for (let x 
 lienzo('calles', W, 5 * CEL + 18, (c, t) => { px(c, 0, 0, W, 18, '#a3a9b6'); campo(c, t, [
   { t: 'vereda', obst: [[0, 'arbol'], [3, 'contenedor'], [7, 'jacaranda']], amarillo: true, petalos: true },
   { t: 'calle', adoquin: true, veh: [['fitito', 30], ['504', 190]], dir: 1, vel: 40 },
-  { t: 'calle', red: true, veh: [['colectivo-39', 80], ['tbf-rojo', 260]], dir: -1, vel: 28, mancha: 20 },
+  { t: 'calle', red: true, veh: [['tbf-rojo', 80]], dir: -1, vel: 28, mancha: 20 },
   { t: 'calle', senda: [96, 140], veh: [['torino', 20], ['taxi', 200]], dir: 1, vel: 48, cajas: [4] },
   { t: 'plaza', obst: [[2, 'jacaranda'], [6, 'mate']] }
 ], 18); });

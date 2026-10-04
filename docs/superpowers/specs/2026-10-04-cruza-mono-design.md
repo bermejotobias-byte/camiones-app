@@ -38,7 +38,10 @@ El diseño llevó **cinco vueltas**:
 3. **El invitado no juega**: Juegos pide cuenta, como la Viborita.
 4. **El HI-SCORE se guarda en el servidor**, como el récord de la Viborita.
 5. **El mapa no se termina** hasta que el mono pierde las tres vidas.
-6. **Más camiones TBF**: son el vehículo más común de la calle (§3.3).
+6. **El reparto del tránsito tiene criterio** (§3.3). La primera versión llenaba la calle de
+   camiones, y el usuario la corrigió: *"No tantos camiones, se complica mucho la jugabilidad…
+   que lo que menos pasen sean colectivos"*. Lo que más pasa son autos, después camiones TBF y
+   al final colectivos. Nunca hay dos carriles seguidos de vehículos largos.
 
 ## 2. La pantalla
 
@@ -132,18 +135,25 @@ que el mono pierde las tres vidas.
   - el cartel (4 celdas) va sólo en una `vereda`, uno por fila como máximo, y nunca sobre el
     pasillo.
 
-### 3.3 Las calles — más camiones TBF
+### 3.3 Las calles — el reparto del tránsito
 
 Cada carril de calle tiene **un sentido, una velocidad constante y una clase de vehículo**. Los
 vehículos se repiten en un lazo periódico (como en el prototipo), así el carril es determinista y
 no hace falta crear ni borrar vehículos.
 
-| Clase de carril | Probabilidad | Vehículos |
-|---|---|---|
-| **De la Red** (con su línea de cromo) | **0,5** | Sólo camiones TBF (4 celdas), de las 9 pinturas |
-| Largo común | 0,2 | Camiones TBF y colectivos (4 celdas), mitad y mitad |
-| Corto | 0,3 | Autos (2 celdas): Torino, Fiat Uno, Fitito, 504 y taxi |
+**Lo que más pasa son autos, después camiones TBF y lo que menos, colectivos.** Los vehículos
+largos (4 celdas) son los que complican cruzar, así que se reparten con cuidado:
 
+| Clase de carril | Vehículos | Filas 0–19 | Fila 20 en adelante |
+|---|---|---|---|
+| **Autos** | Torino, Fiat Uno, Fitito, 504 y taxi (2 celdas), mezclados | **0,80** | **0,55** |
+| **De la Red** (con su línea de cromo) | Camiones TBF (4 celdas), de las 9 pinturas | 0,20 | 0,30 |
+| **Colectivos** | Colectivos (4 celdas), de las 6 líneas | 0 | 0,15 |
+
+- **Nunca hay dos carriles seguidos de vehículos largos** (Red o colectivos) en un mismo bloque. Si
+  sale uno pegado a otro, se cambia por un carril de autos.
+- **Un carril de vehículos largos lleva 2 como máximo**, y va a **0,75 × la velocidad máxima** de
+  la banda: los camiones y los colectivos son más lentos que los autos.
 - **Las 9 pinturas de la flota:** celeste y blanca, violeta, naranja, amarilla con azul, verde,
   roja, azul, jaula de hacienda y cisterna de cromo.
 - **Las 6 líneas de colectivo:** 152, 60, 29, 39, 64 y 12.
@@ -364,7 +374,10 @@ no un accidente.
     - 4 celdas libres y el pasillo en cada franja segura;
     - una caja por fila como máximo;
     - el playón cada 25 filas;
-    - la proporción de carriles de la Red sobre 2000 filas, alrededor del 50 %;
+    - el reparto sobre 3000 filas: autos alrededor del 55 %, Red del 30 % y colectivos del 15 %,
+      con los colectivos siempre por debajo de la Red;
+    - nunca dos carriles largos seguidos, a lo sumo 2 vehículos por carril largo y ningún
+      colectivo antes de la fila 20;
   - `motor`:
     - el paso, el bloqueo y la cola de un solo paso;
     - el tronco que lleva;
