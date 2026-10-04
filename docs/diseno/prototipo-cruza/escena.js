@@ -412,94 +412,115 @@ function conventillo(c, x, y, i) {
   px(c, x + 3, top + 21, 18, 1, CONTORNO); for (let k = 0; k < 18; k += 3) px(c, x + 3 + k, top + 21, 1, 4, CONTORNO);
   px(c, x + 8, top + 28, 8, 13, CONTORNO); px(c, x + 9, top + 29, 6, 12, i % 2 ? '#8a4f22' : '#3d1f7a'); px(c, x + 13, top + 35, 1, 1, '#ffd21f');
 }
-// --- la letra chica de los carteles: 3 x 5 (la M y la N mas anchas), con una fila arriba
-// para el acento. Los carteles chicos no entran con la 5 x 7.
-const MINI = {
-  A: ['...', '.#.', '#.#', '###', '#.#', '#.#'], 'Á': ['..#', '.#.', '#.#', '###', '#.#', '#.#'],
-  B: ['...', '##.', '#.#', '##.', '#.#', '##.'], C: ['...', '.##', '#..', '#..', '#..', '.##'],
-  D: ['...', '##.', '#.#', '#.#', '#.#', '##.'], E: ['...', '###', '#..', '##.', '#..', '###'],
-  F: ['...', '###', '#..', '##.', '#..', '#..'], G: ['...', '.##', '#..', '#.#', '#.#', '.##'],
-  I: ['...', '###', '.#.', '.#.', '.#.', '###'], J: ['...', '..#', '..#', '..#', '#.#', '.#.'],
-  L: ['...', '#..', '#..', '#..', '#..', '###'], M: ['.....', '#...#', '##.##', '#.#.#', '#...#', '#...#'],
-  N: ['....', '#..#', '##.#', '#.##', '#..#', '#..#'], O: ['...', '.#.', '#.#', '#.#', '#.#', '.#.'],
-  P: ['...', '##.', '#.#', '##.', '#..', '#..'], R: ['...', '##.', '#.#', '##.', '#.#', '#.#'],
-  S: ['...', '.##', '#..', '.#.', '..#', '##.'], T: ['...', '###', '.#.', '.#.', '.#.', '.#.'],
-  U: ['...', '#.#', '#.#', '#.#', '#.#', '###'], ',': ['..', '..', '..', '..', '.#', '#.'],
-  ' ': ['..', '..', '..', '..', '..', '..']
+// --- la letra de los carteles: angosta (4 x 7, la M y la N de 5, la I y la T de 3), y se
+// dibuja como letra fileteada: contorno oscuro, relleno en degrade por fila y brillo blanco
+// arriba de cada trazo. Tiene que romper: la 5 x 7 fina no se ve de reojo.
+const GRUESA = {
+  A: ['.##.', '#..#', '#..#', '####', '#..#', '#..#', '#..#'], B: ['###.', '#..#', '#..#', '###.', '#..#', '#..#', '###.'],
+  C: ['.###', '#...', '#...', '#...', '#...', '#...', '.###'], D: ['###.', '#..#', '#..#', '#..#', '#..#', '#..#', '###.'],
+  E: ['####', '#...', '#...', '###.', '#...', '#...', '####'], F: ['####', '#...', '#...', '###.', '#...', '#...', '#...'],
+  G: ['.###', '#...', '#...', '#.##', '#..#', '#..#', '.###'], I: ['###', '.#.', '.#.', '.#.', '.#.', '.#.', '###'],
+  J: ['..##', '...#', '...#', '...#', '...#', '#..#', '.##.'], L: ['#...', '#...', '#...', '#...', '#...', '#...', '####'],
+  M: ['#...#', '##.##', '#.#.#', '#.#.#', '#...#', '#...#', '#...#'], N: ['#...#', '##..#', '#.#.#', '#..##', '#...#', '#...#', '#...#'],
+  O: ['.##.', '#..#', '#..#', '#..#', '#..#', '#..#', '.##.'], P: ['###.', '#..#', '#..#', '###.', '#...', '#...', '#...'],
+  R: ['###.', '#..#', '#..#', '###.', '#.#.', '#..#', '#..#'], S: ['.###', '#...', '#...', '.##.', '...#', '...#', '###.'],
+  T: ['###', '.#.', '.#.', '.#.', '.#.', '.#.', '.#.'], U: ['#..#', '#..#', '#..#', '#..#', '#..#', '#..#', '.##.'],
+  ',': ['..', '..', '..', '..', '..', '.#', '#.'], ' ': ['.', '.', '.', '.', '.', '.', '.']
 };
-const anchoMini = (s) => [...s].reduce((a, ch) => a + (MINI[ch] || MINI[' '])[0].length + 1, 0) - 1;
-function textoMini(c, s, x, y, color, sombra) {
-  if (sombra) textoMini(c, s, x + 1, y + 1, sombra);
-  let cx = x;
+const glifo = (ch) => GRUESA[ch === 'Á' ? 'A' : ch] || GRUESA[' '];
+const anchoGruesa = (s) => [...s].reduce((a, ch) => a + glifo(ch)[0].length + 1, 0) - 1;
+function pixelesGruesa(s, x, y) {
+  const v = []; let cx = x;
   for (const ch of s) {
-    const g = MINI[ch] || MINI[' '];
-    g.forEach((fila, j) => [...fila].forEach((p, i) => { if (p === '#') px(c, cx + i, y + j, 1, 1, color); }));
+    const g = glifo(ch);
+    g.forEach((fila, j) => [...fila].forEach((p, i) => { if (p === '#') v.push([cx + i, y + j, j, j === 0 || g[j - 1][i] !== '#']); }));
+    if (ch === 'Á') { v.push([cx + 2, y - 2, 0, true]); v.push([cx + 3, y - 3, 0, true]); }
     cx += g[0].length + 1;
   }
+  return v;
 }
-const centroMini = (c, s, x, w, y, color, sombra) => textoMini(c, s, x + Math.floor((w - anchoMini(s)) / 2), y, color, sombra);
+function letraFilete(c, s, x, y, relleno, contorno, luz = '#ffffff') {
+  const v = pixelesGruesa(s, x, y);
+  for (const [dx, dy] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [1, 2], [2, 2], [0, 2]]) for (const [px0, py0] of v) px(c, px0 + dx, py0 + dy, 1, 1, contorno);
+  for (const [px0, py0, j, arriba] of v) px(c, px0, py0, 1, 1, arriba ? luz : relleno[Math.min(j, relleno.length - 1)]);
+}
+const letraFileteCentro = (c, s, x, w, y, relleno, contorno, luz) => letraFilete(c, s, x + Math.floor((w - anchoGruesa(s)) / 2), y, relleno, contorno, luz);
+function letraNeon(c, s, x, y, nucleo, halo, prendido) {
+  const v = pixelesGruesa(s, x, y);
+  if (!prendido) { for (const [a, b] of v) px(c, a, b, 1, 1, '#3a2f55'); return; }
+  c.fillStyle = halo;
+  for (const [a, b] of v) c.fillRect(a - 2, b - 2, 5, 5);
+  for (const [a, b] of v) px(c, a, b, 1, 1, nucleo);
+}
+const DORADO7 = ['#fff6c2', '#fff08a', '#ffe14a', '#ffd21f', '#f2b800', '#e0a400', '#ffd21f'];
+const NIEVE7 = ['#ffffff', '#ffffff', '#eef7ff', '#d4f3ff', '#bfeeff', '#a6e6ff', '#d4f3ff'];
+const RULO = ['.aa.', 'a..a', 'a.b.', '.a..'];
 
-// --- "EL MEJOR AMIGO DEL CAMIONERO": chapa fileteada de 3 celdas, con el mono en el medallon
+// --- "EL MEJOR AMIGO DEL CAMIONERO": chapa fileteada, con el mono en el medallon
 function chapaFilete(c, x, y, t) {
-  const top = y - 18;
+  const top = y - 20;
   sombra(c, x + 6, y + 19, 60, 4);
-  for (const p of [12, 56]) { px(c, x + p, top + 25, 4, y + 21 - (top + 25), CONTORNO); px(c, x + p + 1, top + 25, 2, y + 21 - (top + 25), '#6b3a1c'); px(c, x + p + 1, top + 25, 1, y + 21 - (top + 25), '#a8602a'); }
-  px(c, x, top, 72, 27, CONTORNO);
-  px(c, x + 1, top + 1, 70, 25, '#1b1747'); px(c, x + 1, top + 1, 70, 8, '#221d5a'); px(c, x + 1, top + 1, 70, 1, '#3a3380');
-  for (let k = 0; k < 62; k++) if (k % 3 !== 2) { px(c, x + 5 + k, top + 3, 1, 1, '#ffd21f'); px(c, x + 5 + k, top + 23, 1, 1, '#ffd21f'); }
-  for (let k = 0; k < 18; k++) if (k % 3 !== 2) { px(c, x + 3, top + 4 + k, 1, 1, '#ffd21f'); px(c, x + 68, top + 4 + k, 1, 1, '#ffd21f'); }
-  const vol = { a: '#c9a8ff', b: '#ffffff', c: '#ffd21f' };
-  estampa(c, VOLUTA, x + 1, top + 1, vol); estampa(c, VOLUTA, x + 64, top + 1, vol, true);
-  estampa(c, VOLUTA.slice().reverse(), x + 1, top + 19, vol); estampa(c, VOLUTA.slice().reverse(), x + 64, top + 19, vol, true);
-  centroMini(c, 'EL MEJOR AMIGO', x, 72, top + 8, '#ffd21f', '#5a3a00');
-  centroMini(c, 'DEL CAMIONERO', x, 72, top + 16, '#ffffff', '#3d1f7a');
-  // el medallon con la cara del mono, y el sol detras
-  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + t * 0.6; px(c, x + 36 + Math.round(Math.cos(a) * 11), top - 5 + Math.round(Math.sin(a) * 9), 2, 2, '#ffd21f'); }
-  for (let yy = -9; yy <= 9; yy++) for (let xx = -9; xx <= 9; xx++) { const d = xx * xx + yy * yy; if (d <= 81) px(c, x + 36 + xx, top - 5 + yy, 1, 1, d > 64 ? CONTORNO : d > 49 ? '#35b8e8' : '#d4f3ff'); }
-  pegar(c, CABEZA, x + 30, top - 11);
-  // lamparitas del borde de arriba
-  for (let k = 0; k < 6; k++) { const lx = x + 8 + k * 11 + (k > 2 ? 9 : 0), on = Math.floor(t * 3 + k) % 3 !== 0; px(c, lx, top - 1, 2, 2, on ? '#fff4c2' : '#5a4a2a'); }
+  for (const p of [12, 56]) { px(c, x + p, top + 30, 4, y + 21 - (top + 30), CONTORNO); px(c, x + p + 1, top + 30, 2, y + 21 - (top + 30), '#6b3a1c'); px(c, x + p + 1, top + 30, 1, y + 21 - (top + 30), '#a8602a'); }
+  px(c, x, top, 72, 31, CONTORNO);
+  px(c, x + 1, top + 1, 70, 29, '#1b1747'); px(c, x + 1, top + 1, 70, 10, '#221d5a'); px(c, x + 1, top + 1, 70, 1, '#3a3380');
+  for (let k = 0; k < 64; k++) if (k % 3 !== 2) { px(c, x + 4 + k, top + 2, 1, 1, '#ffd21f'); px(c, x + 4 + k, top + 28, 1, 1, '#ffd21f'); }
+  const vol = { a: '#c9a8ff', b: '#ffffff' };
+  estampa(c, RULO, x + 1, top + 1, vol); estampa(c, RULO, x + 67, top + 1, vol, true);
+  estampa(c, RULO.slice().reverse(), x + 1, top + 26, vol); estampa(c, RULO.slice().reverse(), x + 67, top + 26, vol, true);
+  letraFileteCentro(c, 'EL MEJOR AMIGO', x, 72, top + 6, DORADO7, '#2a1206');
+  letraFileteCentro(c, 'DEL CAMIONERO', x, 72, top + 18, NIEVE7, '#3d1f7a');
+  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + t * 0.6; px(c, x + 36 + Math.round(Math.cos(a) * 11), top - 6 + Math.round(Math.sin(a) * 9), 2, 2, '#ffd21f'); }
+  for (let yy = -9; yy <= 9; yy++) for (let xx = -9; xx <= 9; xx++) { const d = xx * xx + yy * yy; if (d <= 81) px(c, x + 36 + xx, top - 6 + yy, 1, 1, d > 64 ? CONTORNO : d > 49 ? '#35b8e8' : '#d4f3ff'); }
+  pegar(c, CABEZA, x + 30, top - 12);
+  for (let k = 0; k < 6; k++) { const lx = x + 6 + k * 12 + (k > 2 ? 4 : 0), on = Math.floor(t * 3 + k) % 3 !== 0; px(c, lx, top - 1, 2, 2, on ? '#fff4c2' : '#5a4a2a'); }
 }
-// --- "RED DE TRANSITO PESADO": senal vial azul de 3 celdas, con la linea de cromo de la Red
+// --- "RED DE TRANSITO PESADO": la senal de la Red, con balizas y franja de peligro
 function senalRed(c, x, y, t) {
   const top = y - 20;
   sombra(c, x + 24, y + 19, 24, 4);
-  px(c, x + 34, top + 28, 4, y + 21 - (top + 28), CONTORNO); px(c, x + 35, top + 28, 2, y + 21 - (top + 28), '#8d99a8'); px(c, x + 35, top + 28, 1, y + 21 - (top + 28), '#c9d3de');
-  px(c, x + 31, y + 18, 10, 3, '#5f6b7a');
-  px(c, x + 4, top, 64, 29, CONTORNO); px(c, x + 3, top + 1, 66, 27, CONTORNO);
-  px(c, x + 5, top + 1, 62, 27, '#ffffff'); px(c, x + 4, top + 2, 64, 25, '#ffffff');
-  px(c, x + 6, top + 2, 60, 25, '#1f4fbf'); px(c, x + 5, top + 3, 62, 23, '#1f4fbf'); px(c, x + 6, top + 2, 60, 6, '#2a5fd6');
-  // el pictograma del camion
-  const cx = x + 27;
-  px(c, cx, top + 4, 11, 6, '#ffffff'); px(c, cx + 12, top + 6, 5, 4, '#ffffff'); px(c, cx + 14, top + 7, 2, 1, '#1f4fbf');
-  for (const w of [2, 8, 14]) { px(c, cx + w, top + 10, 2, 2, '#ffffff'); }
-  centroMini(c, 'RED DE TRÁNSITO', x + 3, 66, top + 12, '#ffffff');
-  centroMini(c, 'PESADO', x + 3, 66, top + 19, '#ffffff');
-  px(c, x + 6, top + 25, 60, 1, '#d4f3ff'); px(c, x + 6, top + 26, 60, 1, '#35b8e8');
-  c.save(); c.beginPath(); c.rect(x + 5, top + 2, 62, 25); c.clip(); brillo(c, x + 5, top + 2, 62, 25, t + x * 0.01, 5, 'rgba(255,255,255,.35)'); c.restore();
+  for (let k = 0; y + 21 - (top + 31) > k; k += 3) px(c, x + 34, top + 31 + k, 4, 3, k % 6 ? '#2b2a35' : '#ffd21f');
+  px(c, x + 33, top + 31, 1, y + 21 - (top + 31), CONTORNO); px(c, x + 38, top + 31, 1, y + 21 - (top + 31), CONTORNO);
+  px(c, x + 30, y + 18, 12, 3, '#5f6b7a');
+  px(c, x, top, 72, 31, CONTORNO);
+  [['#d4f3ff', 0], ['#35b8e8', 1]].forEach(([col, i]) => px(c, x + 1 + i, top + 1 + i, 70 - 2 * i, 29 - 2 * i, col));
+  px(c, x + 3, top + 3, 66, 21, '#1f4fbf'); px(c, x + 3, top + 3, 66, 8, '#2a5fd6'); px(c, x + 3, top + 3, 66, 1, '#5c86ff');
+  letraFileteCentro(c, 'RED DE TRÁNSITO', x, 72, top + 6, NIEVE7, '#0b1a4a');
+  letraFileteCentro(c, 'PESADO', x, 72, top + 15, DORADO7, '#0b1a4a');
+  const fl = Math.floor(t * 4) % 2;
+  for (const [fx, d] of [[x + 10 + fl, 1], [x + 61 - fl, -1]]) for (let k = 0; k < 2; k++) { const ax = fx + k * 4 * d; px(c, ax, top + 17, 1, 1, '#ffd21f'); px(c, ax + d, top + 18, 1, 1, '#ffd21f'); px(c, ax + 2 * d, top + 19, 1, 1, '#ffd21f'); px(c, ax + d, top + 20, 1, 1, '#ffd21f'); px(c, ax, top + 21, 1, 1, '#ffd21f'); }
+  for (let k = 0; k < 66; k++) px(c, x + 3 + k, top + 24, 1, 3, mod(k, 8) < 4 ? '#ffd21f' : '#2b2a35');
+  c.save(); c.beginPath(); c.rect(x + 3, top + 3, 66, 21); c.clip(); brillo(c, x + 3, top + 3, 66, 21, t + x * 0.01, 4, 'rgba(255,255,255,.3)'); c.restore();
+  // copete: la placa de cromo con el camion
+  px(c, x + 24, top - 9, 24, 10, CONTORNO); px(c, x + 25, top - 8, 22, 8, '#e3ebf3'); px(c, x + 25, top - 8, 22, 2, '#ffffff'); px(c, x + 25, top - 2, 22, 2, '#8d99a8');
+  px(c, x + 28, top - 7, 10, 5, '#1f4fbf'); px(c, x + 39, top - 6, 5, 4, '#1f4fbf'); px(c, x + 41, top - 5, 2, 1, '#bfeeff');
+  for (const w of [30, 35, 41]) px(c, x + w, top - 2, 2, 1, '#2b2a35');
+  // las balizas, de a una
+  for (const [bx, fase] of [[x + 3, 0], [x + 65, 1]]) {
+    const on = (Math.floor(t * 2.5) + fase) % 2 === 0;
+    px(c, bx, top - 5, 4, 5, CONTORNO); px(c, bx + 1, top - 4, 2, 3, on ? '#ffb000' : '#6a4800'); if (on) { c.fillStyle = 'rgba(255,176,0,.3)'; c.fillRect(bx - 3, top - 8, 10, 10); px(c, bx + 1, top - 4, 1, 1, '#fff4c2'); }
+  }
 }
-// --- "TU GPS, BAJALA GRATIS": mupi luminoso de 2 celdas, como los de las paradas
-function mupi(c, x, y, t) {
-  const top = y - 22;
-  const pulso = 0.12 + 0.08 * Math.sin(t * 3 + x);
-  c.fillStyle = `rgba(143,220,247,${pulso.toFixed(2)})`; c.fillRect(x + 1, top - 2, 46, 44);
-  sombra(c, x + 6, y + 19, 36, 4);
-  px(c, x + 9, top + 38, 3, y + 21 - (top + 38), '#5f6b7a'); px(c, x + 36, top + 38, 3, y + 21 - (top + 38), '#5f6b7a');
-  px(c, x + 3, top, 42, 39, CONTORNO);
-  [['#d4f3ff', 0], ['#7fdcff', 1], ['#35b8e8', 2]].forEach(([col, i]) => px(c, x + 4 + i, top + 1 + i, 40 - 2 * i, 37 - 2 * i, col));
-  px(c, x + 7, top + 4, 34, 26, '#ffffff'); px(c, x + 7, top + 18, 34, 12, '#e6f8ff');
-  c.fillStyle = `rgba(255,255,255,${(0.25 + pulso).toFixed(2)})`; c.fillRect(x + 7, top + 4, 34, 3);
-  // el telefono con la app
-  px(c, x + 8, top + 7, 7, 15, CONTORNO); px(c, x + 9, top + 8, 5, 12, '#d4f3ff');
-  px(c, x + 9, top + 11, 5, 1, '#ffffff'); px(c, x + 9, top + 15, 5, 1, '#ffffff'); px(c, x + 11, top + 8, 1, 12, '#ffffff');
-  px(c, x + 9, top + 9, 2, 2, '#7be08a');
-  const a = mod(t * 0.8, 1); for (let k = 0; k < 7; k++) px(c, x + 9 + Math.floor(k * 0.5), top + 18 - k, 1, 1, '#35b8e8');
-  px(c, x + 9 + Math.floor(a * 7 * 0.5), top + 18 - Math.floor(a * 7), 2, 2, '#ff7f1f');
-  px(c, x + 10, top + 20, 3, 1, '#3a3958');
-  textoMini(c, 'TU GPS,', x + 16, top + 5, '#1f4a5c');
-  textoMini(c, 'BAJALA', x + 17, top + 12, '#7650c9');
-  textoMini(c, 'GRATIS', x + 17, top + 19, '#7650c9');
-  px(c, x + 7, top + 31, 34, 6, '#1f86ad'); centroMini(c, 'TBF', x + 7, 34, top + 31, '#ffffff');
+// --- "TU GPS, BAJALA GRATIS": cartel de neon
+function neon(c, x, y, t) {
+  const top = y - 20;
+  sombra(c, x + 6, y + 19, 60, 4);
+  for (const p of [10, 58]) { px(c, x + p, top + 30, 3, y + 21 - (top + 30), CONTORNO); px(c, x + p + 1, top + 30, 1, y + 21 - (top + 30), '#5f6b7a'); }
+  px(c, x, top, 72, 31, CONTORNO); px(c, x + 1, top + 1, 70, 29, '#0d0b1e');
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 7; k++) px(c, x + 2 + k * 10 + (r % 2) * 5, top + 3 + r * 7, 8, 5, 'rgba(255,255,255,.03)');
+  for (const [rx, ry] of [[2, 2], [68, 2], [2, 27], [68, 27]]) px(c, x + rx, top + ry, 2, 2, '#5f6b7a');
+  // el tubo del borde, con la luz que corre
+  const corre = Math.floor(t * 12);
+  const borde = [];
+  for (let k = 0; k < 64; k++) borde.push([x + 4 + k, top + 3], [x + 67 - k, top + 27]);
+  for (let k = 0; k < 24; k++) borde.push([x + 3, top + 4 + k], [x + 68, top + 26 - k]);
+  borde.forEach(([a, b], i) => px(c, a, b, 1, 1, (i + corre) % 6 < 2 ? '#ffffff' : '#a97bf0'));
+  // las dos lineas: una parpadea de a ratos, como un neon viejo
+  const parpadeo = mod(t, 3.7) < 0.35 && Math.floor(t * 18) % 2 === 0;
+  letraNeon(c, 'TU GPS,', x + Math.floor((72 - anchoGruesa('TU GPS,')) / 2), top + 7, '#e6f8ff', 'rgba(53,184,232,.30)', true);
+  letraNeon(c, 'BAJALA GRATIS', x + Math.floor((72 - anchoGruesa('BAJALA GRATIS')) / 2), top + 17, '#ffe6fb', 'rgba(255,79,216,.30)', !parpadeo);
+  // copete: TBF en neon
+  px(c, x + 25, top - 10, 22, 11, CONTORNO); px(c, x + 26, top - 9, 20, 9, '#0d0b1e');
+  letraNeon(c, 'TBF', x + 29, top - 8, '#ffffff', 'rgba(169,123,240,.45)', true);
 }
 
 // ================================================================ el mono, animado
@@ -590,7 +611,7 @@ const CARRILES = [
   { t: 'vereda', boca: [0, 1, 3, 4, 6, 8] },
   { t: 'rio', dir: -1, vel: 20, n: 3, xs: [30, 190] },
   { t: 'rio', dir: 1, vel: 11, n: 4, xs: [16, 170], cajaEn: 0 },
-  { t: 'playon', obst: [[0, 'bolardo'], [8, 'bolardo'], [6, 'mastil'], [1, 'mupi']], numero: 50 },
+  { t: 'playon', obst: [[0, 'bolardo'], [8, 'bolardo'], [6, 'mastil'], [1, 'neon']], numero: 50 },
   { t: 'calle', red: true, veh: [['tbf-naranja', 10]], dir: 1, vel: 28 },
   { t: 'calle', veh: [['torino', 40], ['uno', 200]], dir: -1, vel: 40, mancha: 150 },
   { t: 'calle', senda: [84, 128], veh: [['fitito', 0], ['taxi', 170]], dir: 1, vel: 46, cajas: [4] },
@@ -625,7 +646,7 @@ function cosas(c, k, i, y, t, tomadas) {
     if (que === 'mastil') mastil(c, x, y, t);
     if (que === 'chapa') chapaFilete(c, x, y, t);
     if (que === 'senal') senalRed(c, x, y, t);
-    if (que === 'mupi') mupi(c, x, y, t);
+    if (que === 'neon') neon(c, x, y, t);
   });
   (k.cajas || []).forEach((col) => { if (!tomadas.has(i + ':' + col)) cajaTBF(c, col * CEL, y, t); });
   if (k.t === 'rio') k.xs.forEach((x0, j) => {
@@ -761,9 +782,9 @@ lienzo('calles', W, 5 * CEL + 18, (c, t) => { px(c, 0, 0, W, 18, '#a3a9b6'); cam
   { t: 'plaza', obst: [[2, 'jacaranda'], [6, 'mate']] }
 ], 18); });
 const fondoP = (c, w, h) => { px(c, 0, 0, w, h, '#a3a9b6'); for (let x = 0; x < w; x += 12) for (let y = 0; y < h; y += 12) { px(c, x, y, 12, 1, '#8c93a1'); px(c, x, y, 1, 12, '#8c93a1'); } };
-lienzo('p-chapa', 76, 60, (c, t) => { fondoP(c, 76, 60); chapaFilete(c, 2, 36, t); });
-lienzo('p-senal', 76, 52, (c, t) => { fondoP(c, 76, 52); senalRed(c, 2, 28, t); });
-lienzo('p-mupi', 52, 52, (c, t) => { fondoP(c, 52, 52); mupi(c, 2, 28, t); });
+lienzo('p-chapa', 76, 64, (c, t) => { fondoP(c, 76, 64); chapaFilete(c, 2, 40, t); });
+lienzo('p-senal', 76, 64, (c, t) => { fondoP(c, 76, 64); senalRed(c, 2, 40, t); });
+lienzo('p-neon', 76, 64, (c, t) => { fondoP(c, 76, 64); neon(c, 2, 40, t); });
 lienzo('p-jacaranda', 28, 36, (c, t) => { px(c, 0, 0, 28, 36, '#33c24d'); arbol(c, 2, 12, t, 0, true); });
 lienzo('p-bandera', 44, 56, (c, t) => { px(c, 0, 0, 44, 56, '#68707f'); mastil(c, 4, 34, t); });
 lienzo('p-mate', 28, 30, (c, t) => { px(c, 0, 0, 28, 30, '#33c24d'); banco(c, 2, 6, true); });
