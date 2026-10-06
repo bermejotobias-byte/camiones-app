@@ -23,10 +23,10 @@ Ver `docs/data-sources.md`, "Puntos de interés".
 |---|---|
 | `src/TruckNavigator.Domain` | Motor de restricciones, ruteo, POIs y perfiles. **Sin dependencias externas** — mantenerlo así |
 | `src/TruckNavigator.Infrastructure` | EF Core + SQLite, cliente GraphHopper, geocoding (Photon), datasets |
-| `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois` (leer, votar, agregar), `/api/reports` (leer, reportar, sigue ahí / ya no está, cerrar), `/api/progress`, `/api/routes`, `/api/juegos` (el récord de la Viborita). Swagger en `/swagger` |
+| `src/TruckNavigator.Api` | ASP.NET Core Minimal API en `:5080` **y la app web en `wwwroot`**. `/api/health`, `/api/auth`, `/api/profile`, `/api/trucks`, `/api/trips`, `/api/places`, `/api/pois` (leer, votar, agregar), `/api/reports` (leer, reportar, sigue ahí / ya no está, cerrar), `/api/progress`, `/api/routes`, `/api/juegos` (los récords de la Viborita y de Cruzá, Mono). Swagger en `/swagger` |
 | `src/TruckNavigator.Mobile` | .NET MAUI Android. **Cáscara**: hospeda la app web de `Api/wwwroot` en un `HybridWebView` y le aporta URL del backend, GPS y discador |
-| `tests/TruckNavigator.UnitTests` | 435 tests: dominio (restricciones, la oferta de rutas, la elegida y sus gálibos, los lugares guardados y los recientes, ruteo, progresión, aptitud de POIs, sello y filtro de la comunidad, patente, fecha de nacimiento, **los reportes de la comunidad**: catálogo, confiabilidad, vencimiento y promoción, reputación y relevancia, abuso, el bloqueo en el custom model, la graduación del lugar, **la Viborita**: puntos y lo posible), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
-| `tests/TruckNavigator.IntegrationTests` | 260 tests: 15 contra GraphHopper (se saltean solos si no está levantado; dos cubren que el viaje arranca por la ruta elegida y uno que un cierre validado esquiva la cuadra) + 245 sobre datasets, perfiles, camiones, viajes, lugares guardados, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, los candados del dataset de POIs con el seed por `ManagedByDataset`, los votos y aportes de la comunidad, los reportes (persistencia, crear, votar, leer, los bloqueos, el recorder) y **el límite de tasa** (qué canasta le toca a cada ruta, los números, contra quién se cuenta, y el limitador atacado de verdad hasta que corta) y **el récord de la Viborita** (el primero de la tabla de récords: el primero, no superarlo, igualarlo sin mover la fecha, mejorarlo, una partida sin cajas y lo imposible) |
+| `tests/TruckNavigator.UnitTests` | 443 tests: dominio (restricciones, la oferta de rutas, la elegida y sus gálibos, los lugares guardados y los recientes, ruteo, progresión, aptitud de POIs, sello y filtro de la comunidad, patente, fecha de nacimiento, **los reportes de la comunidad**: catálogo, confiabilidad, vencimiento y promoción, reputación y relevancia, abuso, el bloqueo en el custom model, la graduación del lugar, **la Viborita** y **Cruzá, Mono**: puntos y lo posible), la dirección del backend, la política de reintentos, el orden de rutas alternativas, el orden del reparto y los contactos de emergencia. Los de reintentos, reparto y alternativas enlazan archivos de Mobile, que no depende de MAUI a propósito |
+| `tests/TruckNavigator.IntegrationTests` | 267 tests: 15 contra GraphHopper (se saltean solos si no está levantado; dos cubren que el viaje arranca por la ruta elegida y uno que un cierre validado esquiva la cuadra) + 252 sobre datasets, perfiles, camiones, viajes, lugares guardados, paradas del reparto, contactos de emergencia, progresión, carnet, SQLite, los candados del dataset de POIs con el seed por `ManagedByDataset`, los votos y aportes de la comunidad, los reportes (persistencia, crear, votar, leer, los bloqueos, el recorder) y **el límite de tasa** (qué canasta le toca a cada ruta, los números, contra quién se cuenta, y el limitador atacado de verdad hasta que corta) y **el récord de la Viborita** (el primero de la tabla de récords: el primero, no superarlo, igualarlo sin mover la fecha, mejorarlo, una partida sin cajas y lo imposible) y **el de Cruzá, Mono**, que vive al lado sin tocarlo |
 
 Solución: `TruckNavigator.slnx`.
 
@@ -47,8 +47,8 @@ cd routing; .\run-graphhopper.ps1              # motor de ruteo en :8989 (1ª ve
 .\data\fetch-zonas-riesgo.ps1                  # Zonas peligrosas, del mapa comunitario del AMBA
 .\data\cortar-mascota.ps1                      # Corta las hojas de la mascota en un PNG por pose
 dotnet run --project src/TruckNavigator.Api    # backend + web en :5080, migra y siembra al arrancar
-dotnet test                                    # 695 tests (.NET)
-node --test "tests/web/*.test.mjs"             # 428 tests: guiado, **el mapa que no se rompe** (el agua, el reintento de tiles, el respaldo), avisos de ruta, el estilo del mapa, **la Red** (el cromo, el destello, los nombres, el contraste medido desde app.css), piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), **la Viborita TBF** (motor, dibujos, pantallas), el vocabulario y los iconos
+dotnet test                                    # 710 tests (.NET)
+node --test "tests/web/*.test.mjs"             # 487 tests: guiado, **el mapa que no se rompe** (el agua, el reintento de tiles, el respaldo), avisos de ruta, el estilo del mapa, **la Red** (el cromo, el destello, los nombres, el contraste medido desde app.css), piezas, pantalla del viaje (banda, hoja, globos, aviso, vista general, reanudar, el cierre), tarjetas, lista y detalles de ruta, busqueda, lugares (capa, ficha, voto y aportar), reportes (catalogo, edad, sentido, pines, hojas, avisos, vibracion, freno de la red, la lista en vivo), hoja de capas, flecha de maniobra, agenda, mascota e insignias, **la entrada** (estado de sesion, pasos, idiomas, terminos, camion del invitado, hojas de cuenta), **la Viborita TBF** (motor, dibujos, pantallas), **Cruzá, Mono** (reglas, el mundo sin fin y sus garantías, motor, sprites, vehículos, escenario, pantallas), el vocabulario y los iconos
 .\build-apk.ps1 -Push                          # APK de Release + copia a Descargas por adb
 .\demo-up.ps1                                  # GraphHopper + API + túnel Cloudflare (HTTPS público)
 .\demo-down.ps1                                # baja todo lo anterior
@@ -247,6 +247,13 @@ node --test "tests/web/*.test.mjs"             # 428 tests: guiado, **el mapa qu
   huecos. `dibujos.js` tiene `faltantes` y un test que recorre cada texto de cada pantalla.
   Al agregar un texto a una pantalla de la LCD, el test dice qué letra dibujar antes de
   que la vea el usuario.
+- **Un mundo generado se prueba sobre miles de filas, no mirando diez.** La franja de
+  Cruzá, Mono con un hueco encerrado —conventillos a los costados, un árbol adelante—
+  cumplía la regla del pasillo, y la encontró la demostración del prototipo jugándose sola.
+  Cada garantía de `js/juegos/cruza/mundo.js` tiene un test sobre 3000 filas y cuatro
+  semillas; una regla nueva del mundo va con el suyo. Y **un dibujo portado se corre entero
+  en un lienzo falso** antes del navegador: el test de vehículos pasaba con `ancho` sin
+  importar, porque los tests no dibujan (AD-56).
 - **Una capa `circle` de MapLibre sólo dibuja puntos.** Con geometrías `Polygon` no
   dibuja nada y **no emite ningún error**. Una capa `symbol` sí las acepta y ubica el
   símbolo en el centroide, así que sobre la misma fuente el ícono aparecía y la mancha
@@ -617,6 +624,7 @@ node --test "tests/web/*.test.mjs"             # 428 tests: guiado, **el mapa qu
 | `docs/reportes.md` | Reportes de la comunidad: catálogo, confiabilidad, lo fijo, ruteo, EXP y reputación, abuso, API |
 | `docs/superpowers/specs/2026-09-30-entrada-y-cascara-design.md` | **La entrada y el invitado** (30/09/2026): los cuatro pasos, qué puede cada estado, y por qué las fases 6 y 7 se partieron en cinco |
 | `docs/superpowers/specs/2026-10-03-viborita-tbf-design.md` | **La Viborita TBF** (03/10/2026): el Snake del 1100 con un camión, la pantalla, las reglas, el récord y cómo se verifica. Su prototipo aprobado: `docs/diseno/prototipo-viborita/` |
+| `docs/superpowers/specs/2026-10-04-cruza-mono-design.md` | **CRUZÁ, MONO** (04/10/2026): el Crossy Road porteño con el mono, el mundo sin fin y sus garantías, el reparto del tránsito, los carteles de la app y el récord. Su prototipo aprobado: `docs/diseno/prototipo-cruza/` |
 | `docs/deploy.md` | Sacar la app de la red local: túnel HTTPS y servidor propio |
 
 Al cambiar comportamiento, actualizá el documento que corresponda en el mismo commit.

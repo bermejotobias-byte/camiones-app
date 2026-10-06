@@ -72,6 +72,9 @@ export const FUENTE = {
   '!': ['..#..', '..#..', '..#..', '..#..', '..#..', '.....', '..#..'], '¡': ['..#..', '.....', '..#..', '..#..', '..#..', '..#..', '..#..'],
   ':': ['.....', '..#..', '.....', '.....', '.....', '..#..', '.....'], '.': ['.....', '.....', '.....', '.....', '.....', '.....', '..#..'],
   '<': ['...#.', '..#..', '.#...', '#....', '.#...', '..#..', '...#.'],
+  '-': ['.....', '.....', '.....', '#####', '.....', '.....', '.....'],
+  '+': ['.....', '..#..', '..#..', '#####', '..#..', '..#..', '.....'],
+  ',': ['.....', '.....', '.....', '.....', '.....', '..#..', '.#...'],
   ' ': ['.....', '.....', '.....', '.....', '.....', '.....', '.....']
 };
 
@@ -80,3 +83,18 @@ export const faltantes = (texto) => [...new Set([...String(texto)].filter((c) =>
 
 /** Ancho en pixeles: seis por caracter (cinco y un espacio), sin el ultimo espacio. */
 export const anchoDeTexto = (texto, k = 1) => String(texto).length * 6 * k - k;
+
+/**
+ * Un texto en la fuente de pixel, como SVG: los epigrafes de la Viborita y el SALIR
+ * de los juegos de pantalla completa.
+ */
+export function rotulo(t, color, k = 2) {
+  const px = [];
+  let cx = 0;
+  for (const c of t) {
+    (FUENTE[c] ?? FUENTE[' ']).forEach((f, j) => [...f].forEach((p, i) => p === '#' && px.push([cx + i, j])));
+    cx += 6;
+  }
+  const W = anchoDeTexto(t) * k, H = 7 * k;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;shape-rendering:crispEdges" aria-label="${t}">${px.map(([x, y]) => `<rect x="${x * k}" y="${y * k}" width="${k}" height="${k}" fill="${color}"/>`).join('')}</svg>`;
+}

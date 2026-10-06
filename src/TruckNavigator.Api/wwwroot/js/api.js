@@ -314,5 +314,9 @@ export const api = {
 
   // La Viborita TBF: el telefono informa cajas y duracion; los puntos y el record
   // los calcula el servidor.
-  viboritaPartida: (cajas, duracionMs) => post('/api/juegos/viborita/partidas', { cajas, duracionMs })
+  viboritaPartida: (cajas, duracionMs) => post('/api/juegos/viborita/partidas', { cajas, duracionMs }),
+
+  // Cruza, Mono: el telefono informa filas, cajas y duracion; los puntos y el record
+  // los calcula el servidor.
+  cruzaPartida: (filas, cajas, duracionMs) => post('/api/juegos/cruza/partidas', { filas, cajas, duracionMs })
 };

@@ -14,22 +14,10 @@ import { crearPartida, girar, avanzar } from '../juegos/viborita/motor.js';
 import { pasoMs } from '../juegos/viborita/reglas.js';
 import { inicio, jugando, pausa, fin, AN, AL } from '../juegos/viborita/pantallas.js';
 import { pintar } from '../juegos/viborita/lcd.js';
-import { FUENTE, anchoDeTexto } from '../juegos/viborita/dibujos.js';
+import { rotulo } from '../juegos/viborita/dibujos.js';
 
 const FLECHA = '<svg viewBox="0 0 40 40" width="38" height="38"><path d="M20 6 L34 22 H25 V34 H15 V22 H6 Z" fill="#a9c07c" stroke="#1d2418" stroke-width="2.4" stroke-linejoin="round"/></svg>';
 const TECLAS = { ArrowUp: 'arr', ArrowDown: 'aba', ArrowLeft: 'izq', ArrowRight: 'der' };
-
-/** Un texto en la fuente de pixel, como SVG: los epigrafes y el SALIR de afuera. */
-function rotulo(t, color, k = 2) {
-  const px = [];
-  let cx = 0;
-  for (const c of t) {
-    (FUENTE[c] ?? FUENTE[' ']).forEach((f, j) => [...f].forEach((p, i) => p === '#' && px.push([cx + i, j])));
-    cx += 6;
-  }
-  const W = anchoDeTexto(t) * k, H = 7 * k;
-  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;shape-rendering:crispEdges" aria-label="${t}">${px.map(([x, y]) => `<rect x="${x * k}" y="${y * k}" width="${k}" height="${k}" fill="${color}"/>`).join('')}</svg>`;
-}
 
 export function viboritaView(host, { go }) {
   host.className = 'viborita';
