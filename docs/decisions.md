@@ -3530,7 +3530,8 @@ ni batería todavía**, primero que el juego enganche.
 
 **Fecha:** 04/10/2026
 **Estado:** aceptada y construida en la rama `cruza-mono-juego` (apilada sobre `cruza-mono`, que
-lleva el diseño, y sobre la Viborita); **falta probarla en el teléfono** (Task 12 del plan).
+lleva el diseño, y sobre la Viborita); **probada en el teléfono por el usuario el 04/10/2026:
+anda todo**.
 Es el segundo juego de la Fase 6. Spec y plan en
 `docs/superpowers/{specs,plans}/2026-10-04-cruza-mono*`; el prototipo aprobado en
 `docs/diseno/prototipo-cruza/`.
@@ -3611,5 +3612,8 @@ el HI-SCORE se guarda en el servidor como el de la Viborita.
   de las sombras semitransparentes.
 - **El invitado no se probó en el navegador**: habría que cerrar la sesión de la cuenta de
   desarrollo. El código es el mismo de la Viborita.
-- **Falta el teléfono**: la fluidez con la CPU real, los gestos, la vibración y la pausa al
-  salir de la app. La medición en la PC no reemplaza esa prueba.
+- **Probado en el teléfono el 04/10/2026** por el usuario, con el APK de Release por el túnel:
+  *"funciona todo"*. La prueba cubrió la fluidez con la CPU real, los gestos, la vibración, la
+  pausa al salir de la app, el botón atrás y el récord. Es también la primera vez que la
+  vibración anda en el teléfono, después de agregar `android.permission.VIBRATE` (AD-39). El log
+  del teléfono no se leyó: se desconectó antes.
