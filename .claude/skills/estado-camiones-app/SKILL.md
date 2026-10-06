@@ -36,21 +36,23 @@ mostrar los 386 archivos— y **no se borra**: es el único lugar con los 181
 commits uno por uno, cuyos mensajes cargan buena parte del porqué
 (`git log cuentas-de-usuario`).
 
-**Punta al 04/10/2026: CRUZÁ, MONO, el segundo juego de la Fase 6** (AD-56). Tres
-ramas apiladas, una por PR: `viborita-tbf` (PR #7 contra `main`), `cruza-mono`
-con la spec, el prototipo y el plan (PR #6 contra `viborita-tbf`) y
-**`cruza-mono-juego`** con el código, todavía sin PR. Cuando se fusionen #7 y #6, cada
-una se rebasa sobre `main` (`main` se fusiona con squash). Es el Crossy Road porteño
-con el mono, un mundo sin fin con semilla y el HI-SCORE en el servidor. **Probado en el
-teléfono el 04/10/2026: anda todo.** 443 unitarios, 267 de integración y 487 de web. Ver §8.0.
+**Punta al 05/10/2026: los dos primeros juegos de la Fase 6, en `main`** (`0e952b5`).
+Los dos están probados en el teléfono y aprobados por el usuario.
+- **VIBORITA TBF** (AD-55), por el **PR #7**: el Snake del Nokia 1100 con un camión que suma
+  acoplados.
+- **CRUZÁ, MONO** (AD-56), por el **PR #8**: el Crossy Road porteño con el mono, un mundo sin
+  fin con semilla.
 
-**Antes, al 03/10/2026, más tarde: VIBORITA TBF, el primer juego de la Fase 6**
-(AD-55). Rama **`viborita-tbf`**, desde `main` en `614ad9e`, en `b6852a0` al
-terminar el código y los tests; **sin PR todavía** y **falta probarla en el
-teléfono** (Tarea 10 del plan). Es el Snake del Nokia 1100 con un camión que suma
-acoplados, dentro de Juegos, con el **récord propio en el servidor**: el primero que
-escribe la tabla de récords. Sin EXP ni batería: primero que enganche. 435 unitarios,
-260 de integración y 427 de web. Ver §8.0.
+Los dos tienen el **récord propio en el servidor** y van sin EXP ni batería: primero que
+enganchen. Tests: 443 unitarios, 267 de integración y 487 web. Las ramas
+`viborita-tbf`, `cruza-mono` y `cruza-mono-juego` ya están borradas. Ver §8.0.
+
+**Lo que costó apilar PRs:** el #6 (el diseño de Cruzá, Mono) estaba apilado sobre
+`viborita-tbf` y se fusionó **en esa rama, no en `main`**. GitHub sólo redirige un PR
+apilado si se borra la rama de abajo. Se rehízo en el #8, con el diseño y el juego juntos,
+rebasados sobre `main` (`git rebase --onto origin/main <rama-de-abajo> <rama>`). **No
+apilar PRs**; si queda uno apilado, avisarle al usuario que lo redirija a `main` antes de
+fusionarlo, y comprobar después con `git cat-file -e origin/main:<archivo>`.
 
 **Antes, al 03/10/2026: las correcciones de la prueba en la calle, todas en `main`**
 (AD-52 a AD-54). El 02/10 el usuario probó el GPS en la calle y volvió con doce
@@ -149,7 +151,7 @@ Prioridad declarada:
 | **3 · Seguridad** | 🔨 Están el 911, las zonas peligrosas y los **3 contactos de emergencia**. Queda **compartir viaje por WhatsApp** —necesita endpoint público, tokens que venzan y decisiones de privacidad— y el S.O.S. del reporte, que depende de la Fase 5 |
 | **4 · Info para camiones** | 🔨 Capas, mapa base, avenidas destacadas, radares y **modo reparto completo** (calcula **y** navega, desde AD-45). **La base de POIs para camiones se relevó el 15/09/2026** (gomerías, estaciones, lugares para comer y talleres de mecánica pesada; 180 puntos, 48 con evidencia). **La interfaz de POIs está desde el 17–18/09/2026** (capa de lugares, ficha con el voto, hoja de capas con «solo aptos» y aportar, dentro del GPS de Waze) y **los POIs valorados por usuarios son los votos de AD-46**: la fase queda ✅ salvo lo que L-11 congela fuera de CABA |
 | **5 · Reportes de comunidad** | 🔨 **Construida el 19/09/2026** (AD-49): diez tipos en un toque desde la posición GPS, *sigue ahí / ya no está*, confiabilidad y vencimiento, la cámara y el lugar aportado que se vuelven fijos con 5, los cierres y gálibos validados que esquivan la ruta, EXP separada de reputación, cooldowns. **Falta probarla en el teléfono** y quedan la lista de reportes propios y pintar el tramo en rojo |
-| **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Lo que se apoya en él se partió en subproyectos (ver §0): falta **B** las pantallas del progreso, **C** el avatar (bloqueado por los dibujos) y **D** la batería y la trivia. **Dos huecos del motor que B necesita: la racha no existe en el dominio y los récords sólo los escribe la Viborita** — el primer juego, **hecho el 03/10/2026** (AD-55), con récord propio en el servidor; falta el teléfono y decidir cuánto vale una partida en EXP |
+| **6 · Experiencia y gamificación** | 🔨 **El motor está hecho y andando** (10/09): nivel, metas, logros, recompensas, inventario, equipamiento, récords y seis endpoints. Lo que se apoya en él se partió en subproyectos (ver §0): falta **B** las pantallas del progreso, **C** el avatar (bloqueado por los dibujos) y **D** la batería y la trivia. **Dos huecos del motor que B necesita: la racha no existe en el dominio y los récords sólo los escriben los juegos** — la Viborita (AD-55) y Cruzá, Mono (AD-56), **en `main` desde el 05/10/2026** y probados en el teléfono, cada uno con su récord en el servidor; falta decidir cuánto vale una partida en EXP |
 | **7 · Cáscara, entrada e idiomas** | 🔨 **La entrada está construida** (30/09, AD-51): Bienvenida → Idioma → Condiciones → Acceso, el **modo invitado de un día** que navega de verdad sin guardar el viaje, el menú MÁS completo y Reportes en vivo, sobre el zócalo del 12/09. Quedan **i18n de verdad** (hoy se guarda la elección y nada más) y **el chat** (subproyecto E, proyecto aparte). Falta el teléfono |
 | **Transversal** | ⬜ i18n (la pantalla existe, **sólo español** por decisión) · clave de firma de distribución. **El límite de tasa se hizo el 29/09/2026** (AD-50) |
 | **Despliegue** | 🔨 Escrito y commiteado, **nunca ejecutado**: falta cupo de A1 en Oracle, el release del mapa base, SMTP y DuckDNS |
@@ -1337,11 +1339,11 @@ lo correcto.
 
 ## 8. Lo que sigue
 
-### 0. CRUZÁ, MONO (04/10/2026) — construido y probado en el teléfono
+### 0. CRUZÁ, MONO (04/10/2026) — en `main` desde el 05/10 (PR #8)
 
 El segundo juego de la Fase 6, con la decisión en AD-56. El diseño llevó cinco vueltas de
 prototipo y una demostración que se juega sola (`docs/diseno/prototipo-cruza/`). El código
-va en `cruza-mono-juego`, un commit por tarea del plan. **Lo que está**:
+entró con un commit por tarea del plan, fusionado con squash en el PR #8. **Lo que está**:
 - el dominio y el récord `cruza` en `DriverRecord`, con `POST /api/juegos/cruza/partidas`;
 - en `wwwroot/js/juegos/cruza/`:
   - las reglas;
@@ -1355,10 +1357,16 @@ pausa, el golpe, los dos finales, el POST 200, el récord tras recargar y SALIR 
 **Probado en el teléfono el 04/10/2026** por el usuario: *"funciona todo"*. La prueba cubrió la
 fluidez, los gestos, la vibración, la pausa al salir de la app, el botón atrás y el récord.
 **Lo que falta**:
-1. **el invitado en el navegador**, que no se probó para no cerrar la sesión;
-2. **el PR** de `cruza-mono-juego`, apilado como los otros dos.
+1. **el invitado en el navegador**, que no se probó para no cerrar la sesión. El código es el
+   de la Viborita;
+2. **la EXP de una partida**, igual que en la Viborita.
 
-### 0bis. La Viborita TBF (03/10/2026) — PR #7 abierto
+**Cómo se portó el dibujo.** Con scripts que copian rangos de líneas del prototipo
+(commit `39f4181`) y aplican sólo los cambios del plan; **ninguno quedó en el repo**. Además,
+un banco de prueba con un lienzo falso dibujó todo en Node antes del navegador, y encontró
+`ancho` sin importar en los colectivos, con los tests en verde. Ver la trampa en `CLAUDE.md`.
+
+### 0bis. La Viborita TBF (03/10/2026) — en `main` desde el 05/10 (PR #7)
 
 El usuario la probó en el teléfono sin errores. **La vibración anda desde que se agregó
 `android.permission.VIBRATE`**: lo confirmó la prueba de Cruzá, Mono el 04/10/2026, con el mismo
@@ -1376,10 +1384,12 @@ verificación encontró dos defectos que los tests no veían: el récord del ini
 `recordCode` y el servidor manda `code`, y a 360 de ancho la escala se calculaba con un margen
 fijo de 60 px contra los 52 reales de la carcasa.
 
-**Lo que falta**: (1) **el teléfono** —APK con `build-apk.ps1`, el pulgar sobre la cruceta, la
-nitidez de la LCD con la densidad real y las vibraciones—; (2) **el PR** a `main`, con la
-convención de una rama por feature; (3) **la EXP de una partida**, que se decide cuando el
-juego enganche y se otorga sólo por `ProgressionRecorder`; (4) **los otros tres juegos**.
+**Lo que falta**:
+1. **La EXP de una partida.** Se decide cuando el juego enganche, y la otorga sólo
+   `ProgressionRecorder`. Vale para los dos juegos.
+2. **Los juegos que quedan**: la trivia, el Grand Prix y el dinosaurio. Cruzá, Mono es lo más
+   parecido al "esquivar autos" del brainstorm, pero no se confirmó con el usuario que lo
+   reemplace. Ver `producto-camiones-app`.
 
 ### 0 bis. La prueba en la calle (02–03/10/2026) — CERRADA
 

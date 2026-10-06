@@ -359,12 +359,15 @@ servidor: el cliente nunca dice cuánto ganó, sólo pregunta cuánto tiene.
 | ⬜ | **Premiar el tiempo de interacción** en cualquier sección, no sólo el GPS | v2 |
 | ⬜ | Chat público, privado entre amigos, y grupos. Con palabras baneadas y baneo automático. Escalable a comunidades | v1 · v3 §12 |
 | ⬜ | **La trivia — el primer juego, y el más definido.** Mecánica de Preguntados: pregunta, cuatro opciones apiladas, respuesta inmediata, la correcta en verde y la palabra del resultado estampada encima; temporizador y ritmo rápido. Lenguaje visual de Duolingo. **Contenido**: mundo camionero y conocimiento general argentino — distancias entre ciudades, rutas y geografía, marcas y modelos, mecánica, señalización, provincias por su silueta, fútbol. Accesible, nada rebuscado. **El banco de preguntas es dato, no código**: tiene que ampliarse y categorizarse sin tocar el sistema | v2 · v3 §5 · 09/09/2026 |
-| ✅ | **VIBORITA TBF — el Snake del Nokia 1100 con un camión que suma acoplados.** **Construida el 03/10/2026** (AD-55, rama `viborita-tbf`): LCD verde dentro de una carcasa de plástico azul, campo de 10 × 10, **récord propio en el servidor** (el primero de la tabla de récords). Sin EXP ni batería todavía —primero que enganche—; falta probarla en el teléfono | v2 · v3 §5 · usuario 03/10 |
-| ⬜ 💬 | **Los otros tres juegos**: esquivar autos, tipo Grand Prix, y tipo dinosaurio de Google saltando miguelitos, baches y lomas de burro | v2 · v3 §5 |
+| ✅ | **VIBORITA TBF — el Snake del Nokia 1100 con un camión que suma acoplados.** **En `main` desde el 05/10/2026** (AD-55, PR #7), probada en el teléfono: LCD verde dentro de una carcasa de plástico azul, campo de 10 × 10, **récord propio en el servidor** (el primero de la tabla de récords). Sin EXP ni batería todavía —primero que enganche— | v2 · v3 §5 · usuario 03/10 |
+| ✅ | **CRUZÁ, MONO — el Crossy Road porteño con el mono.** **En `main` desde el 05/10/2026** (AD-56, PR #8), probado en el teléfono y aprobado. El mono cruza calles con Torinos, colectivos y camiones TBF, y el Riachuelo sobre troncos, en un **mundo sin fin con semilla**. Junta cajas TBF (+50), tiene 3 vidas y el **HI-SCORE en el servidor**. Los carteles de la app van pintados en las fachadas. Sin EXP ni batería todavía. **Lo pidió el usuario el 04/10**, fuera de la lista del brainstorm: es lo más parecido a "esquivar autos", pero no se confirmó que lo reemplace | usuario 04/10 |
+| ⬜ 💬 | **Los otros juegos del brainstorm**: esquivar autos (¿lo cubre Cruzá, Mono? preguntar), tipo Grand Prix, y tipo dinosaurio de Google saltando miguelitos, baches y lomas de burro | v2 · v3 §5 |
 
 > **Los juegos son un proyecto aparte.** Cinco juegos con gráficos de arcade y
 > ranking no entran en "una fase más". Conviene elegir uno, hacerlo bien y ver qué
-> pasa, antes de comprometerse con los cinco. El v3 agrega que **no pueden ser una
+> pasa, antes de comprometerse con los cinco. **Al 05/10/2026 hay dos hechos** —la Viborita
+> y Cruzá, Mono—, cada uno con spec, prototipo aprobado por vueltas, plan y un PR. Ese es el
+> camino que anduvo. El v3 agrega que **no pueden ser una
 > sección aislada**: tienen que dar XP, progreso, recompensas y consumir batería.
 
 ### Fase 7 · Cáscara, entrada e idiomas — 🔨 **la entrada está construida** (30/09/2026, AD-51)

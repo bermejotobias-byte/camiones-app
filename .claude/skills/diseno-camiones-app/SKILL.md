@@ -342,6 +342,11 @@ Los camiones desbloqueables en pixel art funcionan como cromos, y contrastan bie
 con la interfaz limpia y redondeada de alrededor. Es la misma lógica de las dos
 intensidades: cada registro en su lugar.
 
+**Cada juego tiene su propia estética, sacada de su referencia, y adentro no va la de la
+app.** Hoy hay dos: la Viborita es un Nokia 1100 (§18) y Cruzá, Mono es arcade de los 80
+sobre negro, con Buenos Aires adentro (§19). Afuera del juego —la fila de Juegos, SALIR, el
+zócalo— sigue la app.
+
 ## 9. Lo que NO se copia
 
 El propio usuario lo pidió en el v3: *"No copies contenido propietario."*
@@ -1055,3 +1060,63 @@ después se eleva.
   que se supone: con 60 de margen supuesto y 52 reales, a 360 de ancho caía a escala 2.
 - **Un carácter que falta en la fuente de píxel no se dibuja y no avisa**: `faltantes` y un
   test que recorre cada texto de cada pantalla.
+
+---
+
+## 19. CRUZÁ, MONO — arcade de los 80 sobre negro, con Buenos Aires adentro — 04/10/2026
+
+**La regla: adentro del juego vale la estética de la propuesta, no la de la app.** Es la
+tercera excepción de §2, la de los juegos de §8. Afuera sigue la app: la fila de Juegos es la
+tarjeta de siempre, en Nunito y con el botón JUGAR. Adentro va pixel art arcade de los 80
+sobre **negro puro** (`#000000`). El zócalo se esconde y `< SALIR` va arriba, en la fuente de
+píxel. Spec en `docs/superpowers/specs/2026-10-04-cruza-mono-design.md`, prototipo aprobado en
+`docs/diseno/prototipo-cruza/` y la decisión en AD-56.
+
+**Lo que se aprobó en cinco vueltas** (spec §1), con las palabras del usuario:
+
+| Vuelta | Qué pidió |
+|---|---|
+| 2 | *"Más píxeles, más detallado y agradable. Jugá con los camiones de TBF y la identidad de la app. Más animado"* |
+| 3 | *"Una estética más argentina… carteles de publicidad de nuestra app… Torino, Fiat Uno… colores más vivos"* |
+| 4 | Sacar el kiosco y el puesto de choris; más camiones de distintos colores y más líneas de colectivo |
+| 5 | Aprobado. Después corrigió el tránsito (*"no tantos camiones… que lo que menos pasen sean colectivos"*) y los carteles (*"la fuente debe romper"*, *"achicalos"*, *"ponelos sobre lugares no transitables porque confunde y achica mucho el espacio"*) |
+
+**Los recursos:**
+
+- **Celda de 24 px y campo de 216 × 340.** Tiene un HUD de 28, se ven 13 filas y hay 9
+  columnas. Se dibuja **a escala entera en píxeles físicos**, sin suavizado.
+- **Cada material lleva luz, base, sombra y contorno.** El contorno es oscuro cálido,
+  `#170C16`, no negro. Los vehículos salen de un rasterizador de siluetas que les da a todos
+  el mismo acabado.
+- **El universo es Buenos Aires:**
+  - vereda de baldosas con cordón;
+  - asfalto y adoquín, la senda peatonal y la Red con su línea de cromo celeste;
+  - plaza con jacarandá y banco con mate;
+  - el Riachuelo con troncos;
+  - conventillos de La Boca, galpones de carga y el playón TBF con su bandera;
+  - el Obelisco en la fila 100.
+- **La marca TBF va adelante:** la flota de camiones fileteados en nueve pinturas, la caja
+  con la cinta celeste y el violeta de recompensa en el HI-SCORE y en el "+50".
+- **Los vehículos evocan la silueta, no la marca.** No llevan emblemas ajenos, y los colores
+  de las líneas de colectivo son de fantasía.
+- **El rojo `#FF2E3A` es sólo del golpe.** Ningún auto lo repite.
+- **Dos letras de píxel.** La 5 × 7 de la Viborita va en el HUD y en las pantallas. Los
+  carteles llevan **una gruesa de 4 × 7 que "rompe"**, dibujada como el fileteado del logo
+  TBF: contorno, degradé por fila y brillo arriba de cada trazo. En el neón, cada letra es el
+  tubo, con su halo.
+- **Los tres carteles de la app van pintados en las fachadas**, nunca parados en la vereda.
+  Son "EL MEJOR AMIGO DEL CAMIONERO" (chapa fileteada), "RED DE TRÁNSITO PESADO" (la señal de
+  la Red, sólo pegada a una calle) y "TU GPS, BAJALA GRATIS" (neón). Miden 3 celdas por 20 px.
+  Sobre la vereda parecían pasables y le sacaban lugar al juego.
+- **Las pantallas usan la mascota PNG:**
+  - el inicio es un atardecer porteño con el mono del joystick;
+  - el game over dice "¡QUÉ MACANA!", con el mono de la rueda;
+  - el récord dice "¡SOS UN CRACK!", con el festejo y confeti;
+  - los botones llevan el reborde de la app.
+
+**La lección: el usuario corrige mirando la partida, no la lámina.** Las correcciones del
+tránsito y de los carteles llegaron después de ver la escena en movimiento, y la de los
+carteles sobre lo transitable, después de un **video de la demostración jugándose sola**.
+Mostrar la jugabilidad temprano, aunque sea con un piloto automático, ahorra vueltas. Y
+**lo que se aprobó se porta, no se redibuja**: el juego copió el prototipo por rangos de
+líneas, y lo que se pasó al caché se comparó píxel por píxel contra el dibujo directo.
