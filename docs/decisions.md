@@ -2083,6 +2083,17 @@ El generador hoy descarta los gálibos sin altura, pero el motor no puede depend
 de eso: es exactamente la clase de dato faltante que la regla de la casa manda
 tratar como faltante.
 
+### Apéndice (04/10/2026) · El permiso VIBRATE faltaba desde el principio
+
+La vibración **nunca vibró en el teléfono**. `AndroidManifest.xml` no declaraba
+`android.permission.VIBRATE` y sin él `Vibrator.Vibrate` tira `SecurityException`.
+No se notó porque la cáscara atrapa la excepción y sólo la loguea
+(`no se pudo vibrar (SecurityException)`, etiqueta `Cascara`). Lo destapó el
+logcat de la prueba de la Viborita: 27 excepciones, una por cada caja y cada
+choque. Afectaba a **toda** la vibración de la app —avisos de ruta y maniobras—,
+no sólo al juego. Se declaró el permiso; es un permiso normal, se concede al
+instalar y no abre ningún diálogo.
+
 ## AD-40 · Las rutas alternativas se ordenan por restricciones, no por tiempo
 
 **Fecha:** 01/09/2026
@@ -3427,3 +3438,90 @@ de lo que dejó la prueba en la calle del 02/10.
 - La trampa del 30/09 en `CLAUDE.md` dice que MapLibre reintenta los tiles sin
   parar. Lo medido hoy con el mapa base vectorial es lo contrario: un tile fallido
   no se vuelve a pedir. No se re-midió qué tiles eran los de aquella medición.
+
+## AD-55 · La Viborita TBF: el primer juego, y el primer récord
+
+**Fecha:** 03/10/2026
+**Estado:** aceptada y construida en la rama `viborita-tbf`; **falta probarla en el
+teléfono** (Tarea 10 del plan). Es el primero de los cinco juegos de la Fase 6
+(skill `producto-camiones-app`: *"viborita-camión que suma acoplados"*). Spec y plan en
+`docs/superpowers/{specs,plans}/2026-10-03-viborita-tbf*`; el prototipo aprobado en
+`docs/diseno/prototipo-viborita/`.
+
+### Contexto
+
+El pedido del usuario fue *"replicar la esencia del Snake clásico, pero reemplazando la
+serpiente por un camión"*: arcade, simple, inmediata, que el cuerpo se sienta como un camión
+que va incorporando acoplados. El diseño llevó **cinco vueltas de prototipo** (spec §1).
+En la primera eligió la base arcade y mandó una foto del **Nokia 1100**; en la segunda, con la
+LCD dentro de la estética de la app, pidió la estética del 1100, la pantalla verde y
+controles que simularan lo físico de esa época (*"no te orientes tanto en la estética de la
+app"*); en la tercera rechazó un teléfono entero con teclado numérico (*"no me da una
+sensación agradable"*) y mandó *"andá a la foto de referencia"*; en la cuarta pidió el
+contorno texturado azul, y en la quinta aprobó la carcasa de plástico azul
+texturado con el frente plateado, el nombre **VIBORITA TBF** y la cruceta de la referencia.
+Alcance acordado: el juego completo y pulido, con el récord propio en el servidor; **sin EXP
+ni batería todavía**, primero que el juego enganche.
+
+### Decisiones
+
+- **La pantalla del juego es un 1100 y no la app.** Es la excepción al lenguaje Duolingo de
+  la app, pedida por el usuario: fondo azul noche, carcasa, LCD verde, fuente de píxel
+  propia. Dentro del juego no hay nada de la estética de la app; el zócalo se esconde
+  mientras está abierto, como en el viaje.
+- **Campo de 10 × 10**, la cabina y dos acoplados al arrancar, una caja por vez. Un paso cada
+  260 ms y 20 menos cada 5 cajas hasta 140. Se pierde contra el borde o un acoplado propio; la
+  celda que deja la cola en ese paso está libre; si el campo se llena, se gana. Los giros
+  rápidos se encolan hasta dos.
+- **Una caja vale tantos puntos como acoplados llevás después de levantarla**: con *n* cajas,
+  `2n + n(n+1)/2`. El récord es de **puntos**, no de cajas.
+- **El récord reusa lo que el motor de progresión ya tenía**: la tabla `DriverRecord`, la
+  regla `PersonalRecords.Improve` —*igualar no es superar*: el empate no mueve la fecha— y
+  `GET /api/progress/records`. **Es el primer récord que se escribe**: hasta hoy nadie
+  llamaba a esa tabla. Su código es `viborita`.
+- **El servidor calcula los puntos y rechaza lo imposible.** `POST
+  /api/juegos/viborita/partidas` recibe `{ cajas, duracionMs }`, no los puntos, y devuelve
+  `{ puntos, record, nuevoRecord }`; más cajas de las que entran (97), o de las que se
+  levantan en ese tiempo al paso más rápido, es un 422. **No defiende contra un tramposo
+  decidido** —el teléfono igual informa las cajas—, descarta lo absurdo y deja el récord en
+  números posibles. Pide sesión y cae en la canasta de escritura del límite de tasa. Las
+  reglas son constantes con nombre en `Domain/Juegos/Viborita.cs` y el cliente usa los mismos
+  números (`js/juegos/viborita/reglas.js`), fijados por test en los dos lados.
+- **La LCD es un `<canvas>` a escala entera.** Cada píxel del juego es un cuadrado de
+  `escala × escala` píxeles de pantalla, sin suavizado, y la escala es el mayor entero que
+  entra: se mide por lo que ocupa la carcasa y se recalcula al cambiar el tamaño. Los dibujos
+  —el camión, la caja, las letras— viajan en el APK, así que debería andar sin conexión (no probado);
+  si perder no puede guardar el récord, el epígrafe lo dice y no se reintenta en segundo plano.
+- **Un módulo por tema en `js/juegos/viborita/`**: `motor.js` (puro, con el azar
+  inyectado), `reglas.js`, `dibujos.js`, `lcd.js` y `pantallas.js`; la vista y el cableado
+  del teclado, la cruceta y el deslizar están en `views/viborita.js`. Se abre desde **Juegos**.
+
+### Descartado
+
+- **Un `<rect>` SVG por píxel**, como en el prototipo: son miles de nodos y se rehacen en
+  cada paso. El prototipo sirve para mirar, no para jugar.
+- **EXP en esta etapa.** Falta decidir cuánto vale una partida, y la regla del proyecto es que
+  la EXP la otorga un solo lugar, `ProgressionRecorder`. Entra en un paso siguiente.
+- **Sonido.** Sin sonido en esta versión; sólo dos vibraciones del sistema de patrones del
+  GPS (un toque al levantar una caja, un patrón propio al chocar).
+
+### Consecuencias
+
+- **14 tests de .NET nuevos**, 8 de dominio y 6 de integración (435 y 260; 695 en total, con
+  los 15 que se saltean sin GraphHopper): la fórmula de los puntos, lo posible y lo imposible, y el
+  récord en la base (el primero, no superarlo, igualarlo sin mover la fecha, mejorarlo, una
+  partida sin cajas y lo imposible sin guardar nada). **36 de JS** (428 en total): el motor,
+  los dibujos, las pantallas, las reglas y la vibración.
+- **Verificado en el navegador el 03/10/2026**: a 360 × 740, 375 × 812 y 412 × 915 la LCD queda
+  a escala 3 (306 px) sin scroll, y la escala achica y vuelve a crecer al cambiar el tamaño de
+  la ventana; se juega con la cruceta y con el teclado, la pausa anda, chocar contra el borde
+  dice CHOCASTE, el POST de la partida da 200, el récord aparece en el inicio después de
+  recargar, el invitado ve el aviso de cuenta, y SALIR vuelve a Juegos con el zócalo.
+- **Esa verificación encontró dos cosas que los tests no veían.** El récord del inicio se
+  buscaba por `recordCode` y el servidor manda `code`: **el récord no se mostraba nunca**,
+  y ningún test cubría la lectura del récord en la vista. Y a 360 de ancho la
+  escala se calculaba con un margen fijo de 60 px, más que la carcasa real (52), así que la
+  LCD caía a escala 2 y salía chica; hoy se mide por lo que ocupa la carcasa.
+- **Falta el teléfono** (Tarea 10): el pulgar sobre la cruceta, la nitidez de la LCD con la
+  densidad real del aparato y la vibración. Es la costura nativa-web, la franja donde este
+  proyecto se equivocó más veces.

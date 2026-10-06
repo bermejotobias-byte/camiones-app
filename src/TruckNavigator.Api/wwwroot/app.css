@@ -4413,3 +4413,50 @@ button { font-family: inherit; font-size: inherit; }
 .estado-duda { background: var(--warn-soft); color: var(--warn); }
 .estado-confirmado { background: var(--ok-soft); color: var(--ok); }
 .estado-nuevo { background: var(--surface-2); color: var(--ink-3); }
+
+.juego-fila{color:inherit;text-align:left;cursor:pointer;font:inherit;width:100%;transition:transform .12s ease}
+.juego-fila:active{transform:scale(.985)}
+/* ===========================================================================
+   VIBORITA TBF (spec 2026-10-03-viborita-tbf). La pantalla entera es un 1100:
+   nada de la estetica de la app. Medidas y colores del prototipo aprobado.
+=========================================================================== */
+.viborita{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;gap:18px;padding:calc(14px + var(--safe-top,0px)) 0 calc(16px + var(--safe-bottom,0px));
+  background:linear-gradient(180deg,#141d28,#0c121a);overflow:hidden;touch-action:none}
+/* area tocable de 48 px de alto (17+14+17, el rotulo mide 14); los margenes negativos y el margin-left compensan el padding para que el rotulo no se mueva */
+.vb-salir{align-self:flex-start;margin:-11px 0 -11px 10px;background:none;border:0;padding:17px 12px;cursor:pointer}
+.vb-carcasa{position:relative;padding:20px;border-radius:62px 62px 44px 44px;
+  background:url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'180'%20height%3D'180'%3E%3Cfilter%20id%3D'n'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'.95'%20numOctaves%3D'3'%20stitchTiles%3D'stitch'%2F%3E%3CfeColorMatrix%20values%3D'0%200%200%200%201%20%200%200%200%200%201%20%200%200%200%200%201%20%200%200%200%20.55%200'%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23n)'%2F%3E%3C%2Fsvg%3E"),url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'180'%20height%3D'180'%3E%3Cfilter%20id%3D'n'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'1.8'%20numOctaves%3D'3'%20stitchTiles%3D'stitch'%2F%3E%3CfeColorMatrix%20values%3D'0%200%200%200%200%20%200%200%200%200%200%20%200%200%200%200%200%20%200%200%200%20.65%200'%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23n)'%2F%3E%3C%2Fsvg%3E"),url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'180'%20height%3D'180'%3E%3Cfilter%20id%3D'n'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'.35'%20numOctaves%3D'3'%20stitchTiles%3D'stitch'%2F%3E%3CfeColorMatrix%20values%3D'0%200%200%200%200%20%200%200%200%200%200%20%200%200%200%200%200%20%200%200%200%20.35%200'%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23n)'%2F%3E%3C%2Fsvg%3E"),linear-gradient(158deg,#34507f 0%,#22385e 28%,#172848 58%,#0d1730 100%);
+  background-blend-mode:soft-light,soft-light,multiply,normal;
+  box-shadow:inset 0 2px 1px rgba(200,220,255,.45),inset 0 7px 10px rgba(150,180,240,.12),inset 0 -4px 6px rgba(0,0,0,.6),inset -5px 0 9px rgba(0,0,0,.35),inset 5px 0 9px rgba(120,160,230,.14),
+    0 0 0 1px #050914,0 2px 0 1px rgba(110,140,200,.18),0 18px 34px rgba(0,0,0,.65),0 4px 8px rgba(0,0,0,.5)}
+.vb-carcasa::after{content:"";position:absolute;inset:11px;border-radius:52px 52px 34px 34px;pointer-events:none;
+  box-shadow:0 0 0 1px rgba(150,180,235,.28),inset 0 0 0 1px rgba(0,0,0,.55),inset 0 2px 3px rgba(0,0,0,.45)}
+.vb-canto{position:absolute;left:6px;top:46px;bottom:60px;width:9px;border-radius:9px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(190,215,255,0),rgba(190,215,255,.42) 22%,rgba(190,215,255,.16) 60%,rgba(190,215,255,0));filter:blur(2px)}
+.vb-veta{position:absolute;left:52px;right:52px;top:4px;height:6px;border-radius:6px;pointer-events:none;
+  background:linear-gradient(90deg,rgba(220,235,255,0),rgba(220,235,255,.35),rgba(220,235,255,0));filter:blur(1.5px)}
+.vb-frente{position:relative;z-index:1;border-radius:44px 44px 26px 26px;padding:12px 12px 16px;display:flex;flex-direction:column;align-items:center;gap:6px;
+  background:linear-gradient(180deg,#e4e7ea 0%,#c3c8cd 30%,#a7adb3 70%,#8f959c 100%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),inset 0 -3px 6px rgba(0,0,0,.25),0 0 0 1.5px #070b14,0 0 0 2.5px rgba(160,190,240,.22),0 3px 6px rgba(0,0,0,.45)}
+.vb-parlante{width:96px;height:9px;border-radius:5px;background:#2a2e34;box-shadow:inset 0 2px 2px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.7);position:relative;overflow:hidden}
+.vb-parlante i{position:absolute;right:8px;top:3px;width:26px;height:3px;border-radius:2px;background:#7c838c}
+.vb-marca{font:900 23px "Arial Black",Arial,sans-serif;letter-spacing:.08em;color:#20252c;text-shadow:0 1px 0 rgba(255,255,255,.75)}
+.vb-marco{padding:9px;border-radius:20px;background:linear-gradient(180deg,#d2d6da,#a2a8ae);box-shadow:inset 0 1px 0 #f4f6f8,inset 0 -1px 0 rgba(0,0,0,.25),0 1px 0 rgba(255,255,255,.6)}
+.vb-hundido{border-radius:12px;overflow:hidden;box-shadow:0 0 0 3px #2d3238,0 0 0 4px #1a1d21;position:relative;line-height:0}
+.vb-hundido::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 3px 6px rgba(0,0,0,.35);background:linear-gradient(160deg,rgba(255,255,255,.18),rgba(255,255,255,0) 35%)}
+.vb-lcd{display:block;image-rendering:pixelated}
+.vb-cruceta{--k:clamp(50px,7.6vh,70px);display:grid;grid-template-columns:repeat(3,var(--k));grid-template-rows:repeat(3,var(--k));gap:clamp(6px,1.1vh,10px)}
+.vb-k{border:0;padding:0;border-radius:14px;display:grid;place-items:center;cursor:pointer;background:linear-gradient(180deg,#1f2732,#151b23);
+  box-shadow:inset 0 0 0 2.5px #93a874,inset 0 0 0 4.5px #1a2018,0 3px 0 #06090d;-webkit-tap-highlight-color:transparent}
+.vb-k:active{transform:translateY(2px);box-shadow:inset 0 0 0 2.5px #93a874,inset 0 0 0 4.5px #1a2018,0 1px 0 #06090d}
+.vb-arr{grid-area:1/2}.vb-izq{grid-area:2/1}.vb-centro{grid-area:2/2}.vb-der{grid-area:2/3}.vb-aba{grid-area:3/2}
+.vb-izq svg{transform:rotate(270deg)}.vb-der svg{transform:rotate(90deg)}.vb-aba svg{transform:rotate(180deg)}
+.vb-aro{width:30px;height:30px;border-radius:50%;border:3px solid #93a874;background:#1a2018}
+.vb-epigrafe{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:14px}
+/* En un telefono angosto (360-399) la LCD a escala 3 (306) mas los bordes del
+   prototipo (82) no entra: se achican los bordes, 306 + 52 = 358. */
+@media (max-width:399px){.vb-carcasa{padding:12px}.vb-frente{padding:10px 8px 12px}.vb-marco{padding:6px}.vb-carcasa::after{inset:6px}}
+/* En uno bajo, menos aire entre las piezas. */
+@media (max-height:820px){.viborita{gap:10px}}
+/* Muy bajo (360 x 740): sin esto la LCD cae a escala 2. Menos aire y cruceta de 48. */
+@media (max-height:779px){.viborita{gap:6px;padding-top:calc(8px + var(--safe-top,0px))}.vb-cruceta{--k:48px;gap:6px}}

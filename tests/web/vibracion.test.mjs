@@ -31,3 +31,11 @@ test('el peligro se siente más largo que la información', () => {
   const suma = (p) => p.reduce((a, b) => a + b, 0);
   assert.ok(suma(VIBRACION.peligro) > suma(VIBRACION.reporte));
 });
+
+test('la Viborita vibra con dos patrones propios: la caja y el choque', () => {
+  const viejos = ['maniobra', 'galibo', 'radar', 'paso', 'reporte', 'peligro'].map((k) => VIBRACION[k].join(','));
+  assert.ok(Array.isArray(VIBRACION.caja) && Array.isArray(VIBRACION.choque));
+  assert.ok(!viejos.includes(VIBRACION.caja.join(',')));
+  assert.ok(!viejos.includes(VIBRACION.choque.join(',')));
+  assert.ok(VIBRACION.caja.reduce((a, b) => a + b, 0) < 60, 'la caja es un toque corto');
+});

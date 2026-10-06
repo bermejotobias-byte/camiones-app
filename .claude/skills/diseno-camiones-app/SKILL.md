@@ -1017,3 +1017,41 @@ en el flujo de la capa del mapa; **los nombres de clase `gps-*` se buscan
 antes de crearlos** (`gps-aportar` ya era el botón amarillo); y las
 capturas del panel del navegador se leen con el DOM al lado (rects), porque
 salen recortadas o en mosaico.
+
+---
+
+## 18. La Viborita TBF — el 1100, no la app — 03/10/2026
+
+**La regla: la pantalla del juego es un Nokia 1100 y no lleva la estética de la app.** Es
+una segunda excepción de §2, pedida por el usuario: *"no te orientes tanto en la estética de
+la app"*. Nada de Duolingo, mono ni celeste de Waze adentro del juego. Lo único que sigue
+siendo de la app es lo que la rodea: el zócalo se esconde, como en el viaje, y SALIR vuelve
+a Juegos.
+
+**Los recursos aprobados** (quinta vuelta, 03/10/2026; el prototipo vive en
+`docs/diseno/prototipo-viborita/`, ver su README, y la foto del usuario en
+`docs/referencias/viborita/referencia-nokia-1100.webp`):
+
+- **Carcasa de plástico azul con grano**: el contorno texturado que simula el plástico de los
+  bordes del 1100.
+- **Frente plateado con TBF**: el panel de arriba con el nombre del juego.
+- **LCD verde**, con rejilla y la sombra de cada píxel, en una fuente de píxel 5 × 7 propia
+  (con la eñe, los acentos y los signos del castellano).
+- **La cruceta de la referencia**, con el centro que hace lo que dice la LCD.
+- **Fondo azul noche** (`#141d28 → #0c121a`), `< SALIR` y el epígrafe en la misma fuente de
+  píxel.
+
+**La lección de las cinco vueltas: cuando el usuario manda una referencia, se toma de la
+referencia, no de la app.** La segunda vuelta puso la LCD dentro de la estética de la app y el
+usuario pidió no orientarse tanto en ella; la tercera, un teléfono entero con teclado
+numérico, tampoco le gustó y mandó *"andá a la foto de referencia"*. Lo que anduvo fue ir a
+la foto del 1100 y copiar de ahí el contorno, la pantalla y los controles. Es la misma lección de §7bis y §17: primero se copia exacto,
+después se eleva.
+
+**Dos cosas de construcción que salieron de verificar:**
+
+- **La LCD es un canvas a escala entera** (sin suavizado, cada píxel del juego es un cuadrado
+  de `escala × escala`), y la escala se mide por **lo que ocupa la carcasa**, no por un margen
+  que se supone: con 60 de margen supuesto y 52 reales, a 360 de ancho caía a escala 2.
+- **Un carácter que falta en la fuente de píxel no se dibuja y no avisa**: `faltantes` y un
+  test que recorre cada texto de cada pantalla.
