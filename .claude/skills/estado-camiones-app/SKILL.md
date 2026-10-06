@@ -1387,9 +1387,9 @@ fijo de 60 px contra los 52 reales de la carcasa.
 **Lo que falta**:
 1. **La EXP de una partida.** Se decide cuando el juego enganche, y la otorga sólo
    `ProgressionRecorder`. Vale para los dos juegos.
-2. **Los juegos que quedan**: la trivia, el Grand Prix y el dinosaurio. Cruzá, Mono es lo más
-   parecido al "esquivar autos" del brainstorm, pero no se confirmó con el usuario que lo
-   reemplace. Ver `producto-camiones-app`.
+2. **Los juegos que quedan**: la trivia, el Grand Prix y el dinosaurio. Cruzá, Mono es el
+   "esquivar autos" del brainstorm: lo confirmó el usuario el 06/10/2026. Ver
+   `producto-camiones-app`.
 
 ### 0 bis. La prueba en la calle (02–03/10/2026) — CERRADA
 
